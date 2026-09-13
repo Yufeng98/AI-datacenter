@@ -32,6 +32,8 @@ This repository is consumed as the `public/` git submodule of the (private) surv
 
 ## Chips Investigated
 
+| Chip | Device Class | Key Differentiator |
+|------|-------------|-------------------|
 | **Major GPUs** | | |
 | [nvidia-gpu](chips/nvidia-gpu/summary.md) | GPU | CUDA ecosystem, Tensor Cores, NVLink |
 | [amd-gpu](chips/amd-gpu/summary.md) | GPU | ROCm/HIP, CK/AITER, Infinity Fabric |
