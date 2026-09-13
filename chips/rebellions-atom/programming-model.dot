@@ -1,0 +1,154 @@
+digraph rebellions_atom_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.export\nrebel.compile()", fillcolor="#D6E4F0"];
+        hf [label="HuggingFace\noptimum-rbln\nRBLNAutoModel*", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow\nSavedModel\nConcrete Function", fillcolor="#D6E4F0"];
+    }
+
+    // ============ MODEL OPTIMIZATION (SqueezeBits, acquired 2026-06-30) ============
+    subgraph cluster_modelopt {
+        label="Model Optimization (SqueezeBits, acquired 2026-06-30)";
+        style="rounded,dashed";
+        color="#C2185B";
+        fontcolor="#C2185B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        owlite [label="OwLite\nQuantization + compression", fillcolor="#F8BBD0"];
+        fitsonchips [label="Fits on Chips\nLLM benchmarking / LLMOps", fillcolor="#F8BBD0"];
+        yetter [label="Yetter\nInference engine", fillcolor="#F8BBD0"];
+        soqzn [label="SDK integration path\nNOT DISCLOSED", shape=note, style="filled", fillcolor="#FFF9C4"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        frontend [label="RBLN Frontend Compiler\nGraph capture + lowering\nRBLN IR (pure tensor ops)", fillcolor="#E4DEFF"];
+        depanalysis [label="Dependency Analysis\nDRAM/SRAM access mapping\nInter-op dependency tracking", fillcolor="#E4DEFF"];
+        backend [label="RBLN Backend Compiler\nTiling + scheduling\nRISC ISA codegen\nStatic .rbln binary\n(v0.11.1.post1, 2026-07-31)\nBinary format broke at v0.11.0\n(Transformers v5)", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP / KERNEL LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op / Compute Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        computelib [label="RBLN Compute Library\nGEMM, Conv, Norm, Activation\nRISC ISA program generation\nTiling + SRAM estimation", fillcolor="#D4EDDA"];
+        modelzoo [label="RBLN Model Zoo\nPre-compiled .rbln binaries\nLLaMA, SDXL, BERT, T5\nCompile-once deploy anywhere", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        rblnrt [label="RBLN Runtime\nrbln.Runtime.load/run\nDevice memory management\nMulti-instance scheduling", fillcolor="#F8D7DA"];
+        serving [label="Serving Integrations\nNVIDIA Triton Inference Server\nvLLM official plugin\nHF Transformers pipeline", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="Linux Kernel Module (driver v3.2.2)\nModular driver architecture (v3.0.0)\nPCIe Gen5 device management\nBAR mapping, DMA engine\nMulti-instance isolation\nDynamic Resource Allocation", fillcolor="#E0E0E0"];
+        k8s [label="RBLN NPU Operator (v0.4.0)\nKubernetes device plugin + Helm\nAuto device detection\nBREAKING change 2026-04-30", fillcolor="#E0E0E0"];
+        tools [label="Diagnostics / Monitoring\nrbln-vs, rbln-smi, rbln-smd\ntorch.rbln.explain()", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Rebellions ATOM / REBEL Hardware";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        atom [label="ATOM (Samsung 5nm)\n8 Neural Engines (CGRA)\n32 TFLOPS FP16 / 128 TOPS INT8\n64 MB SW-managed SRAM\n16 GB GDDR6, 256 GB/s\nPCIe Gen5 x16, 60-130W", fillcolor="#283593", fontcolor="white"];
+        rebel [label="REBEL-Quad / Rebel100 (Samsung 4nm)\n4 x REBEL ASIC dies (320 mm² each)\n16 Neural Cores/die, RISC ISA\n144 GB HBM3e (4x36GB 12Hi), 4.8 TB/s\n2,048 TFLOPS FP8\nUCIe-Advanced die-to-die, 4 TB/s\n~600W PCIe package", fillcolor="#283593", fontcolor="white"];
+        sysscale [label="Systems\nRebelRack: 32 accel, 64 PFLOPS FP8\n4.6 TB HBM3e, 153.6 TB/s BW (secondary-sourced)\nRebelPOD: 8-128 nodes, 800GbE (secondary-sourced)\nRebelCard / RebelServer (2026, no specs disclosed)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> frontend;
+    hf -> frontend;
+    tf -> frontend;
+
+    // Framework -> Model Optimization (SqueezeBits tier)
+    hf -> owlite [style=dashed, color="#C2185B", label="compress /\nquantize"];
+    owlite -> frontend [style=dashed, color="#C2185B", label="optimized\nmodel"];
+    fitsonchips -> owlite [style=dashed, color="#C2185B", label="benchmark\nfeedback"];
+    yetter -> serving [style=dashed, color="#C2185B", label="serving\n(integration TBD)"];
+    owlite -> soqzn [style=dotted, arrowhead=none, color="#C2185B"];
+
+    // Compiler chain
+    frontend -> depanalysis [label="RBLN IR"];
+    depanalysis -> backend [label="annotated IR"];
+
+    // Backend -> Compute Library
+    backend -> computelib [label="per-op\ncodegen", style=dashed];
+
+    // Compiler -> Runtime (produces binary)
+    backend -> rblnrt [label=".rbln binary\n(compile-once)"];
+
+    // Model Zoo -> Runtime
+    modelzoo -> rblnrt [label=".rbln binary\n(pre-compiled)", style=dashed];
+
+    // Runtime -> Serving
+    rblnrt -> serving [label="inference\nAPI"];
+
+    // Runtime -> Driver
+    rblnrt -> kmod [label="PCIe ioctl\n+ DMA"];
+
+    // Orchestration / tooling
+    k8s -> kmod [style=dashed, label="device\nplugin"];
+    tools -> kmod [style=dotted, arrowhead=none];
+
+    // Driver -> Hardware
+    kmod -> atom [label="device\ndispatch"];
+    kmod -> rebel [style=dashed];
+
+    // Hardware internal
+    atom -> rebel [style=dashed, color="#F57F17", label="Gen 2\n(UCIe chiplet)"];
+    rebel -> sysscale [label="rack\nscale"];
+}

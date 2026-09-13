@@ -1,0 +1,244 @@
+chip: rebellions-atom
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"  # the `layers:` tree below was established at this date
+confidence: medium
+
+programming_model: compile-once deploy-anywhere (static compilation, no kernel authoring)
+
+layers:
+  framework_integration:
+    pytorch:
+      mechanism: torch.export + rebel.compile()
+      confidence: confirmed
+    tensorflow:
+      mechanism: SavedModel / TF2 concrete function graph capture
+      confidence: confirmed
+    huggingface_transformers:
+      mechanism: optimum-rbln RBLNAutoModelFor* wrappers
+      confidence: confirmed
+      repo: https://github.com/rebellions-sw/optimum-rbln
+    huggingface_diffusers:
+      mechanism: optimum-rbln RBLNStableDiffusion* pipelines
+      confidence: confirmed
+
+  compiler:
+    name: RBLN Compiler
+    phases:
+      - name: Frontend Compiler
+        input: ML framework model (PyTorch/TF/HF)
+        output: RBLN IR (pure tensor operations)
+        operations: [graph capture, operator lowering, graph optimization]
+      - name: Dependency Analysis
+        input: RBLN IR
+        output: annotated IR with DRAM/SRAM access patterns and dependencies
+      - name: Backend Compiler
+        input: annotated IR
+        output: RBLN binary (.rbln)
+        sub_components:
+          - Compute Library (RISC ISA code generation per operation)
+          - Memory allocator (SRAM reservation, DRAM scheduling)
+          - Scheduler (compute + memory pipeline overlap)
+          - Tiling engine (tensor tiling for on-chip SRAM capacity)
+    output_format: .rbln binary (static executable)
+    jit: false
+    compile_once: true
+    docs: https://rebellions.ai/understanding-rbln-compiler/
+
+  compute_library:
+    description: Internal compiler component; generates RISC ISA programs for Neural Engines
+    supported_ops:
+      - GEMM (hundreds of variants)
+      - Convolution
+      - Normalization (LayerNorm, RMSNorm)
+      - Nonlinear activations (GELU, SiLU, ReLU, Softmax)
+      - Flash Attention-style tiled attention
+    user_visible: false
+
+  runtime:
+    name: RBLN Runtime
+    language: Python
+    key_apis:
+      - rbln.Runtime.load(path)
+      - rbln.Runtime.run(inputs)
+    features:
+      - PCIe DMA host-device transfers
+      - Multi-instance scheduling (up to 16 on ATOM)
+      - Hardware-isolated instance arbitration
+    serving_integrations:
+      - name: NVIDIA Triton Inference Server
+        status: supported
+        notes: Native backend plugin
+      - name: vLLM
+        status: official plugin
+        issue: https://github.com/vllm-project/vllm/issues/7247
+      - name: HuggingFace pipelines
+        status: supported via optimum-rbln
+
+  model_zoo:
+    name: RBLN Model Zoo
+    repo: https://github.com/rebellions-sw/rbln-model-zoo
+    description: Pre-compiled .rbln binaries for common model architectures
+    supported_architectures:
+      - ResNet
+      - BERT
+      - T5
+      - LLaMA
+      - SDXL / Stable Diffusion
+      - SDXL-Turbo
+    tagline: "Compile once. Deploy anywhere."
+
+  driver:
+    type: Linux kernel module (PCIe)
+    open_source: false (not confirmed)
+    features:
+      - PCIe Gen5 device management and BAR mapping
+      - Multi-instance hardware isolation
+      - DMA engine management
+
+precision_support:
+  atom:
+    - FP16 (32 TFLOPS)
+    - INT8 (128 TOPS)
+  rebel_quad:
+    - FP8 (2,048 TFLOPS)
+    - FP16
+    - INT8
+
+multi_instance:
+  atom: 16 hardware-isolated instances per card
+  rebel_quad: not publicly specified
+
+sdk_docs: https://docs.rbln.ai/latest/index.html
+developer_portal: https://rebellions.ai/developers/
+sdk_release_notes: https://docs.rbln.ai/latest/supports/release_note.html
+
+# =====================================================================
+# UPDATE 2026-08-08 — window 2026-04-06 to 2026-08-08
+# Facts grouped with per-group confidence and sources. Nothing above deleted.
+# =====================================================================
+update_2026_08_08:
+
+  new_layer_model_optimization:
+    confidence: high  # acquisition and product identities confirmed by vendor + independent press
+    origin:
+      event: Rebellions acquires SqueezeBits
+      date: "2026-06-30"
+      structure: all-stock swap; 100%-owned subsidiary; existing SqueezeBits investors received Rebellions shares
+      cash_terms: not disclosed
+      target_founded: "2022-03"
+      target_financials_prior_year:
+        revenue_krw_b: 2.646
+        operating_profit_krw_m: 897
+        total_assets_krw_b: 5.3
+      prior_relationship: co-development since 2024; joint contributions to vLLM
+    products:
+      - name: OwLite
+        role: quantization / model compression
+        stack_position: pre-compilation model transformation (above rebel.compile())
+        rbln_sdk_integration: not disclosed
+      - name: Fits on Chips
+        role: LLM benchmarking / LLMOps toolkit
+        stack_position: cross-cutting measurement and operations
+        rbln_sdk_integration: not disclosed
+      - name: Yetter
+        role: inference engine
+        stack_position: serving tier
+        relationship_to_vllm_plugin: not disclosed
+    significance: >-
+      Adds a model-compression / inference-serving tier that Rebellions' first-party
+      toolchain did not previously have. Before this, the only optimization surface in
+      the stack was the compiler itself (quantization handled at compile time).
+      No SqueezeBits product is referenced in any RBLN SDK release note through 2026-07-31.
+    sources:
+      - https://rebellions.ai/newsroom/rebellions_squeezebits_acquisition_260630/
+      - https://www.thelec.net/news/articleView.html?idxno=11826
+      - https://www.storagenewsletter.com/2026/07/10/
+
+  sdk_releases:
+    confidence: high  # versions read directly from the vendor release notes
+    cadence: monthly calendar releases
+    new_hardware_family_added_in_2026: false  # release notes still cover only ATOM and REBEL series
+    releases:
+      - date: "2026-04-30"
+        compiler: v0.10.3
+        driver: v3.0.0
+        breaking: true
+        breaking_detail: >-
+          RBLN NPU Operator v0.3.x -> v0.4.0: Helm values restructured
+          (spec.daemonsets -> spec.podDefaults); auto device detection replaces the
+          static ConfigMap; generic resource mode rebellions.ai/npu becomes default.
+        features:
+          - parallel compilation
+          - RSD support for vision transformers and Qwen3-VL
+          - adds Qwen3-VL-32B, StableFast3D, TripoSR
+      - date: "2026-05-29"
+        compiler: v0.10.4.post1
+        driver: v3.2.2
+        breaking: false
+        features:
+          - new rbln-vs hardware diagnostic tool
+          - rbln_daemon renamed rbln-smd
+          - rbln-smi gains mknod for containers
+          - automatic vLLM compilation (separate precompile step removed)
+          - max_seq_lens renamed max_seq_len for VLMs
+      - date: "2026-06-26"
+        compiler: v0.11.0.post1
+        driver: v3.2.2
+        breaking: true
+        breaking_detail: >-
+          First release supporting Transformers v5. The compiled model format changed;
+          models compiled with earlier SDKs are incompatible and must be recompiled.
+          tensor_parallel_size renamed num_devices across compiler APIs.
+        features:
+          - adds Gemma4 and EXAONE-4.5
+      - date: "2026-07-31"
+        compiler: v0.11.1.post1
+        driver: v3.2.2
+        breaking: false
+        known_bad_build: >-
+          Plain v0.11.1 is known-bad: an inadvertently bundled mimalloc allocator caused
+          numerical mismatches. The .post1 suffix is load-bearing, not cosmetic.
+        features:
+          - adds index_copy / index_add / grouped_conv1d
+          - RBLN_VISIBLE_DEVICES alias for RBLN_DEVICES
+          - new torch.rbln.explain() (CPU-fallback diagnosis)
+          - new torch.rbln.synchronize()
+          - compile-time reduction via op fusion
+    preceding_context:
+      - date: "2026-01-30"
+        note: compiler v0.10.0, driver v3.0.0; modular driver architecture; MoE model support
+      - date: "2026-02-27"
+        note: vLLM v0.13.0 support
+      - date: "2026-03-27"
+        note: public PyTorch-RBLN release; initial Dynamic Resource Allocation driver support
+    sources:
+      - https://docs.rbln.ai/latest/supports/release_note.html
+
+  compile_once_caveat:
+    confidence: high
+    statement: >-
+      "Compile once, deploy anywhere" is portability across DEVICES, not across TOOLCHAIN
+      VERSIONS. The 2026-06-26 Transformers-v5 change invalidated every previously compiled
+      .rbln binary. State the guarantee precisely wherever the programming model is described.
+    sources:
+      - https://docs.rbln.ai/latest/supports/release_note.html
+
+  new_layers_added_to_layer_table:
+    confidence: high
+    entries:
+      - layer: Model Optimization
+        components: [OwLite, Fits on Chips]
+      - layer: Serving
+        components: [Yetter]
+      - layer: Cluster / Orchestration
+        components: [RBLN NPU Operator (Kubernetes device plugin + Helm chart, v0.4.0)]
+      - layer: Tooling / Diagnostics
+        components: [rbln-vs, rbln-smi, rbln-smd, "torch.rbln.explain()", "torch.rbln.synchronize()"]
+
+  open_items:
+    - item: integration path between SqueezeBits products and the RBLN SDK
+      status: not disclosed
+    - item: whether Yetter replaces, wraps, or coexists with the vLLM plugin
+      status: not disclosed
+    - item: REBEL-Quad multi-instance / partitioning behaviour
+      status: not publicly specified (unchanged from baseline)

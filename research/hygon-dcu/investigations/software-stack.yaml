@@ -1,0 +1,187 @@
+chip: hygon-dcu
+resource: software-stack
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+device_class: "GPU/DCU (China, 海光)"
+status: completed
+
+platform_name: DTK (DCU ToolKit / 深算开发工具包)
+platform_url: https://developer.sourcefind.cn/dtk
+platform_analogy: ROCm (AMD) analog; HIP-compatible
+
+layers:
+  framework_integration:
+    - name: PyTorch (via DTK ROCm compat)
+      type: framework
+      notes: "torch.cuda → torch.hip mapping; PyTorch 2.4+ supported"
+    - name: PaddlePaddle
+      type: framework
+      notes: "First-class DCU support; recommended for China market; 2.5+"
+    - name: TensorFlow
+      type: framework
+      notes: "Via DTK ROCm backend; TF 2.13+"
+    - name: vLLM (community port)
+      type: inference_server
+    - name: GPUStack
+      type: inference_server
+      url: https://docs.gpustack.ai/0.5/tutorials/running-inference-with-hygon-dcus/
+    - name: FlyAIBox/dcu-in-action
+      type: community_cookbook
+      url: https://github.com/FlyAIBox/dcu-in-action
+
+  compiler_ir:
+    - name: hipcc
+      type: compiler_driver
+      notes: "LLVM/clang-based; HIP C++ → DCU ISA"
+    - name: DTK LLVM suite
+      type: compiler
+      notes: "clang, clang++, OpenMP, OpenACC, rocm-gdb, rocprofv2"
+    - name: hipify-perl / hipify-clang
+      type: migration_tool
+      notes: "CUDA → HIP automated translation; ~90-95% automated"
+
+  op_library:
+    - name: hipDNN / MIOpen
+      analog: cuDNN
+      ops: [Conv, BatchNorm, Pooling, Attention, LSTM]
+    - name: hipBLAS
+      analog: cuBLAS
+      ops: [GEMM, BLAS L1-L3, batched GEMM]
+    - name: hipSPARSE
+      analog: cuSPARSE
+    - name: hipFFT
+      analog: cuFFT
+    - name: hipRAND
+      analog: cuRAND
+
+  kernel_library:
+    - name: hipThrust
+      analog: Thrust
+    - name: hipCUB / rocPRIM
+      analog: CUB
+    - name: rocBLAS
+      analog: cuBLAS (lower-level)
+
+  runtime:
+    - name: HIP Runtime (hiprt)
+      analog: libcudart.so
+      apis: [hipMalloc, hipMemcpy, hipStream_t, hipEvent_t, hipLaunchKernelGGL, hipMallocManaged]
+    - name: ROCr / HSA Runtime
+      analog: CUDA Driver API
+      notes: "Lower-level HSA agent model; rarely used directly"
+
+  driver_firmware:
+    - name: DCU kernel driver
+      type: linux_kernel_module
+      notes: "PCIe BAR, DMA, IOCTL; proprietary (not open-sourced)"
+    - name: HAMi dcu-vgpu-device-plugin
+      type: kubernetes_device_plugin
+      url: https://github.com/Project-HAMi/dcu-vgpu-device-plugin
+      notes: "vGPU sharing, memory limits, core quotas"
+    - name: HAMi (Heterogeneous AI Management Infrastructure)
+      url: https://github.com/Project-HAMi/HAMi
+
+  communication:
+    - name: RCCL (DCU port)
+      analog: NCCL
+      ops: [AllReduce, AllGather, ReduceScatter, Broadcast]
+      intranode: xGMI peer-to-peer
+      internode: RoCE v2 / Ethernet RDMA
+
+  isa_assembler:
+    - name: DCU ISA (GCN/Vega-derived)
+      public: false
+      notes: "Not independently published; amdgcn LLVM backend; v_ VGPR, s_ SGPR, ds_ LDS, buffer_ global"
+    - name: hipcc / LLVM
+      notes: "Handles all ISA targeting; inline amdgcn asm possible"
+
+wavefront_vs_warp:
+  cuda_warp_size: 32
+  dcu_wavefront_size: 64
+  migration_note: "Key difference; affects occupancy, bank conflicts, shfl semantics"
+
+dtk_versions:
+  - version: "23.x"
+    rocm_equiv: "5.x"
+    status: stable_production
+  - version: "24.x"
+    rocm_equiv: "6.x"
+    status: current_mainstream
+  - version: "25.x"
+    rocm_equiv: "6.x+"
+    status: latest
+    alibaba_cloud_image: available
+
+# =====================================================================
+# UPDATE 2026-08-08 — 深算三号 (BW1000)-era software stack
+# Headline: stack materially UNCHANGED across the flagship generation change.
+# =====================================================================
+update_2026_08_08:
+  update_date: "2026-08-08"
+  change_class: minor (software) / major (chip context)
+
+  dtk_release_status:
+    latest_versions_located: ["DTK 25.04", "DTK 25.10"]
+    naming_vintage: "2025"
+    dtk_26x_found: false
+    two_thousand_twentysix_release_confirmed: false
+    portal_reachable_during_verification: false
+    portal: https://developer.sourcefind.cn/dtk
+    bw1000_specific_branch_or_target: not documented
+    prior_claim_status: >-
+      "PyTorch 2.4+ confirmed with DTK 24/25" is neither contradicted nor refreshed;
+      retained but not re-verified against a 2026 release.
+    confidence: medium
+    sources:
+      - https://developer.sourcefind.cn/dtk
+
+  model_adaptations:
+    - model: Tencent Hunyuan Hy3 (open-source preview)
+      target: 深算三号 (BW1000)
+      reported_completion: "2026-05"
+      confidence: low-medium
+      sourcing_grade: "encyclopedia only (Baidu Baike); no vendor or Tencent primary confirmation"
+      sources:
+        - https://baike.baidu.com/item/%E6%B7%B1%E7%AE%97%E4%B8%89%E5%8F%B7/67723890
+    - model: DeepSeek V4
+      target: 深算三号 (BW1000)
+      claim: "priority adaptation"
+      confidence: unverified
+      sourcing_grade: "vendor/channel claim; no primary source retrieved"
+      disposition: not recorded as fact
+      sources: []
+
+  vendor_marketing_claims_flagged:
+    - claim: "深算三号 is 类CUDA (CUDA-like)"
+      confidence: vendor-claim
+      note: >-
+        Public toolchain remains HIP/ROCm-compatible via DTK; the CUDA-likeness is the
+        pre-existing hipify + HIP path. No primary source describes a new CUDA-compat layer.
+      sources: []
+    - claim: "algorithm/operator coverage exceeding 99%"
+      confidence: vendor-claim
+      note: "No benchmark, operator list, or primary source retrieved. Not independently verified."
+      sources: []
+
+  unchanged_layers:
+    confidence: confirmed
+    note: "No BW1000-specific change documented in any layer below."
+    layers:
+      - compiler_ir: "hipcc / DTK LLVM / hipify — unchanged"
+      - op_library: "hipDNN/MIOpen, hipBLAS, hipSPARSE, hipFFT, hipRAND — unchanged"
+      - kernel_library: "hipThrust, hipCUB, rocPRIM, rocBLAS — unchanged"
+      - runtime: "HIP Runtime, ROCr/HSA — unchanged"
+      - driver_firmware: "proprietary .ko, HAMi dcu-vgpu-device-plugin — unchanged"
+      - communication: "RCCL over xGMI intra-node / RoCE inter-node — unchanged; no BW1000 collective-offload engine documented"
+      - isa_assembler: >-
+          Still unpublished; still amdgcn-targeted via DTK LLVM. 64-thread wavefront
+          NOT confirmed for BW1000 — presumed from the unchanged toolchain, not stated by Hygon.
+
+  negative_results:
+    confidence: confirmed_absent
+    mlperf_training_submission: none found
+    mlperf_inference_submission: none found
+    hot_chips_2026_software_paper: none found
+    isca_2026_software_paper: none found
+    isscc_2026_software_paper: none found
+    bw1000_sdk_release_notes: none found

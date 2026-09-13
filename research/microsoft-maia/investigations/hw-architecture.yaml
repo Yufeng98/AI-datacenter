@@ -1,0 +1,222 @@
+chip: microsoft-maia
+document: hw-architecture
+as_of: "2026-04-05"
+primary_sources:
+  - "HC2024 'Inside Maia 100' — Sherry Xu, Microsoft (August 2024)"
+  - "Microsoft Tech Community — Inside Maia 100 blog"
+  - "Microsoft Blog — Maia 200 announcement (January 2026)"
+  - "Microsoft Tech Community — Deep dive into the Maia 200 architecture"
+
+generations:
+  maia_100:
+    announced: "November 2023"
+    presented_at: "Hot Chips 2024 (HC2024)"
+    deployed: "Late 2024"
+    primary_use: "Training and inference"
+    process: "TSMC N5 (5nm)"
+    package: "CoWoS-S interposer"
+    die_size_mm2: 820
+    transistors_B: 105
+    tdp_w_nominal: 500
+    tdp_w_max: 700
+    compute:
+      mx6_pops: 3.0
+      mx9_pops: 1.5
+      bf16_pops: 0.8
+    tensor_unit:
+      type: "16xRx16 high-speed tensor unit"
+      formats: ["MX6", "MX9", "BF16"]
+      isa: "not public"
+    vector_processor:
+      type: "loosely coupled superscalar"
+      isa: "custom, not public"
+      formats: ["FP32", "BF16"]
+    dma_engine:
+      features: ["tensor sharding schemes", "hardware semaphores", "async programming"]
+    on_chip_sram_mb: 500
+    sram_management: "software-managed scratchpad (no hardware cache)"
+    hbm_type: "HBM2e"
+    hbm_capacity_gb: 64
+    hbm_bandwidth_tbs: 1.8
+    hbm_stacks: 4
+    host_interface:
+      type: "PCIe Gen5 x8"
+      bandwidth_gbs: 32
+    scale_up_network:
+      protocol: "custom RoCE-like transport"
+      allgather_scatter_gbps: 4800
+      alltoall_gbps: 1200
+      ports: "12x 400GbE"
+      backend_bandwidth_gbs: 600
+      encryption: "AES-GCM"
+    rack_system:
+      name: "Ares"
+      chips_per_rack: 32
+      servers_per_rack: 8
+      rack_power_kw: 40
+      cooling: "mandatory liquid cooling"
+      tors: "Arista + Cisco dual-sourced"
+
+  maia_200:
+    announced: "January 26, 2026"
+    deployed: "January 27, 2026"
+    primary_use: "Inference-optimized"
+    process: "TSMC N3 (3nm)"
+    transistors_B: 140
+    tdp_w: 750
+    compute:
+      fp4_pflops: 10
+      fp8_pflops: 5
+    architecture:
+      hierarchy: "Tile -> Cluster"
+      tile_components: ["Tile Tensor Unit (TTU)", "Tile Vector Processor (TVP)", "Tile SRAM (TSRAM)", "tile DMA"]
+      cluster_components: ["multiple tiles", "Cluster SRAM (CSRAM)", "cluster DMA (HBM<->CSRAM)"]
+    tensor_unit:
+      type: "Tile Tensor Unit (TTU)"
+      formats: ["FP4", "FP8", "BF16"]
+    vector_processor:
+      type: "Tile Vector Processor (TVP)"
+      description: "highly programmable SIMD engine"
+    on_chip_sram_mb: 272
+    sram_tiers:
+      tsram: "per-tile; hot activation buffer; ~10-20x HBM bandwidth"
+      csram: "per-cluster shared; second-tier locality; stages HBM traffic"
+    hbm_type: "HBM3e"
+    hbm_capacity_gb: 216
+    hbm_bandwidth_tbs: 7.0
+    hbm_supplier: "SK Hynix (reported)"
+    scale_up_network:
+      nic_location: "integrated on-die"
+      bandwidth_tbs: 2.8
+      topology: "2-tier scale-up network"
+      max_cluster_size: 6144
+      protocol: "advanced transport (enhanced reliability + congestion control)"
+
+# ---------------------------------------------------------------------------
+# Update investigation, window 2026-04-05 -> 2026-08-08 (appended 2026-08-08)
+# No hardware specification changed. All figures above are carried forward
+# unchanged. Facts below are deployment / disclosure status only.
+# ---------------------------------------------------------------------------
+update_2026_08_08:
+  reviewed_on: "2026-08-08"
+  window: "2026-04-05 to 2026-08-08"
+  change_class: minor
+  silicon_change: false
+  specification_changes: none
+  specifications_reverified_unchanged:
+    confidence: confirmed
+    note: >-
+      Re-checked against first-party Microsoft sources; every Maia 100 and
+      Maia 200 figure recorded above is still the HC2024 / January 2026 figure.
+    items:
+      - "Maia 200: TSMC N3, >140B transistors, 750 W"
+      - "Maia 200: >10 PFLOPS FP4, >5 PFLOPS FP8"
+      - "Maia 200: 272 MB on-die SRAM (TSRAM + CSRAM)"
+      - "Maia 200: 216 GB HBM3e @ 7 TB/s"
+      - "Maia 200: on-die NIC 2.8 TB/s bidir, 2-tier, 6144 accelerators"
+      - "Maia 100: all HC2024 figures"
+    sources:
+      - "https://blogs.microsoft.com/blog/2026/01/26/maia-200-the-ai-accelerator-built-for-inference/"
+      - "https://techcommunity.microsoft.com/blog/azureinfrastructureblog/deep-dive-into-the-maia-200-architecture/4489312"
+
+  deployment_status:
+    confidence: confirmed
+    us_central_des_moines_iowa: "in production"
+    us_west_3_phoenix_arizona: "in production (was 'coming next' in the January 2026 baseline; status verb changed at Build 2026)"
+    announced_next:
+      regions: ["Italy", "Australia", "South Korea"]
+      confidence: confirmed_as_announcement
+      caveat: >-
+        Announced intent only: no dates, no named Azure regions, and no
+        first-party Microsoft blog restates the list. Traces to the Build 2026
+        keynote as relayed by four independent outlets.
+    sources:
+      - "https://microsoft.ai/news/microsoft-build-2026-mai-keynote-transcript/ (2026-06-02)"
+      - "https://www.datacenterdynamics.com/en/news/microsoft-launches-vms-based-on-cobalt-200-chip-in-preview-maia-200-already-in-production/ (2026-06-03, HTTP 403 direct; search snippet only)"
+      - "https://analyticsindiamag.com/ai-trends/everything-microsoft-announced-at-build-2026 (2026-06-03)"
+      - "https://venturebeat.com/technology/microsoft-ai-chief-says-company-was-set-free-from-openai-to-pursue-superintelligence (snippet only, HTTP 429 direct)"
+
+  vendor_performance_claims:
+    confidence: vendor_claim_unverifiable
+    perf_per_watt_1_4x:
+      value: "1.4x performance-per-watt"
+      quote: >-
+        "On top of the 30% improvement that Satya just mentioned, we're seeing
+        a further 1.4x performance-per-watt gain when running our MAI models on
+        the Maia 200 end to end."
+      speaker: "Mustafa Suleyman, Microsoft Build 2026 MAI keynote"
+      date: "2026-06-02"
+      baseline_in_primary_source: "not specified"
+      press_rendering: "widely reported as 'vs GB200'; that is press inference from an adjacent sentence, not a transcript statement"
+      incremental_on: "the January 2026 '30% better performance per dollar than the latest generation hardware in our fleet today' claim (perf/DOLLAR, vs Microsoft's own fleet, NOT perf/watt and NOT explicitly vs GB200)"
+      methodology_published: false
+      missing: ["workload", "sequence length", "batch size", "precision", "cluster size", "power-measurement boundary", "baseline configuration"]
+      use_in_comparison_tables: forbidden
+      sources:
+        - "https://microsoft.ai/news/microsoft-build-2026-mai-keynote-transcript/"
+        - "https://blogs.microsoft.com/blog/2026/01/26/maia-200-the-ai-accelerator-built-for-inference/"
+
+  scheduled_disclosure:
+    confidence: confirmed_as_scheduled_event
+    content_public: false
+    event: "Hot Chips 38"
+    session: "AI 1, 2:15-4:15 PM PDT, chairs Sherry Xu and John Wright"
+    date: "2026-08-25"
+    title: "MAIA 200: A Data Center Scale AI system - MAIA-200 Accelerator"
+    presenters: ["Prashant Ranjan (Microsoft)", "Jackson Peng (Microsoft)"]
+    note: >-
+      Disclosure scheduled, Hot Chips 38, Aug 2026 - content not yet public.
+      15 days in the future as of 2026-08-08. No slides, abstract or specs
+      exist. Zero technical content in this repo derives from it. Expected to
+      be the first system-level Maia 200 disclosure (rack, pod, cooling,
+      tile/cluster counts, topology) - re-investigate after 2026-08-25.
+    sources:
+      - "https://hotchips.org/program/conference/ (retrieved 2026-08-08)"
+      - "https://hotchips.org/"
+
+  still_not_disclosed:
+    confidence: confirmed_absent
+    items:
+      - "Maia 200 die size"
+      - "Maia 200 tile count per cluster and cluster count per chip"
+      - "Maia 200 clock frequency"
+      - "Maia 200 rack / pod / cooling design (no Maia 200 analogue of the Ares disclosure)"
+      - "Maia 200 BF16/FP16 peak throughput"
+      - "Maia 200 package / interposer type"
+
+  negative_results:
+    mlperf:
+      confidence: confirmed
+      finding: "No Maia entry in MLPerf Training v6.0 (2026-06-16). Azure is among 24 submitters, but Microsoft's own Azure HPC blog states that submission was 8,192 NVIDIA GB200 GPUs on Llama 3.1 405B."
+      sources:
+        - "https://mlcommons.org/2026/06/mlperf-training-v6-0-results/"
+        - "https://techcommunity.microsoft.com/blog/azurehighperformancecomputingblog/inside-llama-3-1-405b-mlperf-training-on-azure-system-level-insights-at-8k-gpu-s/4529296"
+    maia_280_braga_clea_roadmap:
+      confidence: low_rumor_out_of_window
+      finding: "Dual-chiplet Maia 280 from two Braga dies for 2027; Braga-R and Clea pushed to 2028+. Sole origin is 2025 supply-chain reporting predating the repo baseline. Nothing new April-August 2026. NOT promoted into any table."
+      sources:
+        - "https://www.trendforce.com/news/2025/07/04/ (2025-07-04)"
+    no_new_microsoft_maia_technical_blog:
+      confidence: confirmed
+      finding: "No new Maia technical post since the January 2026 deep-dive. Azure Infrastructure blog April-August 2026 silicon posts are Cobalt-only (Cobalt 200 Rowhammer 2026-06-25; Cobalt workload-aware power management 2026-07-16)."
+      sources:
+        - "https://techcommunity.microsoft.com/category/azure/blog/azureinfrastructureblog"
+
+  adjacent_do_not_attribute_to_maia:
+    mrc_transport:
+      confidence: confirmed_as_adjacent_only
+      what: "Multipath Reliable Connection (MRC) - open Ethernet transport extending RoCEv2 with per-packet multipath, sender-based congestion control, fast loss/path-failure recovery"
+      released: "via OCP, ~2026-05-05, by OpenAI with AMD, Broadcom, Intel, Microsoft, NVIDIA"
+      paper: "arXiv:2606.18170, submitted 2026-06-16, ~40 authors incl. Microsoft's Adrian Caulfield and Michael Papamichael"
+      maia_link: "NONE - the paper does not mention Maia; secondary claims that Maia implements MRC are unsourced"
+      sources:
+        - "https://arxiv.org/abs/2606.18170"
+    fairwater:
+      confidence: confirmed_as_adjacent_only
+      what: "Mount Pleasant, Wisconsin campus, reported fully operational ~2026-06-23; single coherent cluster over an 800 Gbps Ethernet fabric"
+      maia_link: "NONE - this is an NVIDIA GB200 Blackwell deployment. Do not attribute its capacity or fabric to Maia."
+
+  corrections_to_prior_scan:
+    - "Hot Chips talk title is 'MAIA 200: A Data Center Scale AI system - MAIA-200 Accelerator' (session AI 1), not 'Microsoft MAIA-200 system'."
+    - "The microsoft.ai Build post carries 2026-06-02 with no visible update stamp; an 'updated 2026-06-08' date could not be confirmed and is not recorded."
+    - "Italy/Australia/South Korea should NOT be hedged as low-confidence rumor: four independent outlets report the same Build statement. Hedge only that they are undated intent with no named Azure regions."

@@ -1,0 +1,232 @@
+chip: esperanto
+resource: hw-architecture
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"   # ET-SoC-1 silicon facts below are unchanged from this baseline
+confidence: confirmed
+sources:
+  - url: "https://www.esperanto.ai/wp-content/uploads/2022/05/Dave-IEEE-Micro.pdf"
+    title: "IEEE Micro 2022: Esperanto ET-SoC-1 Chip"
+    type: paper
+  - url: "https://hc33.hotchips.org/assets/program/conference/day2/HC2021.Esperanto.Dave_Ditzel.presentation.v1submitted.pdf"
+    title: "Hot Chips 33 (2021) Presentation"
+    type: conference
+  - url: "https://ieeexplore.ieee.org/document/9566904/"
+    title: "IEEE Xplore: Accelerating ML Recommendation with 1000+ RISC-V Processors"
+    type: paper
+  - url: "https://fuse.wikichip.org/news/4911/a-look-at-the-et-soc-1-esperantos-massively-multi-core-risc-v-approach-to-ai/"
+    title: "WikiChip ET-SoC-1 Deep Dive"
+    type: analysis
+
+chip_specs:
+  full_name: "Esperanto ET-SoC-1"
+  device_class: "RISC-V Massively Parallel"
+  process: "TSMC 7nm"
+  transistors: "24+ billion"
+  die_area_mm2: 570
+  mask_layers: 89
+  tdp_watts: "<20"
+  announced: "August 2021 (Hot Chips 33)"
+  silicon_available: "Q1 2022"
+
+compute:
+  et_minion_cores: 1088
+  et_maxion_cores: 4
+  total_risc_v_cores: 1092
+  isa: "RV64GCV (64-bit RISC-V + G base + Compressed + Vector extensions)"
+  et_minion_type: "in-order, multithreaded"
+  et_maxion_type: "quad-issue out-of-order"
+  peak_tops_int8: "100–200 (frequency dependent)"
+  int8_gops_per_ghz_per_minion: 128
+  tensor_instruction_max_ops: 32000
+  tensor_instruction_max_cycles: 512
+  vector_transcendental_unit: true
+  data_types: ["INT8", "FP16", "BF16", "FP32"]
+
+memory:
+  on_chip_sram_bytes: "160+ MB"
+  off_chip_type: "LPDDR4x"
+  off_chip_capacity_gb: 32
+  off_chip_bw_gbs: "~137 GB/s (estimated)"
+  storage: "eMMC Flash"
+  memory_model: "software-managed scratchpad + RISC-V load/store"
+
+host_interface:
+  pcie: "Gen4 x8"
+
+scale_up:
+  card: "Glacier Point v2"
+  chips_per_card: 6
+  card_total_cores: 6558
+  card_total_dram_gb: 192
+  card_dram_bw_gbs: 822
+  card_peak_tops: "600–1200"
+
+corporate:
+  founded: 2017
+  founder: "Dave Ditzel (Intel, Transmeta, SiFive)"
+  closed: "July 2025"
+  ip_acquired_by: "Ainekko (self-branded AiNEKKO; nekko.ai, ainekko.io)"
+  ip_acquisition_announced: "2025-11-19"
+  # CORRECTED 2026-08-08: previously recorded as "October 2025" and
+  # "Apache 2.0 via Ainekko AI Foundry (November 2025)". 2025-10-22 was
+  # Ainekko's separate "AI Foundry" launch, not the Esperanto acquisition.
+  open_sourced: "public repos created 2026-04-20 under the OpenHW Foundation; core-et/LICENSE is verbatim Apache-2.0"
+
+# ============================================================
+# Appended 2026-08-08 — post-acquisition investigation
+# ============================================================
+
+date_corrections_applied_2026_08_08:
+  - fact: "Ainekko acquisition of Esperanto IP announced 2025-11-19, not October 2025"
+    superseded_value: "October 2025"
+    note: "2025-10-22 was Ainekko's separate 'AI Foundry' launch; the repo conflated the two events"
+    confidence: confirmed
+    sources:
+      - "https://www.globenewswire.com/news-release/2025/11/19/3191016/0/en/Ainekko-Acquires-Esperanto-Technologies-Intellectual-Property-to-Power-Open-Source-Edge-AI-Platform.html"
+      - "https://www.globenewswire.com/search/organization/AINekko"
+  - fact: "Ainekko merged with MRAM startup Veevx on 2026-01-29, not November 2025"
+    superseded_value: "November 2025"
+    confidence: confirmed
+    sources:
+      - "https://globenewswire.com/news-release/2026/01/29/3228632/0/en/ainekko-merges-with-veevx-expands-open-silicon-platform-with-breakthrough-memory-and-embedded-ai-capabilities.html"
+  - fact: "Code became public 2026-04-20 (repo creation), not November 2025"
+    superseded_value: "November 2025"
+    note: "The 2025-11-19 release names no license and says only that Ainekko is 'exploring foundation-based governance'"
+    confidence: confirmed
+    sources:
+      - "https://api.github.com/orgs/openhwgroup/repos?per_page=100&sort=created&direction=desc"
+      - "https://api.github.com/repos/openhwgroup/core-et-erbium"
+  - fact: "The repo's 'Apache 2.0' license claim is substantially correct and should NOT be marked unverified"
+    note: "core-et/LICENSE is verbatim Apache License 2.0; only the date was wrong"
+    confidence: confirmed
+    sources:
+      - "https://raw.githubusercontent.com/openhwgroup/core-et/main/LICENSE"
+  - fact: "Superseded: 'plans 8-core tapeout on TSMC shuttle wafer'"
+    superseded_by: "16nm tapeout in progress per the 2026-06-02 press release"
+    confidence: confirmed
+    sources:
+      - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+
+successor:
+  name: "CORE-ET Silicon Platform (ETSP)"
+  vendor: "Ainekko (AiNEKKO)"
+  announced: "2026-06-02"
+
+  silicon:
+    process: "16nm"
+    foundry: "not disclosed"
+    status: "tapeout in progress — not sampling, not shipping, not deployed; no silicon demonstrated"
+    core_count: "not disclosed"
+    peak_tops: "not disclosed"
+    tdp_watts: "not disclosed"
+    sram: "not disclosed"
+    off_chip_memory: "not disclosed"
+    host_interface: "not disclosed"
+    target: "edge / embedded inference"
+    confidence: confirmed   # for process + status; every 'not disclosed' is literal, not an omission
+    sources:
+      - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+
+  on_chip_memory:
+    type: "integrated MRAM-based on-die memory"
+    characterization: "MRAM 'with SRAM-like performance' (vendor press release wording)"
+    delta_vs_et_soc_1: "new memory tier — ET-SoC-1 had >160 MB SRAM + LPDDR4x and no non-volatile on-die tier"
+    capacity: "not disclosed"
+    bandwidth: "not disclosed"
+    density: "not disclosed"
+    confidence: confirmed   # presence only; all figures not disclosed
+    sources:
+      - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+      - "https://globenewswire.com/news-release/2026/01/29/3228632/0/en/ainekko-merges-with-veevx-expands-open-silicon-platform-with-breakthrough-memory-and-embedded-ai-capabilities.html"
+
+  interconnect:
+    type: "scalable network-on-chip (NoC) architecture"
+    scope: "intra-die only; no chip-to-chip fabric disclosed"
+    topology: "not disclosed"
+    bandwidth: "not disclosed"
+    confidence: confirmed   # presence only
+    sources:
+      - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+
+  published_code:
+    repos:
+      - url: "https://github.com/openhwgroup/core-et"
+        created: "2026-04-20"
+        last_push: "2026-05-07"
+      - url: "https://github.com/openhwgroup/core-et-erbium"
+        created: "2026-04-20"
+        last_push: "2026-06-23"
+        size_mb: 4.9
+        stars: 3
+    checked_in_license: "Apache License 2.0 (verbatim, core-et/LICENSE)"
+    press_release_license: "Solderpad Hardware License v2.1 ('building on the well-known Apache 2.0 license')"
+    license_discrepancy: "UNRESOLVED — both recorded; the checked-in file and the press release disagree"
+    scope_caveat: >
+      NOT Esperanto's production ET-SoC-1 RTL. core-et self-describes as an Ainekko project for
+      collecting hardware IP in a form that can be translated, verified, documented, and integrated by
+      agentic hardware-development workflows, working CORE-ET modules into clean SystemVerilog, with the
+      original kept on a separate branch. Esperanto lineage appears only indirectly
+      (docs/minion_vpu_standalone_plan.md references the "real-VPU Minion path"). Neither the
+      2025-11-19 nor the 2026-06-02 press release names ET-SoC-1.
+    not_the_code_host: "github.com/ainekko is an unrelated personal User account (created 2023-08-15, 4 public repos, no company/website set)"
+    confidence: confirmed
+    sources:
+      - "https://github.com/openhwgroup/core-et"
+      - "https://raw.githubusercontent.com/openhwgroup/core-et/main/LICENSE"
+      - "https://api.github.com/orgs/openhwgroup/repos?per_page=100&sort=created&direction=desc"
+      - "https://api.github.com/repos/openhwgroup/core-et-erbium"
+      - "https://api.github.com/users/ainekko"
+      - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+
+  governance:
+    project: "CORE-ET Silicon Platform (ETSP)"
+    home: "OpenHW Foundation"
+    accepted: "2026-06-02"
+    note: >
+      OpenHW Foundation (formerly OpenHW Group; openhwgroup.org 302-redirects to openhwfoundation.org)
+      is "an Eclipse Foundation global initiative", so third-party descriptions of the release as being
+      "under the Eclipse Foundation" are loose but not false. Ainekko is listed as an OpenHW member.
+    confidence: confirmed
+    sources:
+      - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+      - "https://openhwfoundation.org/"
+
+vendor_only_claims:
+  note: "Single-source, vendor self-description on nekko.ai; absent from every retrieved press release. Do not present as confirmed specification."
+  confidence: vendor_claim
+  sources:
+    - "https://nekko.ai/"
+  items:
+    - "'iRAM' as the brand for the MRAM tier"
+    - "'Erbium' as a design name (also exists only as a repository name)"
+    - "Tagline 'Model-to-Silicon for Physical AI'"
+    - "'A tape-out every 9 months' via reusable, programmable-and-composable platform blocks"
+    - "Attribution of '1,088 RISC-V cores' to ET-SoC-1 on the Ainekko site (the figure itself is independently confirmed by IEEE Micro / HC33; the point is that nekko.ai is not the source of record)"
+    - "Manifesto 'The Next Thousand Chips', 2026-05-05, by Tanya Dadasheva"
+    - "Douglas Smith's titles 'co-founder and Head of Silicon' and 'former Broadcom IP architect' — the 2026-01-29 press release says only 'executive team member' who 'for many years managed the intellectual property at Broadcom'"
+
+negative_and_open_findings_2026_08_08:
+  - fact: "No ET-SoC-2x/3x revival; no HBM successor; no FP64 successor"
+    confidence: confirmed   # absent from every source retrieved
+    sources:
+      - "https://www.globenewswire.com/search/organization/AINekko"
+      - "https://openhwfoundation.org/"
+  - fact: "No new ET-SoC-1 silicon, card, or deployment"
+    confidence: confirmed
+    sources:
+      - "https://www.esperanto.ai/"
+  - fact: "esperanto.ai carries a permanent 'Esperanto Technologies has ceased operations' banner linking to nekko.ai; no redirect; historical pages remain as archive; newest news item 2025-04-09"
+    confidence: confirmed
+    sources:
+      - "https://www.esperanto.ai/"
+  - fact: "Hot Chips 38 (2026-08-23 to 2026-08-25) presence"
+    value: "not confirmed"
+    note: "hotchips.org/program returned HTTP 403 and could not be checked. Recorded as NOT CONFIRMED, not as a negative finding. Hot Chips 38 is in the future; no slides or abstracts exist."
+    confidence: unverified
+    sources:
+      - "https://hotchips.org/"
+  - fact: "Datacenter relevance effectively zero; live trajectory is edge/embedded inference"
+    confidence: confirmed
+    sources:
+      - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+      - "https://globenewswire.com/news-release/2026/01/29/3228632/0/en/ainekko-merges-with-veevx-expands-open-silicon-platform-with-breakthrough-memory-and-embedded-ai-capabilities.html"

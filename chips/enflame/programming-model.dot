@@ -1,0 +1,168 @@
+digraph enflame_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch + torch_gcu (source published 2026-06-23)\ntorch.device('gcu') via PrivateUse1 dispatch key\nATen dispatch (+CPU fallback) to TopsBlasOps\ntorch.compile/Inductor, AMP, GCUGraph, transfer_to_gcu\nHardware Support table: S60 only", fillcolor="#D6E4F0"];
+        vllm [label="vllm-gcu (v0.11.0, 2026-05-12)\nLLM inference serving\nOpenAI-compatible API\nGCU operator optimisations\nFP8 / W8A8-INT8 MoE, KV-cache transfer", fillcolor="#D6E4F0"];
+        paddle [label="PaddlePaddle / PaddleNLP\nCustom GCU device backend\nLLaMA2/Qwen2 on S60", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        topscc [label="TopsCC\nProprietary graph compiler\nStatic dataflow lowering\nTo GCU-CARE fabric", fillcolor="#E4DEFF"];
+        care_sched [label="GCU-CARE Scheduler\nCompile-time graph mapping\nSparsity annotation\nNo runtime thread dispatch", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        topsblas [label="TopsBlasOps\nGEMM + BLAS primitives\nConv / Attention / Norm\nProprietary", fillcolor="#D4EDDA"];
+        topscodec [label="TopsCodec / FFmpeg-GCU\nHW video encode/decode\nFFmpeg plugin interface", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        topskernels [label="TopsPlatform Kernel Library\nProprietary custom kernels\nGCU-CARE native binaries\nBundled with TopsCC", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        topsruntime [label="TopsRuntime\nlibTopsRuntime.so\nDevice memory mgmt\nStream/event model, kernel launch", fillcolor="#F8D7DA"];
+        gcumonitor [label="GCU Monitor\nRuntime observability\nPrometheus-style metrics\nProfiling tools", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        topsdrv [label="TopsDrv\nLinux kernel module\nPCIe BAR + IOCTL\nDMA engine control", fillcolor="#E0E0E0"];
+        hami [label="HAMi K8s GCU Plugin\nKubernetes device plugin\nGCU resource sharing\nHealth monitoring", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        eccl [label="ECCL\nEnflame Collective Comms\nAllReduce, AllGather (+send/recv)\ntorch.distributed backend='eccl'\nEthernet/RoCE scale-out", fillcolor="#FFE0CC"];
+        lare_proto [label="GCU-LARE Protocol\nProprietary intra-node\n300 GB/s bidir (LARE 2.0)\nL600 card: 800 GB/s\nBridge card for 4-card mesh", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        care_isa [label="GCU-CARE ISA\nProprietary static dataflow\nNot publicly documented\nTopsCC handles lowering", fillcolor="#EFEBE9"];
+        dare_isa [label="GCU-DARE ISA\nOn-chip data movement\nInter-SIP tile routing\nNot publicly documented", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Enflame GCU Hardware (DTU 1.0–4.0)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        compute [label="Compute Engine\nSIP: Tensor ALU + DTE + Sparsity Engine\nSIC: 8 SIPs + Shared SRAM + DARE\nT20: 32+ SIPs | S60/L600: undisclosed", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nSIP Local SRAM (compiler-managed)\nSIC Shared SRAM (compiler-managed)\nHBM2/HBM2e/HBM3 (32–144 GB, 512 GB/s–3.6 TB/s)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect\nGCU-LARE 2.0: 300 GB/s bidir scale-up\nBridge card: 4-card full-mesh intra-server\nECCL + Ethernet/RoCE: scale-out\nSmartCluster: full-rack system", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> topscc;
+    paddle -> topscc [style=dashed, color="#AAAAAA"];
+    vllm -> topsruntime [style=dashed, color="#AAAAAA", label="direct\nruntime", fontsize=8];
+
+    // Compiler -> Op / ISA
+    topscc -> care_sched;
+    topscc -> topsblas [label="op\ndispatch", fontsize=8];
+    care_sched -> care_isa [label="lower\nto ISA", fontsize=8];
+
+    // Op -> Kernel -> Runtime
+    topsblas -> topskernels;
+    topscodec -> topskernels;
+    topskernels -> topsruntime;
+
+    // Runtime chain
+    topsruntime -> topsdrv;
+    gcumonitor -> topsruntime [style=dashed];
+    topsdrv -> hami [style=dashed];
+
+    // ISA chain
+    care_isa -> dare_isa [label="data\npath", fontsize=8];
+    dare_isa -> compute;
+
+    // Communication
+    eccl -> topsruntime [style=dashed];
+    eccl -> lare_proto;
+    lare_proto -> interconnect [style=dashed, color="#283593"];
+
+    // Hardware internal
+    compute -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    topsdrv -> compute [style=dashed, color="#283593"];
+}

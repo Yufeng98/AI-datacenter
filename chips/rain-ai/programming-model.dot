@@ -1,0 +1,46 @@
+digraph rain_ai_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.3,0.15"];
+    edge [color="#666666", arrowsize=0.8];
+    labelloc="t";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+    label="Rain AI Programming Model — HISTORICAL\nVendor defunct; patents assigned to OpenAI Opco, LLC (USPTO-recorded 2025-10-23)\nNo layer below was ever released to developers";
+    fontcolor="#B00020";
+
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed"; color="#4A90D9"; fontcolor="#4A90D9";
+        fw [label="PyTorch / TensorFlow\n(planned; never delivered)", fillcolor="#E8F0FE"];
+    }
+
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed"; color="#7B61FF"; fontcolor="#7B61FF";
+        compiler [label="Rain Compiler\n(never released)", fillcolor="#F0EBFF"];
+    }
+
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed"; color="#EA4335"; fontcolor="#EA4335";
+        runtime [label="Rain Runtime\n(never released)", fillcolor="#FCE8E6"];
+    }
+
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed"; color="#9E9E9E"; fontcolor="#9E9E9E";
+        driver [label="Rain Device Driver\n(never released)", fillcolor="#F5F5F5"];
+    }
+
+    subgraph cluster_hw {
+        label="Rain AI Hardware";
+        style="rounded,filled"; color="#263238"; fontcolor="white"; fillcolor="#263238";
+        hw [label="D-IMC Accelerator\n(digital in-memory computing)\nProcess node: not disclosed\nEvaluation silicon only (Oct 2024)", fillcolor="#37474F", fontcolor="white"];
+    }
+
+    fw -> compiler;
+    compiler -> runtime;
+    runtime -> driver;
+    driver -> hw;
+}

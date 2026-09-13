@@ -1,0 +1,525 @@
+chip: ibm-spyre
+as_of: "2026-08-08"
+device_class: "Inference Accelerator (SIMD-Systolic Dataflow, scratchpad-managed)"
+investigation: software-stack
+
+# ── Overall openness posture ──────────────────────────────────────────────────
+openness:
+  summary: >-
+    The stack is split open/closed at a precise seam: everything from PyTorch down to the SuperDSC/KTIR
+    interface is open (14 mostly Apache-2.0 repos in github.com/torch-spyre, plus public RFCs and
+    compiler<->device interface specs), while the back-end compiler (DeepTools), the runtime (DeepRT/Flex),
+    the collectives library, the driver, the firmware and the ISA are proprietary. torch_sendnn is 'only
+    available pre-installed in a base environment' and is not publicly downloadable.
+  ibm_own_statement: >-
+    Open source — PyTorch Inductor (extended for Spyre), the Torch-Spyre front-end compiler.
+    Proprietary — the DeepTools back-end compiler and the SuperDSC format specification.
+  caveat_on_ibm_statement: >-
+    The SuperDSC *bundle format* is in fact published as an open interface spec (0248-SdscBundleSpec) even
+    though the DeepTools consumer is closed, so IBM's own summary understates its openness there.
+  confidence: confirmed
+  sources:
+    - https://torch-spyre.readthedocs.io/en/latest/compiler/architecture.html
+    - https://torch-spyre.readthedocs.io/en/latest/getting_started/installation.html
+    - https://github.com/orgs/torch-spyre/repositories
+
+layers:
+
+  # ── Layer 1: framework integration ──────────────────────────────────────────
+  framework_integration:
+    - name: PyTorch
+      versions: "2.9.1 -> ~2.11 (torch_sendnn 1.2.0 pairs with torch 2.10.0)"
+      mechanism: "PrivateUse1 device registration: torch.utils.rename_privateuse1_backend('spyre') + torch._register_device_module('spyre', ...)"
+      modes: ["eager", "torch.compile(model, backend='spyre')"]
+      role: "Primary and effectively only framework"
+      open_source: true
+      license: Apache-2.0
+      repo: https://github.com/torch-spyre/torch-spyre
+      confidence: confirmed
+      sources:
+        - https://github.com/torch-spyre/torch-spyre
+        - https://research.ibm.com/blog/pytorch-support-ibm-spyre
+
+    - name: sendnn-inference
+      repo: https://github.com/torch-spyre/sendnn-inference
+      former_name: "vllm-project/vllm-spyre (now redirects here)"
+      function: "Production vLLM plugin, ~638 commits; built on torch_sendnn"
+      docs: https://docs.vllm.ai/projects/spyre/en/latest/
+      community: "vLLM Slack #sig-spyre"
+      open_source: true
+      license: Apache-2.0
+      vllm_features:
+        supported: ["chunked prefill", "automatic prefix caching", "guided decoding", "logprobs", "beam search", "tensor parallel", "embedding models"]
+        partial: ["multimodality", "quantization"]
+        unsupported: ["LoRA", "speculative decoding", "encoder-decoder", "prompt logprobs", "pipeline parallel", "expert parallel", "data parallel", "PD disaggregation", "sleep mode"]
+      confidence: confirmed
+      sources:
+        - https://github.com/torch-spyre/sendnn-inference
+        - https://docs.vllm.ai/projects/spyre/en/latest/user_guide/supported_features.html
+
+    - name: spyre-inference
+      repo: https://github.com/torch-spyre/spyre-inference
+      function: "Second-generation vLLM plugin built on torch-spyre (rather than torch_sendnn)"
+      open_source: true
+      license: Apache-2.0
+      confidence: confirmed
+
+    - name: hf-adapters
+      repo: https://github.com/torch-spyre/hf-adapters
+      function: >-
+        HuggingFace Transformers enablement by monkey-patching at load time — replaces only the ops Spyre
+        cannot run natively (RoPE, RMSNorm, KV-cache management, generation loop); weights, tokenizers and
+        configs unchanged
+      coverage: "30 adapters, 46 verified checkpoints, 100+ models (Llama, Qwen, Granite, Mistral, BERT, XLM-RoBERTa, VLMs)"
+      open_source: true
+      license: Apache-2.0
+      confidence: confirmed
+
+    - name: sglang-spyre
+      repo: https://github.com/torch-spyre/sglang-spyre
+      function: "Early SGLang port"
+      open_source: true
+      license: "none declared (no license file)"
+      confidence: confirmed
+
+    - name: aiu-fms-testing-utils
+      repo: https://github.com/foundation-model-stack/aiu-fms-testing-utils
+      function: "Legacy FMS-based path driving torch_sendnn directly"
+      env_vars: ["FLEX_COMPUTE=SENTIENT", "FLEX_DEVICE=PF", "DTLOG_LEVEL", "TORCH_SENDNN_LOG", "DT_DEEPRT_VERBOSE", "TORCH_SENDNN_CACHE_ENABLE", "DTCOMPILER_KEEP_EXPORT", "SENCORES"]
+      open_source: true
+      confidence: confirmed
+
+    - name: aiu-bench
+      repo: https://github.com/torch-spyre/aiu-bench
+      function: "Self-hosted performance suite for testing AIU compilers"
+      open_source: true
+      license: Apache-2.0
+      confidence: confirmed
+
+  negative_finding_onnx_zos:
+    statement: >-
+      The IBM Z Deep Learning Compiler (zDLC) and zDNN target the Telum / Telum II zAIU via the NNPA
+      instruction ONLY. The zDNN README references Telum I/II and never mentions Spyre; the zDLC 5.0
+      announcement is explicitly about z17's Telum II. No public ONNX-based or z/OS-native (MLz/WMLz) path
+      to Spyre is documented. Spyre's public path is PyTorch/vLLM on Linux on Z, Linux on Power, and
+      Red Hat OpenShift.
+    confidence: confirmed
+    sources:
+      - https://github.com/IBM/zDNN
+      - https://github.com/IBM/zDLC
+      - https://ibm.github.io/zDLC/
+      - https://community.ibm.com/community/user/blogs/sunny-anand/2025/06/10/ibm-z-deep-learning-compiler-500
+
+  # ── Layer 2: graph capture ──────────────────────────────────────────────────
+  graph_capture:
+    mechanism: "TorchDynamo + AOTAutograd -> FX graph of ATen ops; decomposition passes reduce to core ATen"
+    supported_mode: "Ahead-of-time compilation with static shapes"
+    dynamic_shapes: "torch.compile(dynamic=True) handled by static binary specialization — compile once per shape, reuse across equivalent geometries"
+    caching: "torch.compile artifact caching cuts startup time"
+    eager_mode: >-
+      Implemented by AOT-compiling each op individually (e.g. @torch.library.register_kernel('aten::mm',
+      ['spyre']) wrapping torch.compile(torch.mm, dynamic=False)) — correct but slow
+    graph_break_penalty: "A single graph break in the hot path erases the gains of the surrounding compiled region"
+    confidence: confirmed
+    sources:
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/architecture.html
+      - https://github.com/torch-spyre/RFCs/blob/main/0171-SpyreDevice/0171-SpyreDeviceRFC.md
+
+  # ── Layer 3: graph compiler (deepest open layer) ────────────────────────────
+  graph_compiler:
+    name: "TorchInductor with an out-of-tree Spyre backend"
+    open_source: true
+    license: Apache-2.0
+    registered_components:
+      - name: SuperDSCScheduling
+        file: scheduler.py
+        role: "Replaces Inductor's Triton scheduling; decides op grouping and ordering"
+      - name: SpyrePythonWrapperCodegen
+        file: wrapper.py
+        role: "Python wrapper codegen for kernel dispatch"
+      - name: SpyreDeviceOpOverrides
+        file: device/op_overrides.py
+        role: "Device-specific op implementations"
+    upstream_extension_points: [CustomPreGradPasses, CustomPrePasses, CustomPostPasses, CustomPreFusionPasses, CustomPostFusionPasses, CustomPreSchedulingPasses]
+    entry_point: enable_spyre_context
+    pipeline: "PyTorch -> FX graph (ATen) -> LoopLevelIR -> OpSpec -> SuperDSC JSON -> [DeepTools] -> SpyreCode device binary"
+    looplevel_ir_passes:
+      - "1. deadcode elimination"
+      - "2. split multi-ops"
+      - "3. propagate tensor layouts (assign FixedTiledLayout)"
+      - "4. validate ops (shared ElementArrangement)"
+      - "5. optimize restickify locations"
+      - "6. finalize layouts"
+      - "7. insert restickify"
+      - "8. post-mutation restickify"
+      - "9. BMM padding"
+      - "10. dedup constants"
+      - "11. propagate named dims"
+      - "12. assign dim hints"
+      - "13. coarse tile"
+      - "14. span reduction (enforce 256 MB per-core device-memory span)"
+      - "15. cost-model matmul division + work distribution across the 32 cores"
+      - "16. scratchpad (LX) planning"
+    work_division:
+      passes: ["span reduction", "cost-model matmul division", "work distribution"]
+      cost_model: "cost = compute + hbm + psum + shape_penalties + batch, over (b, m, n, k)"
+      distribution_rule: "Across output dims then at most one reduction dim, enforcing equal stick counts per core"
+      encoding: "op.op_it_space_splits as index coefficients"
+      core_budget_env: "SENCORES (default 32)"
+    scratchpad_planning:
+      solvers: ["greedy (default, chronological)", "first-fit", "best-fit", "CP-SAT"]
+      cpsat_model: "Placement as 2-D non-overlapping rectangles over (lifetime x address), minimizing DDR traffic"
+      alignment_bytes: 128
+      budget_mb: 1.6
+      eviction: "none — by design"
+      disqualifier: "'Core-division mismatch' between adjacent ops disqualifies a buffer from LX and routes it through device DRAM"
+    other_passes: ["indirect access (gather)", "working-set reduction", "coarse-tiling loop IR", "span-overflow hint analysis"]
+    key_modules: [views.py, op_spec.py, work_division.py, "scratchpad/", coarse_tile.py, propagate_named_dims.py, memory_planning.py, customops.py, decompositions.py, lowering.py, spyre_kernel.py, "codegen/"]
+    confidence: confirmed
+    sources:
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/inductor_frontend.html
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/scratchpad_planning.html
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/work_division_planning.html
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/coarse_tiling_loops.html
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/indirect_access.html
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/working_set_reduction.html
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/span_overflow_hint_analysis.html
+
+  # ── Layer 4: interface IRs ──────────────────────────────────────────────────
+  interface_irs:
+    - name: SuperDSC / SDSC
+      expands_to: "Super Design Space Config"
+      status: "Current production interface"
+      spec_open: true
+      consumer_open: false
+      format: "MLIR + JSON bundle"
+      mlir_contents: ["sdscbundle.sdsc_execute (names an sdsc.json file plus symbol_ids)", "scf.for", "arith.constant", "affine.apply"]
+      json_contents:
+        - "OpFunc + data format"
+        - "input/output tensor descriptors with memory location (DDR/'HBM' vs LX)"
+        - "core work mapping: numWkSlicesPerDim_, coreIdToWkSlice_, dataStageParam_"
+        - "tensor placement with isStartAddrSymbolic_"
+        - "data layout: stick configuration, layout beyond sticks, per-dim/per-core back-gaps, scale factors (-1 reduction, -2 broadcast)"
+        - "folds: affine alpha*index + beta parameterizations compactly describing all 32 cores"
+      op_count: "70+ OpFunc primitives"
+      stick_constraints_examples:
+        - "BatchMatMul output stick holds generated_dim=64"
+        - "DF16 input1 stick holds reduction_dim=64"
+        - "FP8/INT8 input2 stick holds reduction_dim=2, generated_dim=64"
+      json_rationale_quote: "SuperDSC artifacts have to be diffable and inspectable during development."
+      confidence: confirmed
+      sources:
+        - https://github.com/torch-spyre/interface-specs/blob/main/0248-SdscBundleSpec/SuperDSC-Bundle.md
+
+    - name: KTIR (KernelTile IR)
+      dialect: ktdp
+      status: "Announced successor; RFC 0682 merged March 2026. 'The spec is stable, the reference interpreter is up, and the backend lowering path is in development' — production still routes through SuperDSC"
+      positioning: "IBM explicitly positions KTIR as a community-aligned spec generalizable across dataflow accelerators, not Spyre-only"
+      hardware_abstraction_quote: >-
+        "the accelerator contains multiple cores, with each core comprising a compute engine and an on-chip
+        scratchpad memory", connected by an on-chip fabric to off-chip memory banks; each compute tile has a
+        global view of all memory via the fabric
+      three_step_memory_access:
+        - "construct_memory_view / construct_distributed_memory_view — name a region (sizes, strides, coordinate sets, memory space)"
+        - "construct_access_tile / construct_indirect_access_tile — which slice this core touches (IntegerSets + AffineMaps; gather/scatter via index tensors)"
+        - "ktdp.load / ktdp.store"
+      design_intent: "Separates layout, work division and data movement so each can be reasoned about independently"
+      other_ops: [get_compute_tile_id, runtime_arg_extract, inter_tile_produce, inter_tile_reduce]
+      memory_space_attr: "SpyreMemorySpaceAttr annotates memrefs with the memory level (HBM vs 'LX, core=N'), carrying compute/memory affinity"
+      reused_dialects: [arith, math, linalg, scf]
+      stated_gpu_distinctions: ["persistent, compile-time-partitioned cores (not thread blocks)", "explicit scratchpad management (no implicit cache hierarchy)"]
+      confidence: confirmed
+      sources:
+        - https://github.com/torch-spyre/ktir-mlir-frontend
+        - https://github.com/torch-spyre/RFCs/blob/main/0682-KtirSpec/0682-KtirSpecRFC.md
+        - https://torch-spyre.readthedocs.io/en/latest/compiler/ktir.html
+
+  ktir_companion_tools:
+    - name: ktir-mlir-frontend
+      repo: https://github.com/torch-spyre/ktir-mlir-frontend
+      function: "MLIR parser + Python bindings (mlir_ktdp)"
+      build: "CMake >=3.20, C++17, LLVM/MLIR"
+      open_source: true
+      license: Apache-2.0
+      confidence: confirmed
+
+    - name: ktir-cpu
+      repo: https://github.com/torch-spyre/ktir-cpu
+      function: "CPU interpreter, validator and latency model for KTIR"
+      simulation: "Multi-core grid with two memory spaces per core (HBM 128 GB shared; LX 2 MB per core), NumPy execution, registry-based op dispatch"
+      framing_quote: "an environment and reward model for AI-driven compiler development"
+      survey_significance: "Makes hardware-free study of the Spyre programming model possible — rare among accelerator vendors"
+      open_source: true
+      license: Apache-2.0
+      confidence: confirmed
+
+    - name: dataflow-scheduler (+ dataflow-scheduler-mlir-dialects)
+      repo: https://github.com/torch-spyre/dataflow-scheduler
+      function: "Takes KTIR + an architecture description file (MLIR) and produces DFIR (Dataflow IR) through intermediate KTDF / KTDFLow schedule IRs"
+      strategy:
+        - "partition at memory boundaries"
+        - "fuse via linalg.generic"
+        - "materialize load->compute->store pipeline"
+        - "refine (hierarchical routing through the memory hierarchy, loop tiling, hierarchical/sibling pipelines, LICM, double buffering)"
+        - "parallelize across compute instances"
+        - "normalize to a physical 1-D grid of hardware units"
+        - "split into per-engine dataflow units"
+      execution_model: "pipeline + parallel (single model)"
+      architecture_driven: true
+      llvm_version: llvmorg-22.1.3
+      tool_invocation: "dataflow-scheduler -kEmitDFIR --device=<device.mlir> <input.mlir>"
+      open_source: true
+      license: Apache-2.0
+      confidence: confirmed
+
+  # ── Layer 5: kernel language ────────────────────────────────────────────────
+  kernel_language:
+    language: Triton
+    fork: https://github.com/torch-spyre/triton
+    fork_license: MIT
+    fork_reason: "The Spyre lowering is not upstream; fork tracks upstream via sync-* branches"
+    kernel_repo: https://github.com/torch-spyre/spyre-kernels
+    kernel_repo_license: "none declared (no license file)"
+    kernel_repo_role: "the canonical home for authoring, validating, and tracking Triton kernels targeting IBM Spyre hardware"
+    flow: "Triton -> TTIR (Triton IR) -> KTIR -> machine code, driven by scripts/gen_ktir.py"
+    committed_artifacts: "The repo commits .ttir and .ktir alongside each triton_kernel.py, per model and per vLLM op"
+    vllm_ops_covered: [decode_softmax_reducev, embedding, log_softmax, matmul, merge_attn_states, mrope, prefill_attention, reshape_and_cache, rms_norm, silu_and_mul, ranks]
+    validation_tiers:
+      T0: "Numerical equivalence vs. PyTorch on GPU"
+      T1: "Spyre-shape compliance — tiles fit scratchpad, grid fits 32 cores"
+      T2: "Correctness on the ktir_cpu simulator AND on real hardware"
+      T3: "Expert review"
+    invariant_documents: ["grid-fits-32-cores.md", "tile-fits-scratchpad.md", "runtime-arg-agnostic.md"]
+    confidence: confirmed
+    sources:
+      - https://github.com/torch-spyre/triton
+      - https://github.com/torch-spyre/spyre-kernels
+
+  # ── Layer 6: back-end compiler ──────────────────────────────────────────────
+  backend_compiler:
+    name: DeepTools
+    open_source: false
+    ibm_description: "A proprietary component called DeepTools, developed by IBM."
+    invocation: "dxp_standalone -d <output_dir> (runs out-of-process; outputs cached under the Inductor cache)"
+    input: "SuperDSC JSON bundle (future: KTIR)"
+    responsibilities:
+      - "Dataflow mapping (SuperDSC ops -> Spyre dataflows)"
+      - "Core scheduling across all 32 cores"
+      - "Binary generation including the load/store sequences that stage data from LPDDR5 into LX"
+    output: SpyreCode
+    spyrecode_spec_open: true
+    spyrecode_parts:
+      - "Job Execution Plan — ordered runtime commands: ComputeOnHost, ComputeOnDevice (firmware control message -> compute control blocks), DataTransfer (DMAI/DMAO control blocks)"
+      - "Job Preparation Plan — one-time Allocate (into SegmentId=7) and InitTransfer commands"
+      - "Job binaries (init.bin) — the programs for the Spyre compute cores"
+      - "Host compute metadata — drives program correction: symbol resolution and JIT binary patching of loop counts and addresses before each launch"
+    not_disclosed: ["internal passes", "instruction formats", "control-block encodings", "source"]
+    confidence: confirmed
+    sources:
+      - https://torch-spyre.readthedocs.io/en/latest/compiler/backend.html
+      - https://github.com/torch-spyre/interface-specs/blob/main/0277-SpyreCode/0277-SpyreCodeSpec.md
+
+  # ── Layer 7: tensor API / layout model ──────────────────────────────────────
+  tensor_layout_model:
+    SpyreTensorImpl: "C++ at::TensorImpl subclass carrying Spyre layout metadata beyond size/stride, incl. DCI translation data for CPU<->Spyre conversion"
+    SpyreTensorLayout:
+      fields: [device_size, stride_map, device_dtype, element_arrangement]
+      device_size: "PyTorch size extended with padding and extra tiling dims"
+      stride_map: "Host stride per device dim"
+      element_arrangement: "Packing within a stick; default STANDARD"
+      address_identity: "offset = dot(device_coordinates, stride_map)"
+    FixedTiledLayout: "Inductor Layout subclass wrapping SpyreTensorLayout"
+    stickification:
+      definition: "the transformation from a host-strided PyTorch layout to a tiled Spyre device layout"
+      example: "A (1024, 256) fp16 tensor physically becomes (4, 1024, 64) on device — NOT expressible with PyTorch strides"
+      restickify: "Reconciles adjacent ops that disagree on tile structure"
+    dci: "Data Conversion Information — loop ranges, strides and dtype fed to the DMA engine for host-side transfers"
+    python_api: [".to('spyre') (optionally with an explicit SpyreTensorLayout)", new_empty, new_empty_strided, "device_tensor_layout()"]
+    default_dtype: fp16
+    confidence: confirmed
+    sources:
+      - https://torch-spyre.readthedocs.io/en/latest/user_guide/tensors_and_layouts.html
+      - https://github.com/torch-spyre/RFCs/blob/main/0047-TiledTensors/0047-TiledTensorsRFC.md
+      - https://github.com/torch-spyre/RFCs/blob/main/1069-SpyreTensorLayoutExtraction/1069-SpyreTensorLayoutExtraction.md
+
+  # ── Layer 8: runtime ────────────────────────────────────────────────────────
+  runtime:
+    - name: torch_spyre (C++/Python)
+      open_source: true
+      license: Apache-2.0
+      components:
+        SpyreAllocator: "Lazy chunked, CUDA-caching-allocator-style; virtual sub-allocation within large chunks so VF mode's limited backend handles are not exhausted"
+        SpyreGuardImpl: "c10::impl::DeviceGuardImplInterface"
+        SpyreStream: "PyTorch Stream interface; FIFO within a stream; no cross-stream ordering; sticky error model — a failed stream is unusable and must be recreated"
+        JobPlan: "Cached; owns device allocations + pinned host buffers"
+        RuntimeOperation: [H2D, D2H, Compute, HostCallback]
+        addressing: "CompositeAddress / LogicalAddress = region_id + 128 B-aligned offset"
+      entry_points: ["PrepareKernel (once per SDSC)", "LaunchKernel (per invocation)"]
+      env_flag: "SPYRE_ALLOW_TILED_LAUNCH enables transparent multi-iteration tiled dispatch when a tensor dim exceeds the compiled tile dim"
+      confidence: confirmed
+      sources:
+        - https://github.com/torch-spyre/interface-specs/blob/main/ProgramExecution/ProgramExecutionSpec.md
+        - https://github.com/torch-spyre/interface-specs/blob/main/ProgramExecution/StreamSynchronizationSpec.md
+
+    - name: DeepRT
+      open_source: false
+      function: "IBM device runtime that compiles/prepares ops into SpyreCode directories consumed by the JobPlan translator"
+      confidence: confirmed
+
+    - name: Flex runtime
+      open_source: false
+      function: "The actual execution engine — RuntimeStream.launchOperation(), FlexAllocator, kernel launch, device communication, dispatch to the driver"
+      env_vars: ["FLEX_DEVICE=PF|VF", "FLEX_COMPUTE=SENTIENT (selects hardware)"]
+      confidence: confirmed
+
+    - name: torch_sendnn
+      open_source: false
+      distribution: "Only available pre-installed in a base environment; installed system-wide, reached with --system-site-packages"
+      dev_workaround: "CPU-only development path (uv pip install sendnn-inference + CPU PyTorch) lets the front end be developed without hardware"
+      public_availability: "not disclosed — docs say installation instructions come 'once the runtime reaches public availability'"
+      confidence: confirmed
+      sources:
+        - https://docs.vllm.ai/projects/spyre/en/latest/getting_started/installation.html
+        - https://torch-spyre.readthedocs.io/en/latest/getting_started/installation.html
+
+    - name: spyre_comms / spyreccl
+      open_source: false
+      note: "Closed library with an open backend shim"
+      function: "PyTorch torch.distributed backend (init_process_group -> dist.broadcast, dist.all_reduce)"
+      mode: blocking
+      priority_collective: "allreduce, prioritized for tensor parallel"
+      topology_scope: "on-node (single server) only; multi-node 'may be added in the future'"
+      max_cards: 8
+      migration_plan: "Functional collectives currently compile through torch.inductor; migration to torch.distributed / torch.comms planned"
+      confidence: confirmed
+      sources:
+        - https://github.com/torch-spyre/RFCs/blob/main/0099-MultiDevice/0099-MultiDeviceRFC.md
+        - https://torch-spyre.readthedocs.io/en/latest/runtime/index.html
+
+  # ── Layer 9: driver / firmware / ISA ────────────────────────────────────────
+  driver_firmware_isa:
+    kernel_driver:
+      open_source: false
+      functions_exposed: ["PF (physical function)", "VF (SR-IOV virtual function)"]
+      vf_addressing: "Memory addressed via firmware region_id lookup rather than physical addresses"
+      abi_surface: "not disclosed"
+    firmware:
+      open_source: false
+      compute_dispatch: "ComputeOnDevice realized as a firmware control message that generates compute control blocks"
+      dma: "Expressed as DMAI / DMAO control blocks"
+      control_message_format: "not disclosed"
+    isa:
+      public: false
+      note: >-
+        No instruction set, encoding or assembler is published. The init.bin job binaries produced by
+        DeepTools are the only artifact and their internal format is undocumented. The nearest public
+        'contract' is the SpyreCode container spec, which describes commands, not instructions.
+    export_control_note: >-
+      Export control is cited in the RFCs as the reason metrics tooling reads a vendor API rather than raw
+      hardware counters — a hint at why the low layers stay closed.
+    confidence: confirmed
+    sources:
+      - https://github.com/torch-spyre/interface-specs/blob/main/0277-SpyreCode/0277-SpyreCodeSpec.md
+      - https://github.com/torch-spyre/RFCs/blob/main/2696-AiuSmiExtension/2696-AiuSmiExtensionRFC.md
+
+  # ── Layer 10: observability ─────────────────────────────────────────────────
+  observability:
+    tools:
+      - layer: application
+        tool: "PyTorch Profiler extension via REGISTER_PRIVATEUSE1_PROFILER (record, elapsed, synchronize, onEachDevice); kineto-spyre wheel"
+        event_completion_definition: "when all output tokens of a kernel have been written to their destination"
+        open_source: true
+      - layer: compiler_frontend
+        tool: "Enhanced Inductor provenance tracking (pass-level)"
+        open_source: true
+      - layer: compiler_backend
+        tool: "IR-instrumentation profiler (intra-kernel)"
+        open_source: mixed
+      - layer: runtime
+        tool: "libaiupti — AIU Profiling Tools Interface (kernel + memory tracking)"
+        open_source: false
+      - layer: hardware
+        tool: "aiu-smi over the spyremetrics API — the nvidia-smi analogue"
+        metrics: ["power", "temperature", "device-busy %", "memory read/write bandwidth", "PCIe ingress/egress", "RDMA ops", "request rates", "reserved/actual/peak device memory", "PT-array utilization estimated from power", "per-segment reserved memory"]
+        modes: [PF, VF]
+        host_arch: [x86, Power, Z]
+        open_source: false
+        spec_open: true
+      - layer: post_processing
+        tool: "aiu-trace-analyzer — derived metrics"
+        open_source: true
+    dataflow_specific_metrics: ["pipeline utilization", "DMA overhead", "reconfiguration latency", "inter-core communication efficiency", "stick alignment overhead", "three-level parallelism analysis", "peak/average scratchpad utilization", "fragmentation ratio", "allocation efficiency"]
+    dual_memory_hierarchy_note: >-
+      RFC 0601 contrasts the two levels explicitly: device DRAM is runtime-allocator-managed and observable
+      at runtime only; the LX scratchpad is managed by the compiler's LX planner and observable at both
+      compile time and runtime.
+    confidence: confirmed
+    sources:
+      - https://github.com/torch-spyre/RFCs/blob/main/0601-SpyreProfilingToolkit/0601-SpyreProfilingToolkitRFC.md
+      - https://github.com/torch-spyre/RFCs/blob/main/2676-SpyreMetricsApiExtension/2676-SpyreMetricsApiExtensionRFC.md
+      - https://torch-spyre.readthedocs.io/en/latest/user_guide/profiling/index.html
+
+  # ── Layer 11: cluster / orchestration ───────────────────────────────────────
+  orchestration:
+    org: https://github.com/ibm-aiu
+    language: Go
+    license: Apache-2.0
+    activity: "All actively pushed as of August 2026"
+    repos:
+      - name: spyre-operator
+        function: "OpenShift operator for Spyre cards"
+      - name: spyre-device-plugin
+        function: "Kubernetes device plugin"
+      - name: dra-driver-spyre
+        function: "Kubernetes Dynamic Resource Allocation driver"
+      - name: spyre-health-checker
+        function: "Card health checking"
+      - name: spyre-scheduler-plugins
+        function: "Out-of-tree Kubernetes scheduler framework plugins"
+      - name: spyre-webhook-validator
+        function: "Admission webhook validation"
+      - name: certified-operators
+        function: "Red Hat certified operator bundles"
+      - name: spyre-operator-docs
+        function: "Operator documentation"
+    confidence: confirmed
+    sources:
+      - https://github.com/ibm-aiu
+
+# ── Open / closed inventory ───────────────────────────────────────────────────
+open_source_inventory:
+  open:
+    - "torch-spyre (PyTorch PrivateUse1 backend + Inductor front end) — Apache-2.0"
+    - "sendnn-inference, spyre-inference (vLLM plugins) — Apache-2.0"
+    - "hf-adapters — Apache-2.0"
+    - "sglang-spyre — no license file"
+    - "aiu-bench — Apache-2.0"
+    - "ktir-mlir-frontend, ktir-cpu — Apache-2.0"
+    - "dataflow-scheduler, dataflow-scheduler-mlir-dialects — Apache-2.0"
+    - "triton fork — MIT"
+    - "spyre-kernels — no license file"
+    - "interface-specs — Apache-2.0"
+    - "RFCs — no license file"
+    - "ibm-aiu Kubernetes/OpenShift tooling — Apache-2.0"
+    - "aiu-trace-analyzer"
+  closed:
+    - "DeepTools back-end compiler (dxp_standalone)"
+    - "DeepRT device runtime"
+    - "Flex runtime"
+    - "torch_sendnn distribution"
+    - "spyre_comms collectives"
+    - "libaiupti"
+    - "spyremetrics / aiu-smi implementation"
+    - "kernel driver"
+    - "card firmware"
+    - "ISA"
+  confidence: confirmed
+
+not_disclosed:
+  - "DeepTools internals: pass list, dataflow-mapping algorithms, core-scheduling heuristics, source"
+  - "Flex runtime and DeepRT source, APIs and internal architecture"
+  - "Kernel driver and card firmware source, ioctl/ABI surface, firmware control-message format"
+  - "spyre_comms collective implementation, algorithms and topology awareness"
+  - "Spyre ISA, instruction encoding, init.bin job-binary format"
+  - "Whether the torch_sendnn runtime will ever be publicly distributed"
+  - "Whether Spyre is reachable natively from z/OS (MLz/WMLz, zDLC, or any ONNX path)"

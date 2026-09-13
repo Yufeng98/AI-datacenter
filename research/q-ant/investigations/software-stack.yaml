@@ -1,0 +1,212 @@
+chip: q-ant
+device_class: "Photonic NPU (Germany)"
+as_of: "2026-04-05"
+
+stack_overview:
+  open_source: false
+  public_github: null
+  programmability: "Algorithm library only — no user ISA, no kernel authoring"
+  precision_model: "Analog continuous (no standard digital dtype)"
+  kernel_model: "None (MZI voltage configuration + data stream)"
+
+layers:
+  framework_integration:
+    components:
+      - name: PyTorch
+        mechanism: "Operator dispatch bridge (C++ extension, custom backend)"
+        status: supported
+      - name: TensorFlow
+        mechanism: "Custom op / plugin"
+        status: supported
+      - name: Keras
+        mechanism: "Backend bridge"
+        status: supported
+      - name: ONNX
+        status: unknown
+      - name: JAX
+        status: unknown
+    open_source: false
+
+  high_level_api:
+    languages: [C, "C++", Python]
+    python_bindings: true
+    api_style: "Imperative procedural; not graph-compilation"
+    documentation: "Not public; provided to NPS customers only"
+    analogy: "Thin vendor inference SDK (closer to Qualcomm libQAic than CUDA)"
+    open_source: false
+
+  algorithm_library:
+    name: Q.PAL
+    full_name: "Q.ANT Photonic Algorithm Library"
+    open_source: false
+    language: "C++ with Python bindings"
+    target_domains:
+      - "Image learning and classification"
+      - "Physics-based AI and simulation"
+      - "Robotics and physical AI"
+      - "Sensor fusion"
+      - "Computer vision and industrial intelligence"
+      - "Scientific discovery"
+    excluded_domains:
+      - "LLM / Transformer inference"
+      - "Large-scale model training"
+    key_npu2_capability: "Nonlinear model primitives exploiting native TFLN χ² optical nonlinearity"
+    analogy: "Narrow-domain cuDNN analog"
+
+  runtime:
+    components:
+      - "NPS device driver (Linux kernel)"
+      - "PCIe DMA engine"
+      - "DAC controller (MZI phase programming)"
+      - "Photodetector ADC reader"
+      - "MZI voltage configuration manager"
+    open_source: false
+    analogy: "CUDA Runtime (libcudart) + driver combined, photonic"
+
+  driver:
+    type: "Proprietary Linux kernel driver"
+    interface: PCIe
+    open_source: false
+    upstream: false
+    analogy: "nvidia.ko (closed)"
+
+  compiler:
+    user_facing: false
+    description: "Internal proprietary compiler; maps Q.PAL ops to MZI voltage tables"
+    open_source: false
+    ir: "Not disclosed"
+    analogy: "nvcc (not user-accessible)"
+
+  isa:
+    exists: false
+    note: "No user-programmable ISA; hardware configured via voltage table"
+
+deployment:
+  workflow:
+    - "User model in PyTorch/TF or Python API"
+    - "Q.PAL / framework bridge identifies target ops"
+    - "Compiler maps ops to MZI voltage configuration tables"
+    - "Runtime loads weights via PCIe → DAC → MZI phase voltages"
+    - "Input data streamed via PCIe → optical modulators"
+    - "Photons propagate through MZI mesh → optical MVM + nonlinear ops"
+    - "Photodetectors → ADC → results via PCIe → host CPU memory"
+    - "Output tensor returned to user model"
+  hpc_scheduler: "SLURM/PBS compatible (standard Linux node)"
+  server_form: "Turnkey NPS Linux server; plug-in to existing HPC fabric"
+
+# ============================================================================
+# Investigation update — appended 2026-08-08
+# Window: 2026-04-05 -> 2026-08-08
+# No Q.ANT SDK release. The material change is a THIRD-PARTY compilation path.
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: moderate
+  qant_sdk_release_in_window: false
+  qant_open_source_footprint: none
+  summary: >
+    Q.ANT shipped no SDK, toolchain or documentation in the window and its stack
+    remains fully proprietary with no public GitHub. A third party, Daisytuner GmbH,
+    demonstrated a working PyTorch -> photonic compilation path onto Q.ANT NPU Gen 2,
+    which makes the repo's "Compiler: internal only (not user-facing)" entry incomplete.
+
+  fact_groups:
+
+    - group: daisytuner_pytorch_to_photonic_compiler
+      confidence: high
+      basis: third_party_vendor_page_plus_qant_primary_pr
+      facts:
+        owner: "Daisytuner GmbH"
+        owner_is_qant: false
+        graph_capture: "Daisyflow"
+        compiler: "docc - Daisytuner Optimizing Compiler Collection"
+        compiler_ir: "SDFG-based"
+        model_compiled: "Faster R-CNN with ResNet-50 backbone (object detection)"
+        source_framework: PyTorch
+        compiled_directly: true
+        custom_code_required: "none, per Daisytuner"
+        pipeline_coverage: "pre-processing, inference and post-processing end-to-end"
+        target: "Q.ANT NPU Gen 2"
+        qant_framing: "the first time an AI model from a standard ML framework has been successfully compiled for photonic hardware"
+        reveal_date: "April 2026 (per Q.ANT's 2026-06-23 press release)"
+        exact_date_pinned: false
+        exact_date_reason: "daisytuner.com/news is client-rendered and carries no visible dates"
+        repo_impact: >
+          The layer-table row "Compiler | Internal only (not user-facing)" is now
+          incomplete: a third-party compilation flow exists alongside Q.ANT's internal
+          compiler, and the framework relationship is no longer only an operator bridge
+          or Q.PAL library call.
+        caveats:
+          - "the compiler is Daisytuner's, not Q.ANT's - this does not make Q.ANT's stack more open"
+          - "github.com/daisytuner/docc is public and actively developed (last push 2026-08-07, ~22 stars) but a Q.ANT/photonic backend was NOT located in the open-source tree"
+          - "the photonic target may be delivered via Daisytuner's hosted service rather than the open repo"
+          - "Q.ANT's own stack remains proprietary with no public GitHub"
+        do_not_publish:
+          - "attribution of this work to SC '25 - that tag on daisytuner.com belongs to a separate OpenFOAM/Tenstorrent item"
+          - "any merger of this item with the ISC 2026 diffusion/xLSTM demos - different event, different model, different month"
+          - "description of the Q.ANT photonic backend as open source"
+      sources:
+        - title: "Daisytuner product page (third-party)"
+          url: "https://daisytuner.com/"
+        - title: "github.com/daisytuner/docc (public compiler repo, last push 2026-08-07)"
+          url: "https://github.com/daisytuner/docc"
+        - title: "Q.ANT runs generative AI on photonic hardware (2026-06-23) - dates the Daisytuner reveal to April 2026"
+          url: "https://qant.com/press-releases/q-ant-runs-generative-ai-on-photonic-hardware/"
+
+    - group: framework_integration_revised
+      confidence: high
+      basis: derived_from_daisytuner_and_qant_primary
+      facts:
+        mechanism_1:
+          name: "Operator dispatch bridge (PyTorch / TensorFlow / Keras)"
+          owner: "Q.ANT"
+          nature: "dispatch of supported ops into Q.PAL; imperative, not a compilation flow"
+        mechanism_2:
+          name: "Daisyflow graph capture -> docc compilation"
+          owner: "Daisytuner (third party)"
+          nature: "a genuine compilation flow from a standard framework onto the photonic target"
+        onnx: not_confirmed
+        jax: not_confirmed
+      sources:
+        - title: "Daisytuner product page"
+          url: "https://daisytuner.com/"
+        - title: "Q.ANT press release (2026-06-23)"
+          url: "https://qant.com/press-releases/q-ant-runs-generative-ai-on-photonic-hardware/"
+
+    - group: workloads_demonstrated_no_metrics
+      confidence: high
+      basis: vendor_primary_pr_plus_independent_corroboration
+      facts:
+        event: "ISC High Performance 2026, Hamburg"
+        date: "2026-06-23"
+        workload_1: "diffusion model for image-to-image synthesis"
+        workload_2: "TiRex - time-series prediction, xLSTM architecture from NXAI (Austria)"
+        metrics_published: none
+        cpu_gpu_layer_split_disclosed: false
+        software_stack_relevance: >
+          Demonstrates that non-trivial model classes now run on the platform, but the
+          releases say nothing about which toolchain path was used, how much of each
+          model was mapped to the NPU, or what remained on CPU/GPU.
+        separate_from: daisytuner_pytorch_to_photonic_compiler
+      sources:
+        - title: "Q.ANT runs generative AI on photonic hardware (2026-06-23)"
+          url: "https://qant.com/press-releases/q-ant-runs-generative-ai-on-photonic-hardware/"
+        - title: "The Quantum Insider (2026-06-23)"
+          url: "https://thequantuminsider.com/2026/06/23/q-ant-runs-generative-ai-on-photonic-hardware/"
+
+    - group: unchanged_layers
+      confidence: high
+      basis: no_new_vendor_material_in_window
+      facts:
+        qpal: unchanged
+        high_level_api: unchanged
+        runtime_hal: unchanged
+        linux_kernel_driver: unchanged
+        isa: "still none - no user-programmable ISA, no kernel authoring"
+        deployment_workflow: unchanged
+        qant_sdk_version_or_release_notes: none_published
+        qant_public_documentation: none_published
+      sources:
+        - title: "qant.com/photonic-computing/ (fetched 2026-08-08)"
+          url: "https://qant.com/photonic-computing/"

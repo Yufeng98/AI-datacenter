@@ -1,0 +1,146 @@
+digraph lightmatter_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== HOST SERVER =====================
+    subgraph cluster_host {
+        label="Envise 4S Host Server (per blade)";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        host_cpu [label="2× AMD EPYC Host CPU\nIdiom Runtime + Compiler\nModel weight management\nJob orchestration", fillcolor="#E0E0E0"];
+        host_dram [label="1 TB DDR4 DRAM\nModel weights (float)\nActivation buffers\nPre-phase-encoded weights", fillcolor="#E0E0E0"];
+        host_nvme [label="3 TB NVMe Flash\nModel checkpoint storage\nLarge model parameter staging", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== ENVISE PACKAGE =====================
+    subgraph cluster_envise {
+        label="Envise Package (6-die MCM) — 65.5 TOPS ABFP16 @ 78W elec + 1.6W optical";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        // DCI layer
+        dci0 [label="DCI-0 (12nm CMOS)\nDAC: 256-ch WDM modulator drive\nADC: photodetector readout\nActivation: ReLU/GELU/Softmax/LayerNorm\nPhase calibration control (MZI drift)", fillcolor="#283593", fontcolor="white"];
+        dci1 [label="DCI-1 (12nm CMOS)\nDAC: 256-ch WDM modulator drive\nADC: photodetector readout\nActivation: ReLU/GELU/Softmax/LayerNorm\nPhase calibration control (MZI drift)", fillcolor="#283593", fontcolor="white"];
+
+        // PTC layer
+        ptc0 [label="PTC-0\n128×128 MZI Mesh\nU mesh + Σ attenuators + V† mesh\nSVD matrix decomposition\nMVM in ~1 ns (optical pass)", fillcolor="#3949AB", fontcolor="white"];
+        ptc1 [label="PTC-1\n128×128 MZI Mesh\nU mesh + Σ attenuators + V† mesh\nSVD matrix decomposition\nMVM in ~1 ns (optical pass)", fillcolor="#3949AB", fontcolor="white"];
+        ptc2 [label="PTC-2\n128×128 MZI Mesh\nU mesh + Σ attenuators + V† mesh\nSVD matrix decomposition\nMVM in ~1 ns (optical pass)", fillcolor="#3949AB", fontcolor="white"];
+        ptc3 [label="PTC-3\n128×128 MZI Mesh\nU mesh + Σ attenuators + V† mesh\nSVD matrix decomposition\nMVM in ~1 ns (optical pass)", fillcolor="#3949AB", fontcolor="white"];
+
+        // Laser + WDM
+        laser [label="Laser Source + WDM MUX\n512 wavelength channels\nOn-package or fiber-coupled\nEncodes input activation vector\nas optical amplitudes", fillcolor="#283593", fontcolor="white"];
+
+        // ABFP16
+        abfp16 [label="ABFP16 Precision Layer\nAdaptive Block Floating-Point 16-bit\nShared exponent per block\nMatches photonic analog dynamic range\nNear-FP32 accuracy (Nature 2025)", fillcolor="#3949AB", fontcolor="white"];
+    }
+
+    // ===================== PASSAGE INTERCONNECT =====================
+    subgraph cluster_passage {
+        label="Passage Interconnect Platform (all figures vendor-stated)";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        m1000 [label="Passage M1000  (now Passage M1000 EVK, 2026)\n3D Multi-Reticle Active Photonic Interposer\n4,000+ mm² | 114 Tbps total BW\n256 optical fibers\nSolid-state OCS (nanosecond reconfig)\nElectro-optical I/O: any surface (not edge-limited)\n1.5 kW+ power delivery\nConnects thousands of XPUs in single domain", fillcolor="#FFE0CC"];
+        l200 [label="Passage L200\n3D Co-Packaged Optics (CPO)\n32 Tbps / 64 Tbps versions | 112G PAM4\n>200 Tbps total I/O per chip package\n5–10× improvement vs prior CPO\n8× faster AI training (reported)", fillcolor="#FFE0CC"];
+        l20 [label="Passage L20  (NEW 2026-03-11)\nNear-Package Optics (NPO) + On-Board Optics (OBO)\n6.4 Tbps/direction | 12.8 Tbps aggregate\n32 BIDIRECTIONAL fibers @ 200 Gbps/lane\n212.5 Gbps PAM4 | IEEE 802.3dj signaling\n30 W max TDP | A2 ASHRAE cold plate\nCorning CPO FlexConnect fiber coupling\n3.0 pJ/bit (press rel.) / 5 pJ/bit (product page)\nSAMPLING LATE 2026 — not shipping", fillcolor="#FFD0AA", penwidth=2, color="#FF6D01"];
+        vclick [label="vClick dFAU  (NEW 2026-03-11)\nDetachable Fiber Array Unit\nVertical / expanded-beam coupling\nSurvives mold-and-grind packaging\nPassive alignment | < 1.5 dB insertion+reinsertion\nWafer-level known-good optical engine test\n(SENKO collaboration)", fillcolor="#FFF0E0", style="rounded,filled,dashed"];
+    }
+
+    // ===================== GUIDE LIGHT SOURCE TIER (NEW 2026) =====================
+    subgraph cluster_guide {
+        label="Guide — External Light Source Tier (NEW 2026; vendor-stated)";
+        style="rounded,dashed";
+        color="#B8860B";
+        fontcolor="#B8860B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        guide1 [label="Guide 1 — VLSP Light Engine  (2026-01-26/27)\n'Very Large Scale Photonics'\nHundreds of lasers + photonic components on one chip\nHVM CMOS fab | on-PIC wavelength tunability\n100 mW+ optical power per fiber\n16 wavelengths @ 100/200/400+ GHz (roadmap: 64)\nCMIS telemetry + active stabilization\nsub-GHz wavelength precision\nN+M redundancy (autonomous backup retune)\nReplaces discrete ELSFP laser farms", fillcolor="#FFF3CD"];
+        guide_dr [label="Guide DR — liquid-cooled Laser NIC  (2026-05-21)\nOCP NIC 3.0 | in-chassis, zero front-panel footprint\nUp to 64 fibers | 200 mW optical power per fiber\n256 lanes @ 200G | 51.2 Tbps per module\n4 modules in 1RU → 204.8 Tbps CPO scale-up\n~4× rack density vs ELSFP\nCMIS 5.3 over I2C/I3C | OCP MHS | ASHRAE A2\nSAMPLING Q4 2026 — not shipping", fillcolor="#FFF3CD", penwidth=2, color="#B8860B"];
+    }
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out (Datacenter)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        fiber_network [label="Optical Fiber Network\nMulti-rack, datacenter scale\n6.4 Tbps per Envise 4S blade\nOCS-switched topology\n(XPO MSA standard, founding member 2026)\nNVIDIA NVLink Fusion partner (~2026-06-03):\nPassage CPO + NPO compatible with NVIDIA\noptical and SerDes tech; ~50% fewer\nfibers and connectors (vendor claim)", fillcolor="#D4EDDA"];
+        switch_asic [label="Third-party Switch / XPU ASIC\n(NPO: L20 mounted adjacent on switch board)\n(OBO: L20 on flex-PCB / mezzanine + retimer)", fillcolor="#E8F5E9", style="rounded,filled,dashed"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Host → Package
+    host_cpu -> dci0 [label="PCIe | weight reload\nphase voltage program", fontsize=8];
+    host_cpu -> dci1 [label="PCIe | weight reload\nphase voltage program", fontsize=8];
+    host_dram -> host_cpu [label="model weights\nload", fontsize=8];
+    host_nvme -> host_dram [style=dashed, label="staging", fontsize=8];
+
+    // Laser → DCI → PTCs (optical signal flow)
+    laser -> dci0 [color="white", label="512 WDM channels", fontcolor="#6699CC", fontsize=8];
+    laser -> dci1 [color="white", label="512 WDM channels", fontcolor="#6699CC", fontsize=8];
+    dci0 -> ptc0 [color="white", label="optical input\n(modulated)", fontcolor="#6699CC", fontsize=8];
+    dci0 -> ptc1 [color="white", label="optical input\n(modulated)", fontcolor="#6699CC", fontsize=8];
+    dci1 -> ptc2 [color="white", label="optical input\n(modulated)", fontcolor="#6699CC", fontsize=8];
+    dci1 -> ptc3 [color="white", label="optical input\n(modulated)", fontcolor="#6699CC", fontsize=8];
+
+    // PTCs → DCI (optical output → ADC)
+    ptc0 -> dci0 [color="white", label="photodetector\n→ ADC", fontcolor="#6699CC", fontsize=8, style=dashed];
+    ptc1 -> dci0 [color="white", label="photodetector\n→ ADC", fontcolor="#6699CC", fontsize=8, style=dashed];
+    ptc2 -> dci1 [color="white", label="photodetector\n→ ADC", fontcolor="#6699CC", fontsize=8, style=dashed];
+    ptc3 -> dci1 [color="white", label="photodetector\n→ ADC", fontcolor="#6699CC", fontsize=8, style=dashed];
+
+    // ABFP16 precision applied at DCI level
+    abfp16 -> dci0 [color="#3949AB", style=dashed, label="quantization\ncalibration", fontsize=8, fontcolor="#3949AB"];
+    abfp16 -> dci1 [color="#3949AB", style=dashed, label="quantization\ncalibration", fontsize=8, fontcolor="#3949AB"];
+
+    // DCI → Passage
+    dci0 -> m1000 [style=dashed, color="#FF6D01", label="multi-blade\nactivation transfer", fontsize=8, fontcolor="#FF6D01"];
+    dci1 -> m1000 [style=dashed, color="#FF6D01", label="multi-blade\nactivation transfer", fontsize=8, fontcolor="#FF6D01"];
+
+    // L200 as alternative CPO
+    l200 -> m1000 [style=dashed, label="complementary\nCPO option", fontsize=8];
+
+    // L20 as the near-package tier between pluggables and CPO
+    l20 -> l200 [style=dashed, label="NPO/OBO bridge tier\nahead of ~2028 CPO ramp", fontsize=8, color="#FF6D01", fontcolor="#FF6D01"];
+
+    // vClick packaging/test enabler feeds the optical engines
+    vclick -> l20 [style=dotted, label="detachable FAU\nwafer-level KGD test", fontsize=8, color="#FF6D01", fontcolor="#FF6D01"];
+    vclick -> l200 [style=dotted, label="detachable FAU\n(CPO assembly)", fontsize=8, color="#FF6D01", fontcolor="#FF6D01"];
+
+    // Guide supplies CW laser light to the optical engines
+    guide1 -> l20 [color="#B8860B", label="CW laser light\n100 mW+/fiber, 16λ", fontsize=8, fontcolor="#B8860B"];
+    guide1 -> l200 [color="#B8860B", label="CW laser light\n(CPO deployment)", fontsize=8, fontcolor="#B8860B"];
+    guide_dr -> l200 [color="#B8860B", label="Laser NIC feed\n64 fibers @ 200 mW\n51.2 Tbps/module", fontsize=8, fontcolor="#B8860B"];
+    guide1 -> guide_dr [style=dashed, label="same VLSP engine,\nOCP NIC 3.0 packaging", fontsize=8, color="#B8860B", fontcolor="#B8860B"];
+
+    // Passage → Scale-out
+    m1000 -> fiber_network [color="#FF6D01", label="256 fibers\n(scale-out)", fontsize=8, fontcolor="#FF6D01"];
+    fiber_network -> m1000 [style=dashed, label="OCS-switched\nreturn path", fontsize=8, color="#34A853"];
+    l20 -> switch_asic [color="#FF6D01", label="212.5G PAM4\nelectrical (802.3dj)", fontsize=8, fontcolor="#FF6D01"];
+    switch_asic -> fiber_network [color="#34A853", label="32 BiDi fibers\n12.8 Tbps aggregate", fontsize=8, fontcolor="#34A853"];
+}

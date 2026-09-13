@@ -1,0 +1,162 @@
+chip: luminous
+display_name: Luminous Computing Photonic-Electronic Hybrid
+as_of: "2026-08-08"
+device_class: Photonic-Electronic Hybrid
+status: defunct
+status_verified_date: "2026-08-08"
+wind_down_date: "2023-05"
+operating: false
+formal_dissolution: not_disclosed
+ip_disposition: >
+  Two channels into AMD. (1) Silicon photonics design IP LICENSED (not sold) to Enosemi
+  2023-10 with Luminous retaining title; AMD acquired Enosemi 2025-05-28/29.
+  (2) Luminous Computing, Inc. assigned its own patent portfolio OUTRIGHT to Advanced
+  Micro Devices, Inc., USPTO recordation date 2026-02-28 (US11500410B1, US12379543B2,
+  US12613811B2). No press coverage; USPTO records are the sole evidence.
+sdk_disposition: "None. No compiler/runtime/SDK/driver was ever released, open-sourced, or transferred."
+web_presence: "luminous.com no longer company-controlled; third-party domain-sale listing (Top Notch Domains / Embrace.com) as of 2026-08-08"
+status_sources:
+  - "https://patents.google.com/patent/US11500410B1/en"
+  - "https://patents.google.com/patent/US12379543B2/en"
+  - "https://patents.google.com/patent/US12613811B2/en"
+  - "https://www.electronicsweekly.com/news/business/amd-buys-enosemi-2025-05/"
+  - "https://www.luminous.com/"
+
+company:
+  name: Luminous Computing
+  founded: 2018
+  hq: "Mountain View, CA"
+  founders:
+    - name: Marcus Gomez
+      role: CEO & Co-founder
+    - name: Mitchell Nahmias
+      role: CTO & Co-founder
+      background: "Princeton PhD, neuromorphic photonics pioneer"
+    - name: Michael Hochberg
+      role: "Silicon photonics pioneer (joined 2021)"
+  total_raised_usd: 123_000_000
+  funding_rounds:
+    - round: pre-seed
+      amount_usd: 1_000_000
+      year: 2018
+    - round: seed
+      amount_usd: 9_000_000
+      year: 2019
+    - round: series_a
+      amount_usd: 105_000_000
+      year: 2022
+      lead_investors: [Gigafund, "Bill Gates", 8090 Partners, Neo, "Third Kind Venture Capital"]
+  key_events:
+    - date: "2020-01"
+      event: "Mitchell Nahmias IEEE JSTQE paper: Photonic Multiply-Accumulate Operations for Neural Networks"
+    - date: "2021-03"
+      event: "Michael Hochberg (silicon photonics pioneer) joins Luminous"
+    - date: "2022-03"
+      event: "$105M Series A announced; photonic supercomputer vision revealed"
+    - date: "2023-05"
+      event: "~50% layoffs; entire photonics team disbanded; operations wound down"
+    - date: "2023-07"
+      event: "Surplus assets auctioned by Silicon Valley Disposition"
+    - date: "2023-10"
+      event: "Enosemi launched with a COMMITTED COMMERCIAL LICENSE to Luminous silicon photonics design IP (license only; Luminous retained title)"
+    - date: "2025-05-28"
+      event: "AMD acquired Enosemi (16 employees) for its co-packaged optics program. CORRECTION: an earlier revision of this file dated this Oct 2023, which was wrong."
+    - date: "2026-02-28"
+      event: "USPTO recordation: Luminous Computing, Inc. assigned its patent portfolio outright to Advanced Micro Devices, Inc. Unreported in press."
+    - date: "2026-04-28"
+      event: "US12613811B2 granted, already assigned to AMD — last observed activity connected to the estate"
+
+architecture:
+  paradigm: "Photonic interconnect at every scale; electronic compute"
+  compute_medium: "CMOS ASIC (electronic)"
+  data_movement_medium: "Silicon photonics + WDM optical fiber"
+  photonic_role: interconnect
+  electronic_role: all_compute
+
+  hierarchy_bandwidth_claim: "10–100× improvement vs electrical at every scale"
+  scales_addressed:
+    - scale: die_to_memory
+      link_type: optical
+    - scale: chip_to_chip
+      link_type: photonic_wdm
+    - scale: board_to_board
+      link_type: optical
+    - scale: rack_to_rack
+      link_type: fiber_wdm
+
+compute_die:
+  type: CMOS_ASIC
+  process_node: not_public
+  tdp_w: not_public
+  performance_claim: "3,000× TPU v3 board (unverified, pre-pivot claim)"
+
+photonic_interconnect:
+  technology: silicon_on_insulator_waveguides
+  multiplexing: WDM
+  waveguide_loss: not_public
+  channel_count: not_public
+  aggregate_bandwidth: not_public
+  distance_independence: true
+
+memory:
+  type: DDR
+  hbm: false
+  notes: "Confirmed: multi-TB DDR, no HBM (Enosemi/Luminous press release Oct 2023)"
+  gen1_capacity: not_public
+  gen1x_capacity: "2 TB DDR (planned, never shipped)"
+  gen2: "with networking (planned, never shipped)"
+  bandwidth_GBps: not_public
+
+host_interface: not_public
+
+software_stack:
+  framework_integration: not_public
+  compiler: not_public
+  runtime: not_public
+  driver: not_public
+
+silicon_photonics_ip:
+  channel_1_license:
+    transaction: committed_commercial_license
+    title_transferred: false
+    licensee: Enosemi
+    license_date: "2023-10"
+    subsequent_acquirer: AMD
+    acquirer_acquisition_date: "2025-05-28"
+    acquisition_purpose: "Co-packaged optics (CPO) for AI systems"
+    ip_components:
+      - silicon_photonic_circuit_design_libraries
+      - electro_optic_modulator_designs
+      - waveguide_routing_and_wdm_components
+      - process_design_kit_elements
+  channel_2_patent_sale:
+    transaction: outright_assignment
+    assignor: "Luminous Computing, Inc."
+    assignee: "Advanced Micro Devices, Inc."
+    uspto_recordation_date: "2026-02-28"
+    verified_patents:
+      - id: US11500410B1
+        title: "System and method for parallel photonic computation"
+      - id: US12379543B2
+        title: "Photonic integrated circuit system and method of fabrication"
+      - id: US12613811B2
+        title: "Computer architecture with disaggregated memory and high-bandwidth communication interconnects"
+        granted: "2026-04-28"
+    press_coverage: none_found
+    evidence: "USPTO assignment records only"
+  in_shipping_amd_silicon: not_disclosed
+
+academic_foundation:
+  paper: "Photonic Multiply-Accumulate Operations for Neural Networks"
+  authors: ["Mitchell Nahmias", "et al."]
+  journal: "IEEE Journal of Selected Topics in Quantum Electronics"
+  year: 2020
+  doi: "10.1109/JSTQE.2019.2941485"
+  url: "https://ieeexplore.ieee.org/ielaam/2944/8764697/8844098-aam.pdf"
+
+wind_down_reasons:
+  - "Silicon photonics manufacturing immaturity and yield challenges in 2022-2023"
+  - "System integration complexity (precision fiber coupling at scale)"
+  - "Insufficient capital ($123M vs ~$500M–$1B needed to reach production)"
+  - "Competitive pressure from NVIDIA NVLink/NVSwitch reducing urgency"
+  - "Analog noise and thermal drift challenges in photonic compute"

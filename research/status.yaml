@@ -1,0 +1,1424 @@
+last_updated: "2026-08-08T12:00:00"
+# These tables live in the private AI-datacenter-survey repo, one level above the public/ mount.
+master_table: programming-model-comparison.md
+framework_table: programming-model-comparison.md
+
+chips:
+  nvidia-gpu:
+    device_class: GPU
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T11:10:00"
+      resource_count: 48
+    investigate:
+      cutlass:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/cutlass.md
+        sidecar: research/nvidia-gpu/investigations/cutlass.yaml
+      nccl:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/nccl.md
+        sidecar: research/nvidia-gpu/investigations/nccl.yaml
+      open-gpu-kernel-modules:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/open-gpu-kernel-modules.md
+        sidecar: research/nvidia-gpu/investigations/open-gpu-kernel-modules.yaml
+      cuda-programming-guide:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/cuda-programming-guide.md
+        sidecar: research/nvidia-gpu/investigations/cuda-programming-guide.yaml
+      hw-architecture:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/hw-architecture.md
+        sidecar: research/nvidia-gpu/investigations/hw-architecture.yaml
+      cudnn:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/cudnn.md
+        sidecar: research/nvidia-gpu/investigations/cudnn.yaml
+      triton:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/triton.md
+        sidecar: research/nvidia-gpu/investigations/triton.yaml
+      ptx-isa:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/ptx-isa.md
+        sidecar: research/nvidia-gpu/investigations/ptx-isa.yaml
+      cuda-runtime:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/cuda-runtime.md
+        sidecar: research/nvidia-gpu/investigations/cuda-runtime.yaml
+      cccl-cublas:
+        status: completed
+        artifact: research/nvidia-gpu/investigations/cccl-cublas.md
+        sidecar: research/nvidia-gpu/investigations/cccl-cublas.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T11:30:00"
+    seeds:
+      - https://developer.nvidia.com/cuda-toolkit
+      - https://github.com/NVIDIA/cutlass
+      - https://github.com/NVIDIA/nccl
+    notes: |
+      Hopper/Blackwell/Rubin. 2026-08-08 scan: no new silicon; Rubin specs unchanged (50/35 PFLOPS NVFP4 inf/train, 17.5 FP8-FP6, 288 GB HBM4 22 TB/s, NVLink 6 3.6 TB/s; NVIDIA-preliminary). Full production since May 2026, shipments stated fall 2026, none announced. New: 6th-gen TE w/ adaptive compression (unquantified); CUDA Tile IR + cuTile (pre-baseline gap; Blackwell+Ampere/Ada only); GA CUDA 13.3U1, 13.4 preview 2026-07-16 (Rubin PTX, driver unbundled, R616+); PTX 9.3; NCCL 2.30.x zero-SM collectives/elastic buffers/TMA; NCCL EP + nccl4py + nccl-extensions. Fixed: NVL576 = 8 racks x 72 GPUs; Groq 3 LPX.
+
+      Unresolved / written as 'not disclosed': Rubin per-GPU BF16 and FP64 peak throughput — not disclosed; Rubin SM count, transistor count, die configuration (monolithic vs chiplet), HBM stack count and interface width — not disclosed; NVLink 6 Switch port count and per-switch aggregate bandwidth — not disclosed (only the 260 TB/s rack-level switch bandwidth is published); ConnectX-9 SuperNIC per-port rate — not disclosed in the NVIDIA Vera Rubin POD blog; the pre-existing 'InfiniBand XDR 800Gb/s' cell in the comparison table was left as repo baseline, neither verified nor refuted in this scan; Rubin compute capability (sm_XX) — not named in any GA CUDA release; only the pre-release CUDA 13.4 preview mentions 'some Rubin capabilities' in PTX; Quantified effect of the Rubin Transformer Engine's adaptive compression — none published; also could not establish that the product-page wording postdates the 2026-04-05 baseline (page is undated); cuTile experimental-to-stable status — no NVIDIA release note documents any such transition; deliberately not asserted; Per-submitter attribution of MLPerf Training v6.0 results (CoreWeave/Dell/Cisco) — requires the MLCommons results table, which was not opened; not asserted
+
+  amd-gpu:
+    device_class: GPU
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T11:35:00"
+      resource_count: 42
+    investigate:
+      aiter:
+        status: completed
+        artifact: research/amd-gpu/investigations/aiter.md
+        sidecar: research/amd-gpu/investigations/aiter.yaml
+      hip-rocm:
+        status: completed
+        artifact: research/amd-gpu/investigations/hip-rocm.md
+        sidecar: research/amd-gpu/investigations/hip-rocm.yaml
+      hw-architecture:
+        status: completed
+        artifact: research/amd-gpu/investigations/hw-architecture.md
+        sidecar: research/amd-gpu/investigations/hw-architecture.yaml
+      miopen-rocblas:
+        status: completed
+        artifact: research/amd-gpu/investigations/miopen-rocblas.md
+        sidecar: research/amd-gpu/investigations/miopen-rocblas.yaml
+      rccl:
+        status: completed
+        artifact: research/amd-gpu/investigations/rccl.md
+        sidecar: research/amd-gpu/investigations/rccl.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://github.com/ROCm/ROCm
+      - https://github.com/ROCm/MIOpen
+      - https://github.com/ROCm/RCCL
+    notes: |
+      CDNA 5 / MI455X launched Advancing AI 2026 (2026-07-23); AMD CDNA 5 blog 2026-08-04. Arch is CDNA 5, NOT "CDNA Next"/UDNA (UDNA/CDNA 6 -> MI500 2027; ~1000x claim deleted, unsourced). MI455X: 8 XCDs (TSMC N2) x 32 active WGPs of 34 = 256 WGPs (=512 CUs), 2 SE/XCD x16 WGP, 4 matrix units/WGP, 2.4 GHz, native Wave32 (Wave64 removal not disclosed); 40.26 PFLOPS MXFP4 + 315 TFLOPS FP32 confirmed, 20.13/5.03 PFLOPS unconfirmed; new E5M3 scale fmt, 4-bit Tensor LUT, Tensor Data Movers. Mem: 432 GB HBM4 @ 23.3 TB/s (was 19.6 stale), 12 stacks x2048-bit/192ch; 192 MB global L2 = 2x96 MB on new Fabric-and-Cache Dies @54 TB/s (Infinity Cache tier gone); 320 KB LDS + 128 KB L1 per WGP. Pkg: 8 XCD + 2 IOD + 2 FCD (N3), CoWoS-L, host = 256 GB/s 16-lane Infinity Fabric (not PCIe); transistors/TBP not disclosed. Fabric: UALoE 36x400 Gb/s = 3.6 TB/s bidir, 72-GPU scale-up domain, 260 TB/s rack; scale-out 43 TB/s/rack via Pensando Vulcano. Helios: 72 MI455X + 18 EPYC Venice, 2.9 EFLOPS MXFP4, 31 TB HBM4, ~1.7 PB/s; rack power/format NOT disclosed. In production, shipping Q3 2026, ramping Q4 — not deployed at scale. SKUs: MI430X (288 TF FP64, H1 2027), MI350P is CDNA4/gfx950 not CDNA5, MI440X unconfirmed (omitted). Anthropic 2 GW; 6 GW is OpenAI (Oct 2025), NOT Meta (repo error fixed). SW: ROCm 7.14.0 (2026-07-16, TheRock production, HIP Execution Contexts, batch mem APIs, RCCL hierarchical AllGather, ROCprof-SDK SPM, PT 2.12/JAX 0.10/vLLM 0.23); no ROCm 8. CRITICAL: CDNA 5 gfx target NOT DISCLOSED (matrix stops at gfx950). AMD Primus training framework added (Megatron/TorchTitan/MaxText, v26.4). ROCm.AI/Hyperloom announced; 3.3x/38% are unverified vendor claims. MLPerf Training v6.0: first multi-node (512x MI300X on OCI), first MXFP4 recipe, +19%/+13% MI355X. Next: confirm gfx ID, Tomahawk 6 count, rack power, MLPerf Inference v6.0 numbers.
+
+      Unresolved / written as 'not disclosed': MI455X transistor count (320B is an unverified aggregator figure) — written as not disclosed; MI455X TBP — not disclosed; CDNA 5 gfx ISA target / --offload-arch value — not disclosed; ROCm 7.14.0 compatibility matrix stops at gfx950 for Instinct; Helios rack power (the 225–245 kW figure is unsourced; AMD's footnote references only a 100 kW comparison envelope) — not disclosed; Helios rack format (Open Rack Wide 1.2 m × 1.3 m, 44 OU) and 50 V liquid-cooled bus bar — not confirmed against a primary AMD source; Whether Wave64 is removed from the CDNA 5 ISA (only native Wave32 execution is confirmed) — not disclosed; Whether UALoE switching performs in-network reduction — not disclosed; Broadcom switch detail: '12× Tomahawk 6 ASICs in a 12-plane topology' — not confirmed (partnership itself is corroborated)
+
+  google-tpu:
+    device_class: Systolic Array Accelerator
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T11:45:00"
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/google-tpu/investigations/hw-architecture.md
+        sidecar: research/google-tpu/investigations/hw-architecture.yaml
+      jax-runtime:
+        status: completed
+        artifact: research/google-tpu/investigations/jax-runtime.md
+        sidecar: research/google-tpu/investigations/jax-runtime.yaml
+      xla-pallas:
+        status: completed
+        artifact: research/google-tpu/investigations/xla-pallas.md
+        sidecar: research/google-tpu/investigations/xla-pallas.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://cloud.google.com/tpu/docs
+      - https://github.com/google/jax
+    notes: |
+      v8 gen (2026-04-22 Next '26): v8t Sunfish training + v8i Zebrafish inference; announced, vendor GA target CY2026, NOT shipping as of 2026-08-08 (supported-version list still tops out at TPU7x Ironwood). Corrected 2026-08-08: Vmem 128 MB/chip (8t) vs 384 MB (8i) — 3x claim is 8i-only, per-TensorCore split not disclosed; train perf/$ 2.7x not 2.8x; v8i pod 11.6 FP4 (not FP8) EFLOPS, 1,152 connected/1,024 active; HBM BW 6,528/8,601 GB/s; SparseCore listed for 8t only, count not published; TSMC 2nm/Broadcom/MediaTek press-reported only. New: LLM Decoder Engine (8t, function n/d); v8i chiplet = 2 TC dies + 1 CAE die. SW: Compute Engine-native TPU provisioning GA 2026-06-01; no libtpu/JAX version entries May-Aug 2026. HC38 v8 talk Aug 25 2026 — content not yet public; re-scan after.
+
+      Unresolved / written as 'not disclosed': Per-TensorCore Vmem split for v8t/v8i — Google publishes a per-chip figure only; written as "not disclosed" (the prior 192 MB/TensorCore was removed, not re-estimated); SparseCore counts for v8 (either chip) — the prior "4" was withdrawn and written as "count not published"; no SparseCore attributed to v8i at all; MXU dimensions for v8 — Google's deep-dive never states 256×256; kept as an explicitly flagged carried-forward assumption rather than deleted or asserted; FP8 support on v8 — the deep-dive discusses FP4 only; FP8/BF16/FP16/INT8 marked "not disclosed for v8", and the derived ~6,300 / ~5,000 FP8 TOPS figures in the comparison table were dropped rather than carried forward; Process node, foundry, and ASIC design partners for v8 — no vendor disclosure; TSMC 2nm / Broadcom / MediaTek retained only as press-reported and unconfirmed; Function, count, and performance of the v8t LLM Decoder Engine — existence confirmed, everything else not disclosed; v8 pricing; any TPU v9 information; any Meta TPU agreement beyond pre-baseline press reports; Any TPU MLPerf Training v6.0 result — Google is 1 of 24 submitters but MLCommons does not attribute hardware per submitter; no number recorded
+
+  aws-neuron:
+    device_class: Systolic Array Accelerator
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T11:45:00"
+    investigate:
+      communication:
+        status: completed
+        artifact: research/aws-neuron/investigations/communication.md
+        sidecar: research/aws-neuron/investigations/communication.yaml
+      hw-architecture:
+        status: completed
+        artifact: research/aws-neuron/investigations/hw-architecture.md
+        sidecar: research/aws-neuron/investigations/hw-architecture.yaml
+      neuron-sdk-nki:
+        status: completed
+        artifact: research/aws-neuron/investigations/neuron-sdk-nki.md
+        sidecar: research/aws-neuron/investigations/neuron-sdk-nki.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/
+      - https://github.com/aws-neuron
+    notes: |
+      2026-08-08: SDK 2.29.0(04-09; NKI 0.3.0 Beta→STABLE, nki-stdlib, CPU simulator; breaking NxDI Trn2+-only, Trn1/Inf2 pin 2.28), 2.30.0(05-21; NKI 0.4.0 Trn3 activate2, tile 1024, zero-copy default, K8s DRA, new agentic-development component), 2.31.0(07-07; NKI 0.5.0 .indirect(), redesigned neuronx-cc codegen default Trn2/Trn3). Trn3 scale-up = PCIe Gen6 switch fabric (256/320/128 GB/s, BAR-addr routing, HW semaphores); per-dev BW unreconciled 2048 GiB/s vs 704 GB/s vs 2.5 TB/s. Trn3 UltraServer 64/144ch, EFA 12.8/28.8 Tbps=200 Gbps/dev (pre-baseline). Anthropic >1M Trn2. No AWS at HC38/MLPerf v6.0; Trn4 roadmap-only.
+
+      Unresolved / written as 'not disclosed': Trn3 per-device scale-up bandwidth: AWS's own page is internally inconsistent (2,048 GiB/s/device spec table vs 704 GB/s summed link budget) and the repo's prior 2.5 TB/s is a SemiAnalysis figure matching neither. All three recorded with sources; no reconciliation written.; Trn3 instance availability (GA vs preview), instance sizes, and regions — written as 'not disclosed'; EC2 Trn3 page publishes only UltraServer aggregates.; Trn3 per-instance EFA bandwidth — not disclosed; AWS reports Trn3 EFA only at UltraServer granularity.; TorchNeuron / PrivateUse1 status — no change found since Neuron 2.27 private beta; absence from the 2.31.0 component index is evidence of neither GA nor deprecation. Row confidence set to 'unverified'.; Trainium4 / NeuronCore-v5 — process node, die configuration and microarchitecture not disclosed; re:Invent Dec-2025 figures written explicitly as vendor preview claims. 'No new news' is 'no evidence found' (web search unavailable during verification), not verified absent.; Whether informal NKI-authoring/debug/profile agent skills shipped before Neuron 2.30 — not disclosed; component release-notes file begins at 2.30.0.; 2.29.1 release date: readthedocs index (04/09/26) disagrees with the GitHub tag (2026-05-01). Cited 2026-05-01 per GitHub tag metadata and noted the discrepancy.
+
+  intel-gaudi:
+    device_class: "Mixed (GEMM + VLIW TPC)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T11:45:00"
+    investigate:
+      hccl:
+        status: completed
+        artifact: research/intel-gaudi/investigations/hccl.md
+        sidecar: research/intel-gaudi/investigations/hccl.yaml
+      hw-architecture:
+        status: completed
+        artifact: research/intel-gaudi/investigations/hw-architecture.md
+        sidecar: research/intel-gaudi/investigations/hw-architecture.yaml
+      synapseai-tpc:
+        status: completed
+        artifact: research/intel-gaudi/investigations/synapseai-tpc.md
+        sidecar: research/intel-gaudi/investigations/synapseai-tpc.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://docs.habana.ai/
+      - https://github.com/HabanaAI
+    notes: |
+      Gaudi 3 HW unchanged. CORRECTION: habanalabs upstream = Goya/Gaudi1/2 only, no gaudi3/ in mainline 2026-08-08 (out-of-tree driver required). SynapseAI_Core ref impl archived 2025-02-03; userspace active (bridge/vllm-fork Jul 2026), docs v1.24.0. Gaudi absent MLPerf Inf v6.0; Intel absent Train v6.0; no first-party EOL — deprioritized. Crescent Island (Computex 2026, trade press, medium conf): 160 GB LPDDR5X ref / up to 480 GB partner, 350 W air-cooled PCIe, FP4–FP64, GA 2027; BW not disclosed (684 GB/s = press estimate); stack = oneAPI/SYCL + Level Zero, not SynapseAI. HC38 Crescent talk 2026-08-24 scheduled, not public.
+
+      Unresolved / written as 'not disclosed': Crescent Island memory bandwidth — written as "not disclosed"; the circulating ~684 GB/s is a press back-calculation from an assumed LPDDR5X bus width, not an Intel figure; Crescent Island peak throughput at any datatype (TFLOPS/TOPS) — not disclosed; Crescent Island Xe3P core counts, XMX unit counts, process node, die/package configuration — not disclosed; Crescent Island memory module organization — not disclosed (the "20 x 24 GB" breakdown is a press reconstruction and was excluded entirely); Crescent Island PCIe generation — not disclosed; Crescent Island multi-card collective path / any HCCL-compatible API — not disclosed; No Intel first-party page carrying the 480 GB / 350 W / FP4-FP64 figures could be located; Intel's Computex 2026 press kit and AI newsroom posts do not mention Crescent Island at all — all Computex figures marked medium confidence, trade-press-sourced; Gaudi 3 end-of-life — NOT CONFIRMED; no Intel first-party discontinuance notice exists, so Gaudi 3 is characterized as strategically deprioritized, not EOL
+
+  tesla-dojo:
+    device_class: Training Accelerator
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T11:45:00"
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/tesla-dojo/investigations/hw-architecture.md
+        sidecar: research/tesla-dojo/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/tesla-dojo/investigations/software-stack.md
+        sidecar: research/tesla-dojo/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds: []
+    notes: |
+      Dojo 3 acknowledged (publicly confirmed 2026-01-19/20, pre-baseline; Musk 04-15 X post is restatement, not upgrade) but ZERO silicon disclosed — no node/die/mem/fabric/tapeout/perf. Target now space/orbital ("AI7/Dojo3 for space-based AI compute", Jan 2026; SpaceX S-1 05-20); Jul-2025 "converged Dojo3/AI6, 5-12 on a board" is superseded intent. AI5 taped out 04-15, wafer prod Samsung Taylor 2nm; AI6 tapeout target Dec 2026 and IS an FSD chip (AI5 is the one skipping vehicles first). Terafab: announced Mar 2026, Intel joined Apr, Intel 14A, Grimes County TX 08-06, $16.8B INITIAL vs ~$55B/~$119B TX filings, Tesla framework agreement only. D1 stays 376 TFLOPS (362 rejected). No new TTPoE, no Tesla talk at HC38.
+
+      Unresolved / written as 'not disclosed': Dojo 3 process node, die size, compute-unit type/count, clock, precisions, peak throughput — written as 'not disclosed'; no primary source exists; Dojo 3 on-chip SRAM capacity and memory model — 'not disclosed'; explicitly noted there is no basis for assuming the D1 no-cache/no-virtual-memory model carries over; Dojo 3 off-chip memory technology, capacity, bandwidth, attach method — 'not disclosed'; Dojo 3 scale-up topology — 'not disclosed'; unknown whether the 5x5 Training Tile is retained or abandoned. The Jul-2025 '5, 12 on a board' remark was deliberately NOT recorded as a specification; Dojo 3 scale-out fabric — 'not disclosed'; no public statement that TTPoE is reused, and no new TTPoE release since Hot Chips 36; Dojo 3 tape-out date and performance target — 'not disclosed'; Entire Dojo 3 / AI5 / AI6 / AI7 software toolchain (framework, compiler, IR, codegen, runtime, collectives) — 'not disclosed'; whether the D1-era PyTorch + custom compiler + LLVM stack carries forward is unknown; D2 / Dojo 2 specifications — never disclosed before cancellation; all fields 'not disclosed'
+
+  microsoft-maia:
+    device_class: Cloud AI Accelerator
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 38
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/microsoft-maia/investigations/hw-architecture.md
+        sidecar: research/microsoft-maia/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/microsoft-maia/investigations/software-stack.md
+        sidecar: research/microsoft-maia/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds: []
+    notes: |
+      Maia 100 (N5, 105B, 500-700W, 16xRx16 tensor unit, MX6/MX9/BF16, 500MB SRAM, 64GB HBM2e 1.8TB/s, 12x400GbE RoCE-like w/ AES-GCM, Ares 32-chip 40kW rack) + Maia 200 (N3, >140B, 750W, tile->cluster TTU/TVP, FP4/FP8, 272MB TSRAM+CSRAM, 216GB HBM3e 7TB/s, on-die NIC 2.8TB/s, 2-tier to 6144 chips). Stack closed below PyTorch/Triton; NPL perf path; SDK preview only (no GA, docs tree 404). 2026-08-08 update (minor, zero spec change): Build 2026 (06-02) Maia 200 in production Iowa AND Arizona, Italy/Australia/S.Korea next (undated); 1.4x perf/W on first-party MAI models = vendor claim, no methodology, incremental on Jan-2026 30% perf/$ vs own fleet, "vs GB200" is press inference - barred from comparison tables; MAI-Thinking-1 = first Maia model-silicon co-design claim. HC38 Maia 200 system talk 2026-08-25 SCHEDULED, content not public. No MLPerf Maia entry; Maia 280/Braga/Clea rumor-only out of window; MRC + Fairwater adjacent, not Maia.
+
+      Unresolved / written as 'not disclosed': Maia 200 die size, tile count per cluster, cluster count per chip, and clock frequency — written as "not disclosed" in hw-architecture.md §8; Maia 200 rack / pod / cooling design — no Maia 200 analogue of the Ares rack disclosure exists; written as "not disclosed"; Maia 200 BF16/FP16 peak throughput and package/interposer type — not disclosed (relevant if the orchestrator ever adds a Maia 200 comparison row); Baseline for the 1.4x perf/W claim — the primary Build 2026 transcript does not state it; recorded as "baseline not specified in the primary transcript; widely reported as vs GB200"; Methodology behind the 1.4x perf/W claim (workload, sequence length, batch size, precision, cluster size, power-measurement boundary) — none published; recorded as unfalsifiable vendor marketing; Mechanism of the MAI/Maia 200 co-design (which stack layers changed: NPL kernels, Triton schedules, quantization recipe, KV-cache placement, collective schedules) — not disclosed; Dates and named Azure regions for the Italy / Australia / South Korea expansion — announced intent only; no first-party Microsoft blog restates the list; Maia SDK GA date and version numbering — not announced; learn.microsoft.com/azure/maia returns HTTP 404
+
+  sambanova:
+    device_class: "Dataflow / Reconfigurable"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T14:00:00"
+      resource_count: 34
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/sambanova/investigations/hw-architecture.md
+        sidecar: research/sambanova/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/sambanova/investigations/software-stack.md
+        sidecar: research/sambanova/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T14:30:00"
+    seeds:
+      - https://docs.sambanova.ai/
+      - https://github.com/sambanova
+    notes: |
+      2026-08-08 major: SambaFlow dev docs withdrawn (5 repo URLs HTTP 404); docs now SambaCloud + SambaStack v2.0.2 (2026-08-05, 4 CRDs + Pef CRD); PEF survives but surface is Helm/K8s. SN50 announced 2026-02-24, GA H2 2026, NOT confirmed shipped; 16-RDU SambaRack demoed, 256 = vendor claim; all SN50 die specs extrapolated. 2026-04-08 Intel blueprint: GPU prefill/RDU decode/Xeon6 agentic. vLLM in demos only, no plugin. Perf 392.4 t/s (AA independent) vs 800-850 vendor demo. Series F $1B@$11B (General Atlantic); Feb Series E $350M Vista/Cambium, Intel Capital participant. HC38 SN50 talk 2026-08-25 not yet public; re-scan Sept.
+
+      Unresolved / written as 'not disclosed': SN50 die-level specs (432 MiB SRAM, 64 GiB HBM @ 1.8 TB/s, 2.2 TB/s bidir chip-to-chip, 1,600 BF16 TFLOPS / 3.2 FP8 PFLOPS, 256 GiB-2 TiB DDR5, ~2x SN40L PCU count) — labelled extrapolated everywhere; not present in any primary source. SN50 PMU count, transistor count, and host interface written as 'not disclosed'.; Whether SN50 has shipped to any customer — no source confirms a delivery; JPMorganChase is stated intent only.; Whether the SambaFlow compiler or the AOT/PEF model changed for SN50 — recorded as explicitly unknown; documentation withdrawal is not evidence of a compiler change.; Depth and productization of the vLLM integration — reported in two demo blog posts only; no public plugin, no mention in SambaStack docs or the full release-note history.; SN50 aggregate SRAM/HBM bandwidth figures and fabric non-blocking claim — 'not disclosed' / extrapolated.; Hot Chips 38 talk 'Dataflow at Scale: the SN50 RDU' (2026-08-25) — written as disclosure scheduled, content not yet public; used nowhere as a spec source. Re-scan queued for early September 2026.
+
+  huawei-ascend:
+    device_class: Systolic Array Accelerator
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 95
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/huawei-ascend/investigations/hw-architecture.md
+        sidecar: research/huawei-ascend/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/huawei-ascend/investigations/software-stack.md
+        sidecar: research/huawei-ascend/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://www.hiascend.com/
+      - https://gitee.com/ascend
+    notes: |
+      Ascend 950 real: CANN 9.0.0 (2026-05-09) adds 950PR/Atlas 350, FP8/MXFP8/MXFP4, AscendC SIMD+SIMT, HcclGroupStart/End; MindSpore 2.9.0 (05-07); vllm-ascend v0.20-0.23 (MXFP4, DeepSeek-V4, needs CANN 9.0.1); CANN userspace open on gitcode.com/cann ~76 repos (driver/fw still closed). Whitepaper (late May/Jun 26, image-only PDF): AIC/AIV core split, NEW 128MB global L2, STARS 2.0, NDDMA, PCIe 5.0. UnifiedBus/灵衢2.0 (2025-09-18) supersedes HCCS 4.0, >128K cards. Atlas 950 SuperPoD 1,024-card WAIC demo 07-17 DEMONSTRATED not shipping; full scale 8,192 950DT. 950DT Aug deploy ANNOUNCED only, Q4 26 official; node not disclosed. Baseline miss: Atlas 350 card 1.56PF FP4/112GB/1.4TB/s/600W derated, '2.8x H20'=vendor claim. Single-source only: 36Cube+72Vec, 64KB L0A/B, BufferID sync, Linx816, 547 BF16.
+
+      Unresolved / written as 'not disclosed': Ascend 950 process node — written as "not disclosed" everywhere; SMIC N+2/N+3 recorded only as low-confidence analyst inference. Replaced the repo's prior "est. N+2/N+3" and "~500 W / ~600 W (est.)" table entries.; Ascend 950 BF16/FP16 and TF32 peak compute — not disclosed by Huawei; ~547 TFLOPS BF16/FP16 and ~273 TFLOPS TF32 recorded only as single-source estimates, never as spec.; Ascend 950 per-core buffer sizes (L0A/L0B/L1/UB) — not disclosed; the 64 KB / 512 KB / 512 KB figures are single-source. The repo's 16 KB L0A/L0B remains labelled as the 910-era value.; Ascend 950 core counts (18 cores/die, 36 Cube + 72 Vector) — single-source, not stated as fact.; 128 MB global L2 bandwidth — not disclosed.; BufferID-based synchronization allegedly replacing EnQue/DeQue — single-source; flagged for verification, NOT applied to the Programming Model Rationale.; "Linx816" on-chip AI CPU (4 clusters x 2 ARMv8-A, 4 MB L3/cluster) — single-source.; UnifiedBus RTP/CTP decomposition (2,016 GB/s = 448 GB/s RTP over 4 ports + 1,008 GB/s CTP over 9 ports, 18 x X4 HiLink @ 112 Gbps/lane) — single-source; only the round ~2 TB/s is corroborated.
+
+  cambricon:
+    device_class: Neural Processor
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T12:20:00"
+      resource_count: 42
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/cambricon/investigations/hw-architecture.md
+        sidecar: research/cambricon/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/cambricon/investigations/software-stack.md
+        sidecar: research/cambricon/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://developer.cambricon.com/
+    notes: |
+      2026-08-08: H1 filing names only 思元100/220/270/290/370 — zero 590/690/HBM mentions; MLU370 still sole vendor-documented DC part. MLU690 reported-unverified: dual-die, >700 FP16 TFLOPS, >2800 INT4 TOPS, 196GB HBM3 ~3.35TB/s, >890Gbps (bits not GB/s), node contradictory→not disclosed, production contested. 500K-2026 unit target = Bloomberg 2025-12-04 third-party, pre-baseline, targets≠shipments. H1 rev RMB5.996B +108%, inventory 45.32% of assets. SW: vllm-mlu day0 DeepSeek-V4 2026-04-24 (5D parallelism, PD-separated, Torch-MLU-Ops, BangC sparse attn/GroupGemm; Torch-MLU-Ops v1.3.2 pre-baseline); CNToolkit ≥4.1.0/CNNL ≥1.28.0/drv ≥6.0.3; triton-linalg quiet since 2025-02. No MLPerf/MLUarch04-05.
+
+      Unresolved / written as 'not disclosed': MLU690 process node — sources directly contradict (TSMC 4nm vs 7nm); written as "not disclosed" everywhere, no node published; MLU690 cluster count, MLU Core count, transistor count, precision format list, max system scale, host interface — all written as "not disclosed"; MLU690 production status — contested; recorded as "reported by secondary Chinese media as entering production in early 2026; not confirmed by any Cambricon primary source"; MLU590 HBM generation, capacity and bandwidth — left TBD/not disclosed as the verification directed; SDK bundle number corresponding to CNToolkit v4.1.0 — release-note tree returns HTTP 401; written as "not disclosed", no number invented; Cambricon architecture name for post-MLUarch03 parts — no MLUarch04/MLUarch05 confirmed anywhere; written as "not disclosed"; Actual 2026 unit shipments — only third-party targets exist (Bloomberg 2025-12-04); no Cambricon-sourced shipment figure, recorded as targets not shipments; MLU690 FP8 figure (2,000 TOPS) appears only in the source that also claims the conflicting 7nm node; recorded but flagged as incompatible with the other spec set
+
+  tenstorrent:
+    device_class: "Tensix RISC + SFPU"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T12:30:00"
+      resource_count: 67
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/tenstorrent/investigations/hw-architecture.md
+        sidecar: research/tenstorrent/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/tenstorrent/investigations/software-stack.md
+        sidecar: research/tenstorrent/investigations/software-stack.yaml
+      tt-metal:
+        status: completed
+        artifact: research/tenstorrent/investigations/tt-metal.md
+        sidecar: research/tenstorrent/investigations/tt-metal.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://github.com/tenstorrent/tt-forge
+      - https://github.com/tenstorrent/tt-metal
+      - https://github.com/tenstorrent/tt-llk
+    notes: |
+      Galaxy Blackhole GA 2026-04-28 (GA, NOT 'volume production'): 6U, 32 BH ASICs, 23 PFLOPS BlockFP8, 6.2GB SRAM@2.9PB/s, 1TB GDDR6@16TB/s, fabric 10x400GbE/ASIC=32TB/s + scale-out 56x800GbE=11.2TB/s (both vendor bidir), 1x EPYC9004 + <=576GB DDR5-4800, 8-10kW avg/12kW max (cfg 14.5), 262lbs, from $110k (4-node $440k; Galaxy WH $70k), 144 nodes/>4k chips. SKU fix: shipping p100a/p150a/p150b = 120 Tensix / 664 TFLOPS BLOCKFP8 (140/745 = full die only), p100a 28GB@448GB/s, p300 delisted. Quasar: bring-up since 2025-08-15 (pre-baseline), Samsung SF4X per Oct-2023 (med conf), all specs undisclosed. SW: Metal2.0/Device2.0, CircularBuffer->DataflowBuffer (since 2025-11), TT-Lang. Perf all vendor (Register ~300 vs 350 t/s/u). No HC38 talk, no MLPerf.
+
+      Unresolved / written as 'not disclosed': Galaxy Blackhole per-ASIC Blackhole configuration — 23 PFLOPS/32 ≈ 719 TFLOPS and 6.2 GB/1.5 MB/32 ≈ 129 cores both fall between the 120-core shipping card and the 140-core full die; Tenstorrent has not published the Galaxy binning (written as 'not disclosed' with the arithmetic flagged as repo-derived, not vendor-stated); The Register's ~100 Tbps aggregate intra-node Ethernet figure does not reconcile with the vendor's 128 Tb/s (32 ASICs × 10 × 400 Gb/s); recorded as an open, unexplained discrepancy rather than resolved in either direction; Quasar process node — Samsung SF4X (4 nm-class, Taylor TX) is public from the October 2023 chiplet announcement, but Tenstorrent has never restated it for the 2025–26 tt-metal Quasar architecture target; recorded at medium confidence, not confirmed; Quasar core count, SRAM/memory configuration, peak throughput, data types, packaging, product name and ship date — all written as 'not disclosed'; TT-Ascalon S process node — not disclosed; TT-Lang scope, layer placement, and relationship to TT-Metalium/TT-NN/TT-MLIR — listed on docs.tenstorrent.com/aibs but otherwise not disclosed; recorded as a listed-only component pending its own investigation; Blackhole p100a GDDR6 bus width and controller count — not disclosed (only 28 GB @ 448 GB/s is published); Galaxy Wormhole system specs — only the $70,000 list price is public; capacity, compute and bandwidth not disclosed
+
+  tesla-fsd:
+    device_class: Edge Inference SoC
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T14:00:00"
+      resource_count: 12
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/tesla-fsd/investigations/hw-architecture.md
+        sidecar: research/tesla-fsd/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/tesla-fsd/investigations/software-stack.md
+        sidecar: research/tesla-fsd/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T14:30:00"
+    seeds: []
+    notes: |
+      HW3 Samsung 14nm 2×NPU 73.7 TOPS INT8; HW4/AI4 Samsung 7nm 3×NPU 121.6 TOPS INT8; 96×96 systolic, 8-instr ISA, closed stack. 2026-08-08: AI5 tape-out announced 04-15 + 1 packaged sample; dual-source TSMC (node n/d) + Samsung SF2-class 2nm Taylor TX (deleted LinkedIn 07-13, unconfirmed); ~half-reticle die, 12 SK hynix discrete DRAM pkgs, no HBM; ZERO specs, only conflicting Musk 40×/10× claims; volume 2027. AI4.1/AI4+ announced 04-22: 32GB/SoC, 64GB/board, ~+10% compute+BW, Samsung 7nm mod, 2027, no silicon. AI4.5/AP45 shipping unannounced (2261336-02-A; 3-SoC low-conf). HW3 declared insufficient 04-22, retrofit. HW3/HW4 BW contested (WikiChip 68/224 vs Electrek 48/384 GB/s). No HC38/MLPerf/SDK.
+
+      Unresolved / written as 'not disclosed': AI5 peak TOPS/FLOPS, dtype support, TDP, die area, memory capacity and memory bandwidth — written as "not disclosed" everywhere. Tesla has published none of it; only conflicting Musk marketing multipliers (40× / 10× / 10× perf-per-$ / 5× BW) exist, and they are recorded as a spread labelled unverified vendor marketing.; Tape-out dates for both AI5 implementations — not disclosed. 2026-04-15 (Musk X post) and 2026-07-13 (Samsung engineer LinkedIn post) are recorded as announcement/disclosure dates only. The raw finding's "Samsung taped out several months after TSMC" sequencing is explicitly refuted in the deliverables using Korea Times' report that both foundries received the design in April 2026.; TSMC's node for AI5 — not disclosed by any source. Samsung's derivative (SF2 / SF2P / SF2T) — not disclosed; written only as "SF2-class 2nm at Taylor, Texas".; The Samsung/Taylor AI5 leg has no official confirmation: the source LinkedIn post was deleted and Samsung declined to comment. Recorded as multi-outlet relay of a deleted post, not as a confirmed fact.; AI5 DRAM grade (GDDR6 vs GDDR7) — not established by any source. The 384-bit bus and ~768 GB/s–1.536 TB/s range are recorded as Tom's Hardware single-source inference with an explicit "not a Tesla spec" warning, never as a value.; The "KR 2613" package date code (week 13 of 2026) is single-source (Tom's Hardware) and uncorroborated; recorded as low confidence and not used to date anything.; HW3/HW4 memory bandwidth remains unresolved and is deliberately left unreconciled: WikiChip 68 / 224 GB/s vs Electrek ~48 / ~384 GB/s. Neither is Tesla-published; both are presented with attribution in summary.md, hw-architecture.md, layer-table.md and the YAML.; AI5 target market is unsettled — Q1 2026 call points at Optimus + datacenter with automotive deferred; July 2026 coverage lists vehicles. Written as "deferred, not excluded"; no single answer stated.
+
+  meta-mtia:
+    device_class: Inference Accelerator
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T14:05:00"
+      resource_count: 14
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/meta-mtia/investigations/hw-architecture.md
+        sidecar: research/meta-mtia/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/meta-mtia/investigations/software-stack.md
+        sidecar: research/meta-mtia/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T14:35:00"
+    seeds: []
+    notes: |
+      TSMC 7nm v1 / 5nm v2-2i; 8x8 64-PE grid; 102.4/357 TOPS INT8; 2i at 100Ks chips (ISCA26-confirmed). MTIA 300 silicon disclosed ISCA 2026 (06-30): first training MTIA, node NOT disclosed, 2.5D CoWoS (804mm2 compute + 2 net chiplets), 12x6=72 PEs + redundant row + 16 Message Engines, 1120 TFLOP/s FP8 / 560 BF16, 216GB HBM3E 6.1TB/s (R-or-W), 192MB LLC 11.4TB/s, 12x800G in-package RoCE NICs (1.2TB/s), MEs 2.8TB/s reductions, 16/rack @800GB/s, 912W liquid, HCCL collectives; MX4/NVFP4 not native. Fixed: MTIA450 +75% MX4 vs 400 (not 6x); MTIA400 288GB removed. HotChips38 talk 2026-08-25 not public
+
+      Unresolved / written as 'not disclosed': Process node for MTIA 300 / 400 / 450 / 500 — written as "not disclosed" everywhere. The ISCA 2026 paper gives die and package dimensions but no node, and the Broadcom PR states none. The circulating "2nm" is aggregator-only and was NOT published; the pre-existing comparison-table entry "TSMC 3nm (est.)" is replaced with "Not disclosed" in the row I return.; MTIA 400 absolute HBM capacity — the pre-existing repo figure "288 GB HBM" has no primary source (Meta publishes only relative deltas) and was removed from summary.md, hw-architecture.md and hw-architecture.dot, replaced with "not disclosed".; MTIA 500 absolute HBM capacity — 384 GB / 512 GB are explicitly flagged by NextPlatform as author estimates; not published.; MTIA v2 / 2i PCIe width — UNRESOLVED CONFLICT between primary sources. ISCA 2026 Table I lists MTIA 2i as "8× PCIe Gen5 (32 GB/s)"; the repo's ISCA 2025-derived line says "PCIe Gen5 ×16 (128 GB/s)". Also note 128 GB/s is not a valid unidirectional Gen5 ×16 figure (~63 GB/s unidirectional). Both values are preserved with a ⚠️ conflict marker in summary.md, hw-architecture.md, layer-table.md and both .dot files rather than one being silently deleted; logged as a re-verification item in the YAML (group: unresolved_pcie_conflict) and in search-results.md Layer 19.; MTIA 400 exact FP8 FLOPS and HBM bandwidth — only Meta's relative deltas (+400% FP8, +51% HBM BW vs MTIA 300) are stated. The implied ~5.6 PFLOP/s and ~9.2 TB/s are published only where explicitly labelled "derived".; "Iris" → MTIA 400 generation mapping — the codename and September 2026 manufacturing date are published with Reuters/TechCrunch attribution at medium-low confidence, but the mapping to MTIA 400 is aggregator-only and is labelled unconfirmed. Reuters.com itself is blocked in this environment; verified via secondary outlets and search snippets only.; Broadcom partnership end date — the 2026-04-14 PR states no end year; "through 2029" was not published.; Hot Chips 38 Meta talk content — written as "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public". The program title ("Meta's Custom AI Silicon: From Recommendation to Dual-Mandate with GenAI") does not contain "MTIA", so even the claim that it covers MTIA is flagged as an inference. Re-scan queued for after 2026-08-25.
+
+  qualcomm:
+    device_class: "Cloud AI Inference (Hexagon)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T14:10:00"
+      resource_count: 15
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/qualcomm/investigations/hw-architecture.md
+        sidecar: research/qualcomm/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/qualcomm/investigations/software-stack.md
+        sidecar: research/qualcomm/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T14:40:00"
+    seeds:
+      - https://developer.qualcomm.com/software/qualcomm-ai-engine
+    notes: |
+      Cloud AI 100 (16 Hexagon cores, 144MB SRAM, LPDDR4X no HBM; upstream QAIC driver + closed qaic-compile/QNN). 2026-06-24 Investor Day: line rebranded Dragonfly = C1000 CPU + AI200/AI250/AI300. AI250 HBC Gen1 (claimed 133 TB/s, 18x vs AI200; sampling mid-2027); AI300 HBC Gen2 3D DRAM-over-logic (claimed 54x, 4-8x perf/W; sampling 2028) - ALL UNAUDITED, methodology undisclosed, peak FLOPS declined. C1000 250+ Oryon >5GHz, >2TB/s PCIe Gen7+CXL, 2028, Meta customer. Scale-up UALink/ESUN. Modular (Mojo/MAX) acquisition COMPLETED 2026-07-29 - additive, not a replacement. No MLPerf v6.0, no HC38 talk.
+
+      Unresolved / written as 'not disclosed': AI300 memory capacity, process node, TDP and rack power — written as "not disclosed" throughout; AI250 per-card capacity — Qualcomm attributes 768 GB/card to AI200 (Oct 2025), The Register attributes 768 GB LPDDR5x to AI250; recorded as an unresolved source conflict rather than picking a winner; Peak FLOPS/TOPS for AI200, AI250 and AI300 — Qualcomm explicitly declined to disclose (The Register, 2026-06-30); written as "not disclosed" in every table; Compute-engine detail for all Dragonfly accelerators (core type, core count, array dimensions, clock, data types) — nothing published; Methodology behind the 18x / 54x / 133 TB/s "effective memory bandwidth" claims — undisclosed and externally disputed; every occurrence is labelled unaudited vendor marketing; AI300 bandwidth baseline — Qualcomm's PR says 54x vs AI200, The Register renders it as 54x vs AI250; PR preferred, conflict recorded; Whether the AI250 "commercial sampling mid-2027" wording is a slip from October 2025 messaging — the Oct 2025 launch PR could not be retrieved; hedged, not asserted; Whether AI200 has shipped to any customer beyond sampling — no Qualcomm PR claims production shipment
+
+  groq:
+    device_class: "Deterministic (TSP)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T12:30:00"
+      resource_count: 15
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/groq/investigations/hw-architecture.md
+        sidecar: research/groq/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/groq/investigations/software-stack.md
+        sidecar: research/groq/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T13:00:00"
+    seeds:
+      - https://github.com/groq/groq-python
+      - https://console.groq.com/docs/overview
+    notes: |
+      NVIDIA did NOT acquire Groq: 2025-12-24 non-exclusive inference-tech license + acqui-hire (Ross/Madra to NVIDIA); Groq independent, GroqCloud runs; ~$20B = CNBC report, unconfirmed by either co. CEO now Adam Winter (Edwards left Apr 2026). $650M raise 2026-06-22 (Disruptive/Infinitum, valuation n/d); 13 DCs, >5M devs, ~200MW by end-2027; Groq now buys NVIDIA LPX. LPX LP30 (GTC 2026-03-16, ANNOUNCED, H2'26 partner avail, not Q3): 500MB SRAM (not 512), 150TB/s, 96x112Gbps=2.5TB/s, 1.2PFLOPS FP8; rack 256 LPU/32 liquid 1U trays, 128GB, 40PB/s, 640TB/s, 12TB DDR5; node/TDP n/d. No new Groq silicon Apr-Aug'26. HC38 Aug25 NVIDIA LPU talk pending.
+
+      Unresolved / written as 'not disclosed': LP30 process node — NVIDIA discloses none; the repo's prior 'Samsung 4nm' appears only in low-quality secondary blogs and is now written as not disclosed; LP30 TDP, die size, clock and transistor count — not disclosed; LP30 non-FP8 datatype throughput (FP16/BF16/INT8) — not disclosed; only FP8 is published; Whether the plesiosynchronous fabric and compiler-scheduled packet delivery are retained in the LPX rack — not disclosed by NVIDIA; LPX rack DDR5 bandwidth and attachment point (host CPU vs tray-local), and the movement policy between DDR5 and LPU SRAM — not disclosed; Any LPX software stack (compiler, runtime, SDK, driver, ISA, dispatch layer) — NVIDIA has published nothing; the repo's prior 'NVIDIA NIM routes prefill to Rubin, decode to LPX' claim is marked not_confirmed; LPX-specific ship date — none published; only NVIDIA's H2 2026 Vera Rubin partner-availability guidance; Legacy GroqRack '~640 TB/s aggregate chip-to-chip' — no Groq primary source found; flagged unverified as a probable conflation with NVIDIA's 640 TB/s LPX rack figure
+
+  graphcore:
+    device_class: "MIMD / BSP (IPU)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T14:15:00"
+      resource_count: 44
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/graphcore/investigations/hw-architecture.md
+        sidecar: research/graphcore/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/graphcore/investigations/software-stack.md
+        sidecar: research/graphcore/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T14:45:00"
+    seeds:
+      - https://github.com/graphcore
+      - https://docs.graphcore.ai/
+    notes: |
+      SoftBank acq Jul 2024 (terms undisclosed; reported $500-600M); TSMC 7nm GC200 / WoW Bow IPU; 1,472 MIMD tiles, 900 MB SRAM, 11 TiB/s, BSP; PopTorch/PopLibs OSS; Poplar static compiler. 2026-08-08 rescan: no new IPU (Bow 2022 still only shipping part; absent from HC38); no new SDK — poplibs/poptorch newest tags sdk/*/3.4.0, last push Oct 2023, OSS stack dormant. Headline: ~$457M SoftBank share issue (CH SH01 2026-04-13, CNBC 05-12) + allotments to 08-04. Toon out 07-31; McElroy director since 2025-12-18, title unconfirmed; Knowles out 2025-08-20 — both tech co-founders gone. 'Izanagi' = unconfirmed rumor; triton/vllm forks have no IPU backend.
+
+      Unresolved / written as 'not disclosed': Process node, tile count, SRAM capacity and peak FLOPS of any post-Bow IPU — written as 'not disclosed'; no successor part has been announced at all.; Marcus McElroy's job title — Graphcore's own post says only that he 'takes the helm'; Bristol24/7 says 'chief executive', theofficialboard says General Manager. Written as reported-but-not-vendor-confirmed.; Graphcore headcount — 'approaching 1,000 employees' is a self-reported vendor claim with no independent corroboration; labelled as such (confidence: low in the YAML).; SoftBank acquisition price — terms never officially disclosed. The repo's bare '~$500M' has been hedged to 'reported at roughly $500-600M' rather than left as a bare figure.; Total size of the 2026 SoftBank recapitalisation — only the ~$457M April share is quantified (and that figure is press-derived from the SH01 filing, not a vendor statement); the values of the 2026-05-29, 2026-06-08, 2026-07-24 and 2026-08-04 allotments are not stated.; Graphcore/Ampere 'Izanagi' chip — no primary Graphcore or SoftBank confirmation exists. Recorded in the repo only as an explicitly rejected low-confidence analyst claim, never as a spec or generation.; One-day discrepancy on Toon's exit (announcement says effective 2026-07-31; Companies House records termination 2026-07-30) — recorded, not resolved.
+
+  cerebras:
+    device_class: Wafer-Scale Engine
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T12:55:00"
+      resource_count: 68
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/cerebras/investigations/hw-architecture.md
+        sidecar: research/cerebras/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/cerebras/investigations/software-stack.md
+        sidecar: research/cerebras/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T14:50:00"
+    seeds:
+      - https://training-docs.cerebras.ai/
+      - https://github.com/Cerebras
+    notes: |
+      WSE-3/CS-3 still current — no WSE-4/CS-4 announced (confirmed negative 2026-08-08). Die area corrected 46,255→46,225 mm²; rest of baseline re-confirmed. NEW: AMD Helios prefill + WSE decode disaggregated inference announced 2026-07-23 (AMD newsroom); "5x" is AMD+Cerebras July-2026 modelling in TPS/kW vs a WSE-only baseline, interconnect not disclosed, expected H2 2026 via Cerebras Cloud only. IPO priced 2026-05-13 $185/sh ~$56.4B, Nasdaq CBRS 2026-05-14 (repo's "CBRS 2025" was wrong). OpenAI 750MW/>$10B commit 2026-01-14. Flex ~7x CS-3 capacity + 200MW Europe target, both 2026-07-09. Q1 FY26 rev $193.4M. HC38 rack-scale talk 2026-08-25 not yet presented — re-scan. MLPerf not re-verified.
+
+      Unresolved / written as 'not disclosed': Tier-to-tier interconnect between AMD Helios and the WSE — written as "not disclosed" in hw-architecture.md, layer-table.md, the .dot edge label, and the YAML not_disclosed list; KV-cache / activation handoff mechanism between the prefill and decode tiers — "not disclosed"; Rack, power and node topology of the combined AMD Helios + WSE system — "not disclosed"; Price/SKU of the disaggregated offering — "not disclosed"; Software surface of the disaggregated product (API/SDK spanning both tiers, scheduler/placement policy, KV serialization format, ROCm<->Cerebras interop, whether CIRH participates in the partitioning) — all "not disclosed" in software-stack.md/.yaml; Execution mode (layer-pipelined vs weight-streaming) used by the WSE decode tier in AMD's Kimi 2.6 1T footnote — not stated by either vendor; deliberately not inferred; Hot Chips 38 rack-scale talk content (J.P. Fricker, 2026-08-25) — written as "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public"; not cited as the source of any spec; MLPerf Training v6.0 / Inference v6.0 Cerebras submission status — not re-verified; no MLCommons results table retrievable. Limitation #5 retained and marked last verified 2026-04-05
+
+  d-matrix:
+    device_class: Digital In-Memory Compute
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T12:30:00"
+      resource_count: 14
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/d-matrix/investigations/hw-architecture.md
+        sidecar: research/d-matrix/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/d-matrix/investigations/software-stack.md
+        sidecar: research/d-matrix/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T12:45:00"
+    seeds:
+      - https://www.d-matrix.ai/product/
+      - https://d-matrix.ai/pdf/d-Matrix-WhitePaper-Technical-FINAL.pdf
+      - https://www.d-matrix.ai/hot-chips-2025/
+    notes: |
+      DIMC inference accel; Corsair FULL PRODUCTION 2026-06-09 (TSMC N6 + Alchip; organic substrate, no HBM/CoWoS), volume shipping to select qualified customers; rack specs public (64-card rack 128 GB SRAM @ 9.6 PB/s, 16.4 TB cap); DMX Link 1 TB/s D2D != DMX Bridge 512 GB/s card-to-card; Raptor 3DIMC successor has ISCA 2026 MEASURED early silicon (N4P logic F2F-bonded to 3D-DRAM, 840 banks/256 ch per chiplet, ~105 TB/s/card, PCIe Gen7, ~422 W/MCM, pre-production, no launch date); SquadRack OCP 2025-10-14; acq GigaIO/FabreX 2026-04-02 + Wallaroo.ai 2026-08-03 (orchestration); Aviator SW; no MLPerf; not in HC38 program
+
+      Unresolved / written as 'not disclosed': Raptor peak TFLOPS / TOPS — not disclosed (the ISCA 2026 paper gives organization, bandwidth and power but no peak arithmetic throughput); Raptor supported numeric formats — not disclosed; Raptor on-die SRAM capacity and bandwidth — not disclosed; Raptor 3D-DRAM capacity per chiplet/MCM/card — not disclosed (only the 128 GB per MCM LPDDR5X secondary tier is stated); Raptor launch date, sampling date, and pricing — not disclosed; status is early silicon / pre-production; Raptor scale-out interconnect and maximum system scale — not disclosed; Raptor software support (compiler, runtime, SDK) — not disclosed; the ISCA 2026 paper is a hardware-only disclosure; Corsair production customers — not disclosed (described only as 'hyperscalers, neoclouds and frontier AI labs')
+
+  sk-hynix-aim:
+    device_class: Processing-in-Memory
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T12:50:00"
+      resource_count: 13
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/sk-hynix-aim/investigations/hw-architecture.md
+        sidecar: research/sk-hynix-aim/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/sk-hynix-aim/investigations/software-stack.md
+        sidecar: research/sk-hynix-aim/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T13:00:00"
+    seeds:
+      - https://hc34.hotchips.org/assets/program/posters/hc34.SKhynix.YongkeeKwon.v03.pdf
+      - https://ieeexplore.ieee.org/document/9499894
+      - https://github.com/arkhadem/aim_simulator
+    notes: |
+      2026-08-08 rescan: no in-window change. HC38 (future event, program only, no specs) lists no SK hynix AiM talk; FMS/ISSCC 2026 no AiM; aim_simulator dormant since 2025-07-22; only in-window item = educational Tech Note EP.1 (2026-05-12). Backfilled: AiMX still 'prototype' (SK hynix CES 2026 PR, 2026-01-05); vLLM demo on Supermicro SYS-421GE-TNRT3 + 2xH100 + 4xAiMX (posts 2025-10-01, 2025-10-31; no perf figures). NOT CONFIRMED: AiM Gen3, GDDR7-AiM, HBM-AiM, HBM4 base-die AiM, MLPerf, public SDK. TrendForce 'already deployed' rejected. Emphasis shifting to CXL/cHBM/HBF. .dot unchanged.
+
+      Unresolved / written as 'not disclosed': Hot Chips 38 SK hynix Tutorial 1 talk title and speaker — two independent reads of hotchips.org returned different strings ('Advanced packaging for HBM, Jaesik Lee' vs 'HBM Base Die..., Sangwook Han'); recorded as 'not confirmed' and neither string written as fact. Only the absence of an AiM/AiMX talk is recorded.; CES 2026 16-layer 48 GB HBM4 bandwidth — the circulating '1.5 TB/s' figure could not be confirmed against any primary source; written as 'not disclosed' / omitted.; AiMX named customer, shipment volume, and deployment date — not disclosed; the TrendForce (2026-03-10) 'already deployed in real-world applications' claim was rejected on verification and the status verb left at 'prototype'.; Aggregate capacity, bandwidth, and throughput of the 4x AiMX + 2x H100 Supermicro demo — not disclosed; no speedup number attached.; Name/form of the AiMX vLLM integration (plugin, backend, fork, or upstream patch) — not disclosed; no code identified.; AiMX Gen2 roadmap-to-256 GB status — the pre-existing repo figure is retained as a 2024 roadmap statement; no update or confirmation found in the window.; Exact AI Infra Summit 2025 event date — SK hynix post is dated 2025-10-01 while secondary coverage puts the summit at ~2025-09; the post date is cited and the ambiguity noted in the files.
+
+  samsung-aquabolt-pim:
+    device_class: Processing-in-Memory
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T13:05:00"
+      resource_count: 14
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/samsung-aquabolt-pim/investigations/hw-architecture.md
+        sidecar: research/samsung-aquabolt-pim/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/samsung-aquabolt-pim/investigations/software-stack.md
+        sidecar: research/samsung-aquabolt-pim/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T13:15:00"
+    seeds:
+      - https://www.hc33.hotchips.org/assets/program/conference/day1/20210813_HC33_Aquabolt-XL_PIM_Jin_Kim_slide.pdf
+      - https://ieeexplore.ieee.org/document/9567191/
+      - https://semiconductor.samsung.com/us/technologies/memory/pim/
+    notes: |
+      Gen1 Aquabolt-XL HBM2-PIM (ISSCC/HC33 2021): 128 FP16 SIMD procs, ~1.2 TFLOPS, 4.92 TB/s int / 1.23 TB/s ext, 16 GB; prototype. Gen2 LPDDR5X-PIM (arXiv:2606.00636, Samsung, 2026-05-30): 1 PIM block per DRAM bank, LPDDR5X-9600 JESD209-5C, SB/MB modes, IRF+SRF; INT W8A8/W4A4/W8A16/W4A8/W4A16 + FP W8A8/W8A16; MAC lanes, peak, BW, node, capacity not disclosed. Perf = Samsung sim only (LP5X-PIM Sim, not open-sourced): GEMV 6.0-6.2x @dim4096, 4.1x low w/150ns fence, +1.65x Reshape. SW: PIM Kernel = offline Data Mapper + runtime PIM Executor; not public. Showcased FMS 2026; no date/customers/silicon; HC2026 talk 2026-08-25 pending. HBM-PIM successor unconfirmed either way; edge/on-device primary.
+
+      Unresolved / written as 'not disclosed': LPDDR5X-PIM MAC lanes per PIM block — Samsung explicitly defers to future publications; LPDDR5X-PIM peak throughput (TFLOPS/TOPS) — not disclosed; LPDDR5X-PIM internal-vs-external bandwidth — not disclosed; LPDDR5X-PIM device capacity — not disclosed; LPDDR5X-PIM process node, package/form factor, die area, power/TDP — not disclosed; LP5X-PIM Sim open-source availability — no release statement and no repo link in the paper; recorded as not confirmed (explicitly distinguished from the public SAITPublic/PIMSimulator, 2023); LPDDR5X-PIM framework integration (TensorFlow/PyTorch) — no claim made in the source paper; recorded as not disclosed rather than absent; Production date, availability, and customers for LPDDR5X-PIM — none given by Samsung; trade-press 'sales phase' claims labeled low confidence
+
+  kunlunxin:
+    device_class: "AI Accelerator (百度昆仑芯)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T16:00:00"
+      resource_count: 18
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/kunlunxin/investigations/hw-architecture.md
+        sidecar: research/kunlunxin/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/kunlunxin/investigations/software-stack.md
+        sidecar: research/kunlunxin/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T16:30:00"
+    seeds:
+      - https://www.kunlunxin.com/technology
+      - https://github.com/baidu/vLLM-Kunlun
+      - https://www.paddlepaddle.org.cn/documentation/docs/zh/hardware_support/xpu/index_cn.html
+    notes: |
+      XPU-K 14nm Gen1 / R200-R300 7nm Gen2 / P800 7nm Gen3 (345 TFLOPS FP16, 96GB HBM3); PaddlePaddle stack XTDK/XDNN/XTCL/XRE; vLLM-Kunlun is an out-of-tree PLUGIN not a fork (v0.11.0 2026-03-13, P800 only, no M100; torch_xray/xpu_profiler docs-only); 30K P800 cluster; scale-up ladder 8-card → 32/64-card cabinet supernode (Apr 2025) → Tianchi 256 (lit up Apr 2026, on sale Jun 2026, volume unconfirmed) → Tianchi 512 (H2 2026, unshipped) on self-developed XPU-Link (programmable switching, 77% claimed BW eff.); M100 Gen4 physical debut WAIC 2026-07-17/20, NO specs published; M300 early 2027; HKEX Form A1 2026-01-01, ~USD 50B valuation press-reported only, not listed
+
+      Unresolved / written as 'not disclosed': M100: process node, memory type/capacity/bandwidth, peak TFLOPS/TOPS and TDP — all written as "not disclosed"; no specification of any kind has been published; M100 HBM capacity vs NVIDIA H20 — only unattributed WAIC booth-staff commentary exists; recorded at low confidence, no number; M100 "commercial ramp January 2026" — traces to Baidu Baike (user-editable) and conflicts with 2026-07-20 reporting that carrier boards were still being made; recorded at low confidence, not stated as fact; Tianchi 512 inter-card bandwidth relative to Tianchi 256 — the circulating "~2×" could not be confirmed in any source and was left unpopulated; Tianchi 256 actual availability/volume shipping — no customer, deployment or unit volume found; Tencent News 2026-07-22 still says "即将全面上市"; vLLM-Kunlun dev-branch version — repo claim of v0.25.1-dev conflicts with the docs site's v0.15.1-dev; no dev version cited; USD ~50B IPO valuation, ~USD 500M 2025 revenue, breakeven status and Baidu's ~58% stake — press-reported leaks (Reuters citing The Information), not filed figures; the target moved from ~USD 14.7bn two weeks earlier; M300 — no detail beyond the early-2027 target
+
+  esperanto:
+    device_class: "RISC-V Massively Parallel"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T17:00:00"
+      resource_count: 24
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/esperanto/investigations/hw-architecture.md
+        sidecar: research/esperanto/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/esperanto/investigations/software-stack.md
+        sidecar: research/esperanto/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T17:00:00"
+    seeds:
+      - https://www.esperanto.ai/
+      - https://www.esperanto.ai/wp-content/uploads/2022/05/Dave-IEEE-Micro.pdf
+      - https://github.com/esperantotech
+    notes: |
+      TSMC 7nm 570mm2, 1,088 ET-Minion in-order RISC-V + 4 ET-Maxion OoO, 100-200 INT8 TOPS, <20W; Glow/LLVM, ONNXRuntime EP; LPDDR4x 32GB, >160MB SRAM; Glacier Point v2 6-chip card; closed Jul 2025; Ainekko acquired IP 2025-11-19 (not Oct; Oct 22 was the AI Foundry launch), Veevx MRAM merger 2026-01-29; code public 2026-04-20 as openhwgroup/core-et (Apache-2.0 LICENSE, PR says Solderpad v2.1), a re-translation NOT ET-SoC-1 RTL; CORE-ET Silicon Platform an OpenHW Foundation project 2026-06-02; 16nm tapeout in progress, NoC + integrated MRAM (figures not disclosed); no 2x/3x/HBM/FP64 revival; DC relevance ~zero
+
+      Unresolved / written as 'not disclosed': License: the checked-in core-et/LICENSE is verbatim Apache-2.0 while the 2026-06-02 press release names 'Solderpad Hardware License v2.1'. Both are recorded; neither suppressed. Unresolved.; Every ETSP hardware figure is written as 'not disclosed': core count, peak TOPS, TDP, SRAM capacity, off-chip memory type/capacity/bandwidth, host interface, MRAM capacity/bandwidth/density, NoC topology/width/bandwidth. The 2026-06-02 press release gives none of them.; 16nm foundry is not named in any source.; Hot Chips 38 (2026-08-23 to 2026-08-25) presence: NOT CONFIRMED — hotchips.org/program returned HTTP 403 and could not be checked. Recorded as not confirmed rather than as a negative finding; HC38 is 15 days in the future and no slides or abstracts exist.; Whether the Glow-based compiler, LLVM RISC-V extensions, ONNXRuntime EP, Primo AI/ML SDK, or General Purpose HPC SDK carry forward to ETSP: not disclosed, no statement either way.; No ETSP SDK, compiler, runtime, driver, or ISA documentation has been published or announced.; Whether ETSP retains SRAM alongside MRAM, and in what ratio: not disclosed.; core-et repo contents were characterized from the verification's reading (self-description, docs/minion_vpu_standalone_plan.md, original-on-separate-branch); I did not independently clone or re-read the repository in this pass.
+
+  biren:
+    device_class: "GPU-like AI Accelerator (China)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T20:00:00"
+      resource_count: 20
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/biren/investigations/hw-architecture.md
+        sidecar: research/biren/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/biren/investigations/software-stack.md
+        sidecar: research/biren/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T20:30:00"
+    seeds:
+      - https://www.birentech.com/BR10X.html
+      - https://hc34.hotchips.org/assets/program/conference/day1/GPU%20HPC/HC2022.BirenTech.MikeHong.LingjieXu.v01.pdf
+    notes: |
+      壁砺(Bili)=BR series, same family: 壁砺106=BR106, 110=BR110, 166=BR166, all BR10X 1st-gen TSMC 7nm. BR100/BR104 (HC34 2022) never volume — TSMC suspended Oct 2022. Shipping: BR106 MP Jan 2023 (dev 2020, TO 2021); BR110 MP Oct 2024 (edge, no product page); BR166 = 2.5D chiplet of 2x BR106 dies, MP Aug 2025, at scale 2H25. Biren publishes form factor+peak power ONLY: 166M OAM air 550W, 166L OAM liquid 600W, 166C FHFL 290mm PCIe 300W, 106M OAM 400W, 106B FHFL. NO FLOPS/HBM/node for 106/110/166/BR20X — "800 TFLOPS BF16/128GB HBM" is Toutiao aggregator-only, REJECTED. WAIC 2026 (Jul 17-20): NPO near-packaged optics + distributed decoupled supernode (GPU/switch nodes separated, optical), tiers 16-card server / 128-card cabinet (electrical) / 1024-card NPO; BLink 2.0 = memory-semantic 1024-GPU shared memory space + in-network computing + congestion control + multi-layer self-healing; BW not disclosed (>1TB/s is a requirement, not spec; NO 224Gbps). BR20X/"BR2xx": native FP8/FP4, chiplet, BLink2.0; architecture done, in physical design + tape-out verification — NOT taped out/sampling; launch planned 2026; BR30X/BR31X 2028. 2048-card = prior-gen dOCS (32-card/4-chassis blocks, Shanghai INESA), NOT a scale-up domain, NOT BLink2.0. FY2025 (pub 2026-03-30, pre-baseline): rev RMB1.0346B +207.2%, GM 53.8%, R&D RMB1.476B +78.5%, adj loss ~RMB874M, reserve >RMB8.5B (亿元 hazard; IFRS loss far larger). 12,000 units = cumulative prospectus figure. SW: BIRENSUPA org live — Mooncake fork (2026-07-20, active to 08-08, KV-cache disagg) is the real change; sglang fork static zero-push; mmcv 08-05; driver-tools 06-24. BirenTechnology org fully archived (last push 2024-12-17). Token Factory 95%+ cache hit / China Telecom ~20% = primary-sourced vendor claim. No MLPerf; Hot Chips 2026 "could not verify" (403).
+
+      Unresolved / written as 'not disclosed': FLOPS, HBM type/capacity/bandwidth, and process node for BR106, BR110, BR166 and BR20X — written as "not disclosed" everywhere; no public datasheet exists; Per-link and aggregate BLink 2.0 bandwidth, and BLink bandwidth for the shipping 壁砺 generation — the ">1 TB/s" figure is a stated requirement, not a spec, and is labelled as such; BR166 die-to-die bandwidth — the BR100 896 GB/s CoWoS-S figure was explicitly flagged as not transferable; BR20X die count, chiplet composition, and tape-out date; 106B peak power (Biren publishes it for the other four SKUs but not this one); Whether the BIRENSUPA Mooncake fork carries a SUPA/BCCL transfer-engine backend, and which Biren hardware it targets — no release, docs, or announcement accompanies the repo; BCCL version/API for BLink 2.0 in-network computing, and the addressing model for the 1,024-GPU shared memory space — recorded as not disclosed rather than inferred; Hot Chips 2026 (Hot Chips 38) Biren participation — program page returned HTTP 403, so recorded as "could not verify", NOT as "no paper exists". Hot Chips 38 runs 2026-08-23 to 08-25, still in the future; no slides or abstracts exist
+
+  furiosa:
+    device_class: Inference NPU (Korea)
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T17:30:00"
+      resource_count: 41
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/furiosa/investigations/hw-architecture.md
+        sidecar: research/furiosa/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/furiosa/investigations/software-stack.md
+        sidecar: research/furiosa/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T17:45:00"
+    seeds:
+      - https://furiosa.ai/rngd
+      - https://furiosa.ai/warboy
+      - https://developer.furiosa.ai/latest/
+      - https://github.com/furiosa-ai/furiosa-sdk
+    notes: |
+      Warboy 14nm (64 TOPS INT8) + RNGD TSMC 5nm TCP — CORRECTED: 512 TFLOPS FP8, 48 GB HBM3 @1.5 TB/s, 256 MB SRAM @384 TB/s, 180W (docs 150W); old 24 GB / '512 TOPS INT8' baseline was wrong. Mass prod declared 2026-05-13. Gen3 w/ Broadcom ANNOUNCED 2026-05-27: TSMC 2nm die, HBM4/4E, chiplet SiP, Ethernet scale-up+fabric switches (Furiosa's first scale-up fabric), sampling H1 2028, no other specs. SDK 2026.3 adds TCL declarative kernel eDSL + furiosa-kernels (proprietary, undocumented) — voids 'no kernel library'; FVISA named only; GitHub SDK stale 0.9.2. No MLPerf/HC38. Sweden 15MW/1,800 cards; Samsung SDS NPUaaS; Series D unclosed.
+
+      Unresolved / written as 'not disclosed': Gen 3 peak throughput at every dtype (FP8/BF16/INT8/FP4) — written as 'not disclosed'; Gen 3 HBM4/4E capacity, stack count, and memory bandwidth — 'not disclosed'; Gen 3 TDP, host interface, form factor, on-chip SRAM, die count and die sizes — 'not disclosed'; Gen 3 scale-up link bandwidth and scale-up domain size (chips/nodes/rack) — 'not disclosed'; Gen 3 product name / codename and mass-production date — 'not disclosed'; RNGD peak BF16 (256 TFLOPS), INT8 (512 TOPS) and INT4 (1,024 TOPS): present in the 2026.3.0 developer docs but not confirmable against a second primary source; recorded as 'reported, not independently confirmed' rather than dropped or promoted; RNGD TDP: 150 W (developer docs) vs 180 W (product page + all 2026 press) is unreconciled in any public source; both recorded, neither picked; Whether TCL is generally available to all customers or gated to partners — could not be confirmed; recorded as 'not disclosed'
+
+  alibaba-t-head:
+    device_class: "RISC-V AI (平头哥)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T18:00:00"
+      resource_count: 24
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/alibaba-t-head/investigations/hw-architecture.md
+        sidecar: research/alibaba-t-head/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/alibaba-t-head/investigations/software-stack.md
+        sidecar: research/alibaba-t-head/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T18:00:00"
+    seeds:
+      - https://github.com/T-head-Semi
+      - https://www.t-head.cn/product/npu?lang=en
+      - https://hc32.hotchips.org/assets/program/conference/day2/HotChips2020_ML_Inference_Alibaba_HanguangNPU_final.pdf
+    notes: |
+      Adds Zhenwu M890 (debuted 2026-05-20; 144GB 'on-chip memory', type NOT disclosed; 800GB/s ICN; FP32→FP4; process & FLOPS NOT disclosed; 3x-810E = unmethodologised vendor claim; no MP/GA claim, only AL128 available via Bailian), Panjiu AL128 supernode (128 accel., PB/s claim; arch published 2025-11-14, pre-baseline), ICN Switch 1.0 (25.6Tbps, 64-accel domain, hundred-ns-class latency), roadmap V900 3Q2027 (216GB/1200GB/s, Chinese-media-reported) + J900 3Q2028, SAIL announced open-sourced 2026-07-18 (260+ frameworks, '<7d' CUDA port; no repo/license confirmed; layer count unsettled), 560K cumulative Zhenwu-SERIES units / 400+ customers / 20+ industries (China Telecom, FAW, SPD Bank). Refuted: 'PPU 1.5', HBM3, 'sub-100ns', 0.6 PFLOPS FP16, XPeng/Weibo, IPO 'confirmed'. C950 unchanged; no Hot Chips/ISCA/ISSCC/MLPerf.
+
+      Unresolved / written as 'not disclosed': Zhenwu M890 process node and foundry — not disclosed anywhere; SMIC vs TSMC unconfirmed; Zhenwu M890 memory type — Alibaba says only 'on-chip memory'; HBM/HBM3 attributions are secondary-source only; Zhenwu M890 memory bandwidth — not disclosed; Zhenwu M890 peak FLOPS by data type — not disclosed; the aggregator-only 0.6 PFLOPS FP16 figure was deliberately withheld rather than published low-confidence; Zhenwu M890 TDP, die size, transistor count, clock, array type and unit counts — not disclosed; Zhenwu M890 internal codename — not disclosed; 'PPU 1.5' could not be confirmed in any source and was not published; ICN Switch 1.0 port count, SerDes rate and process — not disclosed; its latency figure is secondary-source only and absent from Alibaba's English release; Panjiu AL128 'PB/s internal bandwidth' — no per-link, topology or bisection breakdown published, so the vendor claim cannot be decomposed
+
+  mthreads:
+    device_class: "GPU (China, 摩尔线程)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T22:00:00"
+      resource_count: 28
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/mthreads/investigations/hw-architecture.md
+        sidecar: research/mthreads/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/mthreads/investigations/software-stack.md
+        sidecar: research/mthreads/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T22:30:00"
+    seeds:
+      - https://en.mthreads.com/product/S4000
+      - https://github.com/MooreThreads/torch_musa
+      - https://github.com/MooreThreads/vllm-musa
+      - https://blog.mthreads.com/blog/musa/2024-05-11-MUSA%E7%A1%AC%E4%BB%B6%E6%9E%B6%E6%9E%84%E4%B8%8EGPU%E5%B9%B6%E8%A1%8C%E7%A8%8B%E5%BA%8F%E5%9F%BA%E7%A1%80/
+    notes: |
+      Gen map fixed: Sudi1/Chunxiao2/Quyuan3/PingHu4/Huagang5. Shipping flagship MTT S5000 (PH100, PingHu Gen4, 4th-gen MUSA): vendor confirms only FP8→FP64, no spec table; media-only 80GB/1.6TB/s/784GB/s/~1000TFLOPS FP8; TDP/node/transistors undisclosed. OAM + MTT MGX/SGX5000 supersede KUAE D800. MTT C256 supernode announced WAIC 2026-07-17: 128 cards/cabinet, 256 across two, sub-µs, not shipping, BW undisclosed. Huashan/Huagang=Gen5 not Gen3 (announced 2025-12-20). SW: MUSA SDK 5.1.0; torch_musa 2.9.1 (SDK≥5.1.0, mutlass dep)/2.9.0 (SDK≥4.3.2, FSDP2 CP); 16 MUSA HPC ports Jun–Aug 2026 tracking native FP64. S4000 Chunxiao content retained.
+
+      Unresolved / written as 'not disclosed': MTT S5000 TDP — not disclosed by the vendor; MTT S5000 process node — not disclosed; the circulating "7nm" figure is unconfirmed and its companion "22B transistors" duplicates the S4000 Chunxiao count; MTT S5000 transistor count — not disclosed; MTT S5000 memory type / HBM generation — type only implied HBM, generation never stated; MTT S5000 MP/SP count, tensor-core count, clock, L2 / on-chip SRAM capacity, host PCIe generation, packaging — all not disclosed; MTLink generation number for both the S5000 and the C256 — not disclosed; the previously published "MTLink 2.0 (assumed next-gen)" comparison-table entry was an unattributed assumption and is replaced with "generation number not disclosed" in the returned interconnect rows; MTT C256 per-link MTLink bandwidth and aggregate supernode bandwidth — not disclosed; MTT C256 liquid cooling, three-way blind-mate connectors and RAS features — not confirmed in the primary coverage reviewed; omitted rather than recorded
+
+  hygon-dcu:
+    device_class: "GPU/DCU (China, 海光)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T23:00:00"
+      resource_count: 32
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/hygon-dcu/investigations/hw-architecture.md
+        sidecar: research/hygon-dcu/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/hygon-dcu/investigations/software-stack.md
+        sidecar: research/hygon-dcu/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T23:30:00"
+    seeds:
+      - https://developer.sourcefind.cn/dtk
+      - https://github.com/FlyAIBox/dcu-in-action
+      - https://github.com/Project-HAMi/HAMi
+    notes: |
+      Flagship = 深算三号 BW1000 (launched 2025 — pre-baseline MISS, not new news); only Hygon statement 2025-12-11 SSE investor platform "已经投入市场，受到客户认可"; ALL BW1000 specs not disclosed (CU/HBM/node/TDP/PCIe/xGMI), hygon.cn publishes no DCU specs; circulating FP32 49/TF32 96/FP16 192T/INT8 392T = Eastmoney 股吧+Baidu Wenku, self-contradictory, REJECTED; 国内首发 deploy 中科南京信息高铁 Dec 2025; 深算四号 "进展顺利" (2025-12-11), no specs; SUGON MERGER TERMINATED 2025-12-09, Sugon not delisted (603019.SH); H1-26 rev +55.6–70.2% YoY (2026-07-16); Y100/Z100/K100_AI figures now historical-scope only; no DTK 26.x; no MLPerf/HC/ISCA/ISSCC.
+
+      Unresolved / written as 'not disclosed': 深算三号 BW1000 compute throughput (FP32/TF32/BF16/FP16/INT8) — no primary source; circulating figures mutually contradictory and rejected; BW1000 HBM generation, capacity, and bandwidth — not disclosed; BW1000 process node — not disclosed; BW1000 TDP and form factor — not disclosed; BW1000 CU count and clock — not disclosed; BW1000 xGMI generation and scale-up bandwidth — not disclosed; BW1000 PCIe generation — not disclosed; BW1000 wavefront width / matrix-unit presence — presumed GCN/Vega-derived from the unchanged DTK/HIP toolchain, never stated by Hygon
+
+  sophgo:
+    device_class: "RISC-V + TPU Hybrid (China, 算能)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T19:00:00"
+      resource_count: 20
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/sophgo/investigations/hw-architecture.md
+        sidecar: research/sophgo/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/sophgo/investigations/software-stack.md
+        sidecar: research/sophgo/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T19:30:00"
+    seeds:
+      - https://www.sophgo.com/
+      - https://github.com/sophgo
+      - https://github.com/sophgo/tpu-mlir
+      - https://github.com/sophgo/libsophon
+      - https://github.com/sophgo/LLM-TPU
+    notes: |
+      Flagship is BM1690 (=SG2260, 'TPUv7'), not BM1684X: 8 cores, 64 lanes×512b EU, 16 MB LMEM/core + 128 MB L2, ~128 GB @ ~546 GB/s (derived), native FP8; process NOT disclosed. SC11 FP300 = 2×BM1690 → 256 GB/1.1 TB/s/400 TOPS/300 W are PER CARD, vendor claim only. SG-Link scale-up: 8 cards=16 chips=2 TB/4U then ~1000-card Ethernet; BW/topology undisclosed; 128-chip WAIC-25 supernode = demo, 8 TB unverified. torch-tpu: torch.distributed + DeepSpeed ZeRO-1/2 + Megatron TP → 'no collectives/training/fabric' refuted. tpuv7-runtime/tpu-smi ≠ libsophon. TPU-MLIR v1.27–v1.29. Entity List 2025-01-16. 'SC7 FP300' never existed. +SG2044 (RVV 1.0).
+
+      Unresolved / written as 'not disclosed': BM1690/SG2260 process node and foundry — no retrievable source states either; deliberately written as "not disclosed" everywhere. Materially uncertain given Sophgo's US BIS Entity List addition effective 2025-01-16.; SG-Link per-link bandwidth, lane count, signaling and topology — not disclosed in any retrievable source; written as "not disclosed" in the hw-architecture scale-up table, the layer table, the YAML, and the comparison interconnect row.; BM1690 off-chip DRAM type — LPDDR5X is asserted only by Baidu Baike (user-editable, 403s to direct fetch). Written as "low-power DRAM, exact type not confirmed" with the weak provenance recorded rather than adopted.; BM1690 per-chip peak TOPS/TFLOPS — no primary per-chip figure exists. Every per-chip number in the repo is explicitly marked as derived by halving the vendor's two-chip card claim.; WAIC 2025 128-chip supernode: reported "8 TB" memory does not reconcile with ~128 GB/chip (16 TB expected). Recorded as an unresolved contradiction and the supernode written as an announced demonstration, not a shipping SKU.; SC11 FP300 PCIe generation and lane width — not disclosed.; SC11 FP300 Ethernet expansion port count and per-port rate — not disclosed.; BM1690 deployment: no shipment volume, revenue, or named datacenter deployment found. No MLPerf or any third-party benchmark exists. Status written as "announced and lab-certified, not confirmed deployed at scale".
+
+  untether-ai:
+    device_class: "At-Memory Compute (Canada)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T20:00:00"
+      resource_count: 12
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/untether-ai/investigations/hw-architecture.md
+        sidecar: research/untether-ai/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/untether-ai/investigations/software-stack.md
+        sidecar: research/untether-ai/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T20:00:00"
+    seeds:
+      - https://www.untether.ai/products/
+      - https://www.untether.ai/products/technology/
+      - https://github.com/untetherai
+      - https://ieeexplore.ieee.org/document/10066167/
+    notes: |
+      DEFUNCT — confirmed dead 2026-08-08; entry retained only as a survey data point. DEAD - bankrupt 2025-10-15 (BIA liquidation, Ontario Estate 31-3285414, PwC trustee; ~CAD $25M assets vs $128.63M / 71 creditors; 0 employees). CORRECTION: Jun-2025 'AMD Transaction' was NOT an acqui-hire - AMD paid US$25M for exclusive employment-negotiation rights only, acquired no IP/products/silicon; proceeds repaid secured debt (NBC lien released USPTO 2025-06-17). ~34 patents still in estate, no reassignment as of 2026-08-08. imAIgine SDK + speedAI/runAI discontinued Jun 2025, never open-sourced; untether.ai offline. Arch docs retained (speedAI240 7nm, 729 banks x 512 PEs, 2 PFLOPS FP8, vendor-claimed).
+
+      Unresolved / written as 'not disclosed': Number of Untether employees AMD ultimately hired under the June 2025 negotiation-rights transaction — the trustee's report states only that AMD received the exclusive right to negotiate; written as "not disclosed" in summary.md Legacy.; L2 scratchpad and LPDDR5 bandwidth figures — the repo previously carried "—" and "LPDDR5 spec" placeholders; replaced with "not disclosed" rather than estimated.; Fate of the ~34-patent portfolio — trustee is "considering options" and reviewed a non-binding LOI from the pre-bankruptcy TD Securities process, but no sale is recorded at USPTO and no trustee filing has been posted since 2025-10-31.; Final distribution to unsecured creditors — trustee expects some distribution; amount and timing not disclosed.; Pre-existing internal inconsistencies I did not touch because the verification did not address them and I will not invent values: speedAI240 Slim TDP is given as 75 W in most files but 150 W in one MLPerf table row of research/untether-ai/investigations/hw-architecture.md; and the vs-L40s power figure appears as "~20% of power" in the markdown but 43% in the hw-architecture.yaml mlperf block.
+
+  xiwang:
+    device_class: "AI Accelerator (China, 曦望)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T16:00:00"
+      resource_count: 12
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/xiwang/investigations/hw-architecture.md
+        sidecar: research/xiwang/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/xiwang/investigations/software-stack.md
+        sidecar: research/xiwang/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T16:30:00"
+    seeds:
+      - https://sunrise-ai.com/
+      - https://www.qbitai.com/2025/06/303355.html
+      - https://www.qbitai.com/2026/01/373113.html
+    notes: |
+      SenseTime spinout; S2 GPGPU (TSMC 7nm CoWoS, 64GB type NOT disclosed, warp32, SRLink scale-up, S2-X1 PCIe + S2-M1 OAM, volume prod); S3 announced-only Jan 2026, no tape-out evidence (LPDDR6 not HBM, PCIe Gen6, FP32/FP16/FP8/INT8/FP4, FP4 'P级' no TFLOPS, 99%/98% op-eff = 仿真; 寰望 SC3-256 SuperPOD PD-disagg large-EP, chip count NOT vendor-stated); stack = SIRE (TANG model, TangRT runtime, PCCL collectives); OPEN SOURCE: FlagTree third_party/sunrise (Triton 3.4 2026-01-23 → 3.6 2026-06-30; shim over closed sunriseTritonPlugin.so), FlagCX PCCL (no alltoall), vllm-plugin-FL; funding CORRECTED ≈¥3B not ¥30B + undated >¥1B H1-2026; node/TDP/SRAM/BW/FLOPS not disclosed; no MLPerf/HotChips/ISCA
+
+      Unresolved / written as 'not disclosed': S3 tape-out: the Jan 2026 executive statement (co-CEO 王勇, 2026-01-28) claiming R&D complete, tape-out mid-2026, MP end-2026, S4 2027, S5 2028 could not be independently verified — WeChat sources are access-gated and no source dated after April 2026 confirms the tape-out occurred. Written as an unverified executive statement; S3 kept at 'announced only'.; S3 memory capacity and bandwidth — LPDDR6 type is confirmed but no numbers exist; written as 'not disclosed'.; S3 process node, foundry, packaging, TDP, die area, transistor count, compute-unit count — all written as 'not disclosed'.; Any FLOPS/TOPS figure for S3 — FP4 peak exists only as 'P 级' (petaFLOPS-class); no number published.; SRLink bandwidth and topology — name only; written as 'not disclosed'. Whether SRLink carries forward to S3 is not vendor-confirmed.; SC3-256 chip count and link technology — the vendor page never states a chip count; '256' is only in the product name and is explicitly NOT recorded as a spec.; S2 memory type — never vendor-stated; the baseline's 'likely HBM2e/HBM3' was demoted to an inference and the field written as 'not disclosed'.; Date of the >¥1B funding round and the resulting cumulative total — undated on the vendor news page; written as 'H1 2026, exact date and cumulative total not confirmed'.
+
+  openai-broadcom:
+    device_class: "Custom AI Accelerator"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T16:10:00"
+      resource_count: 14
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/openai-broadcom/investigations/hw-architecture.md
+        sidecar: research/openai-broadcom/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/openai-broadcom/investigations/software-stack.md
+        sidecar: research/openai-broadcom/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T16:10:00"
+    seeds:
+      - https://openai.com/index/openai-and-broadcom-announce-strategic-collaboration/
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-announce-strategic-collaboration-deploy-10
+    notes: |
+      Jalapeño (official; 'Project Titan' is UNSOURCED): OpenAI's first LLM-inference ASIC, unveiled 2026-06-24 with Broadcom (silicon + Tomahawk Ethernet CONFIRMED; Jericho4 still inferred) and Celestica (board/rack). SAMPLING — engineering samples ran GPT-5.3-Codex-Spark in lab; not production. 9-mo design-to-tape-out = vendor claim. NO perf numbers. Node + HBM generation NOT disclosed; ~840 mm2 compute chiplet + I/O chiplet + 6 HBM stacks (Tom's HW photo est.). Samsung HBM4 + A16 Gen 2 now reported/unconfirmed. Deployment target end-2026; Microsoft named. No SDK. Hot Chips 38 talk 2026-08-25 — content not yet public.
+
+      Unresolved / written as 'not disclosed': Process node — written as "not disclosed" for Gen 1. Neither company stated it on 2026-06-24; 3nm-class/TSMC N3 is carried only as prior reporting. The 2nm/A16 Gen 2 element could not be substantiated at all and is marked unconfirmed-reporting.; HBM generation — written as "not disclosed". HBM3E vs HBM4 was never stated. The prior "Samsung HBM4 exclusive supply (confirmed)" line was downgraded to reported-not-confirmed; its only source is an aggregator (tech-insider.org).; HBM capacity and bandwidth per chip — "not disclosed". I removed the pre-existing ">8 TB/s inferred from HBM4 spec" figure from the memory comparison row, since it was derived from an unconfirmed HBM generation.; All performance figures — "no numbers disclosed". Only unquantified perf/W and utilization claims exist; no MLPerf, no third-party benchmark. TDP, clock, peak throughput at any precision all left as not disclosed.; Microarchitecture (PE array dimensions, tile size, dataflow, sparsity, attention handling) — "not public". The tiled/systolic classification is reported/photo-inferred, never vendor-confirmed.; Scale-up fabric silicon — "not named". Only Tomahawk (a scale-out part) was confirmed; Jericho4's scale-up attribution remains inferred and gained no support.; Host CPU — "not disclosed". The Arm server-CPU report is tagged rumor everywhere: unnamed sources, never confirmed by Arm/OpenAI/Broadcom, and its publication date could not be verified.; Chips per rack, power per rack, rack topology — "not public".
+
+  q-ant:
+    device_class: "Photonic NPU (Germany)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T16:00:00"
+      resource_count: 34
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/q-ant/investigations/hw-architecture.md
+        sidecar: research/q-ant/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/q-ant/investigations/software-stack.md
+        sidecar: research/q-ant/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T16:30:00"
+    seeds:
+      - https://qant.com/photonic-computing/
+      - https://qant.com/press-releases/q-ant-unveils-its-second-generation-photonic-processor-to-power-the-next-wave-of-ai-and-hpc/
+    notes: |
+      NPU 2 operational LRZ+JSC; NPS "available for evaluation" only, no general commercial availability; IONOS signed 2026-05-19 as 1st commercial customer (not yet deployed, rollout later 2026); 3rd-party Daisytuner docc/SDFG compiled PyTorch Faster R-CNN+ResNet-50 to NPU Gen 2 (Apr 2026) — "compiler internal only" now incomplete; ISC26 Jun 23 diffusion + TiRex/xLSTM demos, no metrics; pre-baseline specs added: 8 GOPS, 150 W NPU (vs bare ~30 W chip), z-cut LNoI; mfg = Stuttgart pilot line with IMS CHIPS; Gen1→Gen2 contested 100× (Q.ANT) vs 50× (TQI); Austin HQ + CTO Spruth Apr 2026; ~$80M unchanged; MZI count/ENOB/PCIe gen/NPU3 not disclosed
+
+      Unresolved / written as 'not disclosed': Gen-1 → Gen-2 speedup: Q.ANT's 2026-05-19 PR says up to 100x attributed to an LRZ evaluation; The Quantum Insider's 2026-05-21 report of the same announcement says 50x. No LRZ-authored evaluation, workload, or methodology is public. Written into the repo as an explicitly contested/unresolved pair, never as a figure.; The ~30 W chip vs 150 W NPU discrepancy: both are Q.ANT's own published figures and are most plausibly PIC-only vs NPU-module, but Q.ANT never says so. Both are carried with that qualification; the scoping itself is written as unreconciled by the vendor.; Exact date of the Daisytuner reveal: Q.ANT dates it to 'April 2026' but daisytuner.com/news is client-rendered and undated, so the day could not be pinned. Recorded as 'April 2026, exact date not pinnable'.; Whether a Q.ANT/photonic backend exists in the public github.com/daisytuner/docc tree — it was not located there. Recorded as not located in the open tree, with the hosted-service possibility noted rather than asserted.; MZI count, channel/matrix dimensions, clock rate, ENOB / effective analog precision, PCIe generation, NPU count per NPS, die size, and any NPU 3 timeline — all written as 'not disclosed'.; Q.ANT's claim that LRZ processors run climate modeling, medical imaging, and fusion energy workloads is vendor-sourced only; no LRZ or JSC publication was found. Written as attributed to Q.ANT, confidence: low.; System TDP of the NPS server (host + cooling) remains not disclosed; unchanged from the prior investigation.
+
+  mythic:
+    device_class: "Analog In-Memory Compute"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T16:10:00"
+      resource_count: 12
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/mythic/investigations/hw-architecture.md
+        sidecar: research/mythic/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/mythic/investigations/software-stack.md
+        sidecar: research/mythic/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T16:20:00"
+    seeds:
+      - https://mythic.ai/technology/
+      - https://mythic.ai/products/m1076-analog-matrix-processor/
+      - https://fuse.wikichip.org/news/5727/mythic-rolls-out-m1000-series-analog-ai-accelerators-raises-70m-along-the-way/
+      - https://medium.com/mythic-ai/a-peek-into-software-engineering-at-mythic-1b0ca5522868
+    notes: |
+      40nm analog CIM-in-NOR-flash M1076/M1108 (25/35 TOPS, 3/4 W, 0.25 pJ/MAC) shipped 2020-24. $125M Dec 2025. 2026-02-04 Honda co-develops SDV SoC + licenses Mythic APU IP; 100x eff / 100,000+ TOPS are Mythic-marketing automotive targets absent from Honda's release, prototype vehicle test late-2020s/early-2030s. 2026-05-19 acquired Videantis GmbH (Hannover; v-MP6000UDX VLIW+SIMD IP), closed, terms n/d, eCAPITAL joins cap table => stated forward arch = analog CIM + programmable digital core, not pure analog. New names APU, Starlight. No DC product/node/TOPS/TDP/tapeout; 750x tok/s/W unsubstantiated; not on HC38.
+
+      Unresolved / written as 'not disclosed': Deal value, headcount, and any roadmap detail for the Videantis acquisition — written as 'not disclosed'; only the fact of closing is independently confirmed (Taylor Wessing, 2026-06-02); Process node for every forthcoming Mythic part (next-gen datacenter APU, Honda automotive SoC, Starlight) — 'not disclosed'; the prior repo entry 'Advanced node (est.)' was removed as an unsourced estimate; v-MP6000UDX quantitative specs: core count, clock, die area, node, throughput, data types — all 'not disclosed'; the vendor describes the microarchitecture only qualitatively as a VLIW+SIMD array of identical cores; Memory hierarchy, NoC, die-to-die link, and scale-out fabric for any combined analog+digital part — 'not disclosed'; this is why no memory or interconnect comparison rows are proposed; Merged SDK, IR, ISA, compiler, or kernel API for the hybrid platform — 'not disclosed'; the standing 'no user-visible ISA or kernel API exists' line was hedged rather than rewritten; Licensee-facing SDK or documentation arising from Honda R&D's APU licensing — 'not disclosed'; The '750x tokens/s/W on 1T models' internal benchmark — no retrievable source substantiates it; left in place flagged as unverified with a 2026-08-08 re-check note; Mythic's headquarters — repo says Austin TX, Honda's 2026-02-04 release says 'a Texas, U.S.-based technology company', Mythic's 2026-05-19 dateline says 'Palo Alto, CA'; recorded as unresolved / dual-site
+
+  tianshu-zhixin:
+    device_class: "GPU (天数智芯 / Iluvatar CoreX)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T20:30:00"
+      resource_count: 22
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/tianshu-zhixin/investigations/hw-architecture.md
+        sidecar: research/tianshu-zhixin/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/tianshu-zhixin/investigations/software-stack.md
+        sidecar: research/tianshu-zhixin/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T20:45:00"
+    seeds:
+      - https://www.iluvatar.com/
+      - https://github.com/Deep-Spark
+      - https://en.wikipedia.org/wiki/Iluvatar_CoreX
+    notes: |
+      TianGai 300 (天垓300) announced 2026-07-19, WAIC 2026 day 3 (Shanghai Jul 17-20): first product on new-gen self-developed arch; SIMT retained (scalar/vector/tensor); adds FP8/FP4; MMA/DPX/FMA; ISA ext ixSMEX/ixDPX/ixTrans; 天数超节点 144-chip full-interconnect scale-up (trial stage, first ever stated). Process/memory/FLOPS/TDP/BW ALL not disclosed; vendor node cpjs-yj-xlxl-tg300, no spec sheet. Perf claims relative-only vs Hopper; no MLPerf. Announced, not shipping; no codename map to Tianxuan/Tianji. New SW layer FlyDSL (Python+MLIR kernel DSL, FlyIXDL/ivcore11). 340+ customers/>10k chips online end-2025 supersedes 290/52k Jun-2025. Zhikai=智铠100; 彤央 TY edge line = gap.
+
+      Unresolved / written as 'not disclosed': TianGai 300 process node and foundry — no source; written as not disclosed; TianGai 300 memory type, capacity and bandwidth — the raw scan's 'uses HBM' claim did not survive verification; written as not disclosed; TianGai 300 peak FLOPS/TOPS at every dtype (FP32/TF32/BF16/FP16/FP8/FP4/INT8) — only relative-vs-Hopper percentages exist; TianGai 300 die size, transistor count, packaging, TDP, form factor, host interface generation, card/board name, price — all written as not disclosed; 天数超节点 topology, per-link/per-chip bandwidth, switch ASIC, coherent-domain status, and whether it extends CLIF or is a new fabric — all not disclosed; only the domain size 144 is citable, as a company claim; Whether TianGai 300 is the productization of Tianxuan (天璇) or any other Big-Dipper codename — no source maps them; recorded as unresolved and the Tianxuan/Tianji roadmap rows downgraded to unverified rather than deleted; 彤央 (Tongyang) TY1000/TY1100/TY1100-NX/TY1100-NX-PRO/TY1200 edge line — existence confirmed on the vendor site, no specifications retrieved; recorded as a known survey gap; How the new ISA extensions (ixSMEX/ixDPX/ixTrans) are exposed to programmers — no compiler notes, intrinsics docs, FlyDSL target, or SDK version tied to TianGai 300
+
+  muxi:
+    device_class: "GPU (China, 沐曦)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T23:00:00"
+      resource_count: 24
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/muxi/investigations/hw-architecture.md
+        sidecar: research/muxi/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/muxi/investigations/software-stack.md
+        sidecar: research/muxi/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T23:30:00"
+    seeds:
+      - https://www.metax-tech.com/en
+      - https://github.com/MetaX-MACA
+      - https://github.com/MetaX-MACA/vLLM-metax
+      - https://en.wikipedia.org/wiki/MetaX
+    notes: |
+      MetaX 沐曦 — updated 2026-08-08. WAIC 2026 (Jul 17-20): 曦景 S600 supernode (64 cards/single cabinet, in-cabinet full interconnect, zero-cable direct-connect 0线缆直连, EP/TP, →10K+ card clusters; BW/SKU/FLOPS N/D; ANNOUNCED ONLY) + 曦索 X300 (X301/X302, AI4S, "full-precision mixed compute" FP64-class, MetaXLink+MLoE, all specs N/D, ANNOUNCED ONLY). X-series NOT new: X206 launched 2026-01-27 (pre-baseline gap). S600 does NOT supersede C550 3D Mesh Supernode — both current. C600 → large-scale shipment 2026 (company statement, CPO Sun Guoliang 2026-07-08, orders into 2027; audited: 33,649 boards 2025 +147.31%). C700 upgraded rumor→company-disclosed (chairman Chen Weiliang, 2026-04-08 FY2025 call: design+functional verification largely complete, in perf optimization, started Apr 2025; H100-parity/2027 unverified). Catalog widened: C500X/C588/N260/N300/G100 (C588 2025-09-23, C500X ~WAIC 2025 = pre-baseline). N300: FHFL dual-slot, 500W, MetaXLink×4, 16 GPU/chassis PCIe-switch; "48GB"/"14nm" NOT CONFIRMED. FY2025 rev RMB1.644B +121.26%, Q1'26 RMB562M +75.37%. SW: MXMACA OSS 2025-02-14, 3.3.0.X Dec-2025 PyTorch 2.8/2,650 ops/PaddlePaddle (medium conf); vLLM-metax v0.13→v0.22.0 (2026-07-27); new OSS mcTriton, TileOPs/TileKernels, MXDeepEP, mcFlashMLA, sglang, AI4S-Framework. MiniMax H3 Day-0 confirmed (vendor, 2026-08-03).
+
+      Unresolved / written as 'not disclosed': S600: per-link bandwidth, aggregate/bisection bandwidth, which GPU SKU populates the cabinet, total supernode FLOPS, memory per cabinet, power/cooling envelope, switch silicon — all written as 'not disclosed'; S600 and X300 status: announced only — no sampling, shipping, pricing, customer or benchmark evidence found for either; X206 / X301 / X302: FP64 rate, any FLOPS or TOPS figure, memory type/capacity/bandwidth, TDP, process node, form factor, die configuration — all written as 'not disclosed'; MLoE interconnect (X300): name confirmed only; mechanism, bandwidth, topology, radix, and whether it is optical or electrical all 'not disclosed'; MXC588: all specifications (compute, memory, process, TDP, form factor) 'not disclosed'; only existence and 2025-09-23 launch confirmed; MXN300: memory type/capacity/bandwidth and INT8/FP8 TOPS 'not disclosed'; process node stated by MetaX only as 'domestic advanced process'; announcement date not established. Aggregator '48 GB' and '14nm' figures explicitly recorded as NOT CONFIRMED and not carried as specs; MXC700: no specifications, no launch date. Recorded as company-disclosed design-verification/optimization status only; 'H100-parity' target and 'mass production late 2027' flagged as aggregator-only and unverified; C500X Optical Interconnect Supernode: DragonFly topology and 16→64 GPU scale rest on secondary reporting with no vendor spec sheet — recorded at medium confidence
+
+  pezy:
+    device_class: "Manycore HPC/FP64 (Japan)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-04-05T20:00:00"
+      resource_count: 18
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/pezy/investigations/hw-architecture.md
+        sidecar: research/pezy/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/pezy/investigations/software-stack.md
+        sidecar: research/pezy/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-04-05T20:30:00"
+    seeds:
+      - https://www.pezy.co.jp/en/
+      - https://www.pezy.co.jp/wp-content/uploads/2025/09/HC2025.PEZYComputing.NaoyaHatta.v06.pdf
+      - https://chipsandcheese.com/p/pezy-sc4s-at-hot-chips-2025
+    notes: |
+      SC4s still pre-production 2026-08-08 (absent from products page; zero SC4s news items; only two 2026 items, both SC3 genomics). NEW: undeclared slip — 2025-06-06 PR promised end-2025 release, missed 8+mo, no revised date. NEW: IEEE Micro journal version DOI 10.1109/MM.2026.3698804 (~Jun 2026; body unretrievable, no spec upgraded). CORRECTED repo error: PEZY announced PyTorch+vLLM/TGI/DeepSpeed/Transformers/Diffusers on SC3 (2025-06-06) — "no ML framework backends" retracted; announced-but-unverifiable. Vendor claims: pzMutect2 139x vs GATK 4.2.6.1, PZLAST-MAG, both SC3. Not in Jun-2026 Green500 top20 (top20 only); no HC38 talk.
+
+      Unresolved / written as 'not disclosed': Whether the IEEE Micro 2026 article (DOI 10.1109/MM.2026.3698804) reports measured SC4s silicon or still only the ~91 GF/W simulation — not disclosed; IEEE Xplore returns HTTP 418/403 to automated fetch, so neither abstract nor body could be read. No SC4s figure was upgraded on the strength of this citation.; SC4s tape-out / sampling / mass-production status — not disclosed; no PEZY announcement of any kind exists.; Revised SC4s release date — not disclosed; the end-2025 target was missed with no replacement announced and no vendor delay notice.; Whether PEZY appears anywhere in the June 2026 Green500 below rank 20 — unverified. Only the top 20 was checked; written throughout as 'not in the top 20', never as 'nowhere in the list'.; ExaScaler corporate status — unverifiable. www.exascaler.co.jp serves a TLS certificate valid only for pezy.co.jp/pezy.jp and cannot be fetched, so the 'no corporate-status news' negative rests on PEZY's news index alone.; Existence of any PEZY PyTorch backend artifact (repository, release tag, package, version number, benchmark, documentation) — not disclosed; nothing found from any independent source.; Whether the announced PyTorch path is training-capable or inference-only — not disclosed.; Whether PEZY-SC4s PyTorch support exists in any form — not disclosed (PEZY said it would follow the SC4s release, which has not happened).
+
+  # ── Chips refreshed by the 2026-08-08 scan that had no status entry ──
+
+  enflame:
+    device_class: "Data Transfer Unit (China)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 59
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/enflame/investigations/hw-architecture.md
+        sidecar: research/enflame/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/enflame/investigations/software-stack.md
+        sidecar: research/enflame/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://github.com/EnflameTechnology
+      - https://support.enflame-tech.com
+      - https://github.com/EnflameTechnology/vllm-gcu
+    notes: |
+      IPO registration effective 2026-07-09 (RMB 6.0B: 1.503B 5th-gen, 1.197B 6th-gen, 3.3B HW/SW co-innov); not yet trading as of 2026-08-08. WAIC 2026-07-18 w/ ZTE: first named supernodes ESL64-O (OEX orthogonal backplane-free, zero-cable) + ESL64-C (cable-tray, 10k+ cards) — card count/BW/host silicon undisclosed; NPO optical proto 512+ cards; CoPoS glass panel-level pkg SAMPLE only (shipping still 2.5D MCM). L600 800 GB/s interconnect backfilled (pre-baseline 2025-07-27); silicon returned, NOT mass production. torch-gcu source published 2026-06-23 (PrivateUse1/ECCL/torch.compile, S60-only, single-commit) supersedes "proprietary TopsTorch"; SDK TopsRider 3.7.x; vllm-gcu v0.11.0 2026-05-12. No DTU 5.0 silicon, no MLPerf, no in-window paper.
+
+      Unresolved / written as 'not disclosed': ESL64-O / ESL64-C card count per node — the "64" in the product names is name-inference only; written as "not disclosed"; ESL64 per-link and per-card interconnect bandwidth — not disclosed; ESL64 host silicon — sources say only 自研AI芯片; no source confirms it is L600; written as "not disclosed"; ESL64-O maximum cluster scale — the 10,000+ card claim attaches only to ESL64-C; NPO optical prototype link rate, wavelength count, and optical-engine supplier — not disclosed; CoPoS sample — the specific Enflame die it was adapted to is not disclosed; TopsRider documentation-site URL slug — support.enflame-tech.com returns Tencent WAF HTTP 403 on every onlinedoc_dev_* path (2.5.115 / 3.5 / 3.6 / 3.7); no slug recorded. Only the SDK version line (3.7.x, from torch-gcu) is verifiable; Whether torch_gcu is a rename of or replacement for TopsTorch — no source states this; the two names are left unlinked
+
+  etched-sohu:
+    device_class: "Transformer-Specific ASIC"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 16
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/etched-sohu/investigations/hw-architecture.md
+        sidecar: research/etched-sohu/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/etched-sohu/investigations/software-stack.md
+        sidecar: research/etched-sohu/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://etched.com
+      - https://www.lesswrong.com/posts/qhpB9NjcCHjdNDsMG/new-fast-transformer-inference-asic-sohu-by-etched
+    notes: |
+      A0 silicon back from TSMC N4P (vendor-only) H1 2026; repositioned to rack-scale 'frontier inference clusters', 'Sohu' gone from etched.com mid-2026 (de-emphasis, NOT confirmed retirement/pivot); Low Voltage Inference (<half-voltage math blocks, splittable arrays, new PDN/VRM, cold plates) + Cluster Scale Memory (HBM/SRAM hybrid + proprietary low-latency fabric, shared mem pool, 'SRAM-level decode') = vendor claims, ZERO absolute numbers, no 3rd-party analysis; do NOT carry 144 GB forward; 'thousand-chip scale-up domains' = hiring copy, not a spec; $300M Series C @ $10.3B (Sequoia, 2026-07-23), ~$1.1B total (NOT $1.42B; $800M is cumulative); prior $500M closed Dec 2025 @ $5B; 3 co-founders (Uberti/Wachen/Zhu); Taiwan factory + 10 MW Milpitas lab; NOT shipping, no named customer, no benchmarks; HC2026 Rhodium sponsor, no talk
+
+      Unresolved / written as 'not disclosed': Whether the A0 part is a Sohu derivative or an entirely new design — no source addresses it; written as "not disclosed"; Whether "Sohu" was formally retired or renamed — only its absence from etched.com is confirmed; recorded as marketing de-emphasis, not cancellation; Whether the hardwired-transformer-pipeline microarchitecture survives in the A0 part — the Gen 1 description is retained but flagged "unverified for current silicon"; TSMC N4P node — vendor-sourced only; TechCrunch confirms TSMC manufactured the chip but names no node; Every LVI quantity: supply voltage, peak FLOPS, FLOPs/mm², perf/W, TDP, die area, clock — all written as "not disclosed"; Every CSM quantity: HBM generation, stack count, per-chip capacity, SRAM capacity, on-package bandwidth, fabric link rate, topology, latency, coherence model — all "not disclosed"; Chips per rack, rack power, rack cooling design, and scale-out fabric — "not disclosed"; Whether any rack has actually shipped — no independent evidence as of 2026-08-08; status kept at "not shipping"
+
+  lightmatter:
+    device_class: "Photonic Interconnect + Optics (compute product no longer marketed)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 41
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/lightmatter/investigations/hw-architecture.md
+        sidecar: research/lightmatter/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/lightmatter/investigations/software-stack.md
+        sidecar: research/lightmatter/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://lightmatter.co/products/
+      - https://lightmatter.co/products/passage-l20/
+      - https://lightmatter.co/products/guide/
+    notes: |
+      2026 repositioning: photonic compute → interconnect/optics. Envise gone from vendor product nav (footer trademark only, no announced EOL); MLPerf N/A. Lineup: Passage L200 (32-64 Tbps CPO), Passage L20 NPO/OBO (6.4 Tbps/dir, 12.8 Tbps agg, 32 BiDi fibers @200G, 212.5G PAM4, 30 W; samples late 2026), Guide 1 VLSP light engine (100 mW+/fiber, 16λ→64λ), Guide DR liquid-cooled OCP NIC 3.0 Laser NIC (64 fibers @200 mW, 51.2 Tbps/module, 204.8 Tbps/1RU; samples Q4 2026), vClick dFAU; M1000 now an EVK. NVLink Fusion partner ~2026-06-03. Nothing shipping. TSMC/Tower NOT partners.
+
+      Unresolved / written as 'not disclosed': Guide 1 per-unit fiber count and aggregate bandwidth — not disclosed; Guide DR wavelength count and electrical power draw — not disclosed; Passage L20 die area — not disclosed (only package dimensions, and those disagree between press release and product page); Passage L200 fiber count and power — not disclosed; vClick dFAU general-availability date — not disclosed; L20 energy efficiency: 3.0 pJ/bit (press release) vs 5 pJ/bit (product page) — genuine vendor inconsistency, both recorded, neither resolved; L20 package: 2000-pin BGA (press release) vs 1827-ball BGA 37.5 x 26.4 mm (product page) — genuine vendor inconsistency, both recorded; Envise product status — recorded as 'no longer marketed' at medium confidence; this is evidence of absence on a marketing site, with no EOL announcement to confirm it
+
+  rebellions-atom:
+    device_class: "Inference Accelerator (Korea)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 40
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/rebellions-atom/investigations/hw-architecture.md
+        sidecar: research/rebellions-atom/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/rebellions-atom/investigations/software-stack.md
+        sidecar: research/rebellions-atom/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://rebellions.ai/atom-architecture-finding-the-sweet-spot-for-genai/
+      - https://docs.rbln.ai/latest/index.html
+      - https://rebellions.ai/white-paper-atom-max/
+    notes: |
+      ATOM 5nm CGRA 8NE 32TF/128TOPS; REBEL-Quad/Rebel100 4nm UCIe-Advanced 4TB/s, 144GB HBM3e 4.8TB/s, 2048 TFLOPS FP8; RBLN static compile-once. 2026-08-08: NO new silicon (REBEL-IO/CPU roadmap-only; absent MLPerf Inf+Train v6.0, HC38). SqueezeBits acquired 06-30 all-stock = new compression tier (OwLite/Fits-on-Chips/Yetter). RebelCard + Arm AGI CPU (Neoverse CSS V3), Giga Computing: MOUs only, no specs/ship date. RebelServer ran SKT A.X K1 500B MoE single-server, no metrics. SDK monthly to v0.11.1.post1; breaking Transformers-v5 format + NPU Operator v0.4.0. RebelRack specs now secondary-only. KOSPI IPO filing within 2026, listing H1 2027.
+
+      Unresolved / written as 'not disclosed': RebelCard ship date — aggregator-only "Q3 2026" is absent from the primary Rebellions release; written as "no confirmed ship date" everywhere; RebelCard HBM capacity, bandwidth, TDP and performance — written as "not disclosed"; RebelServer device/card count, accelerators per server, latency, throughput, TPS/W, batch size for the A.X K1 run — all written as "not disclosed"; RebelRack/RebelPOD specs (32 accelerators, 64 PFLOPS, 4.6 TB HBM3e, 153.6 TB/s, quad-400GbE) — no Rebellions primary source; retained but re-graded to secondary-sourced rather than deleted; SqueezeBits (OwLite / Fits on Chips / Yetter) integration path into the RBLN SDK, and whether Yetter replaces or complements the vLLM plugin — not disclosed; no SqueezeBits product appears in any SDK release note through 2026-07-31; SqueezeBits acquisition cash terms — not disclosed (all-stock swap confirmed); IPO preliminary-review filing date — recorded as "within 2026 (previously August 2026)" at MEDIUM confidence; venue and date have moved more than once; UPI item dated 2026-08-07 ("SK Telecom, Rebellions expand Korean AI chip infrastructure") returned HTTP 403; the final ~48 hours of the window are unverified and flagged for the next scan
+
+  luminous:
+    device_class: "Photonic-Electronic Hybrid"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 24
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/luminous/investigations/luminous-investigation.md
+        sidecar: chips/luminous/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: chips/luminous/software-stack.md
+        sidecar: chips/luminous/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://www.nextplatform.com/2022/03/17/luminous-shines-a-light-on-optical-architecture-for-future-ai-supercomputer/
+    notes: |
+      DEFUNCT — confirmed dead 2026-08-08; entry retained only as a survey data point. DEFUNCT (verified 2026-08-08). Ops ceased 2023-05 (~50% layoffs, photonics team disbanded), assets auctioned 2023-07; never shipped, ~$123M raised. Two repo corrections: Oct-2023 Enosemi deal was a committed commercial LICENSE only (Luminous kept title), and AMD bought Enosemi 2025-05-28/29, NOT Oct 2023. New: Luminous assigned its patent portfolio OUTRIGHT to AMD, USPTO recorded 2026-02-28 (US11500410B1, US12379543B2, US12613811B2); no press coverage, USPTO sole evidence. No SDK/compiler ever released or open-sourced; nothing survived. luminous.com now a third-party domain-sale listing. Formal dissolution not disclosed. Architecture docs retained; PNG needs re-render.
+
+      Unresolved / written as 'not disclosed': Formal corporate dissolution of Luminous Computing, Inc. — written as "not disclosed"; not confirmable from free public records. The Feb 2026 patent sale plus the domain sale are noted as *consistent with* final liquidation in H1 2026, not as proof of it.; Whether any Luminous-derived design appears in shipping AMD CPO silicon — written as "not disclosed". AMD has made no public statement linking the Feb 2026 patent purchase to any product.; Terms and full scope of the 2026-02-28 AMD assignment (price, total patent count) — not disclosed; only three filings were individually verified, so the portfolio is described as "US11500410B1, US12379543B2, US12613811B2, …" rather than given a count.; Patent application US20200284984A1 (Nahmias, "System for photonic computing") — the prior investigation listed it as still Luminous-owned with "status unclear". Whether it was included in the Feb 2026 AMD assignment was not individually verified, so it is now recorded as "not disclosed" rather than assumed to have transferred.; Process node, die count, GB/s figures, host interface — all remain not disclosed; the PCIe host interface stays flagged as an assumption, not a confirmed spec.; The exact AMD/Enosemi close date is given as 2025-05-28/29 per the verification; the source is a 2025-05-29 press report, so the precise closing date is not pinned to a single day.; OUT OF SCOPE, needs another agent: the task text asked for the untether-ai "AMD acqui-hired the team" correction, but no untether-ai reference exists anywhere in chips/luminous/ or research/luminous/, and the hard constraints forbid touching chips/untether-ai/ or research/untether-ai/. Both directories are listed as modified in git status, so another agent may already own it — but the correction (per the PwC trustee report, the June 2025 AMD Transaction gave AMD only the exclusive right to negotiate new employment with certain employees for US$25M, with no IP, products, or silicon acquired) is not applied by me.; The historical codex review at research/luminous/codex-reviews/search-review.md was left untouched — it is a dated review artifact recording what the search results looked like at review time, not a live status claim. It does still contain an outdated line about the Apr 2026 state of luminous.com if the orchestrator wants it refreshed.
+
+  rain-ai:
+    device_class: "Neuromorphic AI"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 25
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: chips/rain-ai/hw-architecture.md
+        sidecar: chips/rain-ai/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: chips/rain-ai/software-stack.md
+        sidecar: chips/rain-ai/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://rain.ai/
+      - https://www.andestech.com/en/2024/06/03/rain-ai-unveils-andes-technology-as-its-risc-v-partner/
+    notes: |
+      DEFUNCT — confirmed dead 2026-08-08; entry retained only as a survey data point. DEFUNCT: non-operating; patents -> OpenAI Opco, LLC, USPTO-recorded 2025-10-23 (3 filings; count+terms not disclosed), disclosed ~2026-08-06 by The Information after whole-company talks collapsed. Never shipped commercially - Oct 2024 eval chips were the peak; $150M Series B collapsed Q1 2025; ~$146M raised. Arch: D-IMC MAC-in-SRAM tiles + Andes AX45MPV RV64GCV host (ACE/COPILOT) + Arteris FlexNoC 5 mesh; node/TOPS/memory never disclosed; pivot from analog ReRAM+spiking (180nm 10K-neuron, 2021). SDK never released or open-sourced. rain.ai live but dormant (last post 2024-06-27), not evidence of operations.
+
+      Unresolved / written as 'not disclosed': Exact number of patents transferred to OpenAI Opco, LLC and the financial terms — written as "not disclosed"; The Information reported both as undisclosed and only three filings could be independently verified at USPTO.; Whether the Rain compiler/runtime source or any software rights transferred with the patents — written as "not disclosed"; only patent assignments appear in primary records.; Formal corporate dissolution of Rain Neuromorphics Inc. — not confirmable from free public records; the entry says so explicitly and treats the entity as a non-operating shell rather than asserting dissolution.; Exact date the company ceased operations — the finding gives no primary record for it, so the entry uses 2025-10-23 (USPTO recordation) as the documented status-change date and notes the operational collapse began earlier with the Q1 2025 Series B failure.; D-IMC process node, foundry, TOPS, off-chip memory, TDP, die size, host interface — never disclosed and now permanently so; all left as "not disclosed", no estimates carried.; The untether-ai "AMD acqui-hired the team" correction in the task brief could NOT be applied: no rain-ai file references Untether AI or the AMD transaction (grep over chips/rain-ai and research/rain-ai returns nothing), and chips/untether-ai + research/untether-ai are outside my hard scope. Note for the orchestrator: research/status.yaml line 653 (untether-ai notes) still ends with "AMD acquired entire engineering team June 2025; products and SDK discontinued" — per the trustee's report AMD acquired only the exclusive right to negotiate new employment with certain employees for US$25M, no IP, no products, no silicon; that line is orchestrator-owned and needs fixing.; rain-ai currently has no entry in research/status.yaml (only untether-ai exists among the three dead vendors), so the status_yaml_notes line may need a new block rather than an in-place replacement.
+
+  # ── New chips added by the 2026-08-08 landscape scan ──
+
+  ibm-spyre:
+    device_class: "Inference Accelerator (SIMD-Systolic Dataflow, scratchpad-managed)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 77
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/ibm-spyre/investigations/hw-architecture.md
+        sidecar: research/ibm-spyre/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/ibm-spyre/investigations/software-stack.md
+        sidecar: research/ibm-spyre/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://research.ibm.com/blog/lifting-the-cover-on-the-ibm-spyre-accelerator
+      - https://newsroom.ibm.com/2025-10-07-ibm-introduces-the-spyre-accelerator-for-commercial-availability
+      - https://torch-spyre.readthedocs.io/en/latest/
+    notes: |
+      NEW ENTRY (2026-08-08 landscape scan). IBM Spyre Accelerator: 5 nm inference ASIC, 25.6B transistors, single-slot 75 W PCIe card, 128 GB LPDDR5 (16 ch @6.4 Gbps, ~204 GB/s), IBM-primary peak '>300 TOPS per card at 75 W' (the per-dtype fp16 98 / fp8 157 / int8 315 / int4 629 TOPS breakdown is secondary-source only and unconfirmed). 32 active AI cores (34 physical, 2 yield spares) in an 8x4 grid; 2 corelets per core sharing one 2 MB LX scratchpad; each corelet an 8x8 SIMD-systolic PE array (64 math engines, the toolchain 'PT' unit) plus 1D vector/SFU => 4,096 math engines per card (arithmetic, not published). NO hardware cache anywhere in the compute path: the compiler emits explicit load/stores staging 128-byte 'sticks' between LPDDR5 and the LX scratchpad, with no eviction mechanism, by design; the stick inherits the zAIU/zDNN 'stickified tensor' layout from Telum. On-chip bidirectional ring joins all 32 cores at 128 B/cycle/direction and the compiler is ring-aware (K-split matmul core-ID permutation). NO proprietary chip-to-chip fabric: scale-out is a standard PCIe switch fabric with direct card-to-card RDMA. Chassis limits 48 cards on z17/LinuxONE 5 (~6.1 TB, 1,536 cores) and 16 on Power11; single-model ensemble capped at 8 cards / ~1 TB by spyreccl; multi-node not supported. The widely repeated '8 cards / 256 cores' is a stale Aug-2024 Hot Chips preview figure. Productization of IBM Research's AIU line; the AIU name survives throughout the software (torch_sendnn, aiu-smi, libaiupti, the ibm-aiu GitHub org). DO NOT conflate with the Telum II on-die zAIU: zDNN and zDLC do not target Spyre. Unusually open middle of the stack: github.com/torch-spyre, 14 mostly Apache-2.0 repos publishing the PyTorch backend, TorchInductor front end, compiler<->device interface specs, design RFCs, a Triton fork, and a CPU interpreter + latency model for the tile IR. Closed below: DeepTools back-end compiler, DeepRT/Flex runtime, collectives, driver, firmware and ISA; torch_sendnn is only available pre-installed and cannot be downloaded. Status: shipping GA as a priced system option (z17 / LinuxONE 5 GA 2025-10-28; Power11 GA early Dec 2025), not a merchant datacenter part; no named external at-scale deployment. Primary academic source ISSCC 2026 (DOI 10.1109/ISSCC49663.2026.11409090). Not disclosed: clock frequency, scratchpad bandwidth, inner scratchpad level size, ring aggregate GB/s; die size 330 mm2 and PCIe Gen5 x16 / 64 GB/s are secondary-source only.
+
+  nextsilicon-maverick:
+    device_class: "Reconfigurable Dataflow Accelerator (runtime-JIT spatial grid; HPC-first)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 59
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/nextsilicon-maverick/investigations/hw-architecture.md
+        sidecar: research/nextsilicon-maverick/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/nextsilicon-maverick/investigations/software-stack.md
+        sidecar: research/nextsilicon-maverick/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://www.nextsilicon.com/maverick
+      - https://www.nextsilicon.com/tech/
+      - https://www.businesswire.com/news/home/20251022712360/en/
+    notes: |
+      NEW ENTRY (2026-08-08 landscape scan). NextSilicon Maverick-2 (NextSilicon Ltd, Israel, founded 2017), TSMC 5 nm 2.5D; launched 2025-10-22. SCOPE CAVEAT, read before citing this as an AI chip: it is datacenter-class hardware (OAM, 750 W, 192 GB HBM3E, PCIe Gen5, liquid-cooled, in a DOE/NNSA machine) but it is NOT an AI accelerator — the published peak table lists FP64, FP32 and FP16 ONLY (no BF16, FP8, INT8, INT4 or sparsity), FP32 and FP16 have identical scalar/vector throughput, no MLPerf or any AI/ML benchmark has ever been published, and the vendor lists CUDA, HIP/ROCm and 'leading AI frameworks' under 'upcoming integrations planned'. It is in the survey for its programming model. Intelligent Compute Architecture (ICA): 224 compute blocks per die in 4 regions, each block holding 'hundreds of interlinked ALUs' (count not disclosed), plus 32 embedded RISC-V E-cores at the die edges; no instruction stream on the grid, no architected register file, no branch predictor, no speculation. Single die ~54B transistors / 128 MB chip cache / 96 GB HBM3E @3.2 TB/s / 400 W air; dual-die OAM 448 blocks / 64 E-cores / ~108B / 256 MB / 192 GB HBM3E @6.4 TB/s (up to 288 GB flavors) / 750 W liquid; 1.5 GHz; 1-2 x 100 GbE on package. Dual-die peaks: FP64 21.6 TF s/v & 40.3 TF m/t, FP32 40.7 & 56.1, FP16 40.7 & 56.4 — transcribed from NextSilicon's own spec table as reproduced by The Next Platform; the vendor web page publishes neither peak FLOPS nor HBM bandwidth. SW is 'BYOC — bring your own code': standard C/C++/Fortran + OpenMP + Kokkos through nextcxx (LLVM/MLIR driver) to ONE binary with no arch flag and no device object; the program first runs on the HOST under nextsystemd telemetry, which identifies the 'top 1% of code flows', builds an optimized compute graph and PROJECTS it onto the grid as 'mill cores' — transient, software-defined graph objects laid down Tetris-style and torn down again — then continuously re-optimizes, caching projections persistently across runs. Three fallback tiers GRID / RISC-V E-CORES / HOST CPU, with ~80% of instruction runtime claimed on the grid. Dispatch is synchronous: nextapi::parallel_for is the entire API, fence() is a no-op, launch takes a device mutex, one kernel at a time. Memory is UVM — one virtual address space, plain std::aligned_alloc, exception-driven demand paging with page sizes from 4 KiB to 16 GiB. Only open-source component: the Kokkos NextSilicon execution space upstreamed in Kokkos 5.2.0 (Apache-2.0 WITH LLVM-exception), early maturity tracked in kokkos/kokkos#9032. SDK is gated — docs.nextsilicon.com returns HTTP 401, the architecture whitepaper is 'COMING SOON', and the GitHub org's 14 repos are all forks with no first-party SDK. Maturity: shipping, limited deployment — Sandia National Laboratories 'Spectra' (128 accelerators) and the ODISSEE consortium (4 cards). Not disclosed: ALUs per block, die area, kernel driver name.
+
+  spinncloud-spinnaker2:
+    device_class: "Event-Driven Neuromorphic Manycore (152 ARM Cortex-M4F PEs + per-PE MAC/2D-conv accelerators)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 71
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/spinncloud-spinnaker2/investigations/hw-architecture.md
+        sidecar: research/spinncloud-spinnaker2/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/spinncloud-spinnaker2/investigations/software-stack.md
+        sidecar: research/spinncloud-spinnaker2/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://spinnaker2.gitlab.io/
+      - https://spinnaker2.gitlab.io/external/documentation/software/
+      - https://arxiv.org/abs/2607.24396
+    notes: |
+      NEW ENTRY (2026-08-08 landscape scan). SpiNNcloud Systems GmbH (Dresden; TU Dresden spinout commercializing Steve Furber's SpiNNaker lineage). SpiNNaker2: GlobalFoundries 22FDX (22 nm FDSOI) with Racyics ABX adaptive body biasing, 102 mm2, 266M gate equivalents; 152 ARM Cortex-M4F PEs (38 QuadPEs x4) plus one periphery Cortex-M4 management core (the vendor's '153 ARM cores'), 148 usable by applications; each PE carries a 16x4 MAC array and 128 kB SRAM => 19.8 MB on-chip, ENTIRELY software-managed — no hardware data cache, no OS, no tensor compiler and no kernel driver. 5.837 TOPS INT8 theoretical / 4.563 TOPS measured @300 MHz 0.8 V; 2.77 TOPS/W @150 MHz 0.5 V and 2.06 TOPS/W @300 MHz 0.8 V (on-chip operands); measured chip power 0.075 W (PEs off) to 1.248 W (all 152 PEs on CoreMark), summary range 0.24-2.2 W; rated TDP not disclosed. Off-chip 2 GB LPDDR4 per chip over 2 interfaces, 6.4 GB/s aggregate raw, sustained bandwidth not disclosed. Interconnect: 6 chip-to-chip event links in a hexagonal grid forming a 48-chip torus, on-die 400 MHz multicast event router, dual NoC. Host interface is 1 GbE over UDP/UDT — no PCIe, no RDMA. SNN capacity >150,000 neurons/chip and >1.8 G synaptic events/s at a 1 ms tick. Explicitly NOT a dense-GEMM competitor and its designers say so: limited DRAM bandwidth starves the DNN accelerators once layers exceed on-chip memory. Its survey value is as a contrasting corner of the design space — microcontroller-class cores, sub-watt power, event-driven sparse execution, and a programming model made of statically placed bare-metal C rather than a compiler. SW: for DNNs PyTorch -> ONNX -> AMD Quark INT8 PTQ -> OctopuScheduler (application-graph IR, layer fusion, tiling, PE mapping) -> S2Layer/S2Model producing a complete DRAM image; for SNNs snnTorch/Norse/Sinabs/Rockpool/Nengo/Lava-DL/Spyx export NIR into py-spinnaker2 (Apache-2.0; Populations/Projections, partitioner, placer, routing tables); both paths land on bare-metal C per PE built with GNU Arm Embedded GCC and custom linker scripts (CMSIS-NN, ml-lib MMIO), executed by ExperimentRunner (C++) / SpiNNMan2 via spec.json -> UDP+UDT over 1 GbE -> results.json. Maturity: shipping, low volume; commercial availability announced at ISC High Performance May 2024. Documented deployments: Sandia NNSA 'NERL Braunfels' (175M neurons, delivered March 2025) and TU Dresden / SpiNNcloud (~35,000 chips / 5M cores / eight racks). Definitive primary source is the full-chip paper Scholze, Partzsch, Hoeppner et al., 'The SpiNNaker2 chip', IEEE OJCAS 2026, DOI 10.1109/OJCAS.2026.3714974 (CC-BY, published 2026-07-27), which SUPERSEDES the 2021/2022 processing-element paper describing an 8-PE testchip (e.g. 8-bit unsigned MACs with a 29-bit accumulator was the testchip; the product is signed/unsigned with a 24-bit accumulator). Successor SpiNNext is announced only — no silicon, no specs, no process node, no date. No MLPerf; no independently audited benchmark exists.
+
+  preferred-networks-mn-core:
+    device_class: "Compiler-Scheduled SIMD Accelerator (Japan)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 59
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/preferred-networks-mn-core/investigations/hw-architecture.md
+        sidecar: research/preferred-networks-mn-core/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/preferred-networks-mn-core/investigations/software-stack.md
+        sidecar: research/preferred-networks-mn-core/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://projects.preferred.jp/mn-core/en/
+      - https://projects.preferred.jp/mn-core/assets/MN-Core_2_whitepaper_en.pdf
+      - https://projects.preferred.jp/mn-core/assets/mncore2_dev_manual_en.pdf
+    notes: |
+      NEW ENTRY (2026-08-08 landscape scan). Preferred Networks, Inc. (Tokyo, founded 2014, original Chainer authors) with Kobe University (Prof. Junichiro Makino, also PFN CTO of Computer Architecture); development began 2016. MN-Core belongs in a software-stack survey for what the hardware OMITS: PFN's own framing is that network control circuits, cache controllers and command schedulers are 'incorporated in the compiler software rather than the hardware', and the developer manual is blunter — there are no hardware-managed caches, all intra-board transfers are explicit machine-code instructions, and PEs have NO program counter and NO instruction decoder, running in perfect lockstep on a single instruction stream streamed from the HOST CPU over PCIe at RUN TIME (the host is part of the execution model, not just the compiler). PFN quantifies the payoff at 7.4% of transistors in arithmetic units against its own anonymized 1.7% for 'GPU N' and 2.4% for 'Accelerator P' (vendor claim). MN-Core 2 (current part, internally GPFN3): TSMC N7, 550 mm2 single die, 22B transistors, 750 MHz, 4096 PEs / 1024 MAUs, 12 TFLOPS FP64 / 49 FP32 / 98 pseudo-single ('TF32') / 393 half ('TF16') — PFN block-FP formats, NOT NVIDIA TF32 or IEEE binary16; 330 W design value, measured TDP not disclosed. Gen 1 (TSMC 12 nm, 4 dies/package) powered MN-3 (three Green500 #1 finishes, one verified by TOP500) and the commercial Matlantis service; superseded. MN-Core L1100 / L1400 (the L1000 DRAM-on-logic 3D architecture) are announced, pre-silicon, mockup only, 2027 target — do NOT describe as shipping. SW: PyTorch is the ONE supported framework -> fx2onnx -> PFVM compiler -> codegen graph compiler (MNGraph, where every MNValue carries Dtype / Location / Layout — that trio IS the programming model) -> code emitter -> GPFNApp (FlatBuffers-packed VSM + relocations) -> libgpfn3 -> gpfn3.ko. There is no eager device: you isolate a pure function and compile forward, backward and the optimizer step into ONE fused device program (device-side MNCoreSGD / MNCoreAdam / MNCoreAdamW; AdamW is not bit-compatible with LibTorch). The compiler performs cache replacement, physical-topology data placement, capacity management, rematerialization (auto_recompute_sa simulated annealing) and instruction packing — with ~35 CODEGEN_* env vars including the candid CODEGEN_AUTO_RECOMPUTE_HACK_FOR_QWEN. Coverage: 378 compilable / 369 inference-ready / 156 training-ready timm backbones (SDK v0.4), static shapes only; LLM inference labelled experimental; no vLLM, no TensorRT-LLM analogue, no ONNX Runtime EP; JAX is claimed on marketing pages but absent from the SDK docs — treat as unsubstantiated. NO collectives library: multi-board and multi-node go through the host via OpenMPI + torch.distributed on the gloo backend. Users CANNOT add operators (codegen/layers is not shipped as source; the extension framework is 'being prepared', no timeline). Openness: everything load-bearing ships as binary .deb from a private Google Artifact Registry APT repo under EULA — pfnet/mncore is Apache-2.0 but holds only Dockerfiles, apt scripts and examples, so SDK v0.5's 'SDK source now public' note is misleading; yet a ~130-page public ISA manual, a free no-login assembler and cycle-faithful emulator, and an educational from-scratch graph compiler make it the most reproducible proprietary stack in the registry. Platform: gpfn3 DKMS module, libgpfn3, gpfn3-smi; Ubuntu 24.04/22.04 only; cloud via PFCP managed Kubernetes (resource preferred.jp/mncore2), pricing unpublished. Maturity: shipping as complete Japanese-market systems with list prices (MN-Server 2 ¥20M, Devkit ¥2M) since ~Sept 2024; ~256 boards in PFN/NEDO testbeds; no merchant bare-chip sales, no non-Japanese customers, no third-party OEM. The public developer story is only ~6 months old (SDK Hub dev.mn-core.com launched 2026-06-22).
+
+  tsingmicro:
+    device_class: "Reconfigurable Dataflow / CGRA \"RPU\" (China, 清微智能)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 53
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/tsingmicro/investigations/hw-architecture.md
+        sidecar: research/tsingmicro/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/tsingmicro/investigations/software-stack.md
+        sidecar: research/tsingmicro/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://www.tsingmicro.com/products/tx8/series
+      - https://github.com/FlagTree/flagtree/tree/triton_v3.3.x/third_party/tsingmicro
+    notes: |
+      NEW ENTRY (2026-08-08 landscape scan). Beijing Tsingmicro Intelligence Technology (清微智能, founded 2018-07-26; fabless, foundry NOT disclosed), Tsinghua reconfigurable-computing lineage. Two architecturally unrelated lines: TX5 edge/embedded NPUs on the TS.Knight/RNE toolchain (out of scope, do not conflate) and TX8, whose datacenter part is the TX81. Marketed as an RPU (Reconfigurable Processing Unit) on a self-developed 可重构 2.0 architecture; what is publicly observable is a coarse-grained reconfigurable dataflow accelerator — 16 tiles in a 4x4 mesh, each tile a RISC-V RV64IMFDC (lp64d) T-Head XuanTie 900 control core with NO RVV, driving neural (GEMM/conv, I_NEUR), RDMA/WDMA, DTE, vector/transcendental, layout (img2col, transpose, NCHW<->NHWC, gather/scatter, LUT) and reduction/sort engines through one command descriptor per whole tiled tensor op. 3 MiB software-managed SPM per tile (3,014,656 B visible to a Triton kernel), 48 MiB aggregate (derived); NO hardware data cache — only two address spaces, SPM and DDR, with all movement explicit RDMA/WDMA. 64 GB off-chip per device per the vendor-maintained FlagGems descriptor; technology and bandwidth not disclosed. Backward conv exists in hardware (ConvOp.op_type=2); structured sparsity is present (en_sparse/src_sparse) with pattern, ratio and speedup not disclosed; native bf16/fp16/tf32/fp32, INT8 via src_fmt/dst_fmt, FP8 E4M3/E5M2 and MX/FP4 block-scaled in the conversion path; no FP64 and no native INT64 (split into two INT32 lanes). On-chip 2D mesh NoC with DTE async block transfer PLUS globally addressable peer SPM (a distributed shared address space, not message-passing only); scale-up is a proprietary SWITCHLESS chip-to-chip mesh/torus that the compiler sees as a four-level (chip_x, chip_y, die, tile) remote load/store hierarchy, with every bandwidth and latency figure not disclosed. Performance is SYSTEM-LEVEL ONLY: TX81 module 512 TFLOPS FP16, REX1032 node 4 PFLOPS with 2 TB memory (max 4 TB), REX81 supernode 4,096 TX81 chips at >500 PFLOPS (announced only); per-chip TFLOPS and all INT8/FP8/FP4/TF32/sparse peaks are not disclosed, and the ~128 TFLOPS FP16/chip that falls out of the vendor arithmetic must never be cited as a published spec. TRAPS recorded so they are not repeated: (1) unit error — 算力突破每秒500千万亿次 is >500 PFLOPS, not exaflops; (2) attribution — FlagTree's third_party/rpu on main is Huixi Intelligence's (辉羲智能) Rhino RPU, a different company that also uses 'RPU'; Tsingmicro's backend is third_party/tsingmicro on triton_v3.3.x only; (3) product line — TS.Knight/RNE has no TX8 support. SW brand is RAISA, itself publicly undocumented; the verifiable path is PyTorch (device 'txda', PrivateUse1 via a closed torch_txda wheel) -> open FlagGems _tsingmicro operator backend -> closed RAISA graph-optimisation layer (no public graph capture) -> Triton 3.3 + TLE (tle.dsa for SPM, tle.device_mesh/remote/distributed_barrier for the mesh) -> the open FlagTree tsingmicro backend (609 files) lowering ttir -> coreir -> txir -> llir -> so; collectives via closed TCCL (NCCL-shaped), with FlagCX listing all 12 collectives in homogeneous and heterogeneous modes. Because there is no ISSCC/ISCA/Hot Chips/MICRO/JSSC paper, no architecture whitepaper and no developer portal, nearly every microarchitectural fact here is reconstructed from vendor-authored open source — chiefly the 47 KB Tx81Ops.td MLIR dialect, effectively a published operation-level model of the accelerator. Everything physical — process node, foundry, die size, dies per package, memory technology, memory bandwidth, TDP, clock, PCIe generation, form factor, chip-to-chip link bandwidth — is not disclosed and is recorded as such, never estimated. Deployment: Chinese provincial intelligent-computing centres and China Unicom private clouds, shipping at modest scale.
+
+  stream-computing:
+    device_class: "Programmable NPU — RISC-V scalar core + custom vector/matrix ISA extension (NeuralScale; China, 希姆计算)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 44
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/stream-computing/investigations/hw-architecture.md
+        sidecar: research/stream-computing/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/stream-computing/investigations/software-stack.md
+        sidecar: research/stream-computing/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://www.streamcomputing.com/
+      - https://docs.streamcomputing.com/sitemap.xml
+      - https://carrv.github.io/2021/papers/CARRV2021_paper_67_Zhan.pdf
+    notes: |
+      NEW ENTRY (2026-08-08 landscape scan). Stream Computing Inc. (希姆计算, founded 2019; operating entity 广州希姆半导体科技有限公司). Geography note because secondary sources get it wrong: the CARRV'21 paper and ByteDance's benchmark both say Beijing, the current entity is Guangzhou (offices also Beijing/Shanghai/Hangzhou) — origin Beijing, current entity Guangzhou, NOT a Shanghai company. NeuralScale is a general-purpose programmable NPU architecture extending RISC-V with vendor-custom vector and matrix instructions, shipping as PCIe 4.0 x16 datacenter INFERENCE cards — five SKUs (STCP920 / STCP950L / STCP950P / STCP980L / STCP980P), all one silicon generation: the P920 SoC, TSMC 12 nm, 400 mm2, 32 NeuralScale cores, 128 TFLOPS FP16 / 256 TOPS INT8 @1.0 GHz, 130 W chip TDP, 16 GB LPDDR4X (~108 GB/s). Three things make it survey-worthy: (1) a genuinely different core model — a NeuralScale core is an AndesCore N25F RV32G 5-stage in-order scalar core issuing up to THREE instructions per cycle to three decoupled engines (vector MAC VME, matrix MAC MME, memory transfer MTE), i.e. per-core MIMD, not SIMT and not a fixed-function systolic NPU; (2) a vendor-custom RISC-V extension in shipping silicon — RVV v0.8 plus 53 custom instructions on the custom-3 opcode (OP-VE) and 22 unprivileged shape CSRs, which must NOT be conflated with the separate OPEN RISC-V matrix-extension proposal the company chairs and the shipping silicon does not implement; (3) a documented compiler-family migration, from TensorTurbo (TVM + LLVM + stcDNN, 2021-2023) to MLTC (MLIR + IREE + torch-mlir) — very few vendors have publicly changed compiler families mid-product. MLTC is proprietary MLIR: its stc.* dialect has 164 ops including stc.attention / stc.attention_lm, stc.kv_cache_load/store, stc.matmul vs stc.matmul_vme, and a built-in collective family; its GOAT tiling framework tiles LLB -> MC -> L1 and is operator-agnostic, motivated by the vendor's own statement that 'most of the code is managing the multi-level storage hierarchy and the data movement between levels'; graph-level ops are deliberately atomic with no fused operators in the graph IR. Delivery is STCRP (Stream Computing System Reference Platform) V1.12.1 as vendor-support-supplied .deb/.rpm repos plus Python wheels — there are NO public SDK repositories; OS support Ubuntu 22.04, Ubuntu 25.04, Kylin V10, Python 3.10. Framework paths: PyTorch primary via torch.compile(backend=mltc_backend) or from_torch after torch.export with Dim() dynamic shapes; ONNX (OnnxToStc, 156 ops) and TensorFlow (TfToStc, 106 TF1 GraphDef ops) importers; PaddlePaddle Level-I compatibility certification with Baidu plus an open STCPaddleModelZoo (~20 models) that is a TensorTurbo-era artifact, not current-stack; HuggingFace LLMs via STC_LLM loading bin/safetensors directly. Notably absent: no vLLM fork, no SGLang, no Triton kernel language, no ONNX Runtime EP. Maturity: shipping and deployed, first generation only — silicon returned 2021, first cards shipped 2021, volume orders 2022; ByteDance's ByteMLPerf hosts the vendor's own Apache-2.0 backend whose README states the STCP920 'is in mass production, and has completed a batch of shipments to users', with reproducible QPS and accuracy. NO second-generation silicon is public: the only trace is that the shipping MLTC compiler accepts --arch=npu-v2, a flag, not a chip. Stated plainly: the card is bandwidth-starved for LLM decode — 16 GB LPDDR4X at ~108 GB/s against 128 TFLOPS FP16 is a CNN/NLP-era part retrofitted for LLMs, and the vendor's own table shows Qwen2-72B-Instruct on 16 cards at 4.98 tok/s.
+
+  tecorigin:
+    device_class: "Heterogeneous Many-Core Accelerator (SPA/SPE array with software-managed SPM scratchpad; China, 太初元碁)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 48
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/tecorigin/investigations/hw-architecture.md
+        sidecar: research/tecorigin/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/tecorigin/investigations/software-stack.md
+        sidecar: research/tecorigin/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - http://docs.tecorigin.com/
+      - https://github.com/Tecorigin
+      - https://gitee.com/tecorigin
+    notes: |
+      NEW ENTRY (2026-08-08 landscape scan). Tecorigin (brand 太初元碁; legal entity 太初（杭州）集成电路有限公司, founded November 2019, HQ Hangzhou, R&D in Wuxi/Beijing/Shanghai, systems integration in Yancheng). Per its own About page the core team comes from Tsinghua and the National Supercomputing Center in Wuxi — home of Sunway TaihuLight — with three Gordon Bell Prizes. SDAA (Software Defined Accelerator Architecture) is NEITHER a GPU NOR a systolic-array TPU: it is a heterogeneous many-core machine in the Sunway/Cell idiom wrapped in a deliberately CUDA-shaped software surface. The card is a host/device machine (主从异构) with the HOST CPU as master and no documented on-device master core; one card holds 4 SPAs (Synergistic Processor Element Arrays), each with its own Global memory and each exposed to software as an INDEPENDENT device ('每个SPA类似于GPU的一张卡') with NO shared address space across SPAs; each SPA holds 32 SPEs (从核, slave cores) with scalar, vector and matrix units and a private software-managed SPM scratchpad => 128 SPEs per card. There is NO hardware data cache in the compute path: a strict three-level registers / SPM / Global model where every transfer is an explicit DMA (Global<->SPM), RMA (SPE<->SPE scratchpad, direct) or hardware broadcast — RMA plus row/column broadcast is the Sunway athread idiom and the clearest fingerprint of the lineage. Chip is T1; card SKUs are 元碁 T100 (PCIe), T110 (air-cooled OAM) and T111 (liquid-cooled OAM); systems are the AI workstation (1-4 cards), T1008 (4U/8-card), I1004 (2U/4-card inference), T1108 (6U/8-card OAM), T1118 (2U/8-card liquid) and 元碁 SuperPOD-128 (128 cards per rack) — unambiguously datacenter-class, no edge SKU. THE DEFINING EVIDENTIARY FACT: Tecorigin publishes NO datasheet — no peak TFLOPS/TOPS at any precision, no memory bandwidth, no process node, no die size and no TDP anywhere in ~3.2 MB of vendor documentation or on the website; every quantitative fact in this entry was recovered from programming manuals, teco-smi driver telemetry, TecoGDB or published cost models, sources strong on structure and silent on peak performance. Any spec table will be mostly 'not disclosed' and must not be filled by inference. SW is a complete, deliberate CUDA clone shipping as exactly TWO version-locked packages — TecoDriver (driver + firmware + management + monitoring) and TecoToolKit (SDK) — currently v3.2.0: PyTorch 2.7.1 via TecoPyTorch (torch_sdaa, device='sdaa', torch.sdaa.* mirroring torch.cuda, ProcessGroupTCCL as backend='tccl'; AMP FP16 training supported, INFERENCE IS FP32-ONLY); PaddlePaddle 3.0.0 via TecoPaddle (paddle_sdaa) whose most valuable artifact is the upstream Apache-2.0 PaddleCustomDevice backends/sdaa (~115 kernel .cc files, sdaac_ops/ .scpp kernels, a pr_ci_sdaa.sh hardware-CI script implying a real device fleet); Teco-vLLM v3.2.0 (PagedAttention, continuous batching, chunked prefill, prefix caching, PD分离 disaggregated prefill, LoRA, tool calling, TP/PP/EP/DP + EPLB + SBO, Ray multi-node) and Teco-Megatron-LM v3.2.0; torch.compile -> teco_inductor; ONNX -> TecoInferenceEngine (TVM/Relay); TecoDNN/TecoBLAS/TecoRAND/TecoLMK/TecoCUSTOM as the cuDNN/cuBLAS analogues; SDAA C (.scpp, CUDA-shaped __global__/<<<>>>/threadIdx/sdaaMalloc plus a Sunway-shaped intrinsic set with thread groups, SPM malloc/free, DMA, RMA, hardware broadcast, matmul, transpose) -> TecoCC (Clang/LLVM-derived) -> PCX v1.0.0, a hardware-independent virtual ISA that is structurally the PTX of this ecosystem and is fully documented publicly PRECISELY because the actual T1 machine ISA is not disclosed -> PCXAC -> SDAARuntime (libsdaart.so) + TCCL -> SDAADriver -> /dev/tcaicardN. Full proprietary tooling parity: TecoSMI (nvidia-smi), TCML (NVML), SDPTI (CUPTI), TCPX (NVTX), TSight (Nsight), TecoGDB (cuda-gdb with per-SPE focus switching), TCVS (DCGM-diag), sdaacfilt. Distinguishing datapoint: the full stack ships for FIVE CPU/OS combinations — x86_64 Ubuntu 22.04, Hygon 海光 7380/7375 on Kylin V10, Phytium 飞腾 S5000C ARMv8 on Kylin V10 国防版, Sunway 申威 8A (SW-64) on UOS Server 20, and Loongson 龙芯 3C6000 (LoongArch) on Loongnix Server 23.1; shipping a full AI stack on an SW-64 host is close to unique in this registry. The PCX compatibility table lists only T100系列 while claiming support for 多种系列, strongly implying planned successor silicon — no successor is named.
+
+  vastaitech:
+    device_class: "GPU-like Inference Accelerator + Video Codec (China, 瀚博 VastaiTech)"
+    phase: completed
+    search:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+      resource_count: 57
+    investigate:
+      hw-architecture:
+        status: completed
+        artifact: research/vastaitech/investigations/hw-architecture.md
+        sidecar: research/vastaitech/investigations/hw-architecture.yaml
+      software-stack:
+        status: completed
+        artifact: research/vastaitech/investigations/software-stack.md
+        sidecar: research/vastaitech/investigations/software-stack.yaml
+    summarize:
+      status: completed
+      completed_at: "2026-08-08T00:00:00"
+    seeds:
+      - https://www.vastaitech.com/company/about
+      - https://github.com/Vastai/VastModelZOO
+      - https://vllm-vacc.vastaitech.com
+    notes: |
+      NEW ENTRY (2026-08-08 landscape scan). VastaiTech (瀚博半导体（上海）股份有限公司, Shanghai, founded December 2018 by two ex-AMD engineers — CEO 钱军, former Senior Director over GPU/AI server chip design, and CTO 张磊, former AMD Fellow for AI and video codec). Two chip generations in mass production, both 7 nm with the foundry NEVER named in any source: SV100 (达景 'Dajing'; the VA1 SKU is SV102), a server-class AI-inference DSA that the vendor is explicit was a deliberate choice AGAINST building a GPGPU (tape-out 2021-03, MP 2022-Q1); and SG100 (乾元 'Qianyuan'), a full-function GPU with DirectX 11/OpenGL/Vulkan graphics, AI, H.264/H.265/AV1 codec and SR-IOV virtualisation on one die (silicon back 2023-02, MP 2023-04). Both sit under the VUCA umbrella (Vastai Unified Compute Architecture, Sept 2022): streaming media, inference and graphics engines on one chip. BIGGEST RESEARCH TRAP: vastaitech.com is stale — its milestone timeline and awards stop in 2023 and the current 2026 product line (VA16, VA10L, VA1L) appears NOWHERE on the marketing site; it is documented only in github.com/Vastai, the vllm-vacc.vastaitech.com recipe site and 2025-2026 Chinese press. Researching this vendor from the website alone yields the wrong generation and the wrong conclusion that it is a video/CV inference company; in 2026 it is a datacenter LLM-serving platform running DeepSeek-V3 671B in native FP8. SECOND STRUCTURAL FACT: a card presents N independent devices ('dies'), each with its own memory pool and device_id — VA1-16G = 2 dies x 8 GB, while the vLLM recipes state VA16128G and VA10L128G as 4 dies x 32 GB, which is why DeepSeek-V3 on 8x VA16 runs at TP=32; every runtime knob (VACC_VISIBLE_DEVICES, --llm_devices, --tensor-parallel-size) operates at die granularity. Whether a 'die' is physically separate silicon in an MCP or a partition of a monolithic die is NOT disclosed. THIRD: almost nothing quantitative is public — no memory technology (HBM/GDDR/LPDDR/DDR) and no memory bandwidth figure exists for ANY VastaiTech part ever shipped, in Chinese or English; peak TOPS/TFLOPS, TDP, form factor, PCIe generation and process node are all undisclosed for the current VA16/VA10L/VA1L; there is no ISCA/MICRO/Hot Chips/ISSCC/arXiv publication and no third-party benchmark. SW: the compute target is VACC (Vastai Accelerated Computing, never expanded by the vendor), delivered as VVI (Vastai Versatile Inference) VVI-26.02 from a sales-gated developer centre, in TWO parallel runtime paths that share nothing above the driver — Build_In (VastModelZOO/VastGenX, HF-modeling patch + AOT trace, VAMC graph compiler, VDSP ELF ops + closed VNNL, VastStreamX/VACM tensors, VACL/VACE/VAME + Stream), the mature CV/NLP path; and vLLM (vllm_vacc / torch_vacc, no graph capture at all, --enforce-eager mandatory), where all 2026 LLM/VLM work happens. VAMC is TVM-based, NOT MLIR-based — all 344 compile configs set backend.type: tvm_vacc (594 occurrences), putting VastaiTech in the TVM lineage camp unlike most 2024+ Chinese accelerator compilers. Consequences: tensor parallelism is COMPILED IN on Build_In (model_kwargs.tp, so changing TP means recompiling) while the vLLM path takes --tensor-parallel-size at launch; and the compiler owns memory placement (output_ddr, mem_inplace, data_transport_mode, cluster_mode, graph.extra_ops: insert_odma), the strongest available evidence that on-chip memory is a software-managed scratchpad — confirmed flags, inferred conclusion, no vendor statement. Quantisation coverage is broad: FP16, BF16, INT8 PTQ (per-channel, four calibration modes), W8A16-GPTQ, W4A16, INT4, FP8 and FP4 on VA16 as of 2026 (GPTQ calibration can even run on device: cuda:5 — calibrate on NVIDIA, deploy on VACC). Build_In graph capture is invasive: every LLM except LLaMA needs a config_vacc.json auto_map pointing at a vendor-modified xxx_modeling_xxx_vacc.py, so each new architecture needs a vendor-authored patch. REAL KERNEL GAP relative to peers: no Triton port, no TileLang, no assembler, no intrinsics header, no disassembler; VDSP custom operators ship as pre-built ELF binaries under /opt/vastai/vaststreamx/data/elf/ loaded via vsx::CustomOperator, and the toolchain that produces them is not distributed — a customer cannot write a new fused kernel. Collectives VCCL; management VAML -> vasmi / VAProfiler / VASID / valogger, VastCloudNative for k8s; driver vastai_pci.ko (/dev/vastai0); ISA not disclosed.

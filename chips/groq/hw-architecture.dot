@@ -1,0 +1,139 @@
+digraph groq_lpu_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.55;
+    nodesep=0.4;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine (Spatial 2D Grid)";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        mmu [label="320x320 Fused Dot Product Unit\nGEMM engine (transformer layers)\nINT8: 750 TOPS | FP16: 188 TFLOPS\n900 MHz, Samsung 14nm (v1)\n>1 TOPS/mm² compute density", fillcolor="#FFCDD2"];
+        valu [label="5,120 Vector ALUs\nActivations: GeLU, SiLU, ReLU, Sigmoid\nLayer normalization\nElement-wise Add/Mul\nSoftmax decomposition", fillcolor="#FFCDD2"];
+        nocontrol [label="NO Hardware Control Logic\n-- No warp scheduler\n-- No branch predictor\n-- No out-of-order buffer\n-- No cache controller\n-- No memory arbiter\n(All replaced by compiler schedule)", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        streaming [label="Tensor Streaming\n'Conveyor belt' dataflow\nActivations flow through 2D grid\nCompiler maps ops to physical routes\nNo idle cycles by construction", fillcolor="#FFE0B2"];
+        schedule [label="Compiler-Generated Cycle-Exact Schedule\nEvery clock cycle predetermined\nOp → spatial position + clock cycle + SRAM address\nInter-chip → packet delivery cycle\nZero runtime scheduling overhead", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP SRAM =====================
+    subgraph cluster_onchip {
+        label="On-chip SRAM (Primary Memory — NOT a Cache)";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sram [label="~230 MB On-chip SRAM (LPU v1)\n80 TB/s internal bandwidth\nWeight storage + activation buffer\nCompiler-managed bank assignment\nNo cache eviction, no coherence protocol\nCompare: H100 HBM3 = 3.35 TB/s (24x slower)", fillcolor="#BBDEFB"];
+        sram_v3 [label="500 MB On-chip SRAM (NVIDIA Groq 3 LPX / LP30)\n150 TB/s bandwidth\nProcess node NOT DISCLOSED\nAnnounced GTC 2026-03-16 (H2 2026 partner avail.)", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        nodram [label="NO Off-chip DRAM on single die\nWeights must fit in 230 MB SRAM\nLarge models: stripe across chips\n576 chips = ~130 GB distributed SRAM\n(GroqRack: sufficient for Llama 3 70B FP16)", fillcolor="#C8E6C9"];
+        ddr5 [label="NEW (LPX generation): rack-level DDR5 tier\n12 TB DDR5 per 256-LPU LPX rack\nLP30 die itself still has no attached DRAM\nDDR5 bandwidth + attachment point NOT DISCLOSED", fillcolor="#A5D6A7"];
+    }
+
+    // ===================== HOST INTERFACE / PACKAGE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pcie [label="PCIe Host Interface\nModel binary loading\nInput / output data transfer", fillcolor="#E1BEE7"];
+        pkg [label="LPU v1: Samsung 14nm, 25x29 mm\nAir-cooled (no liquid cooling needed)\nLPU v2: Samsung 4nm (2025)\nGroq 3 LPX LP30: node + TDP NOT DISCLOSED\n1U liquid-cooled tray, 8 LPUs", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect (GroqRack)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pleio [label="Plesiosynchronous Protocol\nNear-synchronous, known crystal drift\nPeriodic software phase correction\nCompiler predicts exact packet arrival cycles", fillcolor="#B2DFDB"];
+        groqrack [label="GroqRack: 576 LPU chips\nDirect mesh / dragonfly (no external switches)\n~130 GB total SRAM\nAggregate chip-to-chip BW: UNVERIFIED\nAll chips = single coherent memory", fillcolor="#B2DFDB"];
+        lpxrack [label="NVIDIA Groq 3 LPX rack (announced 2026-03-16)\n256 LPUs = 32 liquid-cooled 1U trays x 8\nPer chip: 96 C2C links @112 Gbps = 2.5 TB/s bidir\n128 GB SRAM @ 40 PB/s | 640 TB/s rack scale-up\n1.2 PFLOPS FP8/chip | 9.6 PFLOPS FP8/tray\nPlesiosynchronous retention NOT DISCLOSED", fillcolor="#80CBC4"];
+    }
+
+    // ===================== SCALE-OUT INTERCONNECT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        scaleout [label="Standard Ethernet / InfiniBand\nvia Host NICs\n(No proprietary scale-out fabric)\nGroqCloud: HTTPS REST endpoint", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute -> Data Path
+    schedule -> mmu [label="dispatch to\ncorrect unit"];
+    schedule -> valu;
+
+    // Data Path -> On-chip Memory
+    streaming -> sram [label="stream weights\n@ 80 TB/s"];
+    sram -> streaming [label="feed compute\nat scheduled cycle"];
+
+    // Off-chip (no DRAM — architecture note)
+    nodram -> sram [label="distributed\nSRAM shards", style=dashed, color="#2E7D32"];
+    ddr5 -> sram_v3 [label="rack-level DDR5 tier\n(LPX only; movement policy\nnot disclosed)", style=dashed, color="#2E7D32"];
+
+    // On-chip -> Host Interface
+    sram -> pcie [label="output transfer", style=dashed];
+    pcie -> sram [label="input + binary\nload"];
+
+    // Host Interface internal
+    pcie -> pkg [style=invis];
+
+    // Scale-up internal
+    pleio -> groqrack [label="fabric\nprotocol"];
+    groqrack -> sram [label="inter-chip\nweight shards", style=dashed, color="#00695C"];
+    lpxrack -> sram_v3 [label="inter-chip\nweight shards", style=dashed, color="#00695C"];
+
+    // Scale-out
+    groqrack -> scaleout [label="host NIC\nEthernet/IB", style=dashed];
+    lpxrack -> scaleout [label="NVIDIA Vera Rubin\nplatform integration", style=dashed];
+}

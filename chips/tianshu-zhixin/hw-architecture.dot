@@ -1,0 +1,122 @@
+digraph tianshu_zhixin_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.55;
+    nodesep=0.3;
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host System";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cpu [label="x86 Host CPU\nUbuntu / Kylin / UOS\nPCIe Gen4 x16 FHFL", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPUTE =====================
+    subgraph cluster_compute {
+        label="Compute Engine (TianGai-150 / BI-V150)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cu [label="Shader Clusters / CUs\nSIMT Warp-based execution\nHardware divergence\n(exact CU count undisclosed)", fillcolor="#E4DEFF"];
+        tcu [label="Tensor Compute Units\nFP16/BF16 matmul\nINT8 acceleration\nMatrix engine (count undisclosed)", fillcolor="#E4DEFF"];
+        alu [label="FP32 / FP16 / BF16 ALUs\nINT8 / INT32 compute\nSpecial Function Units (SFU)", fillcolor="#E4DEFF"];
+        smem [label="Per-CU Shared Memory\nL1 scratchpad\n(capacity undisclosed)", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== MEMORY =====================
+    subgraph cluster_mem {
+        label="Memory Hierarchy";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        l2 [label="L2 Cache\nHW-managed shared cache\n(capacity undisclosed)", fillcolor="#D4EDDA"];
+        hbm [label="HBM2 (Training)\nBI-V150: 64 GB\n~1.2–1.6 TB/s\n2.5D CoWoS stacking", fillcolor="#D4EDDA"];
+        gddr [label="GDDR6 (Inference)\nMR-V100: 32 GB (est.)\n~512 GB/s (est.)", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== PACKAGING =====================
+    subgraph cluster_pkg {
+        label="Packaging";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cowos [label="2.5D CoWoS (TSMC)\nGPU die + HBM2 stacks\n~24B transistors (est.)\nTSMC 7nm process", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== INTERCONNECT =====================
+    subgraph cluster_ic {
+        label="Interconnect";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        clif [label="CLIF\nCluster Interconnect Fabric\nIntra-node GPU-to-GPU\n(NVLink analog)\nBW undisclosed\nUp to 8 GPUs/server", fillcolor="#283593", fontcolor="white"];
+        supernode [label="天数超节点 Tianshu Supernode\n(announced 2026-07-19)\n144-chip full interconnect (claimed)\nTopology / link BW / switch ASIC:\nnot disclosed\nCLIF-based or new fabric: not disclosed\nTrial / partnership stage", fillcolor="#3949AB", fontcolor="white"];
+        pcie [label="PCIe Gen4 x16\nHost interface\n~64 GB/s bidir", fillcolor="#283593", fontcolor="white"];
+        scaleout [label="Scale-out\nEthernet / InfiniBand\nNVID via host NIC\nNCCL-compatible CCL\nInter-node training", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== PRODUCT GENERATIONS =====================
+    subgraph cluster_gen {
+        label="Product Generations";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        gen1 [label="TianGai-100 (BI-V100)\nTSMC 7nm CoWoS\n32 GB HBM2, ~1.2 TB/s\n~80-100 TFLOPS FP16\nTPP 2,352 — Jan 2021", fillcolor="#F8D7DA"];
+        gen2 [label="TianGai-150 (BI-V150)\nTSMC 7nm CoWoS\n64 GB HBM2, ~1.4 TB/s\n~120-150 TFLOPS FP16\nTPP 3,040 — ~2022", fillcolor="#F8D7DA"];
+        inf [label="Zhikai 100 (智铠100 / MR-V100)\nInference-optimized\n32 GB GDDR6 (est.)\nEnhanced INT8 units\nChina's 1st GPGPU inference chip", fillcolor="#F8D7DA"];
+        gen3 [label="TianGai 300 (天垓300)\nannounced 2026-07-19, WAIC 2026\nNew-gen self-developed arch; SIMT retained\n(scalar + vector + tensor)\nAdds FP8 / FP4; MMA / DPX / FMA\nISA ext: ixSMEX, ixDPX, ixTrans\nProcess / memory / FLOPS / TDP:\nNOT DISCLOSED\nStatus: announced, not shipping", fillcolor="#F5B7B1"];
+        roadmap [label="Roadmap codenames (Big Dipper)\nTianshu (2025) >Hopper\nTianxuan (2026) vs Blackwell\nTianji (2026) surpass Blackwell\nTianquan (2027) vs Rubin\n(no product mapped to these names)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== EDGES =====================
+    cpu -> pcie [label="PCIe Gen4 x16"];
+    pcie -> cu;
+    pcie -> cowos [style=dashed, color="#AAAAAA"];
+
+    cu -> tcu;
+    cu -> alu;
+    cu -> smem;
+    tcu -> l2;
+    alu -> l2;
+    smem -> l2;
+
+    l2 -> hbm [label="memory\nchannel", fontsize=8];
+    l2 -> gddr [label="(inference)", fontsize=8, style=dashed];
+    hbm -> cowos [style=dashed, color="#D4A017"];
+
+    clif -> cu [style=dashed, color="#283593", label="GPU-GPU", fontsize=8];
+    clif -> supernode [style=dashed, color="#3949AB", label="fabric lineage\nnot disclosed", fontsize=8];
+    scaleout -> pcie [style=dashed, color="#283593"];
+
+    gen1 -> gen2 [label="Gen 1→2", fontsize=8, color="#EA4335"];
+    gen2 -> gen3 [label="new architecture\ngeneration", fontsize=8, color="#EA4335"];
+    gen3 -> supernode [style=dashed, color="#3949AB", label="scale-up domain", fontsize=8];
+    gen3 -> roadmap [label="codename mapping\nUNCONFIRMED", fontsize=8, color="#EA4335", style=dotted];
+    inf -> roadmap [style=dashed, color="#EA4335"];
+}

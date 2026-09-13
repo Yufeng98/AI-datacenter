@@ -1,0 +1,152 @@
+digraph d_matrix_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host Server";
+        style="rounded,dashed";
+        color="#888888";
+        fontcolor="#888888";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cpu [label="Host CPU\n(standard server)", fillcolor="#F5F5F5"];
+        pcie_bus [label="PCIe Gen5 x16\n~64 GB/s", fillcolor="#F5F5F5"];
+    }
+
+    // ===================== CORSAIR CARD =====================
+    subgraph cluster_card {
+        label="Corsair PCIe Card (TSMC N6, Alchip) - IN FULL PRODUCTION 2026-06-09";
+        style="rounded,filled";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fillcolor="#EEF2FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        // Chip A
+        subgraph cluster_chip_a {
+            label="Chip A";
+            style="rounded,dashed";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontsize=10;
+            penwidth=1.2;
+            chiplet0 [label="Chiplet 0\n256 DIMC cores\n512 MB SRAM\n150 TB/s int. BW", fillcolor="#BBDEFB"];
+            chiplet1 [label="Chiplet 1\n256 DIMC cores\n512 MB SRAM", fillcolor="#BBDEFB"];
+            chiplet2 [label="Chiplet 2\n256 DIMC cores\n512 MB SRAM", fillcolor="#BBDEFB"];
+            chiplet3 [label="Chiplet 3\n256 DIMC cores\n512 MB SRAM", fillcolor="#BBDEFB"];
+        }
+
+        // Chip B
+        subgraph cluster_chip_b {
+            label="Chip B";
+            style="rounded,dashed";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontsize=10;
+            penwidth=1.2;
+            chiplet4 [label="Chiplet 4\n256 DIMC cores\n512 MB SRAM", fillcolor="#BBDEFB"];
+            chiplet5 [label="Chiplet 5\n256 DIMC cores\n512 MB SRAM", fillcolor="#BBDEFB"];
+            chiplet6 [label="Chiplet 6\n256 DIMC cores\n512 MB SRAM", fillcolor="#BBDEFB"];
+            chiplet7 [label="Chiplet 7\n256 DIMC cores\n512 MB SRAM", fillcolor="#BBDEFB"];
+        }
+
+        dmxlink [label="DMX Link\n(custom die-to-die)\n1 TB/s total BW\nAll-to-all chiplet mesh", fillcolor="#90CAF9"];
+        lpddr5x [label="LPDDR5X\n256 GB capacity\n~400 GB/s\nKV-cache + model weights", fillcolor="#B3E5FC"];
+    }
+
+    // ===================== DIMC CORE ZOOM =====================
+    subgraph cluster_dimc_detail {
+        label="DIMC Core Detail (×2,048 per card)";
+        style="rounded,dashed";
+        color="#283593";
+        fontcolor="#283593";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+        sram_cells [label="SRAM Bit-cells\n(weight storage)", fillcolor="#C5CAE9"];
+        mac_array [label="Embedded MAC Array\n64×64 (INT8) / 64×128 (INT4)\nMAC at bit-cell level\nMXINT4/8/16 formats", fillcolor="#9FA8DA"];
+        accumulator [label="Accumulator\n+ Output Buffer", fillcolor="#9FA8DA"];
+    }
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        jetstream [label="JetStream 400G NIC\n400 Gbps Ethernet\nPCIe Gen5 card\nStandard datacenter fabric", fillcolor="#FFE0CC"];
+        dmxbridge [label="DMX Bridge Card\nMerge 2 Corsair cards\n512 GB/s card-to-card\n4,096 DIMC cores total\n4 GB SRAM unified", fillcolor="#FFE0CC"];
+        fabrex [label="FabreX / SuperNODE\nPCIe Gen5 memory fabric\nsub-200 ns cross-server\nup to 32 accelerators\n(GigaIO assets, acq. 2026-04-02)", fillcolor="#FFE0CC"];
+        squadrack [label="SquadRack\n8 servers x 8 cards = 64 cards\n128 GB SRAM @ 9.6 PB/s\nup to 16.4 TB capacity\n(OCP 2025-10-14)", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== RAPTOR (NEXT GEN, 3DIMC) =====================
+    subgraph cluster_raptor {
+        label="Raptor (3DIMC) - EARLY SILICON, PRE-PRODUCTION (ISCA 2026)";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        rap_logic [label="Logic Die (TSMC N4P)\n4 gangs x 4 slices = 16 slices\nSlice = 4x4 tensor-engine array\n+ 1 SIMD core\nPeak TFLOPS: not disclosed", fillcolor="#E1BEE7"];
+        rap_bond [label="Face-to-Face Bond\n36 um ubump pitch", fillcolor="#CE93D8"];
+        rap_dram [label="3D-DRAM Die\n840 banks/chiplet\n256 independent channels\n(16 per slice)\nMEASURED ~105 TB/s per card\n@ 700 MHz, 2.5 ns flit latency", fillcolor="#CE93D8"];
+        rap_mcm [label="MCM\n4 chiplets @ 1.2 GHz\n~422 W, Tj <= 105 C\n9-4-9 organic substrate\non 3D CoWoS interposer", fillcolor="#E1BEE7"];
+        rap_lpddr [label="On-package LPDDR5X-9600\n8 devices = 128 GB per MCM\n(secondary capacity tier)", fillcolor="#F3E5F5"];
+        rap_card [label="Raptor Card\nup to 4 MCMs\nPCIe Gen7 host + inter-MCM\nGen-2 D2D @ 32 Gbps/lane", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== EDGES =====================
+    cpu -> pcie_bus;
+    pcie_bus -> dmxlink [label="PCIe Gen5 x16", fontsize=8];
+
+    chiplet0 -> dmxlink;
+    chiplet1 -> dmxlink;
+    chiplet2 -> dmxlink;
+    chiplet3 -> dmxlink;
+    chiplet4 -> dmxlink;
+    chiplet5 -> dmxlink;
+    chiplet6 -> dmxlink;
+    chiplet7 -> dmxlink;
+
+    dmxlink -> lpddr5x [label="capacity reads", fontsize=8];
+
+    // DIMC detail
+    sram_cells -> mac_array [label="weight read\nin-cell", fontsize=8];
+    mac_array -> accumulator;
+
+    // Scale-out
+    jetstream -> cpu [style=dashed, color="#FF6D01", label="Ethernet", fontsize=8];
+    dmxbridge -> dmxlink [style=dashed, color="#FF6D01", label="2-card merge\n512 GB/s", fontsize=8];
+    fabrex -> dmxbridge [style=dashed, color="#FF6D01", label="intra-rack pooling", fontsize=8];
+    fabrex -> squadrack [style=dashed, color="#FF6D01", label="rack blueprint", fontsize=8];
+    jetstream -> squadrack [style=dashed, color="#FF6D01", label="inter-server", fontsize=8];
+
+    // Raptor internal
+    rap_logic -> rap_bond [color="#6A1B9A"];
+    rap_bond -> rap_dram [color="#6A1B9A", label="256 ch", fontsize=8];
+    rap_dram -> rap_logic [color="#6A1B9A", style=dashed, label="~105 TB/s\n(measured)", fontsize=8];
+    rap_logic -> rap_mcm [color="#6A1B9A", label="x4 chiplets", fontsize=8];
+    rap_lpddr -> rap_mcm [color="#6A1B9A", style=dashed, label="128 GB/MCM", fontsize=8];
+    rap_mcm -> rap_card [color="#6A1B9A", label="x4 MCMs", fontsize=8];
+
+    // Generational succession
+    dmxlink -> rap_logic [style=dotted, color="#6A1B9A", label="successor generation\n(SRAM DIMC -> 3D-DRAM 3DIMC)", fontsize=8];
+    rap_card -> cpu [style=dashed, color="#6A1B9A", label="PCIe Gen7", fontsize=8];
+}

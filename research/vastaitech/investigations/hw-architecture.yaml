@@ -1,0 +1,663 @@
+chip: vastaitech
+as_of: "2026-08-08"
+device_class: "GPU-like Inference Accelerator + Video Codec (China, 瀚博 VastaiTech)"
+investigation: hw-architecture
+
+# NOTE ON EVIDENCE. VastaiTech publishes no datasheet, no architecture whitepaper and no
+# conference paper. The developer centre holding the reference manuals is sales-gated and
+# verified inaccessible. Confidence values below map as:
+#   confirmed    = retrieved primary document or the vendor's own shipped code
+#   vendor_claim = vendor marketing, unbaselined
+#   inferred     = deduced from artifacts; reasoning recorded in the note
+#   unconfirmed  = asserted somewhere but not corroborated
+# Anything absent from every retrieved source is written literally as "not disclosed".
+
+# ── Company ───────────────────────────────────────────────────────────────────
+company:
+  legal_name: "瀚博半导体（上海）股份有限公司"
+  english_name: "VastaiTech / Shanghai Vastai Technologies"
+  founded: "2018-12"
+  hq: "Shanghai (Minhang); R&D also Beijing, Shenzhen, Xi'an, Chengdu"
+  headcount: "500+ (>80% R&D, >70% master's degree or above)"
+  founders:
+    - "钱军 (Jun Qian) — CEO, ex-AMD Senior Director, GPU/AI server chip design"
+    - "张磊 (Lei Zhang) — CTO, ex-AMD Fellow, AI and video codec"
+  product_lines: [graphics-rendering GPU, datacenter GPU, edge GPU]
+  confidence: confirmed
+  sources:
+    - https://www.vastaitech.com/company/about
+    - https://m.jiemian.com/article/6342672.html
+    - https://zhidx.com/p/344936.html
+
+# ── Silicon generations ───────────────────────────────────────────────────────
+silicon_generations:
+
+  sv100:
+    codename: "达景 (Dajing)"
+    sku_in_va1: SV102
+    class: "Server-class AI-inference DSA — explicitly NOT a GPGPU"
+    process_node: "7 nm"
+    foundry: "not disclosed"
+    tapeout: "2021-03"
+    first_silicon: "2021-06 (vendor states lit in 8 minutes)"
+    mass_production: "2022-Q1"
+    die_size: "not disclosed"
+    transistor_count: "not disclosed"
+    package: "not disclosed"
+    confidence: confirmed
+    note: >-
+      Vendor quote establishing the DSA positioning: "公司并没有首选做GPU，而是选择通过DSA架构来做
+      面向AI+视频市场的芯片". Foundry is named by no retrieved source — do NOT assume TSMC.
+    sources:
+      - https://www.vastaitech.com/company/about
+      - https://m.jiemian.com/article/6342672.html
+      - https://zhidx.com/p/344936.html
+
+  sg100:
+    codename: "乾元 (Qianyuan)"
+    class: "Full-function GPU — graphics + AI + video on one die"
+    process_node: "7 nm"
+    foundry: "not disclosed"
+    tapeout: "2022-10"
+    first_silicon: "2023-02 (vendor states it ran 王者荣耀 and 原神 within 24 h)"
+    mass_production: "2023-04"
+    graphics_apis: [DirectX 11, OpenGL, Vulkan]
+    codecs: [H.264, H.265, AV1]
+    virtualisation: "SR-IOV hardware virtualisation"
+    os_support: [Windows, Linux]
+    die_size: "not disclosed"
+    confidence: confirmed
+    sources:
+      - https://www.vastaitech.com/company/about
+      - https://www.qbitai.com/2023/07/66614.html
+      - https://www.36kr.com/p/2332635957528066
+
+  third_generation:
+    status: "Reported in development in IPO-related coverage; nothing disclosed"
+    everything_else: "not disclosed"
+    confidence: unconfirmed
+
+# ── Compute organisation (VUCA) ───────────────────────────────────────────────
+compute_engine:
+  architecture_name: "VUCA"
+  architecture_expansion_note: >-
+    Vendor is internally inconsistent: "Vast Unified Computing Architecture" on product pages,
+    "Vastai Unified Compute Architecture" on the About page. Record the discrepancy; do not
+    silently pick one.
+  announced: "2022-09"
+
+  marketing_framing:
+    engines: [streaming-media, inference, graphics]
+    confidence: vendor_claim
+    sources:
+      - https://www.vastaitech.com/product/general/va1
+      - https://www.vastaitech.com/product/general/va10
+
+  on_die_blocks:
+    note: "Best public block-level description that exists for this vendor."
+    blocks:
+      - "高性能计算引擎 — high-performance compute engine"
+      - "高性能AI引擎 — high-performance AI engine (the matmul/conv datapath)"
+      - "可编程向量计算引擎 — programmable vector compute engine; this is the VDSP"
+      - "专用视频解码与图形渲染显示核 — dedicated video decode + graphics render/display cores"
+      - "统一内存管理、一致性接口和低延迟互联 — unified memory management, coherent interfaces, low-latency interconnect"
+    confidence: confirmed
+    sources:
+      - https://zhidx.com/p/344936.html
+
+  sdk_corroboration:
+    note: >-
+      vsx::DieUtilization reports exactly four engine classes per die, independently
+      corroborating the block list. util.ai is a SCALAR (one AI domain per die); vdsp,
+      vdmcu and vemcu are ARRAYS (multiple cores each).
+    fields: ["util.ai", "util.vdsp[]", "util.vdmcu[]", "util.vemcu[]"]
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/card_info/card_info.cpp
+
+  vdsp_core_count_per_die: "not disclosed"
+  video_decode_mcu_count_per_die: "not disclosed"
+  video_encode_mcu_count_per_die: "not disclosed"
+  engine_count_note: >-
+    The SDK exposes these as arrays but the array sizes come from a non-public header.
+
+  ai_engine_internals:
+    mac_array_dimensions: "not disclosed"
+    systolic_or_simd: "not disclosed"
+    macs_per_cycle: "not disclosed"
+    native_tile_size: "not disclosed"
+    confidence: not_disclosed
+
+  clock_domains:
+    oclk_mhz: "835 (one ResNet sample at 880) — operator/AI clock, varies by SKU and DPM state"
+    dclk_mhz: 650    # video decode
+    eclk_mhz: 200    # video encode
+    dpm: "User-controllable: `sudo vasmi setconfig dpm=enable -d all`"
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples
+      - https://github.com/Vastai/VastModelZOO
+
+# ── Card = N dies (the key structural fact) ───────────────────────────────────
+die_model:
+  statement: >-
+    Every VastaiTech card presents N independent devices ("dies") to software, each with its
+    own memory pool and its own device_id. All runtime knobs (VACC_VISIBLE_DEVICES,
+    --llm_devices, --tensor-parallel-size) operate at DIE granularity, not card granularity.
+  api: "vsx::Card::GetAllDies()"
+  evidence:
+    - "card_info sample output: 'Card type: VA1-16G  Die ID: 0, 1' with 'Memory total: 8 GB' per device → VA1-16G = 2 dies × 8 GB"
+    - "vLLM recipe site states hardware as 'VA16128G (4×32G)' and 'VA10L128G (4×32G)' → 4 dies × 32 GB"
+    - "DeepSeek-V3 on 8× VA16 runs at TP=32 = 8 cards × 4 dies"
+  cross_check: >-
+    Per-die decode throughput (~51–62 ch @30 fps) × 2 dies ≈ 102–124 channels, versus VA1's
+    claimed 120 ch — an independent confirmation that VA1 is a 2-die card.
+  physical_nature_of_a_die: "not disclosed"
+  physical_nature_note: >-
+    Whether a "die" is a physically separate silicon die in a multi-chip package or a partition
+    of one monolithic die is never stated by the vendor, and no teardown exists.
+  confidence: confirmed
+  sources:
+    - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/card_info/card_info.cpp
+    - https://vllm-vacc.vastaitech.com/Qwen/Qwen3-32B
+    - https://vllm-vacc.vastaitech.com/Qwen/Qwen3-Embedding
+    - https://github.com/Vastai/VastModelZOO/blob/main/llm/deepseek_v3/README.md
+
+# ── Datacenter cards ──────────────────────────────────────────────────────────
+cards:
+
+  va1:
+    chinese_name: "载天 VA1"
+    chip: SV102 (SV100 series)
+    peak_int8_tops: ">200 per chip"
+    precisions: [FP16, BF16, INT8]
+    power_w: "70 (vendor product page) / 75 (launch coverage) — sources conflict; report both"
+    form_factor: "Single-width HHHL, PCIe 4.0 x16, no auxiliary power"
+    memory_capacity: "32 GB at launch; SDK shows a VA1-16G SKU = 2 dies × 8 GB"
+    memory_type: "not disclosed"
+    memory_bandwidth: "not disclosed"
+    codec: "120 ch 1080p30 H.264/H.265 decode (vendor page); 64+ ch H.264/H.265/AVS2 at launch; up to 8K; JPEG hardware codec"
+    dies_per_card: 2
+    confidence: confirmed
+    sources:
+      - https://www.vastaitech.com/product/general/va1
+      - https://news.qq.com/rain/a/20210708A032OI00
+      - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/card_info/card_info.cpp
+
+  va10:
+    chinese_name: "载天 VA10"
+    peak_int8_tops: 400
+    power_w: 150
+    form_factor: "Full-height 3/4-length PCIe"
+    pcie_generation: "not disclosed"
+    memory_capacity: "not disclosed"
+    memory_type: "not disclosed"
+    memory_bandwidth: "not disclosed"
+    codec: "240 ch 1080p30 decode (vendor page); 100 ch 1080p30 transcode (launch coverage)"
+    dies_per_card: "not disclosed"
+    confidence: confirmed
+    sources:
+      - https://www.vastaitech.com/product/general/va10
+      - https://www.36kr.com/p/1901732567984512
+
+  va1v:
+    chinese_name: "载天 VA1V"
+    role: "Video-centric datacenter card"
+    codec: "H.264/H.265/AV1, up to 8K 10-bit; 2× 8K HDR @60+fps encode/transcode; FFmpeg standard media interface"
+    ai_rating: "not disclosed"
+    power_w: "not disclosed"
+    memory: "not disclosed"
+    confidence: confirmed
+    sources:
+      - https://www.vastaitech.com/product/video/va1v
+
+  va1l_2023:
+    chinese_name: "载天 VA1L (as announced at WAIC 2023)"
+    peak_int8_tops: 200
+    peak_fp16_tflops: 72
+    memory_capacity_gb: 64
+    memory_capacity_note: "Derived from the vendor's '8 × VA1L = 512 GB' AIGC appliance figure"
+    appliance_claim: "8 × VA1L = 512 GB, 'supporting 175 B-parameter models'"
+    confidence: confirmed        # figures confirmed; the appliance capability line is vendor_claim
+    sources:
+      - https://www.qbitai.com/2023/07/66614.html
+      - https://www.36kr.com/p/2332635957528066
+
+  va12:
+    role: "High-performance generative-AI card (WAIC 2023)"
+    peak_int8_tops: 512
+    peak_fp16_tflops: 160
+    power_w: 250
+    memory: "not disclosed"
+    confidence: confirmed
+    sources:
+      - https://www.qbitai.com/2023/07/66614.html
+
+  nanyu_vg_series:
+    chinese_name: "南禺 (Nanyu) datacenter graphics cards"
+    chip: SG100
+    skus:
+      - "VG1600 — cloud gaming"
+      - "VG1800 — cloud desktop / remote work"
+      - "VG14 — workstation card"
+    memory: "not disclosed"
+    tdp: "not disclosed"
+    display_outputs: "not disclosed"
+    virtualisation_density: "not disclosed"
+    note: "The vendor site's own Nanyu nav entry is a dead placeholder (no-page CSS class)."
+    confidence: confirmed        # existence and SKU names only
+    sources:
+      - https://www.qbitai.com/2023/07/66614.html
+
+  va16:
+    chinese_name: "载天 VA16"
+    role: "Current flagship datacenter card (2026)"
+    visibility_warning: >-
+      Appears NOWHERE on vastaitech.com. Documented only in github.com/Vastai, the vLLM
+      recipe site, and 2025–2026 Chinese press.
+    memory_capacity_gb: 128
+    dies_per_card: 4
+    memory_per_die_gb: 32
+    memory_type: "not disclosed"
+    memory_bandwidth: "not disclosed"
+    precisions: [BF16, FP16, INT8, INT4, FP8, FP4]
+    fp4_fp8_note: "Format SUPPORT is published (2026-04-27). Peak RATES for FP8/FP4 are not disclosed."
+    peak_tops: "not disclosed"
+    peak_tflops: "not disclosed"
+    power_w: "not disclosed"
+    form_factor: "not disclosed"
+    pcie_generation: "not disclosed"
+    process_node: "not disclosed"
+    chip_family: "not disclosed (SV100 / SG100 / third generation — never stated)"
+    oem_description: "'训推一体' (training-and-inference) accelerator card, per server-OEM certification notice"
+    appliance_configs: "8-card = 1 TB; 16-card = 2 TB total memory. 2 TB VGX VA16 claimed to support 405 B fine-tuning and trillion-parameter MoE inference (vendor claim)"
+    confidence: confirmed        # capacity/die structure/format support; appliance capability = vendor_claim
+    sources:
+      - https://vllm-vacc.vastaitech.com/Qwen/Qwen3-32B
+      - https://vllm-vacc.vastaitech.com/deepseek-ai/DeepSeek-V3
+      - https://finance.sina.com.cn/roll/2026-04-27/doc-inhvxtrc2314774.shtml
+      - https://news.10jqka.com.cn/20260427/c676308817.shtml
+      - http://ttyinfo.com/News/info/id/154.html
+
+  va10l:
+    chinese_name: "载天 VA10L"
+    memory_capacity_gb: 128
+    dies_per_card: 4
+    memory_per_die_gb: 32
+    everything_else: "not disclosed"
+    confidence: confirmed
+    sources:
+      - https://vllm-vacc.vastaitech.com/Qwen/Qwen3-32B
+      - https://vllm-vacc.vastaitech.com/Qwen/Qwen3-Embedding
+
+  va1l_current:
+    chinese_name: "载天 VA1L (2026 line)"
+    status: "Listed as a supported card throughout the 2026 stack"
+    memory_capacity: "not disclosed (the 2023 figure was 64 GB; whether it still holds is unstated)"
+    everything_else: "not disclosed"
+    confidence: confirmed        # existence in the supported-card list only
+    sources:
+      - https://vllm-vacc.vastaitech.com/
+
+# ── Memory hierarchy ──────────────────────────────────────────────────────────
+memory_hierarchy:
+
+  register_file:
+    size: "not disclosed"
+    organisation: "not disclosed"
+    confidence: not_disclosed
+
+  on_chip_sram:
+    capacity: "not disclosed"
+    bandwidth: "not disclosed"
+    management: "software-managed scratchpad (inferred, not stated)"
+    confidence: inferred
+    reasoning: >-
+      VAMC exposes per-model flags that explicitly place tensors: output_ddr ([-1,1] forces
+      named graph outputs to off-chip DDR), mem_inplace, data_transport_mode (1|3),
+      cluster_mode (0|1), output_layout, enable_graph_partition, and a
+      graph.extra_ops: insert_odma pass that inserts explicit output-DMA nodes. A
+      hardware-cached memory would not need a compiler flag naming DDR as a destination.
+      The FLAGS are confirmed; the conclusion is inferred. No vendor statement confirms the
+      absence of a hardware data cache in the compute path.
+    sources:
+      - https://github.com/Vastai/VastModelZOO/blob/main/tools/vamc/vamc_config.yaml
+
+  vdsp_local_buffer:
+    capacity: "not disclosed, but bounded"
+    evidence: >-
+      The shipped planar_argmax custom op documents "currently channel number is limited to
+      less than or equal to 96" for an fp16 planar tensor — a per-op local-buffer constraint.
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/vdsp_op/custom_op/argmax/argmax_op.hpp
+
+  tiling_granularity:
+    llm_sequence_length: "must be a multiple of 16 at compile time"
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastModelZOO/blob/main/llm/README.md
+
+  off_chip_memory:
+    capacity_per_die:
+      va1_16g: "8 GB"
+      va16: "32 GB"
+      va10l: "32 GB"
+    capacity_per_card:
+      va1_launch: "32 GB"
+      va1_16g: "16 GB"
+      va1l_2023: "64 GB"
+      va16: "128 GB"
+      va10l: "128 GB"
+    memory_technology: "not disclosed"
+    memory_bandwidth: "not disclosed"
+    confidence: confirmed        # capacities only
+    not_disclosed_note: >-
+      Memory TECHNOLOGY (HBM / GDDR / LPDDR / DDR) and memory BANDWIDTH in GB/s are not
+      disclosed for ANY VastaiTech part ever shipped. Searched in Chinese and English:
+      no datasheet, no teardown, no reviewer measurement, no bandwidth figure of any kind.
+      This is the single most consequential gap in the entry, because VA16 is a
+      capacity-first 128 GB card serving 671 B MoE models, where bandwidth determines decode
+      performance. DO NOT estimate from capacity, die count, or any peer part.
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/card_info/card_info.cpp
+      - https://vllm-vacc.vastaitech.com/Qwen/Qwen3-32B
+
+  runtime_memory_model:
+    style: "Explicit host↔device copies; no unified/managed memory exposed to the user"
+    apis:
+      - "vsx.from_numpy(x, device_id) / vsx.as_numpy(t)"
+      - "Context::CPU() vs Context::VACC(device_id)"
+      - "Tensor::Clone(Context::VACC(id))"
+      - "GetDataAddress() → raw device address packed into custom-op config structs"
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples/blob/main/common/model_base.hpp
+
+# ── Interconnect ──────────────────────────────────────────────────────────────
+interconnect:
+
+  on_chip_noc:
+    description: "'unified memory management, coherent interfaces and low-latency interconnect' (qualitative only)"
+    topology: "not disclosed"
+    bandwidth: "not disclosed"
+    confidence: confirmed        # the qualitative statement only
+    sources:
+      - https://zhidx.com/p/344936.html
+
+  die_to_die_within_card:
+    exists: true
+    exists_reasoning: "By construction — 2-die and 4-die cards are enumerated by the SDK"
+    fabric_name: "not disclosed — no name analogous to NVLink / xGMI / SG-Link appears in any source"
+    protocol: "not disclosed"
+    topology: "not disclosed"
+    bandwidth: "not disclosed"
+    confidence: inferred
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/card_info/card_info.cpp
+
+  card_to_card_scale_up:
+    fabric_name: "not disclosed"
+    evidence_it_works: >-
+      A single VA16 server runs DeepSeek-V3 at TP=32 across 8 cards, so cross-card collectives
+      demonstrably operate at tensor-parallel granularity.
+    proprietary_link: "No evidence of any proprietary switch or cabled fabric. PCIe is the only documented host interface."
+    bandwidth: "not disclosed"
+    confidence: not_disclosed
+    sources:
+      - https://github.com/Vastai/VastModelZOO/blob/main/llm/deepseek_v3/README.md
+
+  scale_out:
+    pipeline_parallel: "--pipeline-parallel-size 2 used for the 100 K-input DeepSeek-V3 config"
+    data_parallel: "EXPLICITLY UNSUPPORTED on the vLLM backend (MinerU support matrix: 数据并行 --data-parallel-size/--dp 🔴)"
+    nic_rdma: "not disclosed"
+    inter_node_transport: "not disclosed"
+    confidence: confirmed        # for the PP/DP facts
+    sources:
+      - https://github.com/Vastai/VastModelZOO/blob/main/llm/deepseek_v3/README.md
+      - https://github.com/Vastai/MinerU
+
+  collective_library:
+    name: VCCL
+    analogue: "NCCL"
+    visible_only_through:
+      - "VCCL_SOCKET_IFNAME (default 'lo') — mirrors NCCL_SOCKET_IFNAME, implying a socket-based bootstrap/out-of-band path"
+      - "VCCL_MODEL_SYNC"
+      - "compiler flag gather_data_vccl_dsp_enable — collectives can execute on the VDSP engines"
+    supported_ops: "not disclosed"
+    algorithms: "not disclosed"
+    achieved_bus_bandwidth: "not disclosed"
+    public_api_or_docs: "none of any kind"
+    confidence: confirmed        # existence and the three observable knobs
+    sources:
+      - https://github.com/Vastai/VastModelZOO/blob/main/llm/common/docker/Dockerfile
+      - https://github.com/Vastai/VastModelZOO/blob/main/tools/vamc/vamc_config.yaml
+
+  host_interface:
+    va1: "PCIe 4.0 x16"
+    va10_va16_va10l_va1l: "not disclosed"
+    pci_device_id: "0x0100 (install guide detects cards with `lspci -d:0100`)"
+    confidence: confirmed
+    sources:
+      - https://www.vastaitech.com/product/general/va1
+      - https://github.com/Vastai/VastModelZOO
+
+# ── Execution model ───────────────────────────────────────────────────────────
+execution_model:
+
+  build_in_path:
+    style: "Ahead-of-time, statically compiled whole-graph"
+    artifact: "deploy_weights/<name>/mod"
+    baked_in_at_compile_time: [tensor-parallel degree, batch size, I/O shapes]
+    jit: false
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastModelZOO/blob/main/llm/qwen2/build_in/build/hf_qwen2_fp16.yaml
+
+  runtime_dataflow:
+    style: "Stream/graph dataflow"
+    construction: "vsx::Graph of Operators (VDSP fusion ops + ModelOperator) → vsx::Stream with StreamBalanceMode (kBM_RUN) → stream->Build()"
+    execution_modes: ["RunSync", "process_async → get_output → close_input → wait_until_done"]
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples/blob/main/common/model_base.hpp
+
+  concurrency:
+    approach: "Multiple concurrent model instances per die (--instance 4, queue_size); the die is oversubscribed by independent streams rather than by one large kernel"
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples
+
+  op_placement:
+    style: "Explicit and manual heterogeneous placement"
+    examples:
+      - "Preprocessing on VDSP via JSON-selected fusion op (FUSION_OP_RGB_LETTERBOX_CVTCOLOR_NORM_TENSOR)"
+      - "Host CPU fallback for some ops (Qwen-VL Smart_Resize, RetinaNet post-processing)"
+      - "Structural ops hand-mapped to VDSP (PointPillarScatter, Qwen-VL visual rotary embedding)"
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastModelZOO
+
+  vllm_path:
+    graph_capture: "NONE — --enforce-eager is mandatory in every documented command"
+    cuda_graph_equivalent: "does not exist"
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/MinerU
+      - https://vllm-vacc.vastaitech.com/
+
+# ── Measured performance (vendor's own sample docs, PER DIE) ──────────────────
+measured_performance:
+  scope: "PER DIE, not per card. The only reproducible absolute numbers published anywhere."
+  results:
+    h264_1080p_decode: "1547 fps max throughput (10 instances) / 509 fps min latency (1 instance) at DCLK 650 MHz → ≈51 ch @30 fps per die"
+    h265_1080p_decode: "1861 fps max throughput at DCLK 650 MHz → ≈62 ch @30 fps per die"
+    resnet50_int8: "3231 qps (batch 8, max throughput) / 941 qps (batch 1, min latency) at 880 MHz"
+    mobilevit: "43.9 qps (batch 1)"
+    planar_argmax_custom_op: "[19,512,512] fp16, 4 instances: 3008 qps, p50 1329 µs"
+  cross_check: "≈51–62 ch/die × 2 dies ≈ 102–124 ch vs VA1's claimed 120 ch — independently confirms VA1 = 2 dies"
+  confidence: confirmed
+  sources:
+    - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/video_decode/README.md
+    - https://github.com/Vastai/VastStreamX-Samples
+
+# ── Vendor performance claims ─────────────────────────────────────────────────
+vendor_performance_claims:
+  status: "ALL relative and unbaselined — no named comparison part, no workload, no date"
+  examples:
+    - "同等功耗下2倍以上于主流GPU的最高吞吐率"
+    - "延时不到GPU最高吞吐率下延时的5%"
+    - "VA10: 推理性能达到同功耗主流GPU的2倍以上，延时低至6%"
+    - "VA1: 2–10× AI throughput of GPUs at equal power"
+    - "DSA: 3–5× traditional GPUs"
+  confidence: vendor_claim
+  sources:
+    - https://www.vastaitech.com/product/general/va1
+    - https://www.vastaitech.com/product/general/va10
+
+vendor_published_counter_evidence:
+  name: "GLM-OCR OmniDocBench end-to-end, layout model on CPU in all rows"
+  table:
+    - backend: "NVIDIA H800 BF16 TP1"
+      overall: 95.391
+      model_infer_cost: "15.5 min"
+    - backend: "VACC-VA16 BF16 TP1"
+      overall: 95.647
+      model_infer_cost: "13 h 26 min"
+    - backend: "VACC-VA16 BF16 TP2"
+      overall: 95.611
+      model_infer_cost: "9 h"
+    - backend: "VACC-VA16 BF16 TP4"
+      overall: 95.635
+      model_infer_cost: "6 h 33 min"
+  reading: >-
+    Accuracy on par with (marginally above) H800; wall clock roughly 50× slower at TP1 and
+    ~25× slower at TP4. Caveats that must travel with the citation: single workload, an OCR
+    VLM, full-dataset wall clock, layout model on CPU in every row, and VA16 TP1 is one die
+    against a whole H800. It is nonetheless the vendor's own apples-to-apples table and the
+    most useful maturity signal available.
+  confidence: confirmed
+  sources:
+    - https://github.com/Vastai/VastModelZOO/blob/main/vlm/glm_ocr/vllm/README.md
+
+# ── Physical / platform ───────────────────────────────────────────────────────
+physical:
+  process_node: "7 nm for SV100 and SG100 only. Node for the silicon in VA16 / VA10L / VA1L: not disclosed"
+  foundry: "not disclosed for every part"
+  tdp:
+    va1: "70 W (vendor page) / 75 W (launch coverage) — conflicting"
+    va10: "150 W"
+    va12: "250 W"
+    ve1_edge: "40–65 W"
+    va16_va10l_va1l: "not disclosed"
+  die_size: "not disclosed"
+  package: "not disclosed"
+  cooling: "not disclosed"
+  slot_width_current_cards: "not disclosed"
+  host_platforms: ["x86_64", "aarch64"]
+  validated_platform: "Ubuntu 22.04.3 with a Hygon C86-4G CPU"
+  domestic_os_claimed: [Kylin 麒麟, UOS 统信, Anolis 龙蜥, OpenEuler]
+  domestic_os_confidence: vendor_claim
+  server_oem_certification: "通泰易 TG657V2 / TG658V3 / TG659V2 certified with VA16, 2025-06-13"
+  confidence: confirmed
+  sources:
+    - https://www.vastaitech.com/company/about
+    - https://github.com/Vastai/MinerU
+    - http://ttyinfo.com/News/info/id/154.html
+
+# ── Maturity ──────────────────────────────────────────────────────────────────
+maturity:
+  verdict: "shipping / commercially available — NOT verified deployed at scale"
+  positive_signals:
+    - "Two chip generations vendor-stated 量产并商业化落地 (vendor claim)"
+    - "Published 3-year hardware + software warranty with a formal RMA process"
+    - "Sales-gated developer centre; private Docker harbor with versioned releases (VVI-25.12.SP2, VVI-26.02)"
+    - "Server-OEM compatibility certifications (2025-06-13)"
+    - "海马云 (Haima Cloud) strategic partnership 2024-04-10 targeting a thousand-card cluster on domestic ARM + VastaiTech GPUs"
+    - "A-share IPO counselling filing (primary document)"
+  negative_signals:
+    - "max-concurrency capped at 4 across essentially every vLLM model, including DeepSeek-V3 and small BGE embedding models"
+    - "Data parallelism unsupported; eager mode mandatory"
+    - "Vendor's own OmniDocBench table shows ~50× (TP1) / ~25× (TP4) wall-clock gap vs H800"
+    - "No named end customer with a disclosed deployment size (Kuaishou reported 2021 as investor+customer, no scale)"
+    - "No third-party benchmark of any kind"
+    - "No ISCA / MICRO / Hot Chips / ISSCC / arXiv publication of any kind"
+  confidence: confirmed
+  sources:
+    - https://www.vastaitech.com/support
+    - https://github.com/Vastai/VastModelZOO/blob/main/tools/vllm/usage_limits.md
+    - https://www.icloudnews.net/a/79464.html
+
+# ── Corporate / IPO ───────────────────────────────────────────────────────────
+corporate:
+  ipo_status: "IPO COUNSELLING (辅导备案) — pre-application stage. NOT an IPO application."
+  ipo_warning: >-
+    Do NOT write that VastaiTech has filed an IPO application. Counselling registration is the
+    stage before application. The SSE STAR Market negative result (no 瀚博 among all 1,046
+    filings) is CONSISTENT with counselling-stage-only status, not contradictory.
+  counselling:
+    agreement_signed: "2025-07-11"
+    filing_submitted: "2025-07-11 (Shanghai CSRC bureau)"
+    counselling_period_start: "2025-07-18"
+    first_reporting_period: "2025-07-18 → 2025-09-30"
+    target: "domestic A-share IPO"
+    sponsor: "中信证券 (CITIC Securities)"
+    counsel: "北京市中伦律师事务所"
+    auditor: "天健会计师事务所"
+  shareholders_above_5_percent:
+    - "VASTAI Holding Company — 11.53% (LEI ZHANG)"
+    - "ACE REDPOINT CHINA VASTAI HK LIMITED — 7.12%"
+    - "ZHEN PARTNERS V (HK) LIMITED — 6.48%"
+    - "5Y CAPITAL VASTAI HOLDING LIMITED — 5.28%"
+  confidence: confirmed
+  sources:
+    - https://www.cs.ecitic.com/newsite/tzgg/ipoqyfdgg/202510/P020251023518196738538.pdf
+    - https://query.sse.com.cn/statusAction.do?sqlId=SH_XM_LB
+
+funding:
+  vendor_published:
+    - round: "Series A"
+      amount: "US$50 M"
+      date: "2020-11"
+    - round: "Series A+"
+      amount: "¥500 M"
+      date: "2021-04"
+    - round: "Series B1 & B2"
+      amount: "¥1.6 B"
+      date: "2021-12"
+  media_reported_not_vendor_published:
+    cumulative_raise: ">¥2.5 B"
+    valuation_2025: "~¥10.5 B"
+    registered_capital: "¥543 M"
+    confidence: unconfirmed
+  investors_reported: [Alibaba, Kuaishou, Sequoia, 5Y Capital, Zhen Partners, Redpoint China]
+  confidence: confirmed        # for the vendor-published rounds only
+  sources:
+    - https://www.vastaitech.com/company/about
+
+# ── Explicit non-disclosure register ──────────────────────────────────────────
+not_disclosed:
+  - "Memory technology (HBM / GDDR / LPDDR / DDR) — every part"
+  - "Memory bandwidth in GB/s — every part"
+  - "On-chip SRAM / scratchpad capacity and bandwidth; register-file size and organisation"
+  - "Number of VDSP cores, video-decode MCUs and video-encode MCUs per die"
+  - "AI-engine internals: MAC array dimensions, systolic vs SIMD, MACs/cycle, native tile size"
+  - "Peak TOPS / TFLOPS for VA16, VA10L and the current VA1L"
+  - "FP8 and FP4 peak throughput on VA16 (only format support is published)"
+  - "TDP / board power for VA16, VA10L, VA1L"
+  - "Form factor, slot width, cooling, auxiliary power connector for VA16, VA10L, VA1L"
+  - "PCIe generation and lane count for VA10, VA16, VA10L, VA1L"
+  - "Process node and chip family for VA16 / VA10L / VA1L"
+  - "Foundry for SV100 and SG100 — never named; do not assume TSMC"
+  - "Die size, transistor count, package type — every chip"
+  - "Whether an SDK 'die' is a separate silicon die in an MCM or a partition of a monolithic die"
+  - "Die-to-die interconnect protocol, topology and bandwidth"
+  - "Card-to-card scale-up: whether any proprietary link exists beyond PCIe; topology; bandwidth"
+  - "Scale-out fabric: NIC, RDMA support, VCCL inter-node transport"
+  - "VCCL supported collectives, algorithms, achieved bus bandwidth, API"
+  - "VAMC flag semantics: cluster_mode, data_transport_mode, data_type, opt_level, output_layout, stream_mode, split_convergence_points, requant_suppress"
+  - "Whether on-chip memory is hardware-cached or a software-managed scratchpad (strongly implied scratchpad; never stated)"
+  - "Current per-card memory capacity of VA1L"
+  - "Nanyu VG1600 / VG1800 / VG14 specifications of any kind"
+  - "Named end customers with disclosed deployment scale; unit shipments; revenue; manufacturing capacity"
+  - "Any independent third-party benchmark; any peer-reviewed or conference publication"

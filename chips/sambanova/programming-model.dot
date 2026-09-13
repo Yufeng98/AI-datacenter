@@ -1,0 +1,147 @@
+digraph sambanova_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration (SN40L era — SambaFlow SDK docs withdrawn 2026)";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.nn.Module\nSambaTensor / SambaParameter\nsamba.from_torch_model()", fillcolor="#D6E4F0"];
+        hf [label="Hugging Face Transformers\nGPT-2, GPT-J, Llama, BERT\nsamba.session.compile(hf_model)", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow\n(secondary support)", fillcolor="#D6E4F0", style="rounded,filled,dashed"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR (SambaFlow — SN40L era; public docs withdrawn 2026)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        graph_trace [label="Graph Tracer\nPyTorch graph tracing\nop → SambaFlow impl", fillcolor="#E4DEFF"];
+        fusion [label="Operator Fusion\no0: per-op sections\no1: max fusion (2-13x speedup)", fillcolor="#E4DEFF"];
+        spatial_map [label="Spatial Mapper\nPCU assignment\nPMU data placement\nFabric routing", fillcolor="#E4DEFF"];
+        parallelism [label="Parallelism Compiler\nData / Tensor / Pipeline\nMeta-pipelining\n(strategy selected at deployment time,\nthen mapped by the compiler)", fillcolor="#E4DEFF"];
+        pef [label="PEF (Program Execution File)\nComplete spatial configuration\nCompiled once; reused indefinitely", fillcolor="#C8BCFF"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime (samba.session)";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        session [label="samba.session\ncompile() / load() / run()\nReplaces fwd+bwd+optim", fillcolor="#F8D7DA"];
+        collectives [label="Built-in Collectives\nAllReduce, AllGather\nCompiled into PEF\n(no NCCL needed)", fillcolor="#F8D7DA"];
+    }
+
+    // ============ CURRENT PRODUCT SURFACE (2026-08-08) ============
+    // docs.sambanova.ai now documents exactly two products: SambaCloud and
+    // SambaStack v2.0.2 (2026-08-05). The 174-entry docs index contains no
+    // SambaFlow / compiler / PEF-authoring / samba.session pages at all.
+    subgraph cluster_current {
+        label="Currently Documented Products (2026-08-08): SambaCloud + SambaStack v2.0.2";
+        style="rounded,dashed";
+        color="#00897B";
+        fontcolor="#00897B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        sambacloud [label="SambaCloud (inference API)\nOpenAI-compatible endpoints\nAnthropic Messages API (2026-07-01)\nPrompt caching (2026-07-16)\nVision / audio / video", fillcolor="#CDEDE9"];
+        sambastack [label="SambaStack v2.0.2 (2026-08-05, breaking)\nKubernetes RKE2 1.35 + Helm\nCRDs: Model / ModelProfile /\nModelDeployment / ModelBundle / Pef\nHelm order: base → sambastack → models", fillcolor="#CDEDE9"];
+        sambawiz [label="SambaWiz (sambastack-tools)\nGUI wizard: model selection,\nPEF settings, K8s manifests,\nbundle deployment", fillcolor="#CDEDE9"];
+        sambaeval [label="SambaEval (sambastack-tools)\nCSV-dataset LLM evaluation\nHeuristic + LLM-as-judge scoring\nPer-row token/latency metrics", fillcolor="#CDEDE9", style="rounded,filled,dashed"];
+        gateway [label="LiteLLM gateway\nPrometheus / Grafana /\nOpenSearch / Fluent Bit", fillcolor="#E3F4F2", style="rounded,filled,dashed"];
+        vllm [label="vLLM (SN50 demos only)\nReported serving engine for the\n2026-07-08 and 2026-07-30 results\nNOT in SambaStack docs or release notes\nNo public plugin — depth unverified", fillcolor="#FFF3CD", style="rounded,filled,dashed"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        rdu_driver [label="SambaNova System Driver\nPEF load to RDU\nPCIe / direct-attach host I/F", fillcolor="#E0E0E0"];
+        rduconnect [label="RDU-Connect (SN40L)\nP2P inter-RDU protocol\n16 sockets / SambaRack", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="SambaNova RDU Hardware (SN40L / SN50)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        pcu [label="PCU: Pattern Compute Unit\n1040 per SN40L socket (638 BF16 TFLOPS)\nMulti-stage reconfigurable SIMD pipeline\nSN50: 5x FP8 (3.2 PFLOPS), 2.5x BF16", fillcolor="#283593", fontcolor="white"];
+        pmu [label="PMU: Pattern Memory Unit\n1040 per SN40L; 520 MiB total SRAM\nSoftware-managed scratchpad\nHundreds of TB/s aggregate BW", fillcolor="#283593", fontcolor="white"];
+        fabric [label="3D Switching Fabric\nScalar (word) + Vector (multi-word) + Control (bit)\nStatically routed at compile time\nZero runtime arbitration", fillcolor="#283593", fontcolor="white"];
+        agcu [label="AGCU\nAddress Gen + Coalescing\nSparse access support\nP2P inter-RDU / Host I/F", fillcolor="#283593", fontcolor="white"];
+        mem [label="Three-Tier Memory\nSRAM: 520 MiB (SN40L) / 432 MiB (SN50)\nHBM: 64 GiB (1.8 TB/s on SN50)\nDDR: up to 1.5 TiB DDR4/5 (direct-attached)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Scale-up Interconnect\nSN40L: P2P RDU-Connect + InfiniBand\nSN50: 2.2 TB/s switched fabric, 256 RDUs\n10T params / 10M context at scale", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework → Compiler
+    pytorch -> graph_trace;
+    hf -> graph_trace [style=dashed, color="#AAAAAA"];
+    tf -> graph_trace [style=dashed, color="#AAAAAA"];
+    graph_trace -> fusion;
+    fusion -> spatial_map;
+    fusion -> parallelism;
+    spatial_map -> pef;
+    parallelism -> pef;
+
+    // Compiler → Runtime
+    pef -> session [label="load PEF", fontsize=8];
+
+    // Runtime → Driver
+    session -> rdu_driver;
+    session -> collectives [style=dashed];
+    collectives -> rduconnect [style=dashed];
+
+    // Current product surface: PEF survives as the deployment artifact,
+    // but the surface around it is Helm + Kubernetes CRDs, not a Python SDK.
+    pef -> sambastack [label="Pef CRD", fontsize=8, color="#00897B"];
+    sambawiz -> sambastack [label="generates manifests", fontsize=8, color="#00897B"];
+    sambastack -> gateway [style=dashed, color="#00897B"];
+    sambacloud -> gateway [style=dashed, color="#00897B"];
+    vllm -> sambastack [style=dashed, color="#D4A017", label="reported, unverified", fontsize=8];
+    sambaeval -> sambacloud [style=dashed, color="#00897B", arrowhead=none];
+    sambastack -> rdu_driver [style=dashed, color="#00897B"];
+
+    // Driver → Hardware
+    rdu_driver -> pcu [style=dashed, color="#283593"];
+    rduconnect -> interconnect [style=dashed, color="#283593"];
+
+    // Hardware internal (data flow)
+    pcu -> fabric [color="#283593", label="produce/consume", fontsize=8];
+    fabric -> pmu [color="#283593"];
+    pmu -> pcu [color="#283593"];
+    agcu -> mem [color="#283593"];
+    agcu -> pmu [label="DMA", fontsize=8, color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+}

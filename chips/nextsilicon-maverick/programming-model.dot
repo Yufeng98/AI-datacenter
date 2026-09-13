@@ -1,0 +1,156 @@
+digraph nextsilicon_maverick_pm {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== SOURCE / FRAMEWORK =====================
+    subgraph cluster_source {
+        label="Source Layer — 'BYOC: bring your own code'";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        src [label="Unmodified ISO C / C++ / Fortran\n+ OpenMP\nNO kernel language\nNO device-side source dialect\nspec-table row: 'Any program'", fillcolor="#D6E4F0"];
+        kokkos [label="Kokkos NextSilicon execution space\nUPSTREAM in Kokkos 5.2.0 (#8998, #9100)\nApache-2.0 WITH LLVM-exception\nspace factory '180_NextSilicon'\nONLY open-source component of the stack", fillcolor="#D6E4F0"];
+        roadmap [label="ROADMAP ONLY — not shipping\nCUDA | HIP/ROCm | Python | AI frameworks\n(vendor product page: 'upcoming\nintegrations planned'; the FAQ and\nlaunch blog overclaim these as shipping)", fillcolor="#D6E4F0", style="rounded,dashed,filled"];
+        na [label="NOT APPLICABLE BY DESIGN\nNo graph capture | No graph compiler\nNo tensor API | No kernel compiler for device code\nNo collective communication library", fillcolor="#ECEFF1", style="rounded,dashed,filled"];
+    }
+
+    // ===================== COMPILER =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR (ahead of time — runs exactly once)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        nextcxx [label="nextcxx — C++ compiler driver\nLLVM/MLIR-based, proprietary\nBundled LLVM binutils at $NEXT_HOME/llvm/bin\nNO -DKokkos_ARCH_* flag exists\n(unique among Kokkos device backends)", fillcolor="#E4DEFF"];
+        mlir [label="MLIR compiler stack (confirmed)\nLLVM IR imported into MLIR with\noptimization metadata preserved,\nthen mem2reg / SROA / inlining in MLIR\n(public fork nextsilicon/llvm-project)\nNOTE: 'AIIR' is NOT an IR — it is an\nApril Fools rename branch (2026-04-01)", fillcolor="#E4DEFF"];
+        binary [label="ONE host binary\nNo fat binary, no device object,\nno .bmodel/.plan analogue\nThe device 'binary' is generated at\nRUN TIME and never materialized publicly", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== RUNTIME JIT LOOP (the distinguishing mechanism) =====================
+    subgraph cluster_jit {
+        label="Runtime JIT of the SPATIAL MAPPING — two-pass train-then-project";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        train [label="1. TRAINING RUN\nProgram executes ON THE HOST\nwhile nextsystemd collects telemetry\nKokkos: 'kernels may run on the host during\ntraining while still being within the\ndevice execution space'", fillcolor="#F8D7DA"];
+        telem [label="2. TELEMETRY\nObservable = BRANCH / logic-path\nexecution counts\n(not conventional perf counters)\nsampling rate + record format\nNOT DISCLOSED", fillcolor="#F8D7DA"];
+        optimize [label="3. OPTIMIZE — nextsystemd\nIdentify the 'top 1% of code flows'\nGenerate an optimized compute graph\nActions (patent US20190042282A1):\nrelocation | duplication | in-lining |\nshrinking | host demotion\nalgorithm NOT DISCLOSED", fillcolor="#F8D7DA"];
+        project [label="4. PROJECT onto the grid\nCompute graph laid down as mill cores\nnextcli application status:\nIDLE ('no mills found') / OPTIMIZING / IMPROVED\nCI budget: up to 5 minutes", fillcolor="#F8D7DA"];
+        devrun [label="5. DEVICE RUN\nRe-execute; hot regions 'hand off' to the grid\n__next_is_in_handed_off_code() reports\nwhether a thread is REALLY on the grid", fillcolor="#F8D7DA"];
+        cache [label="6. PERSISTENT OPTIMIZER CACHE\nProjections cached under XDG_CACHE_HOME\nacross runs (Kokkos PR #9162)\ncache format NOT DISCLOSED", fillcolor="#F8D7DA"];
+        tless [label="ALT: telemetry-less mode\noptimizer-pi: enable-telemetry-less\nStatic projection; any projection error\ncounts as a failure\nCURRENTLY DISABLED UPSTREAM\n'FIXME_NEXTSILICON: re-enable when working'", fillcolor="#F8D7DA", style="rounded,dashed,filled"];
+    }
+
+    // ===================== RUNTIME / DRIVER =====================
+    subgraph cluster_runtime {
+        label="Runtime and Driver (all proprietary)";
+        style="rounded,dashed";
+        color="#00897B";
+        fontcolor="#00897B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        nextapi [label="libnextapi.so — NextAPI\nnextapi::parallel_for(begin, end, {chunk_size}, fn, ctx)\n= the ENTIRE dispatch API\nSYNCHRONOUS and blocking; fence() is a NO-OP\nDevice mutex: one kernel at a time\nNo streams, no queues, no kernel launch\nFull API surface NOT DISCLOSED", fillcolor="#B2DFDB"];
+        memapi [label="NextAPI memory\nnextapi_memory_copy / _fill\nnextapi_mem_migrate(ptr, n, PAGE_LOC, pin)\nPageLocation { Host, Device, Any }\nUVM: one shared virtual address space,\nplain std::aligned_alloc, exception-based\ndemand paging, pages 4 KiB .. 16 GiB", fillcolor="#B2DFDB"];
+        driver [label="Kernel driver (PCIe Gen5 device)\nNAME NOT PUBLICLY DISCLOSED\nSDK root $NEXT_HOME, default /opt/nextsilicon\nSDK versions seen in CI: 1.2.0, 1.3.0-395", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== DEV TOOLS =====================
+    subgraph cluster_tools {
+        label="Developer Tools (proprietary, telemetry-driven)";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        tools [label="Profiler | Chip Viewer | Projection Viewer\nProjection Viewer shows what happens\nINSIDE each mill core in real time\nPatent US11995419B1: source<->graph GUI,\ncontrol-flow branch counters, cache bins,\nHBM occupancy; logical -> compute ->\nhardware -> projection levels", fillcolor="#FFE0B2"];
+        ktools [label="Kokkos Tools (open)\nDeviceType::NextSilicon\ndevice_id reporting stubbed (CS-611)", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="NextSilicon Maverick-2 Hardware (TSMC 5nm, 2.5D, 1.5 GHz)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        grid [label="Dataflow Grid\n224 compute blocks per die (4 regions)\nhundreds of ALUs per block (count NOT DISCLOSED)\nDispatcher + Reservation Station + MMU/TLB + MEP\nNo instruction stream, no branch predictor,\nno speculation", fillcolor="#283593", fontcolor="white"];
+        ecores [label="32 RISC-V E-cores per die (64 on OAM)\nFallback tier 2 — serial logic and\ndata movement the grid cannot parallelize", fillcolor="#283593", fontcolor="white"];
+        hostcpu [label="External x86 Host CPU\nFallback tier 3\n(~80% of instruction runtime is\nclaimed to stay on the grid)", fillcolor="#283593", fontcolor="white"];
+        memhw [label="Memory\nTile SRAM (SW-managed, non-coherent, DMA)\n128/256 MB HW cache\nHBM3E 96 GB @ 3.2 TB/s / 192 GB @ 6.4 TB/s", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== LIMITATIONS NOTE =====================
+    limits [label="RUNTIME LIMITATIONS (from upstream Kokkos source)\nprintf from grid code does not work (CS-515) | abort does not work (CS-694)\nfork() unsupported | device-side cycle counters unavailable (PR #9378)\nKOKKOS_IF_ON_HOST/DEVICE cannot be resolved at compile time — a runtime\nthread-local is required, because a kernel may legitimately run on the host\nKokkos maturity: of 16 tracked levels only RangePolicy parallel_for +\nDeepCopy/View have landed (issue #9032). No parallel_reduce, MDRange,\nTeamPolicy, scratch memory, parallel_scan, SIMD, Containers or Algorithms yet.", shape=note, fillcolor="#FFF9C4", style="filled"];
+
+    // ===================== EDGES =====================
+
+    // Source -> compiler
+    src -> nextcxx;
+    kokkos -> nextcxx [label="Kokkos_ENABLE_NEXTSILICON=ON", fontsize=8];
+    roadmap -> nextcxx [style=dotted, color="#BBBBBB", label="not yet", fontsize=8];
+    na -> src [style=invis];
+
+    // Compiler chain
+    nextcxx -> mlir [label="LLVM IR -> MLIR", fontsize=8];
+    mlir -> binary [label="AOT, once", fontsize=8];
+
+    // JIT loop
+    binary -> train;
+    train -> telem [label="branch counts", fontsize=8];
+    telem -> optimize;
+    optimize -> project [label="optimized compute graph", fontsize=8];
+    project -> devrun [label="mill cores laid down", fontsize=8];
+    devrun -> telem [label="CONTINUOUS re-optimization —\n'the longer the code runs,\nthe better it gets'", fontsize=8, color="#EA4335", style=bold];
+    project -> cache [style=dashed, label="persist", fontsize=8];
+    cache -> project [style=dashed, label="reuse on next run", fontsize=8];
+    binary -> tless [style=dotted, color="#BBBBBB", label="alternative path\n(disabled)", fontsize=8];
+    tless -> project [style=dotted, color="#BBBBBB"];
+
+    // Runtime
+    devrun -> nextapi [label="dispatch", fontsize=8];
+    kokkos -> nextapi [style=dashed, color="#AAAAAA", label="parallel_for", fontsize=8];
+    nextapi -> memapi [style=dashed];
+    nextapi -> driver;
+    memapi -> driver;
+
+    // Tools
+    optimize -> tools [style=dashed, color="#AAAAAA", label="nextsystemd\n--ui-collector-address", fontsize=8];
+    kokkos -> ktools [style=dashed, color="#AAAAAA"];
+
+    // Driver -> hardware
+    driver -> grid;
+    project -> grid [style=dashed, color="#EA4335", label="projection", fontsize=8];
+    grid -> ecores [style=dashed, label="fallback", fontsize=8];
+    ecores -> hostcpu [style=dashed, label="fallback", fontsize=8];
+    grid -> memhw;
+    memapi -> memhw [style=dashed, label="UVM page migration", fontsize=8];
+
+    // Note anchor
+    nextapi -> limits [style=dotted, arrowhead=none];
+}

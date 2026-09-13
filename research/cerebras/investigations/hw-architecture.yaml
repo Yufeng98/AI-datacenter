@@ -1,0 +1,302 @@
+resource: hw-architecture
+url: https://www.cerebras.ai/chip
+type: docs_site
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+commit_sha: null
+doc_version: "WSE-3 (2024) — still current as of 2026-08-08; no WSE-4 / CS-4 announced"
+chip: cerebras
+device_class: Wafer-Scale Engine
+
+layer_mappings:
+  - layer: Compute Engine
+    component: "900K PE Array (FP16/BF16 8-wide SIMD, INT8 16-wide SIMD, FP32)"
+    confidence: confirmed
+    sources:
+      - https://www.cerebras.ai/chip
+      - https://hc2024.hotchips.org/assets/program/conference/day2/72_HC2024.Cerebras.Sean.v03.final.pdf
+      - https://arxiv.org/html/2503.11698v1
+
+  - layer: Data Path
+    component: "Swarm 2D Mesh Fabric (5-port routers, 32-bit wavelet messages, 24 colors, ~1 ns/hop)"
+    confidence: confirmed
+    sources:
+      - https://www.cerebras.ai/blog/cerebras-architecture-deep-dive-first-look-inside-the-hw-sw-co-design-for-deep-learning
+      - https://hc2024.hotchips.org/assets/program/conference/day2/72_HC2024.Cerebras.Sean.v03.final.pdf
+
+  - layer: On-chip Memory
+    component: "44 GB Distributed On-chip SRAM (48 KB/PE, single-cycle, no HBM)"
+    confidence: confirmed
+    sources:
+      - https://www.cerebras.ai/press-release/cerebras-announces-third-generation-wafer-scale-engine
+      - https://arxiv.org/html/2503.11698v1
+
+  - layer: Off-chip Memory
+    component: "MemoryX (DRAM+Flash tiers, 4TB–2.4PB, weight-streaming-only)"
+    confidence: confirmed
+    sources:
+      - https://www.cerebras.ai/blog/announcing-the-cerebras-architecture-for-extreme-scale-ai
+      - https://www.cerebras.ai/system
+
+  - layer: Host Interface / Package
+    component: "CS-3 Chassis (PCIe host, water-cooling cold plate, custom 300mm wafer PCB substrate)"
+    confidence: confirmed
+    sources:
+      - https://www.cerebras.ai/system
+      - https://www.cerebras.ai/blog/100x-defect-tolerance-how-cerebras-solved-the-yield-problem
+
+  - layer: Scale-up Interconnect
+    component: "Swarm On-chip 2D Mesh (100 Pb/s aggregate, <1 pJ/bit, ~1 ns/hop, hardware router per PE)"
+    confidence: confirmed
+    sources:
+      - https://www.cerebras.ai/blog/cerebras-architecture-deep-dive-first-look-inside-the-hw-sw-co-design-for-deep-learning
+
+  - layer: Scale-out Interconnect
+    component: "SwarmX Fabric (100GbE + RoCE RDMA, tree topology, up to 2048 CS-3s, broadcast+reduce)"
+    confidence: confirmed
+    sources:
+      - https://www.cerebras.ai/blog/announcing-the-cerebras-architecture-for-extreme-scale-ai
+      - https://www.cerebras.ai/press-release/cerebras-systems-announces-worlds-first-brain-scale-artificial-intelligence-solution
+
+framework_integrations:
+  - framework: PyTorch
+    integration_point: "Lazy Tensor Core (LTC) backend; PyTorch ops captured as CIRH graph and compiled to PE binary"
+  - framework: Weight Streaming Runtime
+    integration_point: "MemoryX + SwarmX coordinate layer-by-layer weight dispatch to WSE during forward/backward pass"
+  - framework: CSL (Cerebras Software Language)
+    integration_point: "Low-level kernel language; maps directly to PE compute units, SRAM DSDs, and Swarm wavelet routing"
+
+key_abstractions:
+  - name: Processing Element (PE)
+    description: "Atomic compute+memory unit: 48KB SRAM + FP16/BF16 8-wide SIMD + INT8 16-wide SIMD + 5-port mesh router. 900K instances on one wafer. Each runs own CSL program."
+  - name: Swarm 2D Mesh
+    description: "On-wafer interconnect: hardware router per PE, 32-bit wavelet messages, 24 colors/PE, ~1 ns/hop, 100 Pb/s aggregate. Replaces NVLink within chip."
+  - name: Wavelet
+    description: "32-bit data+color-tag message; fundamental inter-PE communication unit. Arrival on a color triggers the associated CSL task on receiving PE."
+  - name: MemoryX
+    description: "External weight-only storage appliance: DRAM+Flash, 4TB–2.4PB elastic. Decouples model parameter storage from on-chip compute for large-model training."
+  - name: SwarmX
+    description: "Scale-out fabric: tree topology, 100GbE+RoCE RDMA. Broadcasts weights from MemoryX to all CS-3s; reduces gradients from all CS-3s. Up to 2,048 systems."
+  - name: Defect Tolerance Layer
+    description: "0.05mm² PE size + 1–1.5% redundant PEs + dynamic routing remapping. Enables commercial wafer-scale yield at TSMC 5nm 300mm."
+
+generations:
+  - name: WSE-1
+    process: TSMC 16nm
+    cores: 400000
+    sram_gb: 18
+    released: "2019"
+  - name: WSE-2
+    process: TSMC 7nm
+    transistors_trillions: 2.6
+    cores: 850000
+    sram_gb: 40
+    sram_bw_pbs: 20
+    released: "2021"
+  - name: WSE-3
+    process: TSMC 5nm
+    transistors_trillions: 4
+    cores: 900000
+    sram_gb: 44
+    sram_bw_pbs: 21
+    peak_fp16_pflops: 125
+    die_area_mm2: 46225   # corrected 2026-08-08 from 46255 (transposed digit); source: https://www.cerebras.ai/chip
+    released: "2024"
+    status_2026_08_08: "current / shipping"
+
+system:
+  name: CS-3
+  chip: WSE-3
+  tdp_kw: 23
+  max_model_params: "24e12"
+  external_memory_max_tb: 1200
+  max_cluster_size: 2048
+  max_cluster_pflops: 250000
+
+execution_modes:
+  layer_pipelined:
+    model_fits_on_sram: true
+    off_chip_weight_access: none
+    use_case: "models ≤ 44GB parameters"
+  weight_streaming:
+    model_fits_on_sram: false
+    weights_from: MemoryX
+    activations: on_chip_sram
+    use_case: "models up to 120T parameters"
+
+no_hbm: true
+no_dram_for_activations: true
+
+# =====================================================================
+# Update appended 2026-08-08 — roadmap scan window 2026-04-01 → 2026-08-08
+# Each fact group carries its own confidence and sources.
+# =====================================================================
+update_2026_08_08:
+
+  corrections_to_prior_repo_state:
+    - fact: "WSE-3 die area is 46,225 mm², not 46,255 mm². The prior repo value was a transposed digit."
+      field: generations[WSE-3].die_area_mm2
+      old_value: 46255
+      new_value: 46225
+      confidence: confirmed
+      sources:
+        - https://www.cerebras.ai/chip
+    - fact: >-
+        The repo source 'announcing-the-cerebras-architecture-for-extreme-scale-ai' is a 2021-08-24 post
+        about WSE-2 / CS-2 weight streaming, MemoryX and SwarmX. Valid for weight streaming; NOT evidence
+        for any 2026 rack-scale product. Annotated as such in chips/cerebras/summary.md.
+      confidence: confirmed
+      sources:
+        - https://www.cerebras.ai/blog/announcing-the-cerebras-architecture-for-extreme-scale-ai
+
+  new_generation:
+    - fact: "No WSE-4 and no CS-4 has been announced as of 2026-08-08. The WSE-3 / CS-3 baseline remains current."
+      confidence: confirmed_negative
+      evidence:
+        - "cerebras.ai/chip describes only WSE-3"
+        - "Cerebras blog index Apr–Jul 2026 contains no hardware-generation announcement"
+        - "Flex July 2026 expansion scales CS-3 assembly, not a new system"
+      notes: "A third-party wiki lists WSE-4 as 'anticipated' — speculation, not carried."
+      sources:
+        - https://www.cerebras.ai/chip
+        - https://www.cerebras.ai/blog
+
+  disaggregated_inference_amd_helios:
+    announced: "2026-07-23"
+    venue: "AMD Advancing AI 2026"
+    status: announced_only          # not sampling, not shipping, not deployed
+    expected_availability: "H2 2026, initially through Cerebras Cloud"
+    facts:
+      - fact: "AMD Helios rack-scale (Instinct) performs prefill — prompt and large-context processing."
+        confidence: confirmed
+        sources:
+          - https://newsroom.amd.com/news/aai-2026-cerebras-inference/
+          - https://www.cerebras.ai/press-release/amd-and-cerebras-announce-industry-leading-ultra-low-latency-and-high-throughput-ai-inference
+      - fact: "The Cerebras Wafer-Scale Engine performs decode / token generation."
+        confidence: confirmed
+        sources:
+          - https://newsroom.amd.com/news/aai-2026-cerebras-inference/
+      - fact: >-
+          Performance claim: 'expected to deliver up to 5x higher tokens per second per watt'. This is a
+          VENDOR MODELLING CLAIM, not a measurement. AMD footnote: 'Based on modelling by AMD Performance
+          Labs and Cerebras in July 2026 to determine tokens per second per kilowatt (TPS/kW) at a comparable
+          interactivity point with Kimi 2.6 1T Model comparing an AMD Helios rackscale solution with Cerebras
+          WSE to a Cerebras WSE-only configuration.' Headline unit (T/s/W) and footnote unit (TPS/kW) differ.
+          Baseline is Cerebras-WSE-only, NOT a GPU baseline.
+        confidence: confirmed_as_vendor_claim
+        sources:
+          - https://newsroom.amd.com/news/aai-2026-cerebras-inference/
+      - fact: "Cerebras plans to deploy AMD Helios systems in its own data centers."
+        confidence: confirmed
+        sources:
+          - https://newsroom.amd.com/news/aai-2026-cerebras-inference/
+    not_disclosed:
+      - tier_to_tier_interconnect
+      - kv_state_and_activation_handoff_mechanism
+      - rack_power_and_node_topology_of_combined_system
+      - price_and_sku
+    excluded_low_confidence:
+      - fact: "AWS Trainium prefill + CS-3 decode arrangement"
+        confidence: low
+        reason: "Appears only in secondary trade press (eWeek); no primary source. Not carried into the survey."
+    layer_impact:
+      layer: Scale-out Interconnect
+      component: "Heterogeneous prefill/decode disaggregation (AMD Helios prefill tier + WSE decode tier)"
+      note: >-
+        Qualifies but does not delete the 'CS-3 is a self-contained system' limitation. First non-Cerebras
+        accelerator to appear upstream of the WSE within a single inference request.
+
+  scheduled_disclosures:
+    - event: "Hot Chips 38 (HC38), Stanford Memorial Auditorium, 2026-08-23 → 2026-08-25"
+      talk: "The Cerebras Rack-Scale Architecture for Wafer Scale Engine"
+      speaker: "Jean-Philippe (J.P.) Fricker, Cerebras"
+      session: "AI 1"
+      when: "Tuesday 2026-08-25, 2:15–4:15 PM PDT"
+      status: "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public"
+      confidence: confirmed   # confirmed that the talk is scheduled; NOTHING about its content is known
+      caution: "Do NOT cite this talk title as the source of any specification. Re-scan after 2026-08-25."
+      sources:
+        - https://hotchips.org/advance-program/
+
+  manufacturing_and_capacity:
+    - fact: >-
+        Flex and Cerebras expanded their partnership with new lines in Milpitas, California supporting an
+        anticipated ~7x increase in CS-3 production capacity through 2026.
+      date: "2026-07-09"
+      status: announced
+      confidence: confirmed
+      sources:
+        - https://investors.flex.com/news/news-details/2026/Flex-and-Cerebras-Expand-Partnership-to-Scale-American-Manufacturing-of-Cerebras-AI-Supercomputers/default.aspx
+        - https://www.engineering.com/flex-and-cerebras-expand-partnership/
+    - fact: >-
+        Target of 200 MW of AI compute capacity in Europe by end of 2027, first European capacity online by
+        end of 2026, sited in France and the Nordics. Announced by CEO Andrew Feldman at the RAISE Summit, Paris.
+      date: "2026-07-09"
+      status: stated_target_not_built_capacity
+      confidence: confirmed
+      sources:
+        - https://investors.cerebras.ai/news-releases/news-release-details/cerebras-systems-accelerates-european-expansion-200mw-ai-compute
+
+  corporate:
+    - fact: >-
+        IPO priced 2026-05-13 at $185/share, 30 million Class A shares, ~$5.55B gross, implying ~$56.4B
+        fully diluted valuation at the offer price.
+      confidence: confirmed
+      sources:
+        - https://www.reuters.com/legal/government/cerebras-prices-ipo-185-per-share-raise-555-billion-sources-say-2026-05-13/
+    - fact: >-
+        Began trading on Nasdaq under ticker CBRS on 2026-05-14. Opened $350, intraday high ~$385, closed
+        $311.07 (+68%), ~$106.75B fully diluted. Reported as the largest US tech IPO since Uber (2019).
+      confidence: confirmed
+      supersedes: "repo line 'IPO filed 2024; publicly traded CBRS 2025'"
+      sources:
+        - https://www.reuters.com/legal/transactional/cerebras-set-debut-stock-market-gripped-by-ai-mania-2026-05-14/
+        - https://www.cnbc.com/2026/05/14/cerebras-cbrs-stock-trade-nasdaq-ipo.html
+        - https://www.nasdaqprivatemarket.com/company/cerebras/
+        - https://builtin.com/articles/cerebras-launches-ipo-20260515
+    - fact: >-
+        OpenAI committed to purchase up to 750 MW of compute over three years, running through 2028, in a
+        deal reported as worth more than $10 billion. Signed commercial purchase commitment, NOT deployed capacity.
+      date: "2026-01-14"
+      confidence: confirmed
+      sources:
+        - https://www.reuters.com/technology/openai-buy-compute-capacity-startup-cerebras-around-10-billion-wsj-reports-2026-01-14/
+        - https://www.cnbc.com/2026/01/14/cerebras-scores-openai-deal-worth-over-10-billion.html
+        - https://techcrunch.com/2026/01/14/openai-signs-deal-reportedly-worth-10-billion-for-compute-from-cerebras/
+    - fact: "Q1 FY2026 results: GAAP revenue $193.4M; record core revenue $191.3M, up 92% year over year."
+      date: "2026-06-23"
+      confidence: confirmed
+      sources:
+        - https://investors.cerebras.ai/news-releases/news-release-details/cerebras-systems-announces-strong-first-quarter-2026-results
+
+  rejected_figures:
+    - figure: "$9.5B IPO valuation"
+      reason: "Off by ~6x against the $56.4B offer-price valuation; does not match the $5.55B raised. Originated in a headline slug."
+      confidence: refuted
+    - figure: "$25B OpenAI backlog"
+      reason: "Aggregator-only (stocktitan) around the Q1 FY2026 report; could not be confirmed against the primary release; conflicts in magnitude with the January $10B figure."
+      confidence: unverified
+    - figure: "WSE-3 die area 46,255 mm²"
+      reason: "Transposed digit; vendor states 46,225 mm²."
+      confidence: refuted
+
+  benchmarks:
+    - fact: "MLPerf status not re-verified in this pass."
+      confidence: unverified
+      detail: >-
+        No Cerebras submission appears in any retrieved coverage of MLPerf Training v6.0 (results ~2026-06-16)
+        or MLPerf Inference v6.0, but no official MLCommons results table could be retrieved. Absence from
+        trade coverage is not proof of non-submission. Repo limitation retained, marked last verified 2026-04-05.
+      sources:
+        - https://www.hpcwire.com/off-the-wire/mlcommons-releases-mlperf-training-v6-0-results/
+
+  scan_limitations:
+    - "WebSearch budget exhausted; verification used direct primary-source fetches plus DuckDuckGo HTML/lite result pages."
+    - "403/429/timeout encountered on: CNBC direct, SEC EDGAR, HPCwire, DataCenterDynamics, Cerebras IR PDF."
+    - "A few corporate figures rest on search-result snippets rather than full-article reads; hardware figures rest on directly fetched vendor pages."
+
+  follow_up:
+    - "Re-scan after 2026-08-25 for the HC38 rack-scale slide deck."
+    - "Re-check MLPerf Training/Inference v6.0 against an official MLCommons results table."
+    - "Verify the six unconfirmed product/blog items (Multi-LoRA 2026-05-06, Kimi K2.6 2026-05-19, Gemma 4 2026-06-29, Upstage 2026-07-10, sovereign-AI 2026-05-26, G42 India–UAE 2026-06-01) against cerebras.ai/blog."
+    - "Watch for disclosure of the AMD Helios <-> WSE tier-to-tier interconnect when the product reaches Cerebras Cloud in H2 2026."

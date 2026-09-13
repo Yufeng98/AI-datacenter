@@ -1,0 +1,234 @@
+chip: sk-hynix-aim
+investigation: hw-architecture
+date: "2026-04-05"
+confidence: high
+sources:
+  - url: "https://hc34.hotchips.org/assets/program/posters/hc34.SKhynix.YongkeeKwon.v03.pdf"
+    type: conference_poster
+    title: "System Architecture and Software Stack for GDDR6-AiM — HC34"
+  - url: "https://ieeexplore.ieee.org/document/9499894"
+    type: peer_reviewed_paper
+    title: "Hardware Architecture and Software Stack for PIM — ISCA 2021"
+  - url: "https://ieeexplore.ieee.org/document/9895629/"
+    type: peer_reviewed_paper
+    title: "System Architecture and Software Stack for GDDR6-AiM — IEEE"
+  - url: "https://ieeexplore.ieee.org/document/10664793/"
+    type: peer_reviewed_paper
+    title: "SK Hynix AiMX-xPU — Hot Chips 2024 IEEE"
+
+architecture:
+  paradigm: "Processing-in-Memory (PIM)"
+  product_name: "GDDR6-AiM / AiMX"
+  memory_base: "GDDR6"
+  key_principle: "MAC units embedded at DRAM bank boundary; all-bank parallel operation"
+
+gddr6_aim_device:
+  banks: 16
+  pseudo_channels: 2
+  banks_per_pseudo_channel: 8
+  mac_units_per_pseudo_channel: 1
+  mac_units_per_package: 2
+  mac_unit:
+    type: "FP16 SIMD"
+    lanes: 16
+    per_lane: "1x FP16 multiplier + 1x FP16 adder"
+    execution: "SIMD (lock-step)"
+    register_files: 3
+  total_fp16_lanes_per_package: 32
+
+bandwidth:
+  external_io_GB_per_s: 64
+  internal_dram_TB_per_s: 4.0
+  speed_grade_gbps_per_pin: 16
+  operating_voltage_V: 1.25
+
+aimx_card:
+  gen1:
+    packages: 16
+    capacity_GB: 16
+    interface: PCIe
+  gen2_2024:
+    packages: 32
+    capacity_GB: 32
+    interface: PCIe
+    roadmap_capacity_GB: 256
+
+performance:
+  speedup_vs_cpu_dram: "up to 16x"
+  power_reduction_pct: 80
+  llm_attention_speedup_vs_gpu: "10x"
+  power_vs_gpu_pct: 20
+
+deployment:
+  mode: "Heterogeneous co-processor (pairs with CPU or GPU)"
+  target_ops: ["GEMV", "embedding lookup", "KV-cache attention", "RNN inference"]
+  standalone: false
+
+compatibility:
+  jedec_gddr6: true
+  backward_compatible: true
+  notes: "AiM commands via extended ISR; standard GDDR6 commands still work"
+
+# ============================================================
+# Re-investigation appended 2026-08-08
+# window: 2026-04-05 -> 2026-08-08
+# verdict: no in-window hardware development; two pre-baseline backfills
+# ============================================================
+update_2026_08_08:
+  date: "2026-08-08"
+  window_start: "2026-04-05"
+  window_end: "2026-08-08"
+  change_class: minor
+  in_window_hardware_change: false
+  note: >-
+    Nothing material changed for AiM/AiMX in the window. The 'minor' class is
+    justified only by pre-baseline backfill (prototype status, vLLM/Supermicro
+    demo topology), not by any new development.
+  verification_caveat: >-
+    Verifying pass exhausted its WebSearch budget; corroboration came from
+    DuckDuckGo HTML result pages plus direct fetches. GitHub REST API returned
+    403, so the simulator last-commit date was read off the rendered commits page.
+
+  verified_negatives:
+    confidence: high
+    facts:
+      - id: hot_chips_38_no_aim_talk
+        statement: >-
+          Hot Chips 38 (Aug 23-25, 2026, Stanford) lists no SK hynix AiM/AiMX talk.
+          SK hynix appears only in Tutorial 1 (Memory Technology, Sun Aug 23) with an
+          HBM base-die talk. PIM content in the Tuesday Memory session is Samsung's
+          LPDDR5X-PIM and the XCENA/Samsung MX1 CXL computational-memory device.
+        event_status: "FUTURE EVENT as of 2026-08-08 — program public, but no slides, abstracts or specs exist; never cite as evidence of a spec"
+        tutorial_title_and_speaker: "not disclosed / not confirmed — two independent reads of hotchips.org returned different strings"
+        confidence: high
+      - id: fms_2026_no_aim
+        statement: >-
+          FMS 2026 (Aug 4-6, 2026): SK hynix showed HBF (with Sandisk), HBM4/HBM4E,
+          SOCAMM2, DDR5 RDIMMs, QLC eSSD, and CXL (CMM-Ax, CMM-Hybrid, Pooled Memory).
+          AiM/AiMX not mentioned.
+        confidence: high
+      - id: isscc_2026_no_pim_paper
+        statement: >-
+          ISSCC 2026 (Feb 2026): SK hynix papers were LPDDR6 (16 Gb, ~14.4 Gbps/pin)
+          and GDDR7. No SK hynix PIM/AiM paper.
+        confidence: high
+      - id: simulator_dormant
+        statement: "arkhadem/aim_simulator (Ramulator 2.0, ~70 stars, 66 commits) last commit 2025-07-22 ('LPDDR5 debugged and tested'); no in-window activity."
+        confidence: high
+      - id: only_in_window_mention_is_educational
+        statement: >-
+          Only in-window SK hynix item touching AiM is the educational post
+          '[Tech Note EP.1] It's the Memory - The Future of AI Will Be Decided by
+          Memory' (2026-05-12), restating the GDDR6-AiM bottleneck-absorption
+          argument. No specs, no roadmap, no product news.
+        confidence: high
+    sources:
+      - "https://www.hotchips.org/"
+      - "https://news.skhynix.com/en/fms-2026/"
+      - "https://news.skhynix.com/en/hbf-at-fms-2026/"
+      - "https://www.allaboutcircuits.com/news/sk-hynix-details-low-power-ddr6-sdram-isscc-2026/"
+      - "https://github.com/arkhadem/aim_simulator/commits/main"
+      - "https://news.skhynix.com/en/tech-note-series-ep1/"
+
+  not_confirmed_treat_as_nonexistent:
+    confidence: high
+    items:
+      - "AiM Gen3"
+      - "GDDR7-AiM"
+      - "HBM-based AiM"
+      - "AiM logic inside an HBM4 custom base die"
+      - "any MLPerf submission using AiMX"
+      - "any public AiM SDK release"
+      - "any cancellation or discontinuation announcement"
+    sources:
+      - "https://www.hotchips.org/"
+      - "https://news.skhynix.com/?s=AiM"
+
+  productization_status:
+    confidence: high
+    status: "prototype"
+    as_of: "2026-08-08"
+    vendor_wording: >-
+      "SK hynix's accelerator card prototype featuring a GDDR6-AiM chip which is
+      specialized for large language models (LLMs)"
+    source_date: "2026-01-05"
+    event: "CES 2026 (show Jan 6-9, 2026); press release dated 2026-01-05"
+    sampling: false
+    shipping: false
+    named_customer: "not disclosed"
+    volume: "not disclosed"
+    sources:
+      - "https://www.prnewswire.com/news-releases/sk-hynix-showcases-next-generation-ai-memory-innovation-at-ces-2026-302653161.html"
+      - "https://news.skhynix.com/en/sk-hynix-showcases-next-generation-ai-memory-innovations-at-ces-2026/"
+
+  rejected_claims:
+    - claim: "SK hynix has already deployed its PIM-based accelerator, AiM, in real-world applications"
+      source: "https://www.trendforce.com/news/2026/03/10/news-beyond-hbm-samsung-sk-hynix-reportedly-explore-next-gen-ai-memory/"
+      source_date: "2026-03-10"
+      verdict: REJECTED
+      confidence: high
+      reason: >-
+        Single secondary source summarizing a Korean outlet; names no customer,
+        date or volume; directly contradicts SK hynix's own CES 2026 'prototype'
+        wording; no independent corroboration found. Status verb must remain
+        'prototype / publicly demonstrated'.
+    - claim: "CES 2026 16-layer 48 GB HBM4 at 1.5 TB/s"
+      verdict: PARTIALLY_REJECTED
+      confidence: high
+      reason: >-
+        16-layer / 48 GB is confirmed by the SK hynix press release; the 1.5 TB/s
+        bandwidth figure is not confirmed by any primary source and is recorded as
+        "not disclosed".
+      sources:
+        - "https://www.prnewswire.com/news-releases/sk-hynix-showcases-next-generation-ai-memory-innovation-at-ces-2026-302653161.html"
+
+  demonstrated_system_topology:
+    confidence: high
+    note: "First publicly described multi-card AiMX configuration (pre-baseline backfill)"
+    chassis: "Supermicro GPU SuperServer SYS-421GE-TNRT3"
+    gpus: "2 x NVIDIA H100"
+    aimx_cards: 4
+    card_to_card_link: "not disclosed (standard PCIe; no proprietary link mentioned)"
+    aggregate_capacity: "not disclosed"
+    aggregate_bandwidth: "not disclosed"
+    performance_figures: "not disclosed"
+    events:
+      - name: "AI Infra Summit 2025"
+        post_date: "2025-10-01"
+        event_date: "~2025-09 (summit); cite the post date"
+      - name: "2025 OCP Global Summit"
+        post_date: "2025-10-31"
+    sources:
+      - "https://news.skhynix.com/en/ai-infra-summit-2025/"
+      - "https://news.skhynix.com/en/sk-hynix-showcases-full-stack-ai-memory-portfolio-at-2025-ocp-global-summit/"
+      - "https://www.techpowerup.com/341520/"
+
+  adjacent_compute_memory_concepts:
+    confidence: medium
+    note: >-
+      Shown at CES 2026 alongside AiMX. None of these is AiM; recorded as context
+      only. Not separately tracked in this survey.
+    items:
+      - name: CuD
+        expansion: "Compute-using-DRAM"
+        description: "performs simple computations within the memory cells"
+      - name: CMM-Ax
+        expansion: "CXL Memory Module - Accelerator"
+        description: "adds compute to CXL memory expansion"
+      - name: cHBM
+        expansion: "custom HBM"
+        description: "integrates GPU/ASIC functions into the HBM base die"
+    ces_2026_headline_memory_product: "16-layer 48 GB HBM4 (bandwidth: not disclosed)"
+    sources:
+      - "https://www.prnewswire.com/news-releases/sk-hynix-showcases-next-generation-ai-memory-innovation-at-ces-2026-302653161.html"
+
+  direction_of_travel:
+    confidence: medium
+    statement: >-
+      SK hynix's 2026 compute-memory messaging emphasizes CXL (CMM-Ax, CMM-Hybrid,
+      Pooled Memory), cHBM and HBF over AiM. On the public record AiM/AiMX is in
+      maintenance/positioning mode rather than productization. This is an
+      interpretation, not a vendor statement.
+    sources:
+      - "https://news.skhynix.com/en/fms-2026/"
+      - "https://news.skhynix.com/en/sk-hynix-showcases-next-generation-ai-memory-innovations-at-ces-2026/"

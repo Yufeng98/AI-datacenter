@@ -1,0 +1,155 @@
+digraph pezy_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.55;
+    nodesep=0.35;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mpi [label="MPI\n(OpenMPI / Intel MPI)\nMulti-node HPC\ncollective operations", fillcolor="#D6E4F0"];
+        hpc_apps [label="Scientific Applications\n(Fortran / C / C++)\nn-body, lattice QCD,\ngenomics, fluid dynamics", fillcolor="#D6E4F0"];
+        no_ml [label="PyTorch — ANNOUNCED, UNVERIFIABLE\n(PEZY release 2025-06-06: PyTorch +\nAccelerate / DeepSpeed / Transformers /\nvLLM / TGI / Diffusers on PEZY-SC3)\nNo public repo, tag, version or benchmark\nNo JAX / TensorFlow / ONNX Runtime", fillcolor="#E8E8E8", style="rounded,filled,dashed"];
+    }
+
+    // ===================== PROGRAMMING MODEL =====================
+    subgraph cluster_pzcl {
+        label="Programming Model — PZCL (OpenCL 1.2 base; access-controlled)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pzcl_api [label="PZCL Host API\n(OpenCL 1.2-based)\nContext / Queue / Buffer\nKernel launch\n(access-controlled: contact PEZY)", fillcolor="#D4EDDA"];
+        pzcl_tutorial [label="PEZY Systems Tutorial\n(pezy-mokumoku.github.io)\nPartially public\nOpenCL-analog model", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        host_cc [label="Host Compiler\n(GCC / Clang)\nAMD EPYC x86-64", fillcolor="#E4DEFF"];
+        pzcl_cc [label="PZCL Kernel Compiler\n(proprietary)\nOpenCL-C → PEZY PE binary\nPEZY ISA (undisclosed)\n(MIPS64-derived in SC2)", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pzcl_rt [label="PZCL Runtime\nPlatform/device/context mgmt\nCommand queue dispatch\nHost ↔ HBM3 DMA\nScratchpad management", fillcolor="#F8D7DA"];
+        riscv_rt [label="RISC-V Management (SC4s)\nQuad-core Rocket Core @ 1.5 GHz\nOn-chip Linux (host-independent)\nPE init, PCIe endpoint mgmt", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        driver [label="Linux PCIe Driver\n(proprietary kernel module)\nioctl via PZCL runtime\nBAR mapping + DMA", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ib [label="InfiniBand 400 Gb/s NDR\n(per node in ZettaScaler4.0)\nStandard MPI collectives\n(no proprietary NCCL-analog)", fillcolor="#FFE0CC"];
+        pcie_p2p [label="PCIe Peer-to-Peer\n(intra-node, 4x SC4s)\nNo proprietary scale-up fabric\n(no NVLink / xGMI)", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        isa [label="Proprietary PEZY PE ISA\n(MIPS64-derived in SC2;\nSC4 undisclosed)\nNo virtual ISA (no PTX)\nNo public assembler", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="PEZY-SC4s Hardware (TSMC 5nm, 556 mm², ~600W — still pre-production as of 2026-08-08; simulated results only)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        compute [label="2,048 MIMD PEs @ 1.5 GHz\n8-thread SMT/PE (16,384 total threads)\n4-wide FP64 (256-bit SIMD)\nFP32 / FP16 / BF16 (new) / INT8\nNO warp divergence\n~24.6 TFLOPS FP64 (simulated)", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nL1: 4KB I + 4KB D + 24KB scratchpad/PE\nL2: 32KB I + 64KB D / City (16 PEs)\nL3: 64 MB shared / State (2,048 PEs)\nTotal on-chip SRAM: ~140 MB est.\nHBM3: 4 stacks × 96 GB = 3.2 TB/s", fillcolor="#283593", fontcolor="white"];
+        mgmt [label="RISC-V Management (on-chip)\nQuad Rocket Core @ 1.5 GHz\nLinux OS (host-independent)\nPE management + PCIe endpoint", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="ZettaScaler 4.0 System\n4× SC4s/node + AMD EPYC 9555P (Zen5 64C)\n400 Gb/s NDR InfiniBand\nLiquid immersion cooling\n90-node test: 8.6 PF FP64 / ~91 GF/W FP64 (sim.)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Application -> MPI / PZCL
+    hpc_apps -> pzcl_api;
+    hpc_apps -> mpi [style=dashed];
+
+    // PZCL API -> Compiler
+    pzcl_api -> host_cc;
+    pzcl_api -> pzcl_cc [label="kernel compile"];
+    pzcl_tutorial -> pzcl_api [style=dashed, label="docs", color="#888888", fontsize=8];
+
+    // Compiler -> Runtime
+    pzcl_cc -> pzcl_rt [label="PE binary"];
+    host_cc -> pzcl_rt [style=dashed];
+
+    // Runtime -> Driver
+    pzcl_rt -> driver;
+    pzcl_rt -> riscv_rt [style=dashed, label="on-chip mgmt"];
+
+    // Runtime -> Communication
+    pzcl_rt -> pcie_p2p [style=dashed, label="intra-node"];
+    mpi -> ib [style=dashed, label="inter-node"];
+
+    // Driver -> Hardware
+    driver -> compute [label="PCIe Gen5 dispatch"];
+    driver -> mem [label="DMA weight load", style=dashed];
+    driver -> mgmt [label="boot/manage", style=dashed];
+
+    // ISA connection
+    pzcl_cc -> isa [style=dashed, label="outputs", color="#795548", fontcolor="#795548", fontsize=8];
+
+    // Hardware internal
+    mem -> compute [label="stream @ 3.2 TB/s"];
+    mgmt -> compute [label="PE management\n(RISC-V → PE array)", style=dashed];
+    compute -> mem [label="writeback", style=dashed];
+    pcie_p2p -> interconnect [label="physical fabric"];
+    ib -> interconnect [label="inter-node"];
+}

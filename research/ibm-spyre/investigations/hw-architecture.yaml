@@ -1,0 +1,364 @@
+chip: ibm-spyre
+as_of: "2026-08-08"
+device_class: "Inference Accelerator (SIMD-Systolic Dataflow, scratchpad-managed)"
+investigation: hw-architecture
+
+# ── Product identity / maturity ───────────────────────────────────────────────
+product:
+  name: "IBM Spyre Accelerator"
+  also_known_as: "IBM AIU (Artificial Intelligence Unit) — the name still used throughout the software stack"
+  vendor: IBM
+  host_systems: ["IBM z17", "IBM LinuxONE 5", "IBM Power11"]
+  form_factor: "Single-slot PCIe card, no auxiliary power connector"
+  workload_scope: "Inference only (no public training support; hardware training capability not disclosed)"
+  announced: "2025-10-07"
+  ga_z17_linuxone5: "2025-10-28"
+  ga_power11: "early December 2025"
+  maturity: "shipping (GA) — sold as a priced system option"
+  deployed_at_scale: false
+  deployment_note: >-
+    No named external at-scale production deployment is public. Pre-GA validation is documented only at
+    IBM Yorktown Heights and the University at Albany Center for Emerging AI Systems. Record as
+    'shipping (GA)', NOT 'deployed at scale'.
+  do_not_conflate_with: >-
+    IBM Telum II on-die AI unit (zAIU), a CPU-integrated accelerator reached via the NNPA instruction and
+    served by zDNN/zDLC. Spyre is a discrete PCIe ASIC with a separate software path.
+  confidence: confirmed
+  sources:
+    - https://newsroom.ibm.com/2025-10-07-ibm-introduces-the-spyre-accelerator-for-commercial-availability
+    - https://research.ibm.com/blog/building-the-ibm-spyre-accelerator
+    - https://research.ibm.com/blog/lifting-the-cover-on-the-ibm-spyre-accelerator
+
+# ── Lineage ───────────────────────────────────────────────────────────────────
+lineage:
+  milestones:
+    - year: 2018
+      what: "14 nm half-core prototype (VLSI)"
+      confidence: likely       # secondary technical coverage only
+    - year: 2020
+      what: "14 nm full core, two-corelet structure"
+      confidence: likely
+    - year: 2021
+      what: "7 nm four-core chip (ISSCC 2021)"
+      confidence: likely
+    - year: 2022
+      what: >-
+        IBM AIU research chip: 32 cores, 23 B transistors, 5 nm; IBM describes it as 'the scaled version of
+        an already proven AI accelerator built into our Telum chip', with cores that 'closely resemble the
+        AI core embedded in the Telum chip' of z16
+      confidence: confirmed
+    - year: 2024
+      what: "5 nm 32-core SoC with full power management previewed at Hot Chips 2024"
+      confidence: confirmed
+    - year: 2026
+      what: "ISSCC 2026 paper presented (2026-02-15/16)"
+      confidence: confirmed
+  sources:
+    - https://research.ibm.com/blog/ibm-artificial-intelligence-unit-aiu
+    - https://research.ibm.com/blog/spyre-for-z
+    - https://morethanmoore.substack.com/p/ibms-spyre-ai-accelerator-deep-dive
+
+academic_publication:
+  venue: "ISSCC 2026"
+  title: "Spyre: An Inference-Optimized Scalable AI Accelerator for Enterprise Workloads"
+  authors_lead: "Cohen, Kar, Venkataramani, Srinivasan, Veraa, Ziegler, Cao, Ranjan, Silberman, Guillorn, ... Chang"
+  pages: "52-54"
+  doi: "10.1109/ISSCC49663.2026.11409090"
+  presented: "2026-02-15/16"
+  note: >-
+    A 3-page ISSCC circuits paper, NOT a full architecture paper. The deepest public microarchitecture
+    description is IBM Research's 2026-02-18 blog post plus the IBM-authored torch-spyre developer docs.
+  confidence: confirmed
+  sources:
+    - https://research.ibm.com/publications/spyre-an-inference-optimized-scalable-ai-accelerator-for-enterprise-workloads
+    - https://dblp.org/rec/conf/isscc/CohenKVSVZCRSGWLHKMNSHG26
+
+# ── Compute Engine ────────────────────────────────────────────────────────────
+compute_engine:
+  ai_cores_active: 32
+  ai_cores_physical: 34
+  spare_cores: 2
+  spare_rationale: "yield"
+  core_grid: "8x4"
+  corelets_per_core: 2
+  matrix_unit:
+    name: "PT (Processing Tensor) execution unit"
+    structure: "2D 8x8 SIMD-systolic PE array per corelet = 64 low-precision math engines"
+    ops: [matmul, bmm, conv2d, "fused epilogues"]
+  vector_unit:
+    name: "SFU (Special Function Unit, a.k.a. SFP) / 1D vector array"
+    structure: "IBM's blog states two 1D vector arrays per corelet"
+    ops: ["GELU", "softmax", "element-wise", "normalization"]
+  total_math_engines: 4096      # 32 cores x 2 corelets x 64 — arithmetic, not a published figure
+  total_math_engines_confidence: likely
+  datatypes_2d_array: [fp16, fp8, int8, int4]
+  datatypes_1d_vector: [fp32, fp16, fp8, int8, int4]
+  compiler_visible_formats: ["DL16 (IBM DLFloat16)", FP32, FP8, INT8, INT4]
+  clock_frequency: "not disclosed"
+  register_file_capacity: "not disclosed"
+  simd_width_per_math_engine: "not disclosed"
+  op_library: >-
+    SuperDSC catalogs 70+ OpFunc primitives: BatchMatMul and Conv2D in FP8/FP16/INT4/INT8, broadcast
+    add/sub/mul, BatchNorm/LayerNorm, GELU/ReLU/Sigmoid/Exp/Log, sum/max/min/mean/absmax reductions,
+    avg/max pooling, depthwise conv, quantization/CSQ conversions, TopK
+  confidence: confirmed
+  sources:
+    - https://research.ibm.com/blog/lifting-the-cover-on-the-ibm-spyre-accelerator
+    - https://torch-spyre.readthedocs.io/en/latest/architecture/spyre_accelerator.html
+    - https://torch-spyre.readthedocs.io/en/latest/getting_started/glossary.html
+    - https://github.com/torch-spyre/interface-specs/blob/main/0248-SdscBundleSpec/SuperDSC-Bundle.md
+
+peak_throughput:
+  ibm_primary_statement: ">300 TOPS per card while consuming just 75 W"
+  ibm_primary_confidence: confirmed
+  ibm_primary_sources:
+    - https://torch-spyre.readthedocs.io/en/latest/architecture/spyre_accelerator.html
+  per_datatype:
+    fp16_tops: 98
+    fp8_tops: 157
+    int8_tops: 315
+    int4_tops: 629
+    int8_tops_per_watt: 4.2
+    confidence: unconfirmed
+    note: >-
+      Per-datatype breakdown appears ONLY in secondary technical coverage attributed to ISSCC 2026. It is
+      not present in any IBM primary source. Do not present as IBM-stated.
+    sources:
+      - https://morethanmoore.substack.com/p/ibms-spyre-ai-accelerator-deep-dive
+
+# ── On-chip Memory ────────────────────────────────────────────────────────────
+on_chip_memory:
+  name: "LX scratchpad"
+  type: "Software/compiler-managed SRAM scratchpad"
+  hardware_cache: false
+  hardware_cache_quote: >-
+    "There is no hardware cache. The compiler decides which tensors reside in LX at each point in the
+    computation and emits explicit load/store instructions to move data."
+  capacity_per_core_mb: 2
+  shared_by: "the core's two corelets"
+  usable_per_core_mb: 1.6
+  usable_note: "~1.6 MB usable after backend reservations; budget enforced by the Inductor LX planning pass"
+  total_on_chip_mb: 64
+  total_on_chip_confidence: likely
+  total_on_chip_note: "64 MB = 32 cores x 2 MB — arithmetic, not a directly published IBM figure"
+  eviction_policy: "none — by design"
+  eviction_quote: >-
+    "There is no mechanism to move a buffer to HBM and reload it later. This is deliberate."
+  two_level_microarchitecture: >-
+    IBM describes a '2-level programmable SRAM scratchpad microarchitecture' per core. Only the 2 MB LX
+    level is quantified anywhere; the inner level feeding the PE array is not sized.
+  inner_level_size: "not disclosed"
+  lx_to_pe_bandwidth: "not disclosed"
+  confidence: confirmed
+  sources:
+    - https://torch-spyre.readthedocs.io/en/latest/architecture/dataflow_architecture.html
+    - https://torch-spyre.readthedocs.io/en/latest/compiler/scratchpad_planning.html
+    - https://torch-spyre.readthedocs.io/en/latest/getting_started/key_concepts.html
+    - https://research.ibm.com/blog/lifting-the-cover-on-the-ibm-spyre-accelerator
+
+# ── Off-chip Memory ───────────────────────────────────────────────────────────
+off_chip_memory:
+  type: LPDDR5
+  capacity_gb_per_card: 128
+  channels: 16
+  channel_rate_gbps: 6.4
+  peak_bandwidth_gbps: 204
+  physical_organization: "8 dual-channel LPDDR5 modules on the PCIe card (not packaged on the SoC)"
+  ecc: "SECDED on all DRAM"
+  ecc_confidence: likely       # secondary only
+  management: "Runtime-allocated (SpyreAllocator / FlexAllocator); observable at runtime only"
+  transfer_granularity:
+    name: stick
+    bytes: 128
+    elements_fp16: 64
+    compiler_constant: "BYTES_IN_STICK = 128"
+    rationale_quote: >-
+      "matches the natural bandwidth between LPDDR5 device memory and the per-core LX scratchpad, enabling
+      full-stick transfers in single operations"
+    heritage: "Direct inheritance of the zAIU/zDNN 'stickified tensor' layout on Telum"
+  per_core_span_limit_mb: 256
+  per_core_span_note: "Maximum contiguous device-memory span addressable by one core; enforced by the compiler 'span reduction' pass"
+  job_address_space: "128 GB per job in 8 segments of <=16 GB; SegmentId=7 reserved for SpyreCode; addresses 128 B-aligned"
+  legacy_naming_note: "SuperDSC JSON uses the field name 'HBM' for device memory as legacy nomenclature — Spyre uses LPDDR5"
+  other_capacities: "not disclosed"
+  confidence: confirmed
+  sources:
+    - https://research.ibm.com/blog/lifting-the-cover-on-the-ibm-spyre-accelerator
+    - https://torch-spyre.readthedocs.io/en/latest/architecture/spyre_accelerator.html
+    - https://torch-spyre.readthedocs.io/en/latest/compiler/work_division_planning.html
+    - https://github.com/torch-spyre/interface-specs/blob/main/0277-SpyreCode/0277-SpyreCodeSpec.md
+    - https://www.ibm.com/docs/en/systems-hardware/zsystems/9175-ME1?topic=introduction-spyre-accelerator
+
+# ── Execution model / data path ───────────────────────────────────────────────
+execution_model:
+  paradigm: "Statically scheduled dataflow"
+  eligibility_rule: "An operation is eligible to execute as soon as all of its input operands are available"
+  scheduling: "All work division, data staging and kernel specification decided at compile time; no runtime dispatcher"
+  claimed_benefit: "Deterministic execution latency vs. GPU scheduling jitter and cache effects"
+  parallel_model: "SPMD across cores — cores follow a common program structure but operate on different tiles, selected by core ID"
+  data_path: "Host -> LPDDR5 -> LX scratchpad -> PT/SFU -> LX -> LPDDR5 -> Host, with compiler-emitted loads/stores"
+  sync_points: "Multi-input ops (concat, residual add) are explicit synchronization points"
+  absent_features: ["hardware caches", "out-of-order execution", "warp scheduler", "runtime kernel dispatch"]
+  programmer_constraints:
+    static_shapes_required: true
+    dynamic_shapes: "WIP"
+    default_device_dtype: fp16
+    int64_behavior: "silently downcast to int32"
+    alignment: "inner dimensions must be 128 B aligned"
+  program_correction: >-
+    For kernels with symbolic addresses or dynamic dimensions, a host callback patches loop counts and
+    address references into the device binary immediately before launch
+  virtualization:
+    modes: [PF, VF]
+    env_var: "FLEX_DEVICE=PF|VF"
+    vf_addressing: "Physical addresses unavailable; memory referenced by region_id + 128 B-aligned offset via firmware lookup"
+  confidence: confirmed
+  sources:
+    - https://torch-spyre.readthedocs.io/en/latest/architecture/dataflow_architecture.html
+    - https://torch-spyre.readthedocs.io/en/latest/getting_started/key_concepts.html
+    - https://github.com/torch-spyre/interface-specs/blob/main/0277-SpyreCode/0277-SpyreCodeSpec.md
+    - https://github.com/torch-spyre/RFCs/blob/main/0171-SpyreDevice/0171-SpyreDeviceRFC.md
+
+# ── Interconnect ──────────────────────────────────────────────────────────────
+on_chip_interconnect:
+  topology: "Bi-directional ring connecting all 32 active cores"
+  width_bytes_per_cycle_per_direction: 128
+  aggregate_bandwidth: "not disclosed"
+  aggregate_bandwidth_note: "128 B/cycle/direction cannot be converted to GB/s without the clock, which is not published"
+  compiler_awareness: >-
+    K-split matmul reductions apply a codegen-side core-ID permutation placing collaborating cores on
+    adjacent ring positions, reducing hop counts from m x n to 1
+  confidence: confirmed
+  sources:
+    - https://torch-spyre.readthedocs.io/en/latest/architecture/spyre_accelerator.html
+    - https://torch-spyre.readthedocs.io/en/latest/compiler/work_division_planning.html
+
+host_interface:
+  form_factor: "Single-slot PCIe card, no auxiliary power connector"
+  ibm_primary_statement: "'PCIe card' with 'fully pipelined DMA/RDMA support' — generation and lane count not stated"
+  pcie_generation_lanes: "PCIe Gen5 x16, 64 GB/s"
+  pcie_confidence: unconfirmed
+  pcie_note: "Gen5 x16 / 64 GB/s appears only in secondary technical coverage; IBM primary says only 'PCIe card'"
+  dma_description: "Transfers described by DCI (Data Conversion Information): loop ranges, strides, dtype"
+  sources:
+    - https://research.ibm.com/blog/lifting-the-cover-on-the-ibm-spyre-accelerator
+    - https://morethanmoore.substack.com/p/ibms-spyre-ai-accelerator-deep-dive
+
+scale_up:
+  proprietary_fabric: false
+  mechanism: "Standard PCIe switch fabric with direct card-to-card RDMA, bypassing the host CPU"
+  isscc_wording: "scales over a standard PCIE fabric"
+  card_to_card_bandwidth: "64 GB/s, CRC-protected"
+  card_to_card_confidence: unconfirmed
+  card_to_card_note: "64 GB/s + CRC appear only in secondary coverage; IBM primary confirms only 'fully pipelined DMA/RDMA support'"
+  chassis_limit_z17_linuxone5_cards: 48
+  chassis_limit_z17_memory_tb: 6.1
+  chassis_limit_power11_cards: 16
+  chassis_limit_power11_memory_tb: 2.0
+  single_model_ensemble_cards: 8
+  single_model_ensemble_memory_tb: 1.0
+  ensemble_note: >-
+    IBM Docs and torch-spyre docs both state 'ensembles of up to eight cards delivering 1 TB memory'; the
+    spyreccl collective backend likewise supports up to 8 cards, on-node only. The ISSCC abstract says
+    'scales up to 4 or more devices for large generative models'. 48/16 is the CHASSIS limit; 8 is the
+    current single-model ensemble limit. The gap between them is undocumented.
+  stale_figure_warning: >-
+    The widely repeated '8 cards / 256 cores' is IBM's August 2024 Hot Chips preview (one I/O drawer), not
+    the shipping product.
+  conflicting_secondary: >-
+    One secondary source states '48 cards per tray, 192 per system' for z17, but its own memory total
+    (6.1 TB) corresponds to 48 cards x 128 GB, and both IBM primary sources say 48. USE 48.
+  confidence: confirmed
+  sources:
+    - https://research.ibm.com/blog/lifting-the-cover-on-the-ibm-spyre-accelerator
+    - https://newsroom.ibm.com/2025-10-07-ibm-introduces-the-spyre-accelerator-for-commercial-availability
+    - https://www.ibm.com/docs/en/systems-hardware/zsystems/9175-ME1?topic=introduction-spyre-accelerator
+    - https://research.ibm.com/publications/spyre-an-inference-optimized-scalable-ai-accelerator-for-enterprise-workloads
+
+scale_out:
+  multi_node: false
+  note: "Spyre Comms is explicitly on-node (single server) only; multi-node listed as a possible future addition with no roadmap date"
+  confidence: confirmed
+  sources:
+    - https://github.com/torch-spyre/RFCs/blob/main/0099-MultiDevice/0099-MultiDeviceRFC.md
+    - https://torch-spyre.readthedocs.io/en/latest/runtime/index.html
+
+# ── Physical / electrical ─────────────────────────────────────────────────────
+physical:
+  process_node: "5 nm CMOS (standard node)"
+  process_confidence: confirmed
+  transistors_billion: 25.6
+  transistors_confidence: confirmed
+  die_size_mm2: 330
+  die_size_confidence: unconfirmed
+  die_size_note: "330 mm^2 appears only in secondary technical coverage attributed to ISSCC 2026; no IBM primary confirmation"
+  wire_length: "14 miles of interconnect"
+  wire_length_confidence: confirmed
+  standard_cells:
+    library: "7T (chosen over denser 6T — 6T needed extra buffers at 0.55 V)"
+    tradeoff: "9% synthesis-frequency reduction -> 7.5% power saving; re-synthesis -> +8% power, +6% area"
+    confidence: unconfirmed
+    note: "ISSCC-attributed via secondary coverage"
+  voltage_domains:
+    high_activity_ai_core_array_v: 0.55
+    timing_critical_sram_ip_v: 0.75
+    confidence: confirmed
+  power_management:
+    scheme: "Dual-loop controller — fast inner loop absorbs peak-current spikes; slower software-controlled outer loop adjusts the average-current target"
+    scheme_confidence: confirmed
+    claimed_benefit: "25% higher inference throughput vs. a single-loop controller"
+    claimed_benefit_confidence: unconfirmed
+    claimed_benefit_note: "Vendor/ISSCC claim via secondary coverage"
+  tdp_w: 75
+  tdp_confidence: confirmed
+  idle_power: "not disclosed"
+  thermal_solution: "not disclosed"
+  sustained_vs_peak_power: "not disclosed"
+  sources:
+    - https://research.ibm.com/blog/lifting-the-cover-on-the-ibm-spyre-accelerator
+    - https://research.ibm.com/blog/spyre-for-z
+    - https://morethanmoore.substack.com/p/ibms-spyre-ai-accelerator-deep-dive
+
+# ── Vendor claims (all internal testing; no independent benchmark exists) ──────
+vendor_claims:
+  - claim: "2-to-3x better power/performance than GPUs on encoder-class models"
+    source: "ISSCC 2026 abstract"
+    label: "vendor claim — no baseline configuration disclosed"
+    confidence: confirmed_as_a_claim
+  - claim: ">8 million documents/hour ingestion for knowledge-base builds at prompt size 128"
+    detail: "internal testing, 1M-unit dataset, batch size 128, single card"
+    source: "IBM Newsroom 2025-10-07"
+    label: "vendor claim"
+    confidence: confirmed_as_a_claim
+  - claim: "Near-linear scaling up to 8 cards"
+    source: "ISSCC 2026 via secondary coverage"
+    label: "vendor claim"
+    confidence: unconfirmed
+  - claim: "4.2 TOPS/W at int8"
+    source: "secondary / ISSCC-attributed"
+    label: "vendor claim"
+    confidence: unconfirmed
+independent_benchmarks:
+  exist: false
+  note: "No MLPerf or other independent benchmark results for Spyre exist publicly as of 2026-08-08"
+  confidence: confirmed
+
+# ── Explicit non-disclosures ──────────────────────────────────────────────────
+not_disclosed:
+  - "SoC clock frequency"
+  - "Aggregate on-chip ring NoC bandwidth in GB/s (ring is 128 B/cycle/dir; clock unknown)"
+  - "Sizes of the two levels of the 2-level programmable SRAM scratchpad microarchitecture"
+  - "Register-file capacity / SIMD width of each of the 64 math engines per corelet"
+  - "Bandwidth between the LX scratchpad and the PT/SFU execution units"
+  - "IBM primary confirmation of die size (330 mm^2 is secondary only)"
+  - "IBM primary confirmation of PCIe generation and lane count"
+  - "IBM primary confirmation of card-to-card RDMA bandwidth"
+  - "Per-datatype peak throughput from an IBM primary source"
+  - "Total on-chip SRAM as an officially published figure (64 MB is arithmetic)"
+  - "Spyre ISA — no instruction set, encoding, assembler or init.bin format published"
+  - "Idle power, thermal solution, sustained-vs-peak power behaviour"
+  - "Whether card memory configurations other than 128 GB LPDDR5 exist"
+  - "IBM feature codes and list price"
+  - "Named external production customers or at-scale deployment figures"
+  - "Any training capability, or whether the hardware could support training"
+  - "Number of cards addressable by a single model beyond 8 (chassis supports 48; gap undocumented)"

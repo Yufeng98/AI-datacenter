@@ -1,0 +1,61 @@
+chip: tenstorrent
+investigation: tt-metal
+as_of: "2026-04-05"
+source_repo: https://github.com/tenstorrent/tt-metal
+clone_path: /tmp/tt-metal-investigate
+status: complete
+
+key_abstractions:
+  - name: Device
+    description: "Represents a single Tenstorrent accelerator; exposes 2D NoC grid, buffer allocation, program enqueue"
+  - name: Program
+    description: "Collection of kernels + circular buffer definitions targeting a CoreRange; JIT-compiled to RISC-V binaries"
+  - name: CircularBuffer
+    description: "L1 SRAM ring buffer used for inter-kernel producer-consumer synchronization (reader → compute → writer)"
+  - name: KernelHandle
+    description: "Reference to a compiled kernel (data movement or compute) within a Program"
+  - name: TensorAccessor
+    description: "Abstraction over interleaved/sharded DRAM tensor layout for noc_async_read_tile/write_tile"
+
+kernel_types:
+  - name: DataMovementKernel (Reader)
+    core: BRISC / RISCV_0
+    noc: NOC_0 (east/south)
+    role: "Reads input tiles from DRAM → L1 circular buffers via noc_async_read"
+  - name: DataMovementKernel (Writer)
+    core: NCRISC / RISCV_1
+    noc: NOC_1 (west/north)
+    role: "Writes output tiles from L1 circular buffers → DRAM via noc_async_write"
+  - name: ComputeKernel
+    cores: [TRISC0 (Unpack), TRISC1 (Math), TRISC2 (Pack)]
+    role: "Implements Unpack → Math (FPU/SFPU) → Pack pipeline; single source compiled 3x"
+
+noc_model:
+  topology: "2D torus (wraparound), dual NoC"
+  noc0_direction: "east + south"
+  noc1_direction: "west + north"
+  link_width_bytes: 32
+  data_movement: explicit
+  cache_hierarchy: none
+
+tensix_hw:
+  risc_v_cores: 5
+  l1_sram_mb: 1.5
+  matrix_unit: "FPU (32x32 tile matmul, BF16/FP16/FP8/INT8)"
+  vector_unit: "SFPU (32-lane SIMD)"
+  noc_routers: 2
+  native_tile: "32x32"
+
+key_insight: >
+  No hardware cache hierarchy above L1 SRAM. All inter-core and DRAM data movement
+  is explicit via NoC API calls. Programmer/compiler controls every byte transfer.
+  This enables predictable bandwidth but requires explicit pipelining via circular buffers.
+
+confidence: confirmed
+sources:
+  - url: https://github.com/tenstorrent/tt-metal/blob/main/METALIUM_GUIDE.md
+    type: primary_doc
+  - url: https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/index.html
+    type: official_doc
+  - url: https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/tt_metal/advanced_topics/memory_for_kernel_developers.html
+    type: official_doc

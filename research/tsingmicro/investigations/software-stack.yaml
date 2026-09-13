@@ -1,0 +1,397 @@
+chip: tsingmicro
+as_of: "2026-08-08"
+device_class: "Reconfigurable Dataflow / CGRA \"RPU\" (China, 清微智能)"
+investigation: software-stack
+
+# ── Framing ───────────────────────────────────────────────────────────────────
+stack_brand:
+  name: RAISA
+  vendor_four_layer_description:
+    1: "适配行业应用及生态框架，主要包括各行业 Agent 及模型应用，主流训练与推理框架"
+    2: "支持应用层适配，提供自研 C/C++ 接口语言且支持通用 Triton 编程语言，提供自研高性能算子库"
+    3: "根据上层需求对计算图进行全局优化，实现上层应用与硬件的高性能对接"
+    4: "提供完整配套工具和开发套件，涵盖驱动、容器、虚拟化及配套开发者工具链"
+  publicly_verifiable: "only the Triton path in layer 2"
+  developer_portal: "none — developer/doc/docs/open.tsingmicro.com all fail to resolve"
+  pytorch_device_name: txda
+  pytorch_dispatch_key: PrivateUse1
+  confidence: confirmed
+  sources:
+    - https://www.tsingmicro.com/products/tx8/series
+
+attribution_traps:
+  - trap: "FlagTree third_party/rpu on the main branch is the Rhino RPU from Huixi Intelligence (辉羲智能), a different company that also uses the term RPU."
+    correct: "Tsingmicro's backend is third_party/tsingmicro on the triton_v3.3.x branch ONLY."
+    confidence: confirmed
+    sources:
+      - https://github.com/FlagTree/flagtree/blob/main/README.md
+  - trap: "TS.Knight (Knight-Quantize -> Knight-RNE-Compiler -> Simulator -> Profiling -> Finetune, targeting the RNE engine) is the TX5 EDGE flow."
+    correct: "There is no public TS.Knight support for TX8/TX81. The TX8 flow is Triton/FlagTree plus the closed Kuiper runtime."
+    confidence: confirmed
+    sources:
+      - https://github.com/tsingmicro-toolchain/ts.knight-modelzoo
+
+cuda_compatibility_claim:
+  vendor_claim: "支持 CUDA 生态算子的平滑兼容 / 零代码迁移"
+  assessment: "MARKETING. Nothing public demonstrates CUDA source or binary compatibility."
+  actual_compatibility_surface:
+    - "HIP-shaped host runtime API (txLaunchKernelGGL mirrors hipLaunchKernelGGL; txMalloc, txStreamCreate, txEventRecord, ...)"
+    - "NCCL-shaped collectives library (TCCL)"
+    - "Triton as a portable kernel language"
+  confidence: confirmed
+  sources:
+    - https://github.com/FlagOpen/FlagCX/blob/main/flagcx/adaptor/device/tsmicro_adaptor.cc
+    - https://github.com/FlagOpen/FlagCX/blob/main/flagcx/adaptor/ccl/tccl_adaptor.cc
+
+layers:
+
+  framework_integration:
+    - name: torch_txda
+      function: "PyTorch device plugin — registers device 'txda' via PrivateUse1"
+      artifact: "torch_txda-0.1.0+20260416.b8f53e8a-cp310-cp310-linux_x86_64.whl"
+      api: "torch.txda.{is_available, current_device, set_device, current_stream, get_device_properties, get_device_capability}; streams as torch.txda.current_stream(dev).txda_stream"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/scripts/publish/README.md
+
+    - name: FlagGems _tsingmicro backend
+      repo: https://github.com/tsingmicro-public-e/FlagGems
+      function: "BAAI Triton operator library, vendor backend"
+      descriptor: "VendorDescriptor(vendor_name='tsingmicro', device_name='txda', device_query_cmd='tsm_smi', dispatch_key='PrivateUse1', fp64_enabled=False, int64_enabled=False)"
+      tuning: "tune_configs.yaml, 1313 lines, ~37 op families incl. attention, attention_bwd, bmm, mm, softmax, layernorm"
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://github.com/tsingmicro-public-e/FlagGems/blob/master/src/flag_gems/runtime/backend/_tsingmicro/__init__.py
+        - https://github.com/tsingmicro-public-e/FlagGems/blob/master/src/flag_gems/runtime/backend/_tsingmicro/tune_configs.yaml
+
+    - name: vllm-plugin-FL / sglang-plugin-FL forks
+      function: "Serving-framework forks, described as 'support txda'"
+      open_source: true
+      maturity: "thin — last pushed Jul 2026; no txda-specific directories visible in the READMEs"
+      confidence: likely
+      sources:
+        - https://github.com/tsingmicro-public-e/sglang-plugin-FL
+
+    - name: FlagScale / Megatron-LM-FL / TransformerEngine-FL / PyTorch-Plugin-FL forks
+      function: "Training-side ecosystem forks, maintained through Aug 2026"
+      open_source: true
+      maturity: "thin / aspirational — upstream PyTorch-Plugin-FL contains NO txda backend (CUDA/MetaX/Ascend only)"
+      confidence: likely
+      sources:
+        - https://github.com/tsingmicro-public-e/PyTorch-Plugin-FL
+
+    - name: txops
+      function: "Vendor PyTorch operator wheel"
+      artifact: "txops-0.1.0+20260508.60287151-py3-none-any.whl"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/scripts/publish/README.md
+
+  graph_capture:
+    status: "none public"
+    detail: "No torch.compile / TorchDynamo / FX integration is visible. Public execution is per-kernel Triton JIT plus FlagGems op dispatch, not whole-graph capture."
+    confidence: confirmed
+    note: "Absence of evidence in a 609-file open backend plus the vendor's own release scripts; a private path may exist inside RAISA."
+
+  graph_compiler:
+    name: "RAISA graph-optimisation layer"
+    vendor_description: "根据上层需求对计算图进行全局优化，实现上层应用与硬件的高性能对接"
+    component_name: "not disclosed"
+    ir: "not disclosed"
+    torch_compile_or_inductor_based: "not disclosed"
+    public_artifact: none
+    open_source: false
+    maturity_signal: "TXDA_FALLBACK_CPU_OPS lists ~60 ops falling back to CPU (sort, gather, index, pad, embedding_backward, cat, add, mul, sum, ...); TXDA_SKIP_OPS also present"
+    confidence: unconfirmed
+    note: "Whether this exists as a distinct artifact at all is unverifiable from public sources."
+    sources:
+      - https://www.tsingmicro.com/products/tx8/series
+      - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/scripts/publish/run_flaggems_on_multicards.sh
+
+  kernel_compiler:
+    - name: "FlagTree tsingmicro backend"
+      repo: https://github.com/FlagTree/flagtree/tree/triton_v3.3.x/third_party/tsingmicro
+      branch: triton_v3.3.x
+      file_count: 609
+      integrated: "2025-06-06, with CI/CD; refreshed through 2026-05/06"
+      backend_class: TXDABackend
+      target: "GPUTarget(backend='txda')"
+      binary_ext: so
+      co_author: "Terapines Technology (Wuhan) / 兆松科技 — copyright header on every .td/.cpp"
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/main/README.md
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/backend/compiler.py
+
+    - name: "Compiler stages"
+      pipeline: "ttir -> coreir -> txir -> llir -> so"
+      ttir: "inliner, ttir-combine, canonicalize, reorder-broadcast, CSE, LICM, symbol-DCE"
+      coreir: "--triton-to-core-dialects, --tle-to-mk, --dsa-memory-to-core, --linalg-tiling, --core-dialects-to-mk=precision-mode={0|1|2}, --linalg-fusion, --legalize-tensor-form-loops, --one-shot-bufferize, --convert-bufferization-to-memref, --materialize-strided-linalg-inputs, [--mk-pipeline=num-stages=N], [--mk-loop-bound-canonicalize]"
+      txir: "--spmd-allocate-shared-memory, --expand-strided-metadata, --lower-affine, --mk-to-tx81, --tx81-insert-barrier, --tx81-resolve-dma-base-addr"
+      llir: "--tx81-memref-to-llvm, --addr-to-llvm, --convert-scf-to-cf, --convert-math-to-llvm/libm, --convert-cf-to-llvm, --convert-func-to-llvm, --finalize-memref-to-llvm, --kernel-arg-buffer, --tx81-to-llvm[=gather-scatter-async=true], --convert-arith-to-llvm, --reconcile-unrealized-casts, --export-kernel-symbols, then mlir-translate --mlir-to-llvmir"
+      so: "clang++ --target=riscv64-unknown-elf -march=rv64imfdc -O2 -c ; riscv64-unknown-elf-gcc -shared -mabi=lp64d -lcommon_util -linstr_rcs1 -llibc_stub -lvr -lm"
+      precision_mode_semantics: {0: disabled, 1: "preserves i64 precision", 2: "preserves full integer precision (i32/i64 on the RISC-V CPU) — default in release test scripts"}
+      output_artifact: "RISC-V shared object (.so), not a GPU cubin"
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/backend/compiler.py
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/include/magic-kernel/Conversion/CoreDialectsToMK/Passes.td
+
+    - name: "MLIR dialects"
+      dialects: [Address, "triton-shared (vendored)", "MagicKernel (MK) + MagicKernelFunc + MagicKernelInstr", Tx81, "DSA (third_party/tle)"]
+      sizes: "MagicKernelOps.td 30 KB (~90 ops); Tx81Ops.td 47 KB (~150 ops)"
+      significance: "Tx81Ops.td is effectively a published operation-level model of the accelerator"
+      largest_pattern_files: "LinalgToMK.cpp 186 KB, Tx81ToLLVM.cpp 119 KB, MKToTx81.cpp 103 KB, ConversionPatterns.h 96 KB, MKPipelinePass.cpp 92 KB, StructuredToMemref.cpp 60 KB"
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/include/tsingmicro-tx81/Dialect/IR/Tx81Ops.td
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/include/magic-kernel/Dialect/IR/MagicKernelOps.td
+
+    - name: "Compiler tools"
+      tools: [tsingmicro-opt, tsingmicro-lsp, tsingmicro-reduce, tsingmicro-llvm-opt, tsingmicro-tensor-layout, tx-profiler]
+      open_source: true
+      confidence: confirmed
+
+    - name: "tsingmicro-llvm21"
+      function: "Vendor LLVM fork providing the RISC-V/Tx81 backend"
+      bundle: "tsingmicro-llvm21-glibc2.30-glibcxx3.4.28-python3.10-x64_v0.6.0 (LLVM 21-based; also llvm-a66376b0)"
+      source_location: "private gitlab.tsingmicro.com/triton-based-projects/llvm-project"
+      internal_codename: "ZTC (appears in header guards, e.g. ZTC_CONVERSION_LINALG_TO_MK_H)"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-tsingmicro
+
+  kernel_language:
+    - name: "Triton 3.3"
+      role: "the public kernel language for TX81"
+      open_source: true
+      note: "Pinned to the older 3.3 branch while other FlagTree vendors moved to 3.6 on main."
+      confidence: confirmed
+
+    - name: "triton.language.extra.txda.libdevice"
+      size_kb: 51
+      function: "device-function library mapping Triton math builtins to Tx81 intrinsics"
+      open_source: true
+      confidence: confirmed
+
+    - name: "TLE — Triton Language Extensions"
+      namespace: triton.experimental.tle
+      tiers: [TLE-Lite, TLE-Struct, TLE-Raw]
+      tsingmicro_uses: [TLE-DSA, TLE-distributed]
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://github.com/flagos-ai/FlagTree/wiki/TLE
+
+    - name: "TLE-DSA (scratchpad programming)"
+      api: ["tle.language.dsa.alloc(shape, dtype, scope=spm)", ".copy(GM<->SPM, SPM<->SPM)", ".local_ptr(buf, indices)", "tle.dsa.memory_space(t,'spm')"]
+      upstream_docstring: "Scratch Pad Memory – the on-chip SRAM exposed by TsingMicro TX8. This is the primary storage scope for DSA kernels and serves the same conceptual role as NVIDIA shared memory (smem)."
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/python/triton/experimental/tle/language/dsa/types.py
+
+    - name: "TLE-distributed (mesh programming)"
+      api: [tle.device_mesh, tle.sharding, tle.ShardedTensor, tle.reshard, tle.shard_id, tle.remote, tle.distributed_barrier, tle.distributed_dot]
+      significance: "This is how the tile/chip mesh is programmed from Triton. The vendor's 4096 ring-GEMM example builds a 16-tile device_mesh with an explicit Hamiltonian physical ring and does a shift-N ring matmul with tle.remote + distributed_barrier."
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/python/triton/experimental/tle/language/distributed.py
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/examples/tle/test_tle_dsa_noc_gemm_4096.py
+
+    - name: "Self-developed C/C++ interface language"
+      vendor_claim: "提供自研 C/C++ 接口语言"
+      open_source: false
+      public_artifact: none
+      confidence: unconfirmed
+      note: "Claimed in the RAISA layer-2 description; nothing public exists."
+
+  compiler_runtime_crt:
+    path: third_party/tsingmicro/crt/
+    file_count: "~130 C files"
+    contents: "__Gemm, __Rdma/__Wdma/__Rdma4d, __Send, op_gelu.c (31 KB), pow.c (21 KB), relation.c (17 KB), all dtype conversions including MXFP, DMA out-of-bounds checking with client-pointer headers (magic 0x54445841 = 'TDXA')"
+    open_source: true
+    confidence: confirmed
+    sources:
+      - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/crt/lib/Tx81/gemm.c
+
+  op_libraries:
+    - name: FlagGems
+      function: "primary public operator library (Triton kernels)"
+      open_source: true
+      confidence: confirmed
+    - name: "oplib_rcs1 / tx8be-oplib / txops / 自研高性能算子库"
+      function: "vendor closed operator libraries"
+      open_source: false
+      evidence: "referenced in CMakeLists.txt (rcs1fw-rtt/include/components/oplib_rcs1/riscv/riscv/include) and build_tx8_deps.sh"
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/CMakeLists.txt
+
+  runtime:
+    - name: "Kuiper host SDK — tx_runtime.h / libhpgr"
+      install_path: /usr/local/kuiper
+      api_shape: "near-1:1 rename of the CUDA/HIP runtime"
+      api_surface: [txSetDevice, txGetDevice, txGetDeviceCount, txGetDeviceProperty, txGetDeviceByPCIBusId, txDeviceSynchronize, txMalloc, txFree, txMallocHost, txFreeHost, txMemcpy, txMemcpyAsync, txMemset, txStreamCreate, txStreamDestroy, txStreamQuery, txStreamSynchronize, txStreamWaitEvent, txEventCreate, txEventDestroy, txEventRecord, txEventQuery, txEventSynchronize, txEventElapsedTime, txIpcGetMemHandle, txIpcOpenMemHandle, txIpcCloseMemHandle, txMemGetHandleForAddressRange, txLaunchHostFunc, txLaunchKernelGGL]
+      types: [txStream_t, txEvent_t, txIpcMemHandle_t, txError_t, txDeviceProperty, TX_SUCCESS]
+      naming_note: "txLaunchKernelGGL mirrors HIP's hipLaunchKernelGGL — HIP-flavoured, not CUDA-compatible"
+      open_source: false
+      confidence: confirmed
+      note: "Header itself is closed; the surface above was reconstructed from the open FlagCX adaptor."
+      sources:
+        - https://github.com/FlagOpen/FlagCX/blob/main/flagcx/adaptor/device/tsmicro_adaptor.cc
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/backend/txda_tools.py
+
+    - name: "Device firmware — tx81fw / rcs1fw-rtt"
+      os: "RT-Thread SMP via T-Head YoC (tx8-yoc-rt-thread-smp)"
+      distribution: "bundled in tx8_depends_dev_* tarballs"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/scripts/build_tx8_deps.sh
+
+    - name: "libinstr_rcs1.a"
+      headers: [instr_def.h, instr_adapter.h, instr_operator.h, common_base.h]
+      function: "the accelerator command/instruction ABI"
+      open_source: false
+      confidence: confirmed
+
+    - name: "Simulation — triton_cmodel / tx8be_op_cmodel / neuralcore_qemu"
+      function: "USE_SIM_MODE=1 builds against a C-model plus a QEMU neural-core simulator instead of hardware"
+      open_source: false
+      confidence: confirmed
+
+    - name: "Profiling"
+      open_components: "tx-profiler LLVM IR pass — injects addOrderProfile / TsmWaitfinish / printOrderByEvent around named trace points"
+      closed_components: "profiling_tool v5.5.0 / v5.6.0, rcs_profiling, hrt_profiler, tsm_profiler.h"
+      env_vars: [ENABLE_PROFILING, TSM_PROFILER_EN, TRACE_POINTS]
+      open_source: mixed
+      confidence: confirmed
+      sources:
+        - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/profiler/profiler.cpp
+
+  communication:
+    collective_library: "TCCL — TsingMicro Communication Collectives Library"
+    header: tccl.h
+    open_source: false
+    adaptors_open: [flagcx/adaptor/ccl/tccl_adaptor.cc, flagcx/adaptor/device/tsmicro_adaptor.cc, flagcx/adaptor/include/tsmicro_adaptor.h]
+    build_flag: USE_TSM_ADAPTOR
+    vendor_string: TSMICRO
+    api_shape: "NCCL-shaped — tcclComm_t, tcclResult_t, tcclDataType_t, tcclRedOp_t"
+    flagcx_support_matrix: "send, recv, broadcast, gather, scatter, reduce, allreduce, allgather, reducescatter, alltoall, alltoallv, group ops — in both homogeneous and heterogeneous modes"
+    algorithms: "not disclosed"
+    topology_awareness: "not disclosed"
+    achieved_bandwidth: "not disclosed"
+    confidence: confirmed
+    sources:
+      - https://github.com/FlagOpen/FlagCX/blob/main/README.md
+      - https://github.com/FlagOpen/FlagCX/blob/main/flagcx/adaptor/ccl/tccl_adaptor.cc
+
+  driver:
+    kernel_driver: "not public — ships inside the Kuiper SDK"
+    module_name: "not disclosed"
+    ioctl_interface: "not disclosed"
+    management_cli: "tsm_smi (the nvidia-smi analogue)"
+    container_image: "hub.tsingmicro.com/tx8/ubuntu/v5.7.0.0524:tsingmicro_release"
+    virtualization: "claimed in the RAISA layer-4 description (驱动、容器、虚拟化) but no technical detail is public"
+    open_source: false
+    confidence: confirmed
+    sources:
+      - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/scripts/publish/README.md
+      - https://www.tsingmicro.com/products/tx8/series
+
+  isa:
+    level_1_scalar:
+      isa: "RISC-V RV64IMFDC, ABI lp64d"
+      core: "T-Head XuanTie-900"
+      open_standard: true
+    level_2_accelerator:
+      form: "coarse-grained command descriptors"
+      descriptor_classes: [I_NEUR, I_RDMA]
+      dispatch: "RcsExecute(&inst)"
+      wait: "RcsWaitfinish() / TsmWaitfinish()"
+      builder_api: [TsmNewGemm, TsmNewConv, AddInput, AddWeight, AddBias, AddOutput, ConfigMKN, ConfigBatch, SetPsum, SetTransflag, SetQuant, SetSparse, SetPads, SetUnPads, SetKernelStrides, SetDilations, SetNegativeAxisScale, SetPositiveAxisScale, EnableRelu, EnableLeakyRelu]
+      bit_encodings: "not disclosed"
+      opcode_list: "not disclosed"
+      register_map: "not disclosed"
+      open_source: false
+    confidence: confirmed
+    sources:
+      - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/crt/lib/Tx81/gemm.c
+      - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/backend/compiler.py
+
+# ── Distribution ──────────────────────────────────────────────────────────────
+distribution:
+  wheel_index: https://resource.flagos.net/repository/flagos-pypi-hosted/simple
+  wheel: "flagtree===0.6.0+tsingmicro3.3"
+  source_build_env: [FLAGTREE_BACKEND=tsingmicro, TX8_DEPS_ROOT, LLVM_SYSPATH, LLVM_BINARY_DIR, PYTHONPATH]
+  dependency_bundles: [tx8_depends_dev_20260507_104051_v0.6.0, build-deps-triton_3.3.x-linux-x64]
+  docker_public: "flagtree-tsingmicro3.3-py310-torch2.7.0-ubuntu22.04:20260604163331-clean"
+  docker_vendor: "hub.tsingmicro.com/tx8/ubuntu/v5.7.0.0524:tsingmicro_release"
+  platform: "Python 3.10, PyTorch 2.7.0, Ubuntu 22.04, x86_64 host"
+  internal_unreachable: ["http://172.50.1.66:8082/artifactory/", "gitlab.tsingmicro.com"]
+  leaked_component_names: [tx81fw_202512041135_b731cf, tx8-yoc-rt-thread-smp-202603031631-88bfb9, profiling_tool_v5.6.0_release_2026-0228]
+  confidence: confirmed
+  sources:
+    - https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-tsingmicro
+    - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/third_party/tsingmicro/scripts/build_tx8_deps.sh
+
+ci:
+  workflow: .github/workflows/tsingmicro3.3-build-and-test.yml
+  runner: "self-hosted 'tsingmicro3.3' — runs on real hardware"
+  test_count: 14
+  known_gap: "The TLE NoC ring-GEMM test is commented out with '# TODO: fix' — the multi-tile distributed path is not CI-green."
+  confidence: confirmed
+  sources:
+    - https://github.com/FlagTree/flagtree/blob/triton_v3.3.x/.github/workflows/tsingmicro3.3-build-and-test.yml
+
+# ── Open vs closed ────────────────────────────────────────────────────────────
+open_source_inventory:
+  open:
+    - "FlagTree third_party/tsingmicro — whole compiler front/middle-end: Address + MagicKernel + Tx81 dialects, all conversion passes, SPM allocator, barrier insertion, software pipeliner, CRT C sources, 100+ examples/tests, 74 KB benchmark suite, profiler IR pass, build scripts"
+    - "TLE (triton.experimental.tle, third_party/tle)"
+    - "FlagGems _tsingmicro backend"
+    - "FlagCX tccl_adaptor.cc / tsmicro_adaptor.{cc,h}"
+    - "tsingmicro-toolchain/OnnxSlim (167 stars, MIT)"
+    - "tsingmicro-toolchain/ts.knight-modelzoo (edge only, out of scope)"
+  closed:
+    - tsingmicro-llvm21 LLVM backend
+    - libinstr_rcs1
+    - oplib_rcs1
+    - tx8be-oplib
+    - "tx81fw / rcs1fw-rtt firmware"
+    - "Kuiper host SDK (/usr/local/kuiper, libhpgr, tx_runtime.h)"
+    - kernel driver
+    - tsm_smi
+    - torch_txda
+    - txops
+    - TCCL
+    - profiling_tool
+    - "C-model and neuralcore_qemu simulators"
+    - "RAISA graph compiler"
+    - "self-developed C/C++ kernel language"
+  confidence: confirmed
+
+# ── Assessment ────────────────────────────────────────────────────────────────
+net_assessment:
+  strength: >
+    The open portion is a compiler front/middle-end plus an operation-level hardware model —
+    unusually revealing for a Chinese vendor, and sufficient to reconstruct the memory model,
+    tile count, SPM size, execution model and NoC addressing with no vendor documentation at all.
+  maturity_gaps:
+    - "Every executable layer below LLVM IR is a closed binary tied to an internal artifact server"
+    - "FlagOS ecosystem forks have ~0 stars and thin content; upstream PyTorch-Plugin-FL has no txda backend"
+    - "Backend pinned to Triton 3.3 while other FlagTree vendors moved to 3.6 on main"
+    - "Multi-tile TLE NoC test disabled in CI (# TODO: fix) — the distributed path is not CI-green"
+    - "~60 PyTorch ops still fall back to CPU (TXDA_FALLBACK_CPU_OPS)"
+    - "No public graph capture, so RAISA layer-3 'global graph optimisation' is unverifiable"
+  verdict: "Real and actively developed (commits through Aug 2026) but demonstrably earlier-stage than Ascend CANN or Cambricon Neuware. The public surface is a kernel-compiler story, not an end-to-end framework story."
+  confidence: likely

@@ -1,0 +1,377 @@
+chip: sambanova
+investigation: hw-architecture
+as_of: "2026-04-05"
+last_updated: "2026-08-08"   # see update_2026_08_08 block at end of file
+confidence: high
+sources:
+  - url: https://arxiv.org/html/2405.07518v1
+    title: "SambaNova SN40L: Scaling the AI Memory Wall with Dataflow and Composition of Experts"
+    type: architecture_paper
+  - url: https://sambanova.ai/hubfs/23945802/SambaNova_Accelerated-Computing-with-a-Reconfigurable-Dataflow-Architecture_Whitepaper_English-1.pdf
+    title: Accelerated Computing with a Reconfigurable Dataflow Architecture
+    type: whitepaper
+  - url: https://sambanova.ai/products/rdu-ai-chips
+    title: SN40L RDU Product Page
+    type: product_page
+  - url: https://sambanova.ai/blog/introducing-the-sn50-rdu-purpose-built-for-agentic-inference
+    title: Introducing the SN50 RDU
+    type: product_announcement
+  - url: https://arxiv.org/html/2311.04417v3
+    title: "Evaluating Emerging AI/ML Accelerators: IPU, RDU, and NVIDIA/AMD GPUs"
+    type: academic_paper
+
+hardware:
+  execution_model: spatial_dataflow
+  scheduling: compile_time_static
+  core_units:
+    pcu:
+      full_name: Pattern Compute Unit
+      description: Multi-stage reconfigurable SIMD pipeline; executes one innermost-parallel operation per PCU
+      count_sn40l: 1040
+    pmu:
+      full_name: Pattern Memory Unit
+      description: Distributed software-managed scratchpad SRAM; physically co-located with PCUs
+      count_sn40l: 1040
+    agcu:
+      full_name: Address Generation and Coalescing Unit
+      description: Interface between RDU and off-chip memory; handles sparse access; P2P inter-RDU
+    switching_fabric:
+      topology: 3D on-chip network
+      networks:
+        scalar: word-level data
+        vector: multi-word tensor data
+        control: bit-level predicates and enables
+
+  chips:
+    sn40l:
+      generation: 4
+      released: 2023
+      process: TSMC 5nm
+      transistors_B: 102
+      die_config: dual-die plus HBM plus DDR on-package
+      compute:
+        bf16_tflops_socket: 638
+        fp16_tflops_socket: ~688
+    sn50:
+      generation: 5
+      released: H2 2026
+      process: TSMC N3 (3nm)
+      die_config: dual-chiplet
+      compute:
+        bf16_pflops_socket: 1.6
+        fp8_pflops_socket: 3.2
+        vs_sn40l_bf16: 2.5x
+        vs_sn40l_fp8: 5x
+      native_fp8: true
+
+  memory_hierarchy:
+    tier1_on_chip_sram:
+      sn40l_capacity_mib: 520
+      sn50_capacity_mib: 432
+      bandwidth: hundreds_of_TB_per_s
+      management: compiler_managed
+    tier2_hbm:
+      sn40l:
+        capacity_gib: 64
+        bandwidth_approx: ~1 TB/s
+      sn50:
+        capacity_gib: 64
+        standard: HBM2E
+        bandwidth_tbs: 1.8
+      role: software_managed_caching_tier_between_ddr_and_sram
+    tier3_ddr:
+      sn40l:
+        max_capacity_tib: 1.5
+        standard: DDR4/DDR5
+        attach: direct_to_rdu_not_host_cpu
+      sn50:
+        capacity_range: 256GiB_to_2TiB
+        standard: DDR5
+      role: model_weight_reservoir
+
+  scale_up:
+    sn40l:
+      rdu_per_sambarack: 16
+      protocol: P2P (RDU-Connect)
+      inter_rack: InfiniBand
+      aggregate_bf16_pflops: 10.2
+    sn50:
+      max_rdu_chips: 256
+      chip_to_chip_bw_tbs: 2.2
+      fabric_type: switched
+      max_model_params: 10_trillion
+      max_context_tokens: 10_million
+      bw_vs_sn40l: 4x
+
+key_differentiators:
+  - Static compile-time model-to-hardware mapping (no runtime scheduler)
+  - Three-tier memory with DDR directly attached to accelerator (not host CPU)
+  - 520 MiB on-chip SRAM (10x+ more than GPU shared memory)
+  - Data flows PCU-to-PCU without DRAM round-trips between operators
+  - SambaFlow compiler owns all memory placement decisions
+
+# =====================================================================
+# Investigation update appended 2026-08-08 (scan window 2026-04-05 →
+# 2026-08-08). Everything above reflects the 2026-04-05 baseline and is
+# retained. Where the two disagree, the 2026-08-08 block below wins.
+# =====================================================================
+update_2026_08_08:
+  as_of: "2026-08-08"
+  change_class: major
+  scan_window: "2026-04-05 to 2026-08-08"
+
+  sources:
+    - id: sn50-press-2026-02-24
+      url: https://sambanova.ai/press/sambanova-unveils-fastest-chip-for-agentic-ai-collaborates-with-intel-and-raises-350m
+      title: "SambaNova Unveils Fastest Chip for Agentic AI, Collaborates with Intel and Raises $350M"
+      type: press_release
+      date: "2026-02-24"
+    - id: intel-blueprint-2026-04-08
+      url: https://sambanova.ai/press/sambanova-announces-collaboration-with-intel-on-ai-solution
+      title: "SambaNova and Intel Announce Blueprint for Heterogeneous Inference"
+      type: press_release
+      date: "2026-04-08"
+    - id: decode-era-post-2026-04-16
+      url: https://sambanova.ai/blog/why-dataflow-matters-more-than-ever
+      title: "The Decode Era of AI: Why Dataflow Matters More Than Ever"
+      type: vendor_blog
+      date: "2026-04-16"
+    - id: sn50-raise-post-2026-07-08
+      url: https://sambanova.ai/blog/sn50-runs-fastest-minimax-speeds-in-the-world
+      title: "SN50 Runs Fastest MiniMax Speeds in the World"
+      type: vendor_blog
+      date: "2026-07-08"
+    - id: series-f-press-2026-07-08
+      url: https://sambanova.ai/press/sambanova-completes-first-close-of-1b-financing-at-11b-valuation
+      title: "SambaNova Completes First Close of $1B Financing at $11B Valuation"
+      type: press_release
+      date: "2026-07-08"
+    - id: sn50-semianalysis-post-2026-07-30
+      url: https://sambanova.ai/blog/semianalysis-benchmarks-sambarack-sn50-with-fast-inference-on-minimax-m2.7
+      title: "SemiAnalysis Benchmarks SambaRack SN50 with Fast Inference on MiniMax M2.7"
+      type: vendor_blog
+      date: "2026-07-30"
+      caveat: vendor-reported; SemiAnalysis published nothing on its own channels
+    - id: artificial-analysis-minimax-m2-7-providers
+      url: https://artificialanalysis.ai/models/minimax-m2-7/providers
+      title: "Artificial Analysis — MiniMax-M2.7 provider comparison"
+      type: third_party_benchmark
+      fetched: "2026-08-08"
+    - id: semianalysis-archive
+      url: https://newsletter.semianalysis.com/archive?sort=new
+      title: "SemiAnalysis newsletter archive (negative evidence)"
+      type: negative_evidence
+      fetched: "2026-08-08"
+    - id: inferencex-dashboard
+      url: https://inferencex.semianalysis.com/
+      title: "SemiAnalysis InferenceX dashboard (negative evidence; 301 from inferencemax.semianalysis.com)"
+      type: negative_evidence
+      fetched: "2026-08-08"
+    - id: sambanova-docs-index-2026-08
+      url: https://docs.sambanova.ai/docs/llms.txt
+      title: "SambaNova documentation index (174 entries)"
+      type: official_docs
+      fetched: "2026-08-08"
+    - id: hotchips-38-advance-program
+      url: https://hotchips.org/advance-program/
+      title: "Hot Chips 38 advance program"
+      type: conference_program
+      fetched: "2026-08-08"
+      note: >-
+        Session AI 2, Tue 2026-08-25, "Dataflow at Scale: the SN50 RDU",
+        Raghu Prabhakar (SambaNova). Disclosure scheduled, Hot Chips 38,
+        Aug 2026 - content not yet public. NOT a spec source.
+
+  facts:
+
+    - group: sn50_availability_status
+      confidence: high
+      sources: [sn50-press-2026-02-24, intel-blueprint-2026-04-08, series-f-press-2026-07-08]
+      supersedes: "hardware.chips.sn50.released: 'H2 2026'"
+      data:
+        announced: "2026-02-24"
+        ga_target: "H2 2026"
+        shipped_to_customer_confirmed: false
+        as_of: "2026-08-08"
+        vendor_language_2026_02_24: "will start shipping to customers later this year"
+        named_customer_intent:
+          customer: JPMorganChase
+          statement: "will deploy SN40 and SN50 systems"
+          nature: stated_intent_not_delivery
+          source: series-f-press-2026-07-08
+
+    - group: sn50_demonstrated_scale
+      confidence: high
+      sources: [sn50-raise-post-2026-07-08, sn50-semianalysis-post-2026-07-30]
+      supersedes: "hardware.scale_up.sn50.max_rdu_chips: 256 (presented as achieved)"
+      data:
+        rdus_demonstrated: 16
+        platform: SambaRack SN50
+        rdus_vendor_claimed_max: 256
+        vendor_claim_status: >-
+          Future tense in SambaNova's own 2026-07-30 post:
+          "As SN50 scales to 64 and 256 chips..."
+        rack_power_kw: 20
+        sn50_rack_documentation_published: false
+
+    - group: sn50_die_specs_unsourced
+      confidence: low
+      status: extrapolated_not_sourced
+      sources: []
+      note: >-
+        Re-verification on 2026-08-08 could not corroborate any of these
+        figures. None appear in sn50-press-2026-02-24 or the SN50
+        introduction blog post. They remain in the repo tables but are
+        now explicitly labelled extrapolated. Do NOT promote to confirmed
+        without a primary disclosure.
+      unsourced_values:
+        sram_mib: 432
+        hbm_gib: 64
+        hbm_bandwidth_tbs: 1.8
+        chip_to_chip_bw_tbs_bidir: 2.2
+        bf16_tflops_socket: 1600
+        fp8_pflops_socket: 3.2
+        ddr_capacity: "256 GiB - 2 TiB DDR5"
+        pcu_count: "~2x SN40L"
+      vendor_stated_only:
+        - "256 accelerators"
+        - "multi-terabyte-per-second interconnect"
+        - "four times more network bandwidth than the previous generation"
+        - "10T+ parameter models"
+        - "10M+ context"
+        - "20 kW in a SambaRack"
+        - "5X faster"
+        - "3X lower TCO"
+
+    - group: sn50_deployment_parallelism_configs
+      confidence: high
+      sources: [sn50-semianalysis-post-2026-07-30]
+      note: >-
+        Architecturally informative independent of the throughput numbers:
+        parallelism strategy is a deployment-time choice per PEF bundle,
+        not something wholly hidden inside the compiler.
+      data:
+        rack_size_rdus: 16
+        configurations:
+          - name: fastest_interactivity
+            mapping: TP16
+            reported_tokens_per_sec: 800
+          - name: more_concurrent_users
+            mapping: TP8 + DP8
+            reported_tokens_per_sec: 400
+        model: MiniMax M2.7
+
+    - group: sn50_performance_provenance
+      confidence: high
+      sources:
+        - sn50-raise-post-2026-07-08
+        - sn50-semianalysis-post-2026-07-30
+        - artificial-analysis-minimax-m2-7-providers
+        - semianalysis-archive
+        - inferencex-dashboard
+      data:
+        - date: "2026-07-08"
+          setup: "1 NVIDIA H200 rack (4 GPUs, prefill) + 1 SambaRack SN50 (16 RDUs, decode)"
+          model: MiniMax M2.7
+          short_context_tokens_per_sec: 850
+          long_context_tokens_per_sec: ">450"
+          provenance: vendor_hosted_preview_demonstration
+          attributed_to: Artificial Analysis
+        - date: "2026-07-30"
+          setup: "1 x 16-chip SambaRack SN50, served with vLLM"
+          model: MiniMax M2.7
+          tp16_tokens_per_sec: 800
+          tp8_dp8_tokens_per_sec: 400
+          provenance: vendor_reported_pre_official_run
+          vendor_framing: "early validation"
+          independence_caveat: >-
+            SemiAnalysis has published nothing on SambaNova through its own
+            channels; its Jun-Aug 2026 newsletter archive contains no such
+            article and its InferenceX dashboard lists NVIDIA, AMD and
+            TPU v7 Ironwood but no SambaNova hardware. SambaNova's CEO is
+            quoted in the same post looking forward to "participating in
+            the official InferenceX with SN50".
+        - date: "2026-08-08"
+          setup: "Public SambaCloud endpoint"
+          model: MiniMax-M2.7
+          output_tokens_per_sec: 392.4
+          rank: "1 of 5 providers"
+          peers: {fireworks: 262.1, minimax: 61.7, novita_fp8: 59.3, gmi_fp8: null}
+          provenance: independent_third_party
+      survey_guidance: >-
+        Use 392.4 t/s for production-serving comparisons. Reserve 800-850 t/s
+        for demo-configuration comparisons and label them as such.
+
+    - group: disaggregated_prefill_decode_blueprint
+      confidence: high
+      sources: [intel-blueprint-2026-04-08, decode-era-post-2026-04-16, sn50-raise-post-2026-07-08]
+      supersedes: >-
+        chips/sambanova/summary.md rationale #7, which previously read
+        "suggests a path toward integrating RDU technology with Intel Xeon
+        platforms" - now an announced product blueprint.
+      data:
+        announced: "2026-04-08"
+        title: "Blueprint for Heterogeneous Inference: GPUs For Prefill, SambaNova RDUs for Decode, and Intel Xeon 6 CPUs for Agentic Tools"
+        roles:
+          prefill: GPUs (prompt -> KV cache)
+          decode: "SN50 RDUs - 'the dedicated inference fabric for high-throughput, low-latency decode'"
+          agentic_tools: "Intel Xeon 6 - host and 'action CPU' for task coordination and tool/API execution"
+        availability: "H2 2026"
+        mentions_vllm_or_kubernetes: false
+        demonstrated_instance: "2026-07-08 (H200 prefill rack + 16-RDU SambaRack SN50 decode)"
+      memory_tier_roles_decode_era:
+        sram: hottest local working set
+        hbm: model weights and KV cache
+        ddr: prompt caching and multi-model / agentic workflows
+      taxonomy_cross_reference:
+        - Cerebras + AMD
+        - NVIDIA + Groq-LPX
+
+    - group: corporate_financing
+      confidence: high
+      sources: [series-f-press-2026-07-08, sn50-press-2026-02-24]
+      corrects: >-
+        Pre-existing repo claim of a "$350M raise with Intel backing (Feb
+        2026)" which implied Intel led or backed the round.
+      data:
+        series_f:
+          date: "2026-07-08"
+          event: first_close
+          amount_usd: 1000000000
+          valuation_post_money_usd: 11000000000
+          lead: General Atlantic
+          participants: [Seligman Ventures, T. Rowe Price Associates]
+          use_of_proceeds: "expand capacity, accelerate product innovation, and scale deployments"
+        series_e:
+          date: "2026-02-24"
+          amount_usd_min: 350000000
+          type: strategic
+          leads: [Vista Equity Partners, Cambium Capital]
+          participant: Intel Capital
+          intel_role: participant_not_lead
+        other:
+          - {date: "2026-04-21", event: "TEPCO Systems partnership (Japan power sector)"}
+          - {date: "2026-06-12", event: "executive hires (engineering/finance leaders)"}
+          - {date: "2026-07-22", event: "joined Genesis Mission Consortium"}
+          - {date: "2026-08-04", event: "Mohsen Moazami named Vice Chair of Global Strategy and Partnerships"}
+        negative: "No acquisition, restructuring, or layoffs found in the window."
+
+    - group: sn50_architecture_disclosure_pending
+      confidence: high
+      sources: [hotchips-38-advance-program]
+      data:
+        conference: Hot Chips 38
+        dates: "2026-08-23 to 2026-08-25"
+        session: "AI 2"
+        talk_date: "2026-08-25"
+        title: "Dataflow at Scale: the SN50 RDU"
+        speaker: Raghu Prabhakar (SambaNova)
+        status: "disclosure scheduled, Hot Chips 38, Aug 2026 - content not yet public"
+        usable_as_spec_source: false
+        action: "re-scan early September 2026"
+
+  open_items:
+    - Whether an SN50 SambaRack appears in SambaStack hardware documentation (SN40L-16 only today)
+    - Whether SN50 enters the official SemiAnalysis InferenceX dataset
+    - Whether any SN50 customer delivery is confirmed
+    - Whether the SambaFlow compiler / AOT PEF model changed for SN50 (unknown; no source)

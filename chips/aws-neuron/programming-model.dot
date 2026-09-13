@@ -1,0 +1,185 @@
+digraph aws_neuron_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch_xla [label="torch-neuronx\n(PyTorch/XLA, current ≤2.9)\nxm.mark_step()\ntorch_neuronx.trace() AOT", fillcolor="#D6E4F0"];
+        pytorch_p1 [label="TorchNeuron\n(PrivateUse1, planned ≥2.10)\nEager mode + torch.compile\nFSDP/DTensor native", fillcolor="#D6E4F0"];
+        jax_neuron [label="JAX Neuron\n(StableHLO → Neuron XLA)\njax.jit compilation\nNKI via custom_call", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        neuronxcc [label="neuronx-cc\nXLA Frontend (HLO/StableHLO)\nMLIR Middle-end (Neuron dialect)\nNeuronCore ISA Back-end\nRedesigned codegen backend (2.31.0),\ndefault on Trn2/Trn3", fillcolor="#E4DEFF"];
+        nki_compiler [label="NKI Compiler\n(Apache 2.0, Neuron 2.27)\nMLIR-based, SBUF-aware\nBypasses XLA front-end\nMax computation tile size 1024 (2.30.0)", fillcolor="#E4DEFF"];
+        neff [label="NEFF\n(Neuron Executable File Format)\nInstructions + Weights + Metadata\nOffline-compilable, checksum-validated", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        nki_status [label="NKI: Beta → STABLE\n(NKI 0.3.0 / Neuron 2.29.0, 2026-04-09)\nNKI 0.5.0 current (2.31.0, 2026-07-07)\nNo Trn1/Inf2 support from 0.3.0 on", fillcolor="#FFE08A"];
+        nki_lang [label="nki.lang\nnl.ndarray (SBUF tiles)\nnl.load/store (DMA)\nnl.matmul / nl.add", fillcolor="#FFF3CD"];
+        nki_isa [label="nki.isa\nISA intrinsics\ntensor_tensor, activation\nExplicit SBUF/PSUM addressing\nactivate2 (Trn3-only, 0.4.0)\ntensor indirection .indirect() (0.5.0)", fillcolor="#FFF3CD"];
+        nki_stdlib [label="nki-stdlib (NKI Standard Library)\n(Neuron 2.29.0)\nDeveloper-visible source for all NKI APIs\nNkiTensor native object + zero-cost views", fillcolor="#FFF3CD"];
+        nki_collectives [label="nki.collectives\n(Neuron 2.27)\nall_reduce, all_gather\nreduce_scatter, all_to_all\nall_to_all_v (2.29.0)", fillcolor="#FFF3CD"];
+        nki_samples [label="nki-samples\n(GitHub, official)\nFlash Attention, GEMM\nRoPE, MoE routing", fillcolor="#FFF3CD"];
+        nki_cpusim [label="NKI CPU Simulator\n(experimental, Neuron 2.29.0)\nRuns NKI kernels on host CPU\nNo Trainium hardware required", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== AGENTIC DEVELOPMENT =====================
+    subgraph cluster_agentic {
+        label="Agentic Development (new SDK component, Neuron 2.30.0)";
+        style="rounded,dashed";
+        color="#00838F";
+        fontcolor="#00838F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        autoport [label="neuron-framework-autoport\nPorts HuggingFace models to\nNxD Inference end-to-end\n(compile + greedy-token-match validation)", fillcolor="#B2EBF2"];
+        equivalence [label="neuron-framework-equivalence\nNumerical equivalence validation\nProgressive 3-tensor R-ratio analysis\nFault localization", fillcolor="#B2EBF2"];
+    }
+
+    // ===================== DISTRIBUTED TRAINING =====================
+    subgraph cluster_dist {
+        label="Distributed Training / Inference";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        nxd_core [label="NxD Core (neuronx-distributed)\nTP: ColParallelLinear / RowParallelLinear\nPP: NxDPPModel (1F1B/interleaved)\nSP + ZeRO-1 + 3D parallelism", fillcolor="#D4EDDA"];
+        nxd_training [label="NxD Training\n(neuronx-distributed-training)\nNeMo compatibility\nLLaMA-2/3, GPT pretraining\nProject Rainier scale", fillcolor="#D4EDDA"];
+        nxd_inference [label="NxD Inference\nContinuous batching\nSpeculative decoding\nvLLM integration\nTrn2-and-newer only from 2.29.0\n(Trn1/Inf2 users pin to 2.28)", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== COLLECTIVE COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Collective Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        nccom [label="NCCom\n(Neuron Collective Communication)\nCPU-bypass AllReduce/AllGather\nReduceScatter/AllToAll\nAuto: NeuronLink vs EFA", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        libnrt [label="libnrt.so\n(In-process, no sidecar daemon)\nNEFF load + checksum validate\nDMA scheduling\nNeuronCore memory mgmt", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        dkms [label="aws-neuronx-dkms\nKernel mode driver\nPCIe BAR mapping\nCommand queues + interrupts", fillcolor="#E0E0E0"];
+        nitro [label="AWS Nitro Hypervisor\nDirect device passthrough\nNear-bare-metal PCIe\nDevice enumeration", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="AWS Neuron Hardware (Trainium / Inferentia)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        neuroncore [label="NeuronCore Compute\nTensor Engine (systolic array)\nVector + Scalar + GPSIMD Engines\nDGE (v3/v4, MoE token routing)\n(v4: 315 MXFP8 TFLOPS/core, 3nm N3P)", fillcolor="#283593", fontcolor="white"];
+        memory [label="Memory Hierarchy\nSBUF: 32 MiB (v4) | PSUM: 2 MiB\n128 partitions, software-managed\nHBM3e: 144 GiB / 4.9 TB/s (Trn3)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect\nNeuronLink-v4 + NeuronSwitch-v1 (PCIe Gen6 switch fabric)\nTrn3: 64 (Gen1) / 144 (Gen2) chips all-to-all UltraServer\nAWS spec table: 2,048 GiB/s per device\nEFAv3: 12,800 (Gen1) / 28,800 (Gen2) Gbps per UltraServer", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch_xla -> neuronxcc [label="XLA HLO", fontsize=8];
+    pytorch_p1 -> neuronxcc [label="FX graph\n(torch.compile)", fontsize=8];
+    jax_neuron -> neuronxcc [label="StableHLO", fontsize=8];
+
+    // NKI -> NKI Compiler (bypasses neuronxcc XLA front-end)
+    nki_lang -> nki_compiler;
+    nki_isa -> nki_compiler;
+
+    // Compiler -> NEFF
+    neuronxcc -> neff;
+    nki_compiler -> neff;
+
+    // Kernel integration into framework
+    nki_samples -> nki_lang [style=dashed, label="uses", fontsize=8];
+    nki_stdlib -> nki_lang [style=dashed, label="exposes\nsource", fontsize=8];
+    nki_status -> nki_lang [style=dashed, label="version /\nstability", fontsize=8];
+    nki_cpusim -> nki_compiler [style=dashed, label="host-CPU\nexecution path", fontsize=8];
+    nki_collectives -> nccom [label="dispatches\nto", fontsize=8];
+
+    // Agentic development targets NxD Inference and NKI
+    autoport -> nxd_inference [label="ports models\ninto", fontsize=8, color="#00838F"];
+    equivalence -> nxd_inference [style=dashed, label="validates", fontsize=8, color="#00838F"];
+
+    // Distributed -> NxD layers
+    nxd_training -> nxd_core [label="built on"];
+    nxd_core -> nccom [label="collective\ndispatch", fontsize=8];
+    nxd_inference -> nccom [style=dashed];
+
+    // NEFF -> Runtime
+    neff -> libnrt [label="load +\nexecute", fontsize=8];
+
+    // Communication -> Runtime
+    nccom -> libnrt [style=dashed];
+
+    // Runtime -> Driver
+    libnrt -> dkms [label="ioctl /\nDMA", fontsize=8];
+    dkms -> nitro [style=dashed];
+
+    // Driver -> Hardware
+    nitro -> neuroncore [style=dashed, color="#283593"];
+    dkms -> memory [style=dashed, color="#283593", label="PCIe\nBAR", fontsize=8];
+
+    // Hardware internal
+    neuroncore -> memory [color="#283593"];
+    memory -> interconnect [style=dashed, color="#283593"];
+}

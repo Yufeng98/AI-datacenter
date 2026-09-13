@@ -1,0 +1,234 @@
+chip: graphcore-ipu
+investigation: software-stack
+date: "2026-04-05"
+last_rescan: "2026-08-08"   # see rescan_2026_08_08 below — no software change
+status: completed
+confidence: high
+
+sdk:
+  name: Poplar SDK
+  latest_version: "3.4.0"
+  release_date: "2024-03-04"
+  type: static_graph_compiler_and_runtime
+  language: C++ (API) + Python (bindings)
+
+layers:
+  framework:
+    pytorch:
+      name: PopTorch
+      type: PyTorch extension
+      github: "https://github.com/graphcore/poptorch"
+      open_source: true
+      key_apis:
+        - poptorch.trainingModel()
+        - poptorch.inferenceModel()
+        - poptorch.Options()
+        - poptorch.BeginBlock() / EndBlock()  # pipeline staging
+        - poptorch.recomputationCheckpoint()
+    tensorflow:
+      name: TF-IPU
+      version: TF2 + TF1 legacy
+      strategy: IPUStrategy
+      open_source: partial
+    onnx:
+      name: PopART
+      description: Poplar Advanced Runtime
+      import_format: ONNX
+      apis: [Python, C++]
+      open_source: SDK_release
+
+  compiler:
+    name: Poplar Graph Framework
+    type: static_graph_compiler
+    compilation_model: ahead_of_time
+    graph_ir: Poplar Program IR
+    program_constructs: [Sequence, Repeat, Switch, Execute, Copy]
+    tile_assignment: static  # compiler assigns tensors to tiles at compile time
+    exchange_schedule: static_bsp_superstep
+    memory_placement: per_tile_sram
+    codelet_compilation: JIT_on_host_targeting_tile_isa
+    codelet_language: [C++, assembly]
+    open_source: closed_binary
+    docs_public: true
+
+  op_library:
+    name: PopLibs
+    github: "https://github.com/graphcore/poplibs"
+    open_source: true
+    components:
+      poplin:
+        domain: linear_algebra
+        ops: [GEMM, Conv2D, grouped_conv, matmul]
+      popnn:
+        domain: neural_network
+        ops: [LSTM, GRU, RNN, layer_norm, batch_norm, softmax, gelu]
+      popops:
+        domain: elementwise_and_reduce
+        ops: [add, mul, exp, log, reduce_sum, reduce_max, cast, gather, scatter]
+      poprand:
+        domain: randomness
+        ops: [uniform, normal, bernoulli]
+      popsparse:
+        domain: sparse_ops
+        ops: [sparse_gemm, sparse_embedding_lookup]
+
+  kernel_language:
+    name: Codelets / Vertices
+    base_class: poplar::Vertex
+    language: [C++, assembly]
+    compile_target: tile_isa  # per-tile binary
+    memory_access: tile_local_sram_only
+    parallelism: one_vertex_per_worker_thread
+    isa_docs: "https://docs.graphcore.ai/projects/isa/en/latest/"
+
+  runtime:
+    name: poplar::Engine
+    type: host_side_runtime
+    bsp_execution: true
+    streaming_memory_dma: true
+    multi_ipu: true
+    executable_caching: supported  # avoids recompilation
+
+  driver:
+    name: PCIe HAL
+    type: kernel_driver
+    interface: PCIe to IPU-Machine
+
+  virtualization:
+    name: V-IPU
+    type: resource_manager
+    multi_tenant: true
+    scheduler_integration: Slurm
+
+  profiling:
+    name: PopVision
+    tools:
+      - Graph Analyser  # tile mapping, memory, Poplar graph
+      - System Analyser # BSP superstep timeline, compute/exchange ratio
+
+  inference_serving:
+    name: Triton Inference Server backend
+    protocols: [gRPC, HTTP]
+    frameworks: [PopTorch, PopART, TF-IPU]
+
+precision:
+  primary: FP16_stochastic_rounding  # FP16.SR
+  fp16_sr: true  # hardware stochastic rounding — unique IPU feature
+  fp16_16: true  # FP16 mul + FP16 accumulate
+  fp32: true
+  int8: limited
+  fp8: false
+  bfloat16: false
+
+parallelism_patterns:
+  data_parallel: replication (IPU-Link / GW-Link)
+  model_parallel: BeginBlock/EndBlock pipeline staging
+  tensor_parallel: replicated_tensor_sharding
+  pipeline_stages: mapped_to_ipu_chips
+
+openness:
+  poptorch: open_source
+  poplibs: open_source
+  poplar_compiler: closed_binary
+  popart: sdk_release_public
+  sdk_docs: fully_public
+  chip_design: closed
+
+acquisition:
+  acquirer: SoftBank Group
+  date: "2024-07"
+  value_usd_millions: ~500   # SUPERSEDED 2026-08-08 — see rescan_2026_08_08.acquisition_price_correction
+  last_sdk_release: "Poplar SDK 3.4.0 (March 2024)"   # still current at 2026-08-08
+  status: "Subsidiary; next-gen product timeline unclear"
+
+key_repos:
+  - https://github.com/graphcore/poptorch
+  - https://github.com/graphcore/poplibs
+  - https://github.com/graphcore/examples
+  - https://github.com/graphcore/hpc-cookbook
+
+# =====================================================================
+# Appended 2026-08-08 — SDK/toolchain re-scan (window 2026-04-01 -> 2026-08-08)
+# Verdict: NO software change. Poplar SDK 3.4.0 remains latest.
+# =====================================================================
+rescan_2026_08_08:
+  date: "2026-08-08"
+  window: "2026-04-01 to 2026-08-08"
+  prior_investigation_date: "2026-04-05"
+  software_changed: false
+  latest_sdk_version: "3.4.0"    # unchanged
+  latest_sdk_release_date: "2024-03-04"
+
+  sdk_release_status:
+    fact: >-
+      No Poplar SDK release after 3.4.0. Verified via the GitHub release/tag API, NOT the docs site:
+      docs.graphcore.ai's SDK-overview page states no current version at all (it only references
+      behaviour "since Poplar SDK 3.1"). Newest release tags are sdk/poplar/3.4.0 in graphcore/poplibs
+      and sdk/poptorch/3.4.0 in graphcore/poptorch; last code push to either repository was
+      October 2023. The open-source Poplar stack is effectively dormant.
+    confidence: high
+    sources:
+      - https://api.github.com/repos/graphcore/poplibs/tags
+      - https://api.github.com/repos/graphcore/poptorch/tags
+      - https://api.github.com/repos/graphcore/poptorch/releases
+      - https://docs.graphcore.ai/projects/sdk-overview/en/latest/overview.html
+
+  github_org_activity:
+    fact: >-
+      Recent pushes in the graphcore GitHub org do NOT indicate a stack shift. graphcore/triton-fork
+      (pushed 2026-06-08) and graphcore/vllm-fork (pushed 2025-09-22) were both opened and inspected:
+      each carries a stock upstream README with no IPU backend and no mention of IPU support -- they
+      read as plain upstream mirrors, not IPU ports. graphcore/pytorch-fork was pushed 2026-08-05.
+      graphcore/llvm-project-fork, which does carry a Colossus IPU backend, was pushed 2026-03-11;
+      that is the pre-existing codelet-compiler path, not new work.
+    do_not_report: "A Triton or vLLM IPU inference path. There is no evidence for one."
+    confidence: high
+    sources:
+      - https://api.github.com/orgs/graphcore/repos
+      - https://github.com/graphcore/triton-fork
+      - https://github.com/graphcore/vllm-fork
+
+  precision_surface:
+    fact: >-
+      Unchanged: FP32, FP16 with hardware stochastic rounding (FP16.SR), limited INT8. Still no FP8,
+      no BF16, no INT4. The 2026-05-26 Graphcore post "Stochastic Rounding: How randomness helps us
+      build better models" re-explains the EXISTING FP16.SR feature and introduces no new API,
+      datatype, or SDK capability.
+    confidence: high
+    sources:
+      - https://www.graphcore.ai/posts
+
+  acquisition_price_correction:
+    fact: >-
+      The "value_usd_millions: ~500" under `acquisition` above is an estimate, not a disclosed figure.
+      Terms were never officially disclosed; Sifted reported "$600m+" and Jon Peddie Research
+      "$500-600 million". Correct phrasing: "reported at roughly $500-600M; terms not officially
+      disclosed." July 2024 timing is solid.
+    confidence: high
+    sources:
+      - https://sifted.eu/articles/graphcore-cofounder-exits-company-one-year-on-from-softbank-acquisition
+      - https://www.jonpeddie.com/news/graphcores-ipu-doing-well-at-softbank/
+
+  lifecycle_context:
+    fact: >-
+      Corporate mechanism behind the dormancy: an ongoing SoftBank recapitalisation (~$457M share
+      issue recorded in a Companies House SH01 filed 2026-04-13, further allotment filings through
+      2026-08-04) and the departure of both technical co-founders (Simon Knowles ceased to be a
+      director 2025-08-20; Nigel Toon stepped down as Executive Chair effective 2026-07-31).
+      See research/graphcore/investigations/hw-architecture.yaml rescan_2026_08_08.corporate_context.
+    confidence: high
+    sources:
+      - https://find-and-update.company-information.service.gov.uk/company/10185006/filing-history
+      - https://find-and-update.company-information.service.gov.uk/company/10185006/officers
+      - https://www.cnbc.com/2026/05/12/softbank-graphcore-ai-chip-investment.html
+
+sources:
+  - https://docs.graphcore.ai/projects/sdk-overview/en/latest/overview.html
+  - https://docs.graphcore.ai/_/downloads/release-notes/en/latest/pdf/
+  - https://docs.graphcore.ai/projects/poplar-user-guide/en/latest/poplar_programs.html
+  - https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/intro.html
+  - https://github.com/graphcore/poptorch
+  - https://github.com/graphcore/poplibs
+  - https://docs.graphcore.ai/projects/custom-ops/en/latest/custom-ops.html
+  - https://docs.graphcore.ai/projects/isa/en/latest/
+  - https://docs.graphcore.ai/projects/ipu-programmers-guide/en/latest/programming_model.html

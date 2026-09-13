@@ -1,0 +1,115 @@
+resource: cudnn
+url: https://developer.nvidia.com/cudnn
+frontend_url: https://github.com/NVIDIA/cudnn-frontend
+type: both
+as_of: "2026-04-05"
+commit_sha: 97f6cb3b88cacff507cca1280db5650a457d92b3
+doc_version: "9.x (frontend v1.22.0)"
+chip: nvidia-gpu
+device_class: gpu
+
+layer_mappings:
+  - layer: OpLib
+    component: cuDNN
+    confidence: confirmed
+    sources:
+      - https://developer.nvidia.com/cudnn
+      - include/cudnn_frontend.h
+      - include/cudnn_frontend/graph_interface.h
+
+  - layer: Framework
+    component: PyTorch (torch.backends.cudnn / torch.backends.cuda.cudnn_sdp_enabled)
+    confidence: confirmed
+    sources:
+      - https://docs.pytorch.org/docs/stable/backends.html
+      - https://github.com/pytorch/pytorch/issues/113713
+
+  - layer: Kernel
+    component: cuDNN backend engines (precompiled PTX + NVRTC runtime-compiled)
+    confidence: confirmed
+    sources:
+      - include/cudnn_frontend/plans.h
+      - include/cudnn_frontend/experimental/sm90_sdpa_prefill_engine.h
+      - include/cudnn_frontend/experimental/sm100_sdpa_prefill_engine.h
+
+  - layer: ISA
+    component: WGMMA / mma.sync (Tensor Core MMA instructions via cuDNN engine PTX)
+    confidence: inferred
+    sources:
+      - https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/
+      - https://arxiv.org/html/2501.12084v1
+
+framework_integrations:
+  - framework: PyTorch
+    integration_point: >
+      torch.nn.functional.scaled_dot_product_attention dispatches to cuDNN SDPA backend
+      on H100+ when torch.backends.cuda.cudnn_sdp_enabled() is True; also controls
+      torch.backends.cudnn.deterministic and torch.backends.cudnn.benchmark.
+
+  - framework: JAX
+    integration_point: >
+      XLA uses cuDNN via jax.lib.xla_bridge for convolutions and attention when
+      CUDA backend is selected; cuDNN fused attention exposed through XLA's GPU backend.
+
+  - framework: TensorFlow
+    integration_point: >
+      TensorFlow uses cuDNN for tf.nn.conv2d, tf.nn.rnn, and related ops when built
+      with CUDA/cuDNN support; accessed through TF's stream executor GPU plugin.
+
+key_abstractions:
+  - name: Graph
+    description: >
+      Top-level declarative dataflow graph (graph::Graph in graph_interface.h);
+      user adds operation nodes and tensor attributes, then calls build/execute.
+
+  - name: INode / SDPANodeBase
+    description: >
+      Abstract CRTP base for all operation nodes; each node type (conv, matmul,
+      layernorm, sdpa, etc.) implements infer_properties_node() and expands into
+      backend operation descriptors.
+
+  - name: OperationGraph_v8
+    description: >
+      Backend descriptor wrapping up to 50 fused operations into a single
+      CUDNN_BACKEND_OPERATIONGRAPH_DESCRIPTOR submitted to the cuDNN engine.
+
+  - name: EngineHeuristics_v8
+    description: >
+      Queries cuDNN for a ranked list of EngineConfig candidates (Mode A: fast,
+      Mode B: accurate); used to select or autotune execution plans without user
+      enumeration.
+
+  - name: ExecutionPlan
+    description: >
+      A compiled, ready-to-run kernel plan associated with a specific EngineConfig;
+      cached across calls to amortize NVRTC compilation cost.
+
+  - name: VariantPack
+    description: >
+      Binds tensor UIDs to device pointers and a workspace buffer at execution time;
+      passed to cudnnBackendExecute() to launch the kernel.
+
+  - name: BlockScaleQuantize / BlockScaleDequantize
+    description: >
+      New cuDNN v9 nodes for MXFP8/NVFP4 quantization/dequantization targeting
+      Blackwell 5th-gen block-scaled Tensor Cores.
+
+engine_classes:
+  - name: Pre-compiled single-operation engines
+    description: Legacy AOT kernels for isolated ops (fallback path)
+  - name: Generic runtime fusion engines
+    description: NVRTC-JIT engines covering most fusion patterns (support surfaces 70/80/90)
+  - name: Specialized runtime fusion engines
+    description: Tuned runtime engines for high-value patterns like multi-head attention
+  - name: Specialized pre-compiled fusion engines
+    description: AOT-compiled for fixed shapes; highest performance ceiling
+
+hardware_support:
+  - arch: sm70 (Volta)
+    features: [FP16 Tensor Cores]
+  - arch: sm80 (Ampere)
+    features: [BF16, TF32, INT8, sparse Tensor Cores, async copy]
+  - arch: sm90 (Hopper)
+    features: [FP8 Tensor Cores, TMA, WGMMA, Thread Block Clusters]
+  - arch: sm100 (Blackwell)
+    features: [MXFP8/NVFP4 block-scaled Tensor Cores, enhanced TMA]

@@ -1,0 +1,214 @@
+chip: kunlunxin
+investigation: software-stack
+as_of: "2026-04-05"
+confidence: medium-high
+sources:
+  - url: https://deepwiki.com/PaddlePaddle/FastDeploy/8.3-kunlunxin-xpu-backend
+    title: Kunlunxin XPU Backend — PaddlePaddle FastDeploy DeepWiki
+    type: documentation
+  - url: https://paddlepaddle.github.io/FastDeploy/get_started/installation/kunlunxin_xpu/
+    title: KunlunXin XPU — FastDeploy LLM Installation
+    type: documentation
+  - url: https://www.paddlepaddle.org.cn/lite/develop/demo_guides/kunlunxin_xtcl.html
+    title: 昆仑芯 XTCL — PaddlePaddle Lite
+    type: documentation
+  - url: https://www.kunlunxin.com/technology
+    title: 核心技术 — 昆仑芯官网
+    type: product_page
+  - url: https://github.com/baidu/vLLM-Kunlun
+    title: vLLM-Kunlun (GitHub)
+    type: open_source
+  - url: https://www.paddlepaddle.org.cn/documentation/docs/zh/hardware_support/xpu/index_cn.html
+    title: 昆仑芯 XPU 芯片 — PaddlePaddle Documentation
+    type: documentation
+
+software_stack:
+  layers:
+    framework:
+      primary: PaddlePaddle
+      secondary:
+        - PyTorch (via torch_xpu plugin)
+        - vLLM (via vLLM-Kunlun fork)
+      hugging_face: partial (via PaddlePaddle bridge)
+
+    graph_compiler:
+      name: XTCL
+      full_name: XPU Tensor Compilation Library
+      based_on: TVM (Apache TVM)
+      modes:
+        - AOT (offline compilation)
+        - JIT (first-run lazy compilation)
+      input_formats:
+        - ONNX
+        - PaddlePaddle IR
+        - TVM Relay IR
+      optimizations:
+        - operator_fusion
+        - constant_folding
+        - layout_transformation
+        - XPU-aware tiling and memory placement
+
+    op_library:
+      name: XDNN
+      full_name: XPU DNN Operator Library
+      categories:
+        - BLAS (GEMM, GEMV, Batched GEMM)
+        - Convolution (forward + backward)
+        - Attention (fused multi-head)
+        - Normalization (LayerNorm, BatchNorm, RMSNorm)
+        - Activations (GELU, SiLU, ReLU, Swish)
+        - Elementwise
+        - Reduction
+        - Pooling
+        - Embedding
+      api_style: C API with tensor descriptors
+
+    kernel_sdk:
+      name: XTDK
+      full_name: XPU Tool Development Kit
+      programming_model: data_parallel_simd
+      language: C/C++ with XPU prefix keywords
+      features:
+        - Cluster-local SRAM addressing
+        - Vector intrinsics (SIMD)
+        - Inline assembly for direct hardware control
+        - Pointer arithmetic
+      compiler_backend: LLVM/Clang extended for XPU ISA
+      output: XPU object files (.xpu.o)
+      open_source: false
+
+    runtime:
+      name: XRE
+      full_name: XPU Runtime Environment
+      version: "5.0.21.21"
+      capabilities:
+        - Device enumeration and initialization
+        - Memory allocation (xpu_malloc / xpu_free)
+        - Host↔device data transfer
+        - Stream (async queue) management
+        - Event timing and profiling
+        - Multi-card management (up to 8 XPU per host)
+      os_support:
+        - Ubuntu 18/20/22
+        - CentOS 7/8
+      distribution: prebuilt deb/rpm + Docker images
+      open_source: false
+
+  paddlepaddle_integration:
+    device_api: "paddle.device.set_device('xpu')"
+    training_features:
+      mixed_precision: true
+      static_graph: true
+      dynamic_graph: true
+      data_parallel: true
+      distributed_data_parallel: true
+      model_parallelism: partial
+      pipeline_parallelism: partial
+      amp: true
+    verified_models:
+      vision: [PPYOLOv3, PPYOLOE, ResNet, MobileNetV3, EfficientNet]
+      nlp: [ERNIE3.0, BERT, GPT-2, Llama, ChatGLM, Qwen]
+      speech: [DeepSpeech, Conformer]
+      recommendation: [DLRM, Wide_and_Deep]
+      llm: [DeepSeek_V3, DeepSeek_R1_671B]
+      total_verified: 51+
+
+  vllm_kunlun:
+    repo: https://github.com/baidu/vLLM-Kunlun
+    description: vLLM community fork for XPU with XDNN/XTDK kernel replacements   # WRONG — see updates[2026-08-08].vllm_kunlun_is_a_plugin
+    superseded_by: "updates.2026-08-08.vllm_kunlun_is_a_plugin"
+    features:
+      - PagedAttention
+      - Continuous batching
+    supported_models: [Llama, Qwen, ChatGLM, DeepSeek]
+    supported_chips: [R200, R300, P800]   # SUPERSEDED — prerequisites list Kunlun3 P800 only
+
+key_differentiators:
+  - PaddlePaddle is the deepest and most complete framework integration
+  - XTCL graph compiler is TVM-based, enabling ONNX ecosystem import
+  - XRE provides a CUDA-Runtime-equivalent abstraction (streams, events, multi-device)
+  - vLLM-Kunlun (an out-of-tree vLLM PLUGIN, not a fork) enables production LLM serving without CUDA
+  - Custom op authoring via XTDK + PaddlePaddle Plugin mechanism
+  - Full DeepSeek V3/R1 training+inference stack validated on P800
+
+# =====================================================================
+# Dated update sections. Newest last. Content above is preserved as the
+# historical record; `superseded_by` pointers mark what moved.
+# =====================================================================
+updates:
+  - as_of: "2026-08-08"
+    window: "2026-04-01 .. 2026-08-08"
+    baseline: "2026-04-05"
+
+    vllm_kunlun_is_a_plugin:
+      confidence: high
+      change_class: repo_error_correction     # already true at baseline; not a development in the window
+      sources:
+        - https://github.com/baidu/vLLM-Kunlun
+        - https://vllm-kunlun.readthedocs.io/en/latest/
+      facts:
+        distribution_model: out-of-tree hardware plugin for STOCK vLLM (NOT a fork)
+        self_description: "a community-maintained hardware plugin designed to seamlessly run vLLM on the Kunlun XPU"
+        registration: "standard vLLM platform plugin via Python entry points, no need to modify vLLM source code"
+        upstream_interface: "vLLM 'RFC: Hardware Pluggable' (vllm issue #11162)"
+        install_model: "pip install stock vLLM + the plugin"
+      corrects: "repo previously described this as an 'open-source vLLM fork'"
+
+    vllm_kunlun_releases:
+      confidence: high
+      sources:
+        - https://api.github.com/repos/baidu/vLLM-Kunlun/releases
+      facts:
+        v0_10_1_1: "2025-12-24"
+        v0_11_0rc1: "2025-12-26"
+        v0_11_0_latest_stable: "2026-03-13"
+        v0_11_0_commits: 154
+        v0_11_0_contributors: 26
+        dev_branch_version: not disclosed   # 'v0.25.1-dev' is UNRELIABLE; docs site says v0.15.1-dev; cite neither
+
+    vllm_kunlun_prerequisites:
+      confidence: high
+      sources:
+        - https://vllm-kunlun.readthedocs.io/en/latest/
+      facts:
+        supported_hardware: [Kunlun3 P800]
+        m100_support_in_tree: false
+        os: Ubuntu 20.04
+        python: ">=3.10"
+        pytorch: ">=2.5.1 via KL3-customised xpytorch"
+
+    vllm_kunlun_models:
+      confidence: high
+      sources:
+        - https://github.com/baidu/vLLM-Kunlun
+        - https://vllm-kunlun.readthedocs.io/en/latest/
+      count: "20+"
+      text_models: [Qwen2, Qwen2.5, Qwen3, Qwen3.5, Llama, DeepSeek, DeepSeek-V3.2, GLM, Gemma4, InternLM2, Kimi-K2]
+      multimodal_models: [Qwen-VL, InternVL, InternS1]
+
+    companion_tooling:
+      confidence: high
+      note: >-
+        CONFIRMED to exist and documented in the vLLM-Kunlun developer guide on readthedocs, but NOT
+        present in the repository's top-level tree. They are ecosystem tooling the docs reference,
+        not artifacts the plugin ships — do not say vLLM-Kunlun "ships" them.
+      sources:
+        - https://vllm-kunlun.readthedocs.io/en/latest/developer_guide/evaluation/accuracy/accuracy_kernel.html
+      tools:
+        torch_xray:
+          purpose: module-level operator precision verification
+          capabilities:
+            - operator-level tensor dump
+            - automatic GPU vs P800 layer-by-layer comparison
+            - auto-generation of operator unit tests
+        xpu_profiler:
+          purpose: nsys-like profiler
+          capabilities:
+            - operator call timelines
+
+    searched_and_absent:
+      confidence: high
+      items:
+        - "No new public XRE / XTDK / XDNN / XTCL release notes in the window (XRE 5.0.21.21 remains the newest version string found)"
+        - "No MLPerf Inference v6.x or Training v5.x submission from Kunlunxin or Baidu XPU"
+        - "No M100 software enablement of any kind (no plugin support, no framework release notes, no toolkit)"

@@ -1,0 +1,269 @@
+resource: hw-architecture
+url: https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html
+type: docs_site
+as_of: 2026-08-08
+baseline_as_of: 2026-04-05
+commit_sha: null
+doc_version: "1.24.0"
+chip: intel-gaudi
+device_class: "Mixed (GEMM + VLIW TPC)"
+
+layer_mappings:
+  - layer: Compute
+    component: MME (Matrix Multiplication Engine)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+      - https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html
+
+  - layer: Compute
+    component: TPC (Tensor Processing Core, VLIW SIMD)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+      - https://docs.habana.ai/en/latest/TPC/TPC_User_Guide/Processor_Architectural_Overview.html
+
+  - layer: Data Path
+    component: MME→SRAM→TPC pipeline (producer-consumer via shared SRAM)
+    confidence: confirmed
+    sources:
+      - https://hc2024.hotchips.org/assets/program/conference/day1/60_HC2024.Intel.RomanKaplan.Gaudi3-0826.pdf
+
+  - layer: Data Path
+    component: Async DMA engines (HBM↔SRAM, double-buffering)
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html
+
+  - layer: On-chip Memory
+    component: 96 MB shared SRAM (12.8 TB/s, 48 MB per die)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+      - https://videocardz.com/newz/intel-announces-gaudi3-ai-accelerator-with-128gb-hbm2e-memory-up-to-900w-tdp-on-air
+
+  - layer: Off-chip Memory
+    component: 128 GB HBM2e (3.7 TB/s) — Gaudi 3
+    confidence: confirmed
+    sources:
+      - https://videocardz.com/newz/intel-announces-gaudi3-ai-accelerator-with-128gb-hbm2e-memory-up-to-900w-tdp-on-air
+      - https://cdrdv2-public.intel.com/817487/gaudi-3-ai-accelerator-hl-325l-oam-mezzanine-card-product-brief.pdf
+
+  - layer: Off-chip Memory
+    component: 96 GB HBM2e (2.45 TB/s) — Gaudi 2
+    confidence: confirmed
+    sources:
+      - https://videocardz.com/newz/intel-announces-gaudi3-ai-accelerator-with-128gb-hbm2e-memory-up-to-900w-tdp-on-air
+
+  - layer: Host Interface
+    component: PCIe Gen5 x16 (~128 GB/s bidirectional)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817488/Gaudi%203%20PCIe%20Product%20Brief_RB_1_V6.pdf
+
+  - layer: Host Interface
+    component: OAM (Open Accelerator Module) form factor HL-325L
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817487/gaudi-3-ai-accelerator-hl-325l-oam-mezzanine-card-product-brief.pdf
+
+  - layer: Scale-up
+    component: 21 × 200 GbE integrated RoCE v2 ports (on-die SerDes)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+      - https://cdrdv2-public.intel.com/833842/gaudi-3-ai-accelerator-cluster-ref-design-white-paper.pdf
+
+  - layer: Scale-out
+    component: 3 × 200 GbE integrated RoCE v2 ports (external cluster connectivity)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+      - https://cdrdv2-public.intel.com/833842/gaudi-3-ai-accelerator-cluster-ref-design-white-paper.pdf
+
+framework_integrations:
+  - framework: SynapseAI SDK
+    integration_point: Graph compiler emits MME descriptor packets and TPC VLIW binaries; runtime schedules all engines via PCIe command queues
+  - framework: HCCL
+    integration_point: Programs integrated RoCE QP descriptors for RDMA directly on HBM2e; no CPU involvement in data path
+  - framework: habanalabs kernel driver
+    integration_point: Manages PCIe BAR, device MMU/SMMU, command submission queues, and power management
+
+key_abstractions:
+  - name: Dual Compute Engine (MME + TPC)
+    description: Heterogeneous execution model where GEMM ops go to 8 MMEs and all other ops go to 64 TPC VLIW processors; both can execute in parallel
+  - name: Shared SRAM Scratchpad (96 MB)
+    description: Software-managed on-die memory (12.8 TB/s) coordinating data exchange between MME and TPC engines; managed by SynapseAI graph compiler
+  - name: Integrated RoCE NIC (on-die)
+    description: 24 × 200 GbE RoCE v2 ports implemented as on-die SerDes; enables RDMA directly to/from HBM2e without a discrete networking card
+  - name: OAM Form Factor
+    description: Open Accelerator Module mechanical standard (HL-325L); 8 cards per tray, direct card-to-card RoCE connectivity possible within tray
+  - name: Dual-die Architecture
+    description: Gaudi 3 integrates two compute dies on one package, each with 4 MMEs and 32 TPCs and 48 MB SRAM, interconnected on-package
+
+# ---------------------------------------------------------------------------
+# Dated update — 2026-08-08 (window 2026-04-05 -> 2026-08-08)
+# Gaudi 3 silicon unchanged. New facts concern the Crescent Island successor
+# plus two corrections to previously recorded claims.
+# ---------------------------------------------------------------------------
+updates:
+  - date: "2026-08-08"
+    window: "2026-04-05 to 2026-08-08"
+    headline: >
+      Gaudi 3 hardware unchanged. Crescent Island received an expanded spec sheet at
+      Computex 2026 (trade-press-sourced, medium confidence); two pre-existing repo
+      claims corrected (Gaudi 3 Linux upstream status; scope of the SynapseAI_Core archival).
+
+    fact_groups:
+      - group: crescent-island-memory
+        product: Crescent Island
+        confidence: medium
+        confidence_basis: >
+          Broad trade-press corroboration (Tom's Hardware, VideoCardz, TechSpot, TechTimes,
+          Neowin, Wccftech) of a single Intel briefing/slide. No Intel first-party page carrying
+          these figures was located; Intel's Computex 2026 press kit and AI newsroom posts do
+          not mention Crescent Island at all.
+        facts:
+          memory_type: LPDDR5X
+          capacity_reference_design_GB: 160
+          capacity_partner_max_GB: 480
+          memory_bandwidth: not disclosed
+          memory_bandwidth_note: >
+            The widely circulated "~684 GB/s" is a press back-calculation from an assumed
+            LPDDR5X bus width, not an Intel figure. Not recorded as a spec anywhere in this repo.
+          module_organization: not disclosed
+          module_organization_note: >
+            The "20 x 24 GB" breakdown is a press reconstruction with no Intel attribution; excluded.
+        sources:
+          - https://videocardz.com/newz/intel-crescent-island-gpu-officially-supports-up-to-480gb-lpddr5x-memory
+          - https://acceleratedcomputing.ai/news/2026-06-01-intel-crescent-island/
+          - https://codeoxi.com/blog/intel-crescent-island-gpu
+          - https://www.techspot.com/news/112608-intel-crescent-island-gpu-support-up-480gb-lpddr5x.html
+
+      - group: crescent-island-power-package
+        product: Crescent Island
+        confidence: medium
+        facts:
+          tdp_W: 350
+          cooling: air-cooled (explicitly not liquid-cooled)
+          form_factor: PCIe add-in card
+          pcie_generation: not disclosed
+          die_package_configuration: not disclosed
+          process_node: not disclosed
+        sources:
+          - https://acceleratedcomputing.ai/news/2026-06-01-intel-crescent-island/
+          - https://codeoxi.com/blog/intel-crescent-island-gpu
+          - https://www.techtimes.com/articles/317612/20260602/
+
+      - group: crescent-island-compute
+        product: Crescent Island
+        confidence: medium
+        facts:
+          microarchitecture: Xe3P (XMX matrix engines)
+          datatype_range: FP4 through FP64
+          peak_throughput_any_datatype: not disclosed
+          xe3p_core_count: not disclosed
+          xmx_unit_count: not disclosed
+          fp64_significance: >
+            FP64 support would place the part in scientific/HPC reach rather than pure inference.
+        sources:
+          - https://www.tomshardware.com/pc-components/gpus/intel-details-long-awaited-crescent-island-ai-gpu-at-computex
+          - https://acceleratedcomputing.ai/news/2026-06-01-intel-crescent-island/
+
+      - group: crescent-island-schedule
+        product: Crescent Island
+        confidence: medium
+        facts:
+          customer_sampling: H2 2026 (unchanged)
+          general_availability: "2027"
+        sources:
+          - https://codeoxi.com/blog/intel-crescent-island-gpu
+          - https://videocardz.com/newz/intel-crescent-island-gpu-officially-supports-up-to-480gb-lpddr5x-memory
+
+      - group: gaudi3-linux-upstream-status
+        product: Gaudi 3
+        correction_of: >
+          Prior repo text "habanalabs kernel driver (open-source, upstreamed in Linux kernel)"
+          stated without qualification.
+        confidence: confirmed
+        confidence_basis: Verified directly against the mainline Linux source tree on 2026-08-08.
+        facts:
+          mainline_subdirs_present: [common, goya, gaudi, gaudi2, include]
+          gaudi3_directory_in_mainline: false
+          as_of: "2026-08-08"
+          upstreaming_attempt: >
+            Driver code posted late Nov 2025; pull request "accel/habanalabs: Gaudi3 support and
+            updates for v6.19" sent on dri-devel Dec 2025 and rejected on code-quality grounds
+            (reverts and build artifacts in a ~300k-line series); now targets a later cycle.
+          deployment_implication: Gaudi 3 requires the out-of-tree habanalabs driver.
+        sources:
+          - https://github.com/torvalds/linux/tree/master/drivers/accel/habanalabs
+          - https://lists.freedesktop.org/archives/dri-devel/2025-December/539169.html
+          - https://www.phoronix.com/news/Intel-SynapseAI-Stops
+
+      - group: gaudi3-lifecycle
+        product: Gaudi 3
+        confidence: confirmed
+        facts:
+          intel_first_party_eol_notice: none found — NOT CONFIRMED
+          availability: GA through cloud/enterprise channels
+          software_releases_continuing: "Intel Gaudi software v1.24.0 served at docs.habana.ai"
+          characterization: strategically deprioritized, not end-of-life
+          third_party_claim: >
+            Trade commentary asserting "Gaudi discontinued 2026-2027" is third-party only.
+        sources:
+          - https://docs.habana.ai/en/latest/
+
+      - group: mlperf-absence
+        product: Gaudi 3
+        confidence: confirmed
+        facts:
+          mlperf_inference_v6_0:
+            published: "2026-04-01"
+            in_window: false
+            submitting_orgs: 24
+            intel_submissions: Xeon 6 CPUs and Arc Pro B70/B65/B60 GPUs only
+            gaudi_results: none
+          mlperf_training_v6_0:
+            published: "2026-06-16"
+            in_window: true
+            submitting_orgs: 24
+            intel_submissions: none — Intel absent entirely
+          interpretation: >
+            Observation only, not an Intel statement. Gaudi 3 has now been absent from
+            consecutive MLPerf rounds.
+        sources:
+          - https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/
+          - https://newsroom.intel.com/artificial-intelligence/intel-delivers-ai-performance-mlperf-inference-v6-0
+          - https://mlcommons.org/2026/06/mlperf-training-v6-0-results/
+
+      - group: jaguar-shores
+        product: Jaguar Shores
+        confidence: low
+        facts:
+          new_primary_source_in_window: false
+          reported_timing: "~2027 (trade reporting; not an Intel statement)"
+          reported_attributes: rack-scale, silicon photonics, HBM4, Intel 18A
+          design_finalization_claim: supply-chain sourcing, not an Intel statement
+          hot_chips_38_slot: none
+          repo_text_status: unchanged
+        sources:
+          - https://www.trendforce.com/news/2025/08/21/news-intels-jaguar-shores-reportedly-breaks-cover-showcasing-18a-and-hbm4-on-rack-scale-ai-solution/
+
+      - group: hot-chips-38-scheduled-disclosure
+        product: Crescent Island
+        confidence: scheduled — content not yet public
+        facts:
+          event: Hot Chips 38
+          dates: "2026-08-23 to 2026-08-25"
+          session: Day-1 GPU session, Mon 2026-08-24, 16:45-18:45
+          talk: "Crescent Island: GPU Designed for Agentic AI Inference"
+          speakers: [Sumit Mohan, Hong Jiang]
+          status: >
+            Disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public. No slides,
+            abstract or specs exist. Must NOT be cited as the source of any specification.
+          expected_to_settle: [TFLOPS, Xe3P core counts, process node, memory bandwidth]
+          rescan_after: "2026-08-25"
+          gaudi_or_jaguar_shores_talk: none on the program
+        sources:
+          - https://hotchips.org/program/conference/

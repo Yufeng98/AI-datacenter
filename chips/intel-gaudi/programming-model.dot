@@ -1,0 +1,162 @@
+digraph intel_gaudi_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch (habana_frameworks.torch)\ngaudi-pytorch-bridge\nhpu device backend, mark_step()", fillcolor="#D6E4F0"];
+        hf [label="HuggingFace Transformers\noptimum-habana\nTrainer + inference on HPU", fillcolor="#D6E4F0"];
+        deepspeed [label="DeepSpeed (Intel Gaudi fork)\nZeRO 1/2/3 + HCCL backend\nMegatron-DeepSpeed 3D parallelism", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        synapse_compiler [label="SynapseAI Graph Compiler\nAOT graph → MME descriptors + TPC binaries\nFusion, SRAM placement, DMA scheduling", fillcolor="#E4DEFF"];
+        tpcc [label="TPC-C LLVM Compiler (tpc-clang)\nC99 + Gaudi intrinsics → VLIW binary\ngithub.com/HabanaAI/tpc_llvm", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        synapse_ops [label="SynapseAI Graph API ops\nsynNodeCreateWithId\nGEMM + elementwise + reduce nodes", fillcolor="#D4EDDA"];
+        transformer_engine [label="Habana Transformer Engine\nhpex.ModuleExtension\nFP8 (E4M3/E5M2) linear layers", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        tpc_kernels [label="TPC Kernel Library\n1400+ precompiled VLIW SIMD kernels\nActivations, Norms, Elementwise, Reductions\nFP8 / BF16 / FP16 / FP32 / INT8", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        synapse_rt [label="SynapseAI Runtime (libsynapse.so)\nHBM2e alloc, SRAM mgmt\nStream scheduler, DMA engine\nPCIe command submission", fillcolor="#F8D7DA"];
+        hccl_rt [label="HCCL Communicator\nhcclCommInitRank\nRoCE QP lifecycle mgmt", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        habanalabs [label="habanalabs kernel driver\nPCIe BAR, command queues\nDevice MMU (SMMU)\nhl-smi telemetry", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hccl [label="HCCL (Habana Collective Comms Lib)\nNCCL-compatible API\nAllReduce, AllGather, ReduceScatter\nbackend='hccl' in torch.distributed", fillcolor="#FFE0CC"];
+        roce [label="Integrated RoCE v2 NICs (on-die)\n21 × 200 GbE scale-up\n3 × 200 GbE scale-out\nRDMA direct to HBM2e", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Intel Gaudi 3 Hardware (HL-325L, Dual-Die)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        mme [label="MME × 8 (Matrix Multiplication Engine)\n1835 BF16 TFLOPs\nGEMM, Conv, Batched-GEMM\n4 MMEs per compute die", fillcolor="#283593", fontcolor="white"];
+        tpc [label="TPC × 64 (Tensor Processing Core)\nVLIW SIMD — 256-byte vector\n4-slot: Vector/Scalar/Load/Store\nFP8 E4M3/E5M2 native\n32 TPCs per compute die", fillcolor="#283593", fontcolor="white"];
+        sram [label="Shared SRAM Scratchpad\n96 MB @ 12.8 TB/s\nSoftware-managed by compiler\n48 MB per compute die", fillcolor="#283593", fontcolor="white"];
+        hbm [label="HBM2e Memory\n128 GB @ 3.7 TB/s\n8 HBM2e stacks\nDirect RDMA target via RoCE NIC", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> synapse_compiler [label="lazy IR graph\n(mark_step)", fontsize=8];
+    hf -> pytorch [style=dashed];
+    deepspeed -> pytorch [style=dashed];
+
+    // Framework -> Communication
+    deepspeed -> hccl [style=dashed, label="HCCL\nbackend", fontsize=8];
+    pytorch -> hccl [style=dashed, label="distributed", fontsize=8];
+
+    // Compiler -> Op/Kernel
+    synapse_compiler -> synapse_ops [label="graph nodes", fontsize=8];
+    synapse_compiler -> tpc_kernels [label="kernel\nselection", fontsize=8];
+    tpcc -> tpc_kernels [label="compile", fontsize=8];
+
+    // Op Library -> Compiler
+    transformer_engine -> synapse_compiler [label="FP8 ops", fontsize=8];
+    synapse_ops -> synapse_compiler [style=dashed];
+
+    // Kernel -> Runtime
+    tpc_kernels -> synapse_rt [label="VLIW binaries", fontsize=8];
+    synapse_ops -> synapse_rt;
+
+    // Compiler -> Runtime
+    synapse_compiler -> synapse_rt [label="MME descriptors\n+ TPC program", fontsize=8];
+
+    // Runtime chain
+    synapse_rt -> habanalabs;
+    hccl_rt -> habanalabs;
+
+    // Communication chain
+    hccl -> hccl_rt;
+    hccl_rt -> roce [label="QP\ndescriptors", fontsize=8];
+
+    // Driver -> Hardware
+    habanalabs -> mme [style=dashed, color="#283593", label="cmd queue", fontsize=8];
+    habanalabs -> tpc [style=dashed, color="#283593", label="cmd queue", fontsize=8];
+    roce -> hbm [label="RDMA R/W", color="#FF6D01", fontsize=8];
+
+    // Hardware internal
+    mme -> sram [label="R/W tiles", color="#283593"];
+    tpc -> sram [label="R/W activations", color="#283593"];
+    sram -> hbm [label="DMA spill\n/ prefetch", color="#283593", style=dashed];
+}

@@ -1,0 +1,160 @@
+digraph meta_mtia_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== PE BLOCK =====================
+    subgraph cluster_pe {
+        label="MTIA v1 / v2 / 2i — Processing Element (x64, 8x8 grid)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        risc_v [label="2× RISC-V Cores\n(one w/ vector ext)\nControl + orchestration", fillcolor="#283593", fontcolor="white"];
+        mma [label="MMA Fixed-Function Unit\nMatrix Multiply-Accumulate\nINT8 / FP16", fillcolor="#283593", fontcolor="white"];
+        dma_unit [label="DMA Unit\nAsync data movement", fillcolor="#283593", fontcolor="white"];
+        nonlinear [label="Nonlinear Function Unit\nSoftmax, ReLU, etc.", fillcolor="#283593", fontcolor="white"];
+        pe_sram [label="v1: 128 KB | v2: 384 KB Local SRAM\nPer-PE private storage (~1 TB/s)", fillcolor="#283593", fontcolor="white"];
+        risc_v -> mma [color="white"];
+        risc_v -> dma_unit [color="white"];
+        risc_v -> nonlinear [color="white"];
+        pe_sram -> mma [color="white"];
+    }
+
+    // ===================== SHARED SRAM =====================
+    subgraph cluster_sram {
+        label="Shared On-Chip SRAM";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        shared_sram [label="v1: 128 MB | v2: 256 MB\n2.7 TB/s bandwidth (2i)\nEmbedding cache + activations", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== NOC =====================
+    subgraph cluster_noc {
+        label="Network on Chip";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        noc [label="NoC\nv2: 3.3× bandwidth over v1\nPE-to-PE + SRAM routing", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== DRAM =====================
+    subgraph cluster_dram {
+        label="External Memory (v1 / v2 / 2i)";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        lpddr [label="LPDDR5\nv1: 64 GB, 176 GB/s\nv2: 128 GB, 204.8 GB/s\n(16× LPDDR5 controllers)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host Interface";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pcie [label="Host PCIe\nv1: 8x Gen4 (16 GB/s) | v2/2i: 8x Gen5 (32 GB/s)\nMTIA 300: 16x Gen5 (64 GB/s), 1:1 host:accel\n+ on-chip weight decompression (v2)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== MTIA 300 (ISCA 2026) =====================
+    subgraph cluster_mtia300 {
+        label="MTIA 300 — 2.5D CoWoS Package (ISCA 2026; process node not disclosed)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        subgraph cluster_m300_compute {
+            label="Compute Chiplet — 25.6 x 31.4 mm (~804 mm2, reticle-sized)";
+            style="rounded,filled";
+            color="#004D40";
+            fontcolor="white";
+            fillcolor="#004D40";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            m300_pe [label="PE Grid: 12x6 = 72 PEs\n+ 1 redundant 1x6 row (yield)\nper PE: 2x 64B RISC-V vector cores,\nDot Product Engine (2x 32x64Bx32 MAC, 7.82 TFLOPS/PE),\nReduction Engine, SIMD/SFU, Cmd Proc, Mem Layout Unit\n560 TFLOP/s FP16-BF16 | 1120 TFLOP/s FP8", fillcolor="#00796B", fontcolor="white"];
+            m300_local [label="Per-PE Local Memory\n512 KB SW-managed circular buffers\n1.9 TB/s (R+W)", fillcolor="#00796B", fontcolor="white"];
+            m300_noc [label="Mesh NoC\n6-PE cluster routers, L-routing (X then Y),\nvirtual lanes; NO memory crossbar", fillcolor="#00796B", fontcolor="white"];
+            m300_llc [label="LLC / On-chip SRAM\n96 MB + 48 banks per side = 192 MB, 96 banks\n11.4 TB/s (R+W)", fillcolor="#00796B", fontcolor="white"];
+            m300_me [label="16x Message Engine (collective offload)\nCPU-M scalar RISC-V + 256 KB context RAM\n+ shared CQ + Near Memory Compute\n128 B/cyc reduce-or-DMA (96 B/cyc concurrent)\nup to 2.8 TB/s reductions in 1/3 of compute area\nReduce / AllReduce / ReduceScatter", fillcolor="#00897B", fontcolor="white"];
+            m300_cpuc [label="CPU-C control core\nRISC-V quad SMP", fillcolor="#00796B", fontcolor="white"];
+            m300_pe -> m300_local [color="white"];
+            m300_pe -> m300_noc [color="white"];
+            m300_noc -> m300_llc [color="white"];
+            m300_cpuc -> m300_me [color="white", label="WQE subgraphs", fontsize=8, fontcolor="white"];
+        }
+
+        m300_hbm [label="HBM3E — 216 GB\n6 twelve-high stacks (3 per side) @ 8.0 Gbps\n6.1 TB/s read OR write (measured 5.57 TB/s, 91%)", fillcolor="#FFCDD2"];
+        m300_nic [label="2x Network Chiplet — 25.6 x 9.3 mm each\n6x custom 800 Gbps (100 GB/s) RDMA/RoCE IP per chiplet\n= 12 NICs / 1.2 TB/s | 8x112G SerDes per NIC (D2D)\nexpress doorbells (saves ~800 ns/txn)\n24,576 WRs across 1,024 QPs per IP block\n1,100 active QPs per chiplet (no QP caching)", fillcolor="#B2DFDB"];
+        m300_pcie [label="Host: 16x PCIe Gen5 (64 GB/s)\n1 CPU + 512 GB RAM per accelerator (1:1)", fillcolor="#E0E0E0"];
+
+        m300_llc -> m300_hbm [label="fill / spill", fontsize=8];
+        m300_me -> m300_llc [label="near-memory reduce", fontsize=8];
+        m300_me -> m300_hbm [style=dashed, fontsize=8];
+        m300_me -> m300_nic [label="RDMA verbs", fontsize=8];
+        m300_pcie -> m300_noc [label="commands/data", fontsize=8];
+    }
+
+    // ===================== MTIA 300 RACK =====================
+    subgraph cluster_m300_rack {
+        label="MTIA 300 System (liquid-cooled)";
+        style="rounded,dashed";
+        color="#5D4037";
+        fontcolor="#5D4037";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        m300_scaleup [label="Scale-up: 16 accelerators = 1 rack\n800 GB/s per accelerator (option to 1,000 GB/s)\nlow-latency ASIC network blades", fillcolor="#D7CCC8"];
+        m300_scaleout [label="Scale-out: 200 GB/s per accelerator\ndisaggregated scheduled fabric\n(packet spray, in-order delivery, e2e credit)\n4,096-node L1 domain; 16K+ with L2", fillcolor="#D7CCC8"];
+        m300_chassis [label="Chassis: 16 compute blade slots\n+ 6 network blade slots\npaired cable backplanes", fillcolor="#D7CCC8"];
+    }
+
+    m300_nic -> m300_scaleup;
+    m300_nic -> m300_scaleout;
+
+    // ===================== ROADMAP =====================
+    subgraph cluster_roadmap {
+        label="MTIA Roadmap (Meta blog 2026-03-11; corrected 2026-08-08)";
+        style="rounded,dashed";
+        color="#F9A825";
+        fontcolor="#F9A825";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        roadmap [label="MTIA 300 (Production, training): 216 GB HBM3E, 6.1 TB/s, 1120 TFLOP/s FP8 — first training MTIA\nMTIA 400 (lab-tested only): +400% FP8 FLOPS, +51% HBM BW vs 300; capacity NOT DISCLOSED; native MX8/MX4; 72 devices/rack scale-up\nMTIA 450 (early 2027): +75% MX4 FLOPS vs 400; 2x HBM BW\nMTIA 500 (2027): +50% HBM BW, up to +80% capacity, +43% MX4 FLOPS vs 450; 2x2 smaller compute chiplets\nBroadcom co-design (PR 2026-04-14, >1 GW) | ~6-month cadence | 300 to 500: 4.5x HBM BW, 25x FLOPs\nProcess node NOT DISCLOSED for any of 300/400/450/500", fillcolor="#FFF9C4"];
+    }
+
+    // ===================== EDGES =====================
+    dma_unit -> noc;
+    noc -> shared_sram;
+    noc -> lpddr [style=dashed];
+    lpddr -> shared_sram [label="load", fontsize=8];
+    shared_sram -> pe_sram [label="DMA fill", fontsize=8];
+    pcie -> noc [label="commands/data", fontsize=8];
+
+    // v1/v2/2i (LPDDR5 era) -> MTIA 300 (HBM + in-package NIC era)
+    lpddr -> m300_hbm [style=dotted, label="LPDDR5 to HBM3E pivot\n(MTIA 300, training)", fontsize=8];
+}

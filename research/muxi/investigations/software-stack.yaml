@@ -1,0 +1,294 @@
+chip: muxi
+resource: software-stack
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+device_class: "GPU (China, 沐曦)"
+status: completed
+
+platform:
+  name: MXMACA
+  full_name: "MetaX Compute Architecture / 沐曦异构计算平台"
+  version: "2.0+"
+  cuda_compat_model: "Source-level (cuda_alike); requires recompilation; no binary CUDA compat"
+  kernel_language: "MACA C++ (CUDA C++-compatible syntax; <<<>>> launch model)"
+  device_id: "torch.device('maca')"
+
+layers:
+  framework_integration:
+    - name: "PyTorch MXMACA backend"
+      device: "torch.device('maca')"
+      features: ["autograd", "distributed training", "torch.compile via TorchInductor"]
+      status: confirmed
+
+    - name: "TensorFlow MXMACA"
+      compat_method: "CUDA ON MACA compatibility layer"
+      status: confirmed
+
+    - name: "vLLM-MetaX"
+      repo: "github.com/MetaX-MACA/vLLM-metax"
+      backend_class: cuda_alike
+      version_alignment: "vllm-metax v0.13.0 = vLLM v0.13.0"
+      plugin_since: "v0.8.5"
+      models_supported: ["LLaMA", "Qwen", "and major open-source LLMs"]
+      upstream_rfc: "vllm-project/vllm #23157"
+      status: confirmed
+
+    - name: "llama.cpp MetaX backend"
+      status: community_integration
+
+    - name: "DeepSeek integration"
+      via: MXMACA platform
+      status: confirmed_via_devportal
+
+  compiler_ir:
+    - name: "MXMACA Compiler"
+      analog: nvcc
+      input: "MACA C++ GPU kernels"
+      output: "MXMACA ISA binary"
+      status: confirmed
+
+    - name: "CUDA ON MACA"
+      type: source_migration_tool
+      analog: Musify
+      method: "Automated CUDA→MACA source translation; cuBLAS→mxBLAS, cuDNN→mxDNN, NCCL→MXCCL"
+      status: confirmed
+
+    - name: "mcpy"
+      repo: "github.com/MetaX-MACA/mcpy"
+      analog: CuPy
+      status: confirmed
+
+  op_library:
+    - name: mxDNN
+      analog: cuDNN
+      ops: ["Conv", "Attention/SDPA", "Norm", "Pooling", "Activation"]
+      precision: ["FP32", "BF16", "FP16", "INT8"]
+      fp8: "added in C600"
+      status: confirmed
+
+    - name: mxBLAS
+      analog: cuBLAS
+      ops: ["GEMM", "BLAS L1-L3", "epilogue fusion"]
+      status: confirmed
+
+    - name: mxFFT
+      analog: cuFFT
+      status: confirmed
+
+  kernel_library:
+    - name: mxThrust
+      analog: Thrust
+      ops: ["Reduce", "Scan", "Sort", "Transform"]
+      status: confirmed
+
+    - name: "MXMACA Math Libraries"
+      description: "Device-side math (sin, cos, exp, log, etc.)"
+      status: confirmed
+
+  runtime:
+    - name: "MXMACA Runtime (macaRT / libmaca.so)"
+      analog: cudart
+      apis: ["macaMalloc", "macaFree", "macaMemcpyAsync", "macaStreamCreate", "macaEventCreate"]
+      status: confirmed
+
+    - name: "MXMACA Driver API"
+      analog: "CUDA Driver API"
+      features: ["context management", "module loading", "JIT compilation", "fine-grained memory"]
+      status: confirmed
+
+  driver_firmware:
+    - name: "MetaX Kernel Driver (.ko)"
+      type: Linux PCIe kernel module
+      features: ["BAR mapping", "IOCTL", "DMA", "IRQ handling"]
+      status: confirmed
+
+    - name: "mx-exporter"
+      type: "Prometheus-compatible monitoring"
+      features: ["GPU utilization", "memory usage", "temperature"]
+      k8s_aware: true
+      status: confirmed
+
+    - name: "Kubernetes Device Plugin"
+      features: ["GPU resource advertising", "health monitoring", "multi-tenant partitioning"]
+      status: confirmed
+
+  communication:
+    - name: MXCCL
+      full_name: "MetaX Collective Communication Library"
+      analog: NCCL
+      ops: ["AllReduce", "AllGather", "ReduceScatter", "Broadcast", "Scatter", "Gather"]
+      intra_node: "MetaXLink hardware fabric"
+      inter_node: "Ethernet / RoCE"
+      scale_proven: "10,000+ GPU clusters"
+      status: confirmed
+
+  isa:
+    - name: "MXMACA ISA"
+      type: "Proprietary SIMT ISA"
+      public_doc: false
+      precision_c500: ["FP32", "BF16", "FP16", "INT8"]
+      precision_c600: ["FP32", "BF16", "FP16", "FP8", "INT8", "INT4"]
+      status: confirmed
+
+github_org: "github.com/MetaX-MACA"
+developer_portal: "developer.metax-tech.com"
+
+ecosystem_maturity:
+  llm_inference: "vLLM-MetaX v0.13.0; LLaMA/Qwen supported"
+  llm_training: "PyTorch; 100B+ param LLMs on MXC500 cluster (claimed)"
+  cluster_scale: "10,000+ GPUs (commercial, end-2024)"
+  limitations:
+    - "All kernels require recompilation (no binary CUDA compat)"
+    - "Smaller ecosystem than CUDA"
+    - "No public ISA documentation"
+    - "2-3 year HW+SW ecosystem lag vs NVIDIA"
+
+# =====================================================================
+# Investigation update — 2026-08-08
+# Scan window 2026-04-05 → 2026-08-08.
+# Facts below are the post-verification, authoritative set.
+# =====================================================================
+
+update_2026_08_08:
+  as_of: "2026-08-08"
+  window: "2026-04-05 .. 2026-08-08"
+
+  sources:
+    github-vllm-metax-releases-api:
+      url: "https://api.github.com/repos/MetaX-MACA/vLLM-metax/releases"
+      tier: primary_api
+    github-metax-maca-org-api:
+      url: "https://api.github.com/orgs/metax-maca/repos"
+      tier: primary_api
+    github-metax-maca-org:
+      url: "https://github.com/metax-maca"
+      tier: primary_vendor
+    metax-newsroom-waic2026:
+      url: "https://www.metax-tech.com/en/ndetail/12629.html"
+      tier: primary_vendor
+    metax-newsroom-h3:
+      url: "https://www.metax-tech.com/ndetail/12632.html"
+      tier: primary_vendor
+      date: "2026-08-03"
+    baidu-baike-mxmaca:
+      url: "https://baike.baidu.com/item/MXMACA%E8%BD%AF%E4%BB%B6%E6%A0%88"
+      tier: encyclopedia_aggregator
+
+  # ---------------- MXMACA platform ----------------
+  mxmaca_platform:
+    supersedes: "platform.version: '2.0+'"
+    open_sourced: "2025-02-14"
+    open_sourced_confidence: confirmed
+    open_sourced_sources: [github-metax-maca-org, baidu-baike-mxmaca]
+    latest_recorded_release:
+      version: "3.3.0.X"
+      date: "2025-12"
+      pytorch_adaptation: "2.8"
+      core_operators: 2650
+      gpu_operators: 2410
+      cuda_migration_claim_pct: 92.94
+      added_frameworks: ["PaddlePaddle (飞桨) native support"]
+      confidence: medium
+      sources: [baidu-baike-mxmaca]
+      confidence_note: >
+        These specifics rest on Baidu Baike and CSDN-tier sources, not a vendor changelog or
+        release note. Medium confidence at best. What IS clear is that the prior
+        "MXMACA 2.0" description is stale.
+
+  community_and_ecosystem_claims:
+    confidence: vendor_claim
+    sources: [metax-newsroom-waic2026, baidu-baike-mxmaca]
+    registered_oss_developers:
+      value: "300,000+"
+      as_of: "2026-03"
+    developer_users_claimed:
+      value: "500,000+"
+      as_of: "2026-07 (WAIC 2026 newsroom)"
+    frameworks_natively_supported: "40+"
+    models_runnable: "500+"
+    day0_model_adaptations: 30
+    day0_since: "2025-12"
+    note: >
+      All figures are MetaX's own and are not independently verified. The 300k -> 500k jump
+      across four months is a marketing figure, not an audited metric.
+
+  # ---------------- vLLM-metax ----------------
+  vllm_metax_releases:
+    supersedes: "version_alignment: 'vllm-metax v0.13.0 = vLLM v0.13.0'"
+    latest: "v0.22.0"
+    latest_date: "2026-07-27"
+    confidence: confirmed
+    sources: [github-vllm-metax-releases-api]
+    chain:
+      - {version: "v0.13.0", date: "2026-02-06", note: "prior repo baseline"}
+      - {version: "v0.14.0", date: "2026-03-23"}
+      - {version: "v0.15.0", date: "2026-03-26"}
+      - {version: "v0.17.0", date: "2026-04-15", note: "adds vLLM 0.16 / 0.17"}
+      - {version: "v0.18.0", date: "2026-05-06"}
+      - {version: "v0.19.0", date: "2026-05-13", note: "full Gemma 4 support"}
+      - {version: "v0.20.0", date: "2026-06-03", note: "DeepGEMM scheduler-metadata buffer; fused MoE grouped topk"}
+      - {version: "v0.21.0", date: "2026-07-10", note: "DeepSeek V4 rebase"}
+      - {version: "v0.22.0", date: "2026-07-27", note: "latest"}
+    cadence_note: >
+      Nine releases in under six months (~2-3 week cadence tracking upstream vLLM).
+      No v0.16.0 tag exists in the API; v0.17.0 is the release that brings in upstream 0.16/0.17.
+
+  # ---------------- New OSS components ----------------
+  new_oss_components:
+    confidence: confirmed
+    sources: [github-metax-maca-org-api]
+    note: "creation dates taken from the GitHub API"
+    repos:
+      - {name: hpc_warp,           created: "2026-01-13", layer: kernel_library,        role: "HPC warp-level primitives"}
+      - {name: McFlashInfer,       created: "2026-03-09", layer: kernel_library,        role: "FlashInfer port — attention kernels"}
+      - {name: mcTriton,           created: "2026-03-13", layer: compiler_ir,           role: "Triton port for MACA — second kernel DSL front end alongside MACA C++"}
+      - {name: go-mxsml,           created: "2026-03-16", layer: driver_firmware,       role: "Go bindings for MXSML management library (NVML analog)"}
+      - {name: pymxsml,            created: "2026-03-19", layer: driver_firmware,       role: "Python bindings for MXSML"}
+      - {name: sglang,             created: "2026-04-02", layer: framework_integration, role: "SGLang serving engine fork on MACA"}
+      - {name: TileOPs-Metax,      created: "2026-04-24", layer: compiler_ir,           role: "TileLang-based high-performance LLM operator library"}
+      - {name: TileKernels-Metax,  created: "2026-04-24", layer: compiler_ir,           role: "TileLang-based kernel library"}
+      - {name: vllm-omni-metax,    created: "2026-04-24", layer: framework_integration, role: "Omni-modal vLLM variant"}
+      - {name: AIModels,           created: "2026-05-18", layer: framework_integration, role: "Model zoo"}
+      - {name: op_optimization,    created: "2026-05-26", layer: kernel_library,        role: "Operator optimization"}
+      - {name: mccl_tests,         created: "2026-05-28", layer: communication,         role: "MXCCL collective benchmark suite (nccl-tests analog)"}
+      - {name: MXDeepEP,           created: "2026-06-10", layer: communication,         role: "DeepEP expert-parallel comms — MoE dispatch/combine"}
+      - {name: mcFlashMLA,         created: "2026-07-01", layer: kernel_library,        role: "FlashMLA port — DeepSeek MLA attention"}
+      - {name: FluidDynamics,      created: "2026-07-13", layer: ai4s,                  role: "Computational fluid dynamics"}
+      - {name: LifeScience,        created: "2026-07-13", layer: ai4s,                  role: "Life sciences"}
+      - {name: MedicalImage,       created: "2026-07-27", layer: ai4s,                  role: "Medical imaging"}
+      - {name: AI4S-Framework,     created: "2026-08-07", layer: ai4s,                  role: "Umbrella AI4S framework"}
+
+  structural_reads:
+    - id: kernel_dsl_layer_arrived
+      claim: >
+        Before this window MetaX's only documented kernel-authoring path was MACA C++ through
+        the MXMACA compiler. Between March and April 2026 MetaX added mcTriton (Triton) plus
+        TileOPs-Metax / TileKernels-Metax (TileLang) — the same convergence on portable kernel
+        DSLs that Moore Threads, Enflame and other Chinese GPU vendors are making.
+      confidence: confirmed
+      sources: [github-metax-maca-org-api]
+    - id: ai4s_software_mirrors_x300
+      claim: >
+        FluidDynamics + LifeScience (2026-07-13), MedicalImage (2026-07-27) and AI4S-Framework
+        (2026-08-07) appear in the same weeks as the WAIC 2026 曦索 X300 announcement. The
+        scientific-computing hardware line and its software line were staged together.
+      confidence: confirmed
+      sources: [github-metax-maca-org-api, metax-newsroom-waic2026]
+    - id: moe_software_matches_s600_ep_claim
+      claim: >
+        MXDeepEP (2026-06-10) and the fused-MoE grouped-topk work in vLLM-metax v0.20.0
+        (2026-06-03) land immediately before the S600 supernode is announced with explicit
+        EP-parallelism support — comms library and fabric developed in parallel.
+      confidence: inferred
+      sources: [github-metax-maca-org-api, github-vllm-metax-releases-api, metax-newsroom-waic2026]
+
+  ecosystem_wins:
+    - model: "MiniMax H3 (multimodal, newly open-sourced)"
+      adaptation: "Day-0 on 曦云 C-series via MXMACA"
+      date: "2026-08-03"
+      confidence: confirmed
+      sources: [metax-newsroom-h3]
+      note: >
+        Upgraded from the raw scan's "medium confidence, single aggregator source" —
+        confirmed on MetaX's own newsroom. Moore Threads announced Day-0 adaptation of the
+        same model on the same day with the MTT S5000.

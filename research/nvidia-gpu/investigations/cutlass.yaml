@@ -1,0 +1,174 @@
+resource: cutlass
+url: https://github.com/NVIDIA/cutlass
+type: github_repo
+as_of: 2026-04-05
+commit_sha: 418d38a5de245373d5bac809c06d1ecd1a196c63
+doc_version: "4.4.2"
+chip: nvidia-gpu
+device_class: GPU
+
+layer_mappings:
+  - layer: Kernel Library
+    component: CUTLASS C++ Templates (GEMM, Conv, Epilogue)
+    confidence: confirmed
+    sources:
+      - README.md
+      - include/cutlass/gemm/device/gemm_universal_adapter.h
+  - layer: Kernel Library
+    component: CuTe Layout/Tensor/Atom Library
+    confidence: confirmed
+    sources:
+      - README.md (CuTe section)
+      - include/cute/
+  - layer: Kernel Library
+    component: CuTe DSL (Python MLIR-based kernel compiler)
+    confidence: confirmed
+    sources:
+      - README.md (CuTe DSL section)
+      - python/CuTeDSL/cutlass/__init__.py
+  - layer: Hardware Abstraction
+    component: PTX arch wrappers (mma_sm*, copy_sm*, mbarrier)
+    confidence: confirmed
+    sources:
+      - include/cutlass/arch/
+      - include/cute/arch/
+  - layer: Performance Tooling
+    component: CUTLASS Profiler and Instance Library
+    confidence: confirmed
+    sources:
+      - README.md (Tools section)
+      - tools/profiler/
+      - tools/library/
+
+framework_integrations:
+  - framework: PyTorch
+    mechanism: >
+      CuTe DSL provides cutlass.torch module with dtype mapping and from_dlpack
+      support. Kernel outputs interoperate with torch.Tensor via DLPack protocol.
+      PyTorch-based reference evaluators exist for EVT epilogue fusion validation.
+    source: python/CuTeDSL/cutlass/torch.py
+    confidence: confirmed
+  - framework: JAX
+    mechanism: >
+      CuTe DSL jax subpackage provides cutlass_call primitive, jax_to_cutlass_dtype
+      type mapping, and FFI integration. Registered as XLA custom call via JAX
+      foreign function interface.
+    source: python/CuTeDSL/cutlass/jax/
+    confidence: confirmed
+  - framework: cuBLAS
+    mechanism: >
+      NVIDIA uses CUTLASS internally as the implementation substrate for cuBLAS
+      Tensor Core GEMM kernels. Not a runtime dependency but CUTLASS is the
+      reference and production kernel generator for cuBLAS.
+    source: README.md (performance section)
+    confidence: inferred
+  - framework: Triton
+    mechanism: >
+      No direct Triton integration in the codebase, but CUTLASS and Triton serve
+      overlapping use cases. CUTLASS primitives are sometimes used as reference
+      benchmarks for Triton kernel development.
+    confidence: community-known
+  - framework: TensorRT / Transformer Engine
+    mechanism: >
+      NVIDIA Transformer Engine consumes CUTLASS GEMM kernels for FP8 matmuls.
+      Not a formal API dependency exposed in this repo but documented in NVIDIA
+      blog posts and GTC talks referenced in README.
+    confidence: inferred
+
+key_abstractions:
+  - name: CuTe Layout
+    kind: type/concept
+    location: include/cute/layout.hpp
+    description: >
+      Hierarchically multidimensional layout defined as (Shape, Stride) integer
+      tuple pairs. Supports compile-time and runtime values. Foundation of all
+      data indexing in CUTLASS 3.x.
+  - name: CuTe Tensor
+    kind: type
+    location: include/cute/tensor.hpp
+    description: >
+      Typed (Element, Layout, Pointer/Engine) triple. Unifies global, shared, and
+      register-file arrays under one abstraction. Carries memory space metadata.
+  - name: MMA_Atom / TiledMMA
+    kind: type
+    location: include/cute/atom/mma_atom.hpp
+    description: >
+      MMA_Atom wraps one hardware MMA instruction with operand layout metadata.
+      TiledMMA replicates the atom across a warp or warp group to fill a larger tile.
+  - name: Copy_Atom / TiledCopy
+    kind: type
+    location: include/cute/atom/copy_atom.hpp
+    description: >
+      Copy_Atom wraps one hardware copy instruction (cp.async, TMA, ldmatrix).
+      TiledCopy assigns atom instances to threads over a tile.
+  - name: CollectiveMma
+    kind: concept/struct
+    location: include/cutlass/gemm/collective/collective_mma.hpp
+    description: >
+      Tag-dispatched mainloop struct. Owns the A/B tile load-from-global-to-smem
+      and the MMA-over-K-tiles loop. Specializations per architecture/schedule
+      (e.g., sm90_mma_tma_gmma_ss_warpspecialized).
+  - name: DispatchPolicy
+    kind: tag-type
+    location: include/cutlass/gemm/dispatch_policy.hpp
+    description: >
+      Compile-time tag (e.g., MainloopSm90TmaGmmaWarpSpecialized) that selects
+      the CollectiveMma specialization, encoding the combination of data movement
+      mechanism, MMA instruction, pipeline depth, and warp scheduling strategy.
+  - name: PipelineTmaAsync
+    kind: type
+    location: include/cutlass/pipeline/sm90_pipeline.hpp
+    description: >
+      N-stage software pipeline over hardware mbarrier barriers. Provides
+      producer_try_acquire/commit and consumer_wait/release API to coordinate
+      DMA warp groups (TMA) with MMA warp groups.
+  - name: CollectiveEpilogue / EVT
+    kind: concept/struct
+    location: include/cutlass/epilogue/collective/
+    description: >
+      Epilogue Visitor Tree: a composable DAG of callback nodes (load, store,
+      compute, activation) fused into the output write stage. Replaces fixed
+      epilogue functors with an arbitrary operator graph.
+  - name: TileScheduler
+    kind: type
+    location: include/cutlass/gemm/kernel/tile_scheduler.hpp
+    description: >
+      Maps thread blocks to output tiles persistently (PersistentTileSchedulerSm90)
+      or via StreamK partial-K decomposition. Eliminates tail-quantization waste
+      for non-square LLM problem shapes.
+  - name: GemmUniversalAdapter
+    kind: type
+    location: include/cutlass/gemm/device/gemm_universal_adapter.h
+    description: >
+      Host-side stateful GEMM handle. Constructs Params from arguments, manages
+      workspace allocation, and launches device_kernel<GemmKernel>. Primary
+      user-facing API entry point for CUTLASS 3.x.
+
+hardware_targets:
+  - arch: Volta
+    sm: "70"
+    mma_ptx: mma.sync
+  - arch: Turing
+    sm: "75"
+    mma_ptx: mma.sync (tensor core int8/fp16)
+  - arch: Ampere
+    sm: "80,86,89"
+    mma_ptx: mma.sync + cp.async multistage
+  - arch: Hopper
+    sm: "90"
+    mma_ptx: wgmma.mma_async + TMA (cp.async.bulk)
+  - arch: Blackwell
+    sm: "100,103,120"
+    mma_ptx: tcgen05.mma + TMEM + TMA
+
+build_system:
+  type: CMake + header-only C++
+  min_cmake: "3.18"
+  min_cuda: "11.4"
+  min_cxx: "C++17"
+  python_build: pyproject.toml (CuTeDSL via MLIR wheel)
+  notes: >
+    Header-only for C++ users; no build required to consume include/.
+    CuTeDSL Python package requires prebuilt MLIR _cutlass_ir shared library
+    and CUDA toolkit. Kernel instances can be enumerated and built via
+    cutlass_library Python generator.

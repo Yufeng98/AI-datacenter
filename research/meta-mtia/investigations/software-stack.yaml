@@ -1,0 +1,192 @@
+chip: meta-mtia
+investigation: software-stack
+date: "2026-04-05"
+confidence: high
+
+layers:
+  framework:
+    name: PyTorch
+    eager_mode: true
+    torch_compile: true
+    torch_export: true
+    public: true
+  graph_compiler:
+    name: TorchDynamo + TorchInductor MTIA backend
+    ir: Torch FX
+    public: partially  # upstreamed to PyTorch
+  kernel_compiler:
+    name: Triton-MTIA
+    languages: [Triton, MLIR, LLVM]
+    target: MTIA native ISA + RISC-V
+    public: partially  # via Triton project
+  runtime:
+    name: MTIA Streaming Interface
+    async_dataflow: true
+    public: false
+  tensor_type: MTIATensor
+  memory_allocator: device_custom
+  driver:
+    name: MTIA Firmware Driver
+    interface: PCIe
+    public: false
+
+serving:
+  - vLLM
+  - torch.compile
+  - torch.export
+
+workload:
+  primary: DLRM_recommendation
+  secondary: LLM_inference_emerging
+
+agentic_kernel_gen:
+  name: KernelEvolve
+  arxiv: "https://arxiv.org/html/2512.23236v1"
+  description: LLM-based automatic kernel generation for MTIA operators
+
+openness: mostly_closed_partial_oss
+
+sources:
+  - https://ai.meta.com/blog/meta-training-inference-accelerator-AI-MTIA/
+  - https://ai.meta.com/blog/next-generation-meta-training-inference-accelerator-AI-MTIA/
+  - https://aisystemcodesign.github.io/papers/MTIA-ISCA25.pdf
+  - https://arxiv.org/html/2512.23236v1
+
+# ============================================================================
+# MTIA 300 software-stack update — appended 2026-08-08
+# Primary source: ISCA 2026 Industry Track MTIA 300 paper
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: major
+  trigger: >
+    ISCA 2026 Industry Track disclosure of the MTIA 300 software stack, including the
+    previously unnamed collective communications library HCCL, the training compilation
+    path, and Meta's own stated software limitations.
+
+  fact_groups:
+
+    - group: hccl_collective_library
+      confidence: high
+      basis: meta_stated_primary_paper
+      new_component: true
+      facts:
+        name: HCCL
+        role: "MTIA collective communications library (MTIA analogue of NCCL/RCCL)"
+        constructs: "work packets and subgraphs of WQEs"
+        wqe_opcodes: [SEND, RECV, WRITE, WAIT, SET, REDUCE]
+        dispatcher: "CPU-C control core"
+        targets: "16 Message Engines"
+        nic_path: "Message Engines drive the in-package NIC chiplets via RDMA verbs (rdma_core, ibv_create_qp)"
+        single_graph: "compute and collectives can be captured in a SINGLE graph via torch.export / torch.compile"
+        supported: "static-shaped collectives fully supported"
+        wip: ["dynamic-shape collectives", "device-resident AllToAll with dynamic send/recv counts"]
+        wip_impact: "limits MoE routing where expert assignment counts are data-dependent"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (software stack section)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: training_compilation_path
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        graph_capture: "TorchDynamo (forward graph)"
+        backward: "AOTAutograd (backward graph generation)"
+        graph_compiler: "TorchInductor / MTIA graph compiler with Triton codegen"
+        new_compiler_passes:
+          - "ILP-based graph scheduling for peak-memory reduction"
+          - "activation rematerialization"
+        distributed_primitives: [FSDP2, DTensor, TorchRec, XFormers]
+        kernel_authoring: [Triton, "hand-written C++", "coding agents for automated kernel generation"]
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (software stack section)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: runtime_api
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        api: "CUDA-compatible runtime API"
+        modes: [eager, graph]
+        note: >
+          Framing shift versus earlier MTIA generations, which were described in terms of
+          the bespoke MTIA Streaming Interface. Presented as CUDA-like to reduce porting
+          friction from GPU-idiom code.
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: software_visible_limitations
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        mx4_nvfp4_fallback:
+          detail: "MX4 and NVFP4 with row-wise/block-wise scaling are NOT natively supported on MTIA 300 and fall back to RISC-V execution"
+          resolution: "native MX4 support added in MTIA 400"
+          survey_significance: "most important software-hardware interface note on MTIA 300 — such models run on the scalar/vector path, not the Dot Product Engine"
+        eager_mode_host_bottleneck:
+          detail: "eager mode is host-bottlenecked (Python interpreter, dynamic dispatch, device-host communication) and does not scale with faster silicon"
+          survey_significance: "qualifies MTIA's long-standing 'eager mode works, unlike most ASICs' selling point"
+        numerical_parity_tooling:
+          detail: "numerical-parity tooling for cross-platform convergence debugging exists but 'still require[s] time to mature'"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (limitations / lessons section)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: serving_stack
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        engine: vLLM
+        model_evaluated: DeepSeek-R1
+        benchmark: InferenceMax
+        configs: [TP8-TP8, DP8-EP8]
+        accelerators: 8
+        precision: "BF16 attention/KV-cache, FP8 MoE"
+        status_change: "vLLM confirmed as a first-class MTIA serving path, not merely 'emerging'"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (LLM inference evaluation)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: new_publications
+      confidence: high
+      basis: conference_program_and_meta_publications_index
+      facts:
+        - title: "KernelEvolve: Scaling Agentic Kernel Coding for Heterogeneous AI Accelerators at Meta"
+          venue: "ISCA 2026 Industry Track, Session 4B"
+          date: "2026-06-29, 17:50-18:10 EDT"
+          repo_status_before: "cited only as an uncited bullet plus an ArXiv preprint"
+        - title: "LoKA: Low-precision Kernel Applications for Recommendation Models At Scale"
+          venue: "ISCA 2026"
+          repo_status_before: not_present
+        - title: "Triton for MTIA: Bridging the Programming Model Gaps for Custom AI Accelerators"
+          venue: "IEEE Micro 2026"
+          repo_status_before: not_present
+      sources:
+        - title: "ISCA 2026 program"
+          url: "https://iscaconf.org/isca2026/program/"
+        - title: "Meta AI system co-design publications index"
+          url: "https://aisystemcodesign.github.io/"
+
+    - group: superseded_prediction
+      confidence: high
+      basis: primary_paper_resolves_prior_speculation
+      facts:
+        prediction_2026_04_05: >
+          "The transition to HBM and LLM inference on MTIA 450/500 will likely require adding
+          tensor-parallel or pipeline-parallel scheduling to the MTIA Streaming Interface,
+          which currently assumes single-chip DLRM execution."
+        outcome: >
+          Resolved one generation earlier than predicted. MTIA 300 already ships FSDP2 /
+          DTensor / TorchRec distributed training plus HCCL for collectives, and the runtime
+          is presented as a CUDA-compatible API rather than the single-chip Streaming Interface.
+        action: "prediction left in place in the .md for the historical record"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+  update_sources:
+    - https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf
+    - https://aisystemcodesign.github.io/
+    - https://iscaconf.org/isca2026/program/

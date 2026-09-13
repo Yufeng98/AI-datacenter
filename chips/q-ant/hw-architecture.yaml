@@ -1,0 +1,202 @@
+chip: q-ant
+device_class: "Photonic NPU (Germany)"
+as_of: "2026-08-08"
+generations: ["NPU 1 (2024)", "NPU 2 (announced 2025-11; deployed LRZ/JSC from 2026-03)"]
+
+architecture:
+  name: LENA
+  full_name: "Light Empowered Native Arithmetics"
+  paradigm: "Analog photonic matrix-vector multiplication"
+
+photonic_platform:
+  material: "Thin-Film Lithium Niobate on Insulator (TFLNoI)"
+  tfln_thickness_nm: 600
+  substrate: "Silicon wafer"
+  electro_optic_effect: "Pockels (r33 ~30 pm/V)"
+  nonlinear_optics: "Native χ² (enables optical nonlinear math, NPU 2)"
+  vs_silicon_photonics: "TFLN has Pockels effect; SiPh does not — TFLN is faster and nonlinear-capable"
+
+core_element:
+  type: "Mach-Zehnder Interferometer (MZI) mesh"
+  weight_encoding: "Voltage → phase shift → transmission coefficient = cos²(Δφ/2)"
+  compute_speed: "Picosecond (photonic propagation at ~2/3c in waveguide)"
+  compute_style: "Passive optical propagation — no transistor switching during MVM"
+
+generations:
+  npu_1:
+    year: 2024
+    nonlinear_ops: "Offloaded to host/CMOS co-processor"
+    status: "Commercially shipping; full production at TRUMPF fab Stuttgart"
+  npu_2:
+    announced: "2025-11"
+    announced_venue: "SC25 (Supercomputing 2025), St. Louis"
+    shipping: "H1 2026"
+    nonlinear_ops: "Native TFLN χ² optical nonlinearity on-chip"
+    key_advance: "Native optical nonlinear processing"
+
+performance_npu2:
+  chip_power_w: 30
+  comparative_gpu_power_w: "700–1000"
+  energy_efficiency_claim: "30× lower energy per workload vs CMOS"
+  performance_claim: "50× higher performance for nonlinear AI / physics simulation"
+  precision: "Analog continuous — no standard TOPS/TFLOPS metric"
+  clock_mhz: null
+  transistor_count: null
+  die_size_mm2: null
+  process_node: "TRUMPF photonic fab (not CMOS foundry)"
+
+memory:
+  on_chip_sram: null
+  off_chip: "Host DRAM via PCIe"
+  hbm: false
+  gddr: false
+  weight_storage: "MZI phase voltages (static during inference pass)"
+  activation_readout: "Photodetector → ADC → PCIe → host DRAM"
+
+system_nps:
+  form_factor: "19-inch rack-mount server"
+  npu_per_server: "Multiple (not disclosed)"
+  host_cpu: "x86 (Intel/AMD)"
+  os: Linux
+  host_interface: PCIe
+  networking: "Standard Ethernet / HPC fabric via host NIC"
+  turnkey: true
+
+interconnect:
+  chip_to_host: PCIe
+  scale_up: "Multiple NPU dies in NPS (topology not disclosed)"
+  scale_out: "Standard HPC networking via host NIC"
+  photonic_interconnect: false
+
+manufacturing:
+  fab: "TRUMPF GmbH photonic fab"
+  location: "Stuttgart, Germany"
+  process: "TFLN photonic process"
+  export_controls: null
+  production_status_npu1: "Full capacity 2024–2025"
+  production_status_npu2: "Shipments H1 2026"
+
+deployments:
+  - site: "LRZ (Leibniz Supercomputing Centre)"
+    city: "Munich, Germany"
+    npu1_date: "2025-07"
+    npu2_date: "2026-03"
+  - site: "JSC (Jülich Supercomputing Centre, FZ Jülich)"
+    city: "Jülich, Germany"
+    date: "2025"
+  - site: "2 additional HPC centers (unnamed)"
+    date: "Q1 2026"
+
+target_workloads:
+  - "Physics-based AI and simulation"
+  - "Advanced robotics / physical AI"
+  - "Computer vision and industrial intelligence"
+  - "Audio/video processing"
+  - "Sensor fusion"
+  - "Scientific discovery"
+not_targeted:
+  - "LLM inference"
+  - "Large-scale model training"
+
+company:
+  name: Q.ANT GmbH
+  hq: "Stuttgart, Germany"
+  founded: 2018
+  origin: "TRUMPF spin-off"
+  total_funding_usd: "~$80M"
+  series_a_date: "2025-07 (first close) + 2025-10 (Duquesne second close)"
+
+# ============================================================================
+# Update appended 2026-08-08 — window 2026-04-05 -> 2026-08-08
+# No new silicon generation. Spec-level deltas only; the full evidence record
+# (fact groups, confidence, sources) lives in
+# research/q-ant/investigations/hw-architecture.yaml
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: moderate
+  new_silicon: false
+
+  published_specs_added:
+    # All pre-baseline: verbatim on qant.com/photonic-computing/ by 2026-01-22.
+    # Repo scan gaps, NOT developments in the window.
+    throughput_gops: 8
+    throughput_scope: "sustained on nonlinear functions, NPU Gen 2"
+    throughput_wording: ["Speed-up to 8 GOPS", "Throughput of NPU 8 GOPS"]
+    npu_module_power_w: 150
+    npu_module_power_wording: "Power consumption of NPU 150 W"
+    pic_platform: "z-cut Lithium Niobate on Insulator (LNoI)"
+    operating_temperature_c: "15 to 35"
+    vendor_roadmap: "0.1 GOps (2024) -> 100,000 GOps (2028); no generation names attached"
+    provenance: "public by 2026-01-22 (Wayback); persists in 2026-04-10 snapshot"
+
+  corrections:
+    shipping_status:
+      old: "NPU 2 shipping H1 2026"
+      new: >
+        Deployed and operational at LRZ Munich and JSC Julich; NPS "available for
+        evaluation in select data center environments today"; first commercial
+        deployment (IONOS) planned for later in 2026, had not occurred as of 2026-08-08.
+        No evidence of general commercial availability; equally no evidence Q.ANT
+        publicly retracted an H1 2026 date.
+    manufacturing:
+      old: "TRUMPF photonic fab, Stuttgart"
+      new: "Stuttgart TFLN pilot line operated jointly with IMS CHIPS (Q.ANT remains a TRUMPF spin-off)"
+    chip_power:
+      old: "30 W (asserted bare)"
+      new: >
+        ~30 W chip-level AND 150 W NPU-module, both Q.ANT figures; PIC-vs-module
+        scoping is plausible but never stated by Q.ANT. Carry both, qualified.
+    precision_row:
+      old: "Analog continuous - no TOPS/TFLOPS metric (implying no throughput figure at all)"
+      new: "Analog continuous, no digital dtype - but Q.ANT does publish 8 GOPS nonlinear-function throughput"
+    host_interface:
+      old: "PCIe (standard)"
+      new: "PCIe, generation not disclosed"
+
+  contested_do_not_assert:
+    gen1_to_gen2_speedup:
+      qant_pr_2026_05_19: "up to 100x, attributed to an independent LRZ evaluation"
+      quantum_insider_2026_05_21: "up to 50x, same announcement"
+      primary_lrz_measurement_public: false
+      status: unresolved
+    vendor_efficiency_pair:
+      claim: "up to 30x energy efficiency, up to 50x performance per application vs conventional processors"
+      provenance: "Q.ANT internal benchmarking (vendor's own wording)"
+      isc_narrowing: "30x is a TARGET at the photonic circuit level for equivalent matrix operations"
+      independently_measured: false
+      note: "distinct from the LRZ-attributed Gen1->Gen2 figure; do not conflate"
+    wavelength_multiplexing:
+      observed: "page wording changed to 'Foundation for wavelength multiplexing' after April 2026"
+      status: "marketing rephrase; NOT claimed as implemented in NPU Gen 2"
+
+  deployments_added:
+    - customer: IONOS
+      profile: "European cloud/hosting, ~6.8M customers across 17 markets"
+      date_signed: "2026-05-19"
+      venue: "re:publica 2026, Berlin"
+      product: "NPS (Native Processing Server) with second-generation NPU"
+      status: signed_not_deployed
+      rollout: "planned later in 2026"
+      first_commercial_customer: true
+
+  corporate:
+    us_hq: "Austin, Texas (opened 2026-04-23)"
+    cto: "Bruno Spruth (16 years at IBM, latterly VP of POWER Processor Development)"
+    us_headcount_plan: "20 employees over six months (software, photonics, digital system design)"
+    funding: "unchanged at ~$80M Series A (Jul-Oct 2025); no new round in the window"
+
+  still_not_disclosed:
+    - mzi_count
+    - channel_or_matrix_dimensions
+    - clock_rate
+    - enob_effective_analog_precision
+    - pcie_generation
+    - npu_count_per_nps
+    - die_size
+    - npu_3_timeline
+
+  conference_calendar_only:
+    hot_chips_38: "Q.ANT is NOT on the Hot Chips 38 program (Aug 23-25, 2026)"
+    sc_2026: "registered for SC 2026 (Nov 15-20, 2026, Chicago); no content posted - calendar entry only"

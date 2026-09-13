@@ -1,0 +1,412 @@
+chip: huawei-ascend
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+focus: hardware-architecture
+
+compute_engine:
+  architecture: Da Vinci (HiSilicon proprietary heterogeneous AI core)
+  generations:
+    - name: Da Vinci 1.0
+      product: Ascend 910
+      process: TSMC 7nm
+      core_count: 32
+      core_type: DaVinci Max
+      peak_fp16_tflops: 256
+      peak_int8_tops: 512
+      tdp_w: 310
+    - name: Da Vinci 2.0
+      product: Ascend 910B
+      process: SMIC N+1 (~7nm equivalent)
+      core_count: 25
+      core_type: New DaVinci
+      peak_fp16_tflops: 320
+      peak_int8_tops: 640
+      tdp_w: 400
+    - name: Da Vinci 3.0
+      product: Ascend 910C
+      process: Dual-die MCM (2x SMIC N+1 + TSMC 7nm CPU companion)
+      core_count: "~64 total (32 per die)"
+      core_type: New DaVinci (improved)
+      peak_fp16_tflops: 800
+      peak_int8_tops: 1600
+      tdp_w: 400
+  per_core_units:
+    - name: Cube Unit
+      function: Matrix multiply-accumulate (systolic)
+      tile_fp16: "16x16x16 = 4096 MACs/cycle"
+      tile_int8: "16x32x32 = 8192 MACs/cycle"
+      operand_buffers: [L0A_16KB, L0B_16KB]
+      output_buffer: L0C_32KB
+    - name: Vector Unit
+      function: Element-wise ops, activations, reductions
+      width_fp16: 128 elements/cycle
+      width_int8: 256 elements/cycle
+      data_types: [FP32, FP16, BF16, INT32, INT8, INT4]
+    - name: Scalar Unit
+      function: Loop control, branch, address calculation (micro-CPU)
+    - name: MTE1
+      function: Input DMA (HBM/L2 -> L1 -> L0A/L0B)
+      features: [hardware_transpose, double_buffer_prefetch]
+    - name: MTE2
+      function: Output DMA (L0C -> UB -> L2 -> HBM)
+      features: [quantization_on_drain, format_conversion]
+
+memory_hierarchy:
+  per_core:
+    - level: L0A
+      size_kb: 16
+      purpose: Cube left operand buffer
+    - level: L0B
+      size_kb: 16
+      purpose: Cube right operand buffer (weights)
+    - level: L0C
+      size_kb: 32
+      purpose: Cube accumulator (FP32)
+    - level: L1
+      size_kb: 512
+      purpose: Input feature staging (fed by MTE1 from L2)
+    - level: UB
+      size_kb: 256
+      purpose: Unified Buffer for Vector/MTE2/Scalar
+  shared:
+    - level: L2
+      size_mb: 32
+      bandwidth_tbps: 4.0
+      notes: Shared across all AI cores; NoC 1024-bit @ 2GHz
+    - level: total_on_chip_sram
+      size_mb: 84
+  off_chip:
+    - product: Ascend 910
+      type: HBM2
+      capacity_gb: 32
+      bandwidth_gbps: 1228
+    - product: Ascend 910B
+      type: HBM2e
+      capacity_gb: 64
+      bandwidth_gbps: 800
+    - product: Ascend 910C
+      type: HBM2e
+      capacity_gb: 128
+      bandwidth_gbps: 1600
+
+host_interface:
+  type: PCIe 4.0 x16
+  bandwidth_gbps: 64
+
+scale_up_interconnect:
+  name: HCCS (Huawei Compute Communication System)
+  description: Proprietary high-speed intra-server NPU-to-NPU interconnect
+  versions:
+    - version: "1.0-3.0"
+      products: [Ascend 910, 910B, 910C]
+      topology: intra-server bus
+      chips_per_server: 8
+    - version: "4.0"
+      products: [Ascend 910D planned]
+      topology: cluster fabric
+      target_scale: 100000 chips
+  cloudmatrix_384:
+    chips: 384
+    racks: 16
+    per_server_scaleup_links: "56 x 400G SiPh LPO OSFP"
+    per_chip_bandwidth_tbps: 2.8
+    total_transceivers: 6912
+    interconnect_type: full-mesh all-to-all optical
+
+scale_out_interconnect:
+  cloudmatrix_384:
+    per_server_scaleout_links: "8 x 400G SiPh LPO OSFP"
+    total_fibers: 3168
+    topology: full-mesh optical
+
+precision_support:
+  - FP16: [Cube, Vector]
+  - INT8: [Cube, Vector]
+  - INT4: [Cube_gen_dependent, Vector]
+  - FP32: [Vector, L0C_accumulation]
+  - BF16: [Cube_DaVinci2+, Vector]
+  - FP8: roadmap_910D
+
+sources:
+  - url: https://www.cmc.ca/wp-content/uploads/2020/03/Zhan-Xu-Huawei.pdf
+    title: "DaVinci: A Scalable Architecture (CMC)"
+  - url: https://pdfs.semanticscholar.org/78b6/d0b2a12de2e7c106e8b4a81a6b29cf5c47b7.pdf
+    title: DaVinci Architecture (Semantic Scholar)
+  - url: https://www.oreilly.com/library/view/ascend-ai-processor/9780128234891/B9780128234884000035.xhtml
+    title: Ascend AI Processor Architecture Ch.3 (O'Reilly)
+  - url: https://www.sciencedirect.com/science/article/abs/pii/S074373152300014X
+    title: Performance Modeling on DaVinci AI Core (ScienceDirect)
+  - url: https://www.tomshardware.com/tech-industry/artificial-intelligence/huaweis-homegrown-ai-chip-examined-chinese-fab-smic-produced-ascend-910b-is-massively-different-from-the-tsmc-produced-ascend-910
+    title: Huawei Ascend 910B Examined (Tom's Hardware)
+  - url: https://newsletter.semianalysis.com/p/huawei-ai-cloudmatrix-384-chinas-answer-to-nvidia-gb200-nvl72
+    title: CloudMatrix 384 Analysis (SemiAnalysis)
+
+# ---------------------------------------------------------------------------
+# Update appended 2026-08-08 — Ascend 950 generation.
+# Prior content above reflects the 2026-04-05 baseline and is unchanged.
+# Confidence vocabulary:
+#   confirmed    = independently corroborated by >=2 sources, or vendor primary
+#   vendor_claim = stated by Huawei marketing; not independently measured
+#   announced    = a stated schedule/plan, not an accomplished fact
+#   single_source= one third-party analysis only; DO NOT cite as spec
+#   not_disclosed= Huawei has not published a value; no estimate recorded
+# ---------------------------------------------------------------------------
+update_2026_08_08:
+  as_of: "2026-08-08"
+  scan_window: "2026-04-05 to 2026-08-08"
+  supersedes_baseline_items:
+    - "scale_up_interconnect.versions[4.0] target_scale 100000 chips -> UnifiedBus 2.0, >128K cards"
+    - "Atlas 950 SuperPoD built from 950PR -> built from 950DT"
+    - "Ascend 950 process node 'est. SMIC N+2/N+3' -> not disclosed (analyst inference only)"
+    - "Ascend 950 TDP '~500 W / ~600 W (est.)' -> removed; only disclosed figure is the 600 W Atlas 350 card"
+
+  whitepaper:
+    title: "昇腾950 NPU架构白皮书 (Ascend 950 NPU Architecture Whitepaper)"
+    pages: 38
+    published: "late May / early June 2026"
+    dating_evidence:
+      - "OBS object Last-Modified: Thu, 04 Jun 2026 06:54:10 GMT"
+      - "Chinese trade press coverage 2026-06-11"
+      - "independent analyst digest dated 2026-05-22"
+    extraction_status: "image-only PDF; no text layer; contents reach this survey via third-party readings"
+    confidence: confirmed
+    sources:
+      - https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf
+      - https://pillumina.github.io/posts/aiinfra/ascend-950-npu/
+
+  davinci_4_microarchitecture:
+    architecture_naming:
+      whitepaper_label: "3rd-generation Da Vinci"
+      press_and_repo_label: "Da Vinci 4.0"
+      note: "same silicon, two numbering conventions; Huawei has published no reconciliation"
+      confidence: confirmed
+    corroborated:
+      core_split:
+        description: "Cube and Vector become independent cores (AIC = Cube core, AIV = Vector core), breaking the 910-era five-units-in-one-core design"
+        ratio: "1 Cube + 2 Vector per AI subsystem"
+        confidence: confirmed
+      global_l2:
+        size_mb: 128
+        scope: "chip-wide, spans both AI dies"
+        new_level: true
+        absent_on: [Ascend 910B, Ascend 910C]
+        per_access_improvement: "~2x"
+        policy: "per-way cache lock / residency"
+        bandwidth: not_disclosed
+        confidence: confirmed
+      hardware_scheduler:
+        name: STARS 2.0
+        arbitrates_across: [AIC, AIV, CPU, DVPP, SDMA, UB, CCU]
+        confidence: confirmed
+      on_chip_data_path:
+        name: NDDMA
+        description: "lightweight AIC<->AIV data path"
+        confidence: confirmed
+      host_interface:
+        type: PCIe 5.0 x16
+        note: "upgrade from PCIe 4.0 x16 on 910/910B/910C"
+        confidence: confirmed
+      network_ports:
+        uboe: "dual 400 Gbps UBoE (UnifiedBus over Ethernet)"
+        confidence: confirmed
+      inter_chip_bandwidth_TBps: 2.0
+      inter_chip_medium: "HiLink SerDes"
+      die_config: "dual AI die per chip"
+      package_construction: not_disclosed
+      die_area: not_disclosed
+      process_node: not_disclosed
+      process_node_analyst_inference: "SMIC N+2 / N+3 (~5-7 nm equivalent) - low confidence, never vendor-stated"
+      sources:
+        - https://public-download.obs.cn-east-2.myhuaweicloud.com/ascend/%E6%98%87%E8%85%BE950%20NPU%E6%9E%B6%E6%9E%84%E7%99%BD%E7%9A%AE%E4%B9%A6.pdf
+        - https://pillumina.github.io/posts/aiinfra/ascend-950-npu/
+        - https://www.trendforce.com/news/2026/06/08/news-huawei-brings-forward-ascend-950dt-deployment-to-august-deepseek-v4-2-seen-as-potential-early-adopter/
+    not_confirmed:
+      confidence: single_source
+      warning: "single third-party analysis only; DO NOT cite as spec; recorded for future verification"
+      items:
+        - "18 Da Vinci cores per AI die -> 36 Cube + 72 Vector cores per chip (950DT)"
+        - "L0A 64 KB, L0B 64 KB, L1 512 KB, Unified Buffer 512 KB per core"
+        - "sector cache: 512 B lines split into 4 x 128 B sectors"
+        - "BufferID-based synchronization replacing the EnQue/DeQue inter-pipeline handshake"
+        - "NDDMA as N-Dimensional Data Movement Accelerator fusing movement + layout conversion + address generation, up to 5D transforms"
+        - "'Linx816' on-chip AI CPU: 4 clusters x 2 ARMv8-A cores, dual-threaded, 4 MB L3 per cluster"
+        - "UnifiedBus RTP/CTP port decomposition (see scale_up below)"
+      note: "the repo's 16 KB L0A/L0B figure is the 910-era value and remains correct for that generation"
+      sources:
+        - https://pillumina.github.io/posts/aiinfra/ascend-950-npu/
+
+  compute_ladder:
+    disclosed:
+      fp8_PFLOPS: 1
+      mxfp4_PFLOPS: 2
+      applies_to: [Ascend 950PR, Ascend 950DT]
+      corroboration: "Huawei's own WAIC arithmetic: 1,024 cards -> 1 EFLOPS FP8"
+      confidence: confirmed
+      sources:
+        - https://www.huawei.com/cn/news/2026/7/atlas-950-superpod
+        - https://www.huawei.com/en/news/2026/3/mwc-superpod-ai
+    single_source_estimates:
+      mxfp4_TFLOPS: 2007
+      hif8_TFLOPS: 1034
+      fp8_TFLOPS: 1034
+      bf16_fp16_TFLOPS: 547
+      tf32_TFLOPS: 273
+      confidence: single_source
+      note: "BF16/FP16 and TF32 peaks are NOT DISCLOSED by Huawei; recorded as estimates only, never as spec"
+      sources:
+        - https://pillumina.github.io/posts/aiinfra/ascend-950-npu/
+
+  atlas_350_shipping_card:
+    class: pre_baseline_correction
+    announced: "2026-03-23/24"
+    announced_by: "Zhang Dixuan, president of Huawei Ascend computing"
+    note: "predates the repo's 2026-04-05 baseline; this is a baseline miss, not a window update"
+    chip_spec_for_comparison:
+      fp4_PFLOPS: 2
+      memory_GB: 128
+      memory_type: HiBL 1.0
+      bandwidth_TBps: 1.6
+    card_spec:
+      fp4_PFLOPS: 1.56
+      memory_GB_max: 112
+      bandwidth_TBps: 1.4
+      tdp_W: 600
+      tdp_note: "~1.5x NVIDIA H20; the only disclosed 950-generation power figure"
+    marketing_claim:
+      text: "~2.8x NVIDIA H20 FP4 performance"
+      confidence: vendor_claim
+      note: "Huawei marketing comparison, not an independently confirmed benchmark"
+    confidence: confirmed
+    sources:
+      - https://www.trendforce.com/news/2026/03/23/news-huawei-debuts-atlas-350-on-ascend-950pr-with-in-house-hbm-touting-2-8x-h20-performance/
+      - https://www.tomshardware.com/pc-components/gpus/huawei-unveils-new-atlas-350-ai-accelerator-with-1-56-pflops-of-fp4-compute-and-up-to-112gb-of-hbm-claims-2-8x-more-performance-than-nvidias-h20
+      - https://intelligentliving.co/huawei-ascend-950pr-atlas-350-fp4-ai/
+
+  scale_up_unifiedbus:
+    class: pre_baseline_correction
+    name: "UnifiedBus / 灵衢 (Lingqu) 2.0"
+    launched: "2025-09-18"
+    launched_at: "Huawei Connect 2025"
+    launched_by: "Xu Zhijun (Huawei rotating chairman)"
+    note: "predates the repo's 2026-04-05 baseline by ~7 months; a baseline miss, not window news"
+    supersedes: "HCCS 4.0 branding and its '100,000-chip cluster' target"
+    open_specification:
+      published: true
+      artifacts: [base specification, firmware specification, software reference designs]
+      openeuler_reference_design: "UB Service Core SW Architecture RD 2.0"
+    confirmed_figures:
+      per_chip_bandwidth_TBps: 2.0
+      medium: "HiLink SerDes"
+      uboe: "dual 400 Gbps"
+      cluster_scale_cards: ">128000"
+      fabric_rtt_us: 3
+      rtt_context: "measured in the WAIC 2026 Atlas 950 SuperPoD demonstration"
+      confidence: confirmed
+    single_source_figures:
+      total_bidirectional_GBps: 2016
+      rtp: "reliable transport, 4 ports, 448 GB/s dual"
+      ctp: "light transport, 9 ports, 1008 GB/s dual"
+      ports: "18 x X4 HiLink at 112 Gbps/lane"
+      confidence: single_source
+      note: "independent reporting gives only the round ~2 TB/s"
+    sources:
+      - https://www.unifiedbus.com/en
+      - https://www.openeuler.org/projects/ub-service-core/white-paper/UB-Service-Core-SW-Arch-RD-2.0-en.pdf
+      - https://github.com/codehubcloud/UnifiedBus
+      - https://www.huawei.com/cn/news/2026/7/atlas-950-superpod
+      - https://pillumina.github.io/posts/aiinfra/ascend-950-npu/
+
+  atlas_950_superpod:
+    waic_2026_demonstration:
+      event: "WAIC 2026, Shanghai"
+      dates: "2026-07-17 to 2026-07-20"
+      huawei_release_date: "2026-07-17"
+      label_in_release: "真机首次公开亮相 (first public physical appearance)"
+      award: "conference SAIL award"
+      cards: 1024
+      compute_fp8_EFLOPS: 1
+      compute_fp4_EFLOPS: 2
+      unified_memory_address_space_TB: 256
+      fabric_rtt_us: 3
+      fabric_protocol: "灵衢 (Lingqu)"
+      status: DEMONSTRATED
+      status_note: "not shipping; commercial delivery remains Q4 2026"
+      confidence: confirmed
+      sources:
+        - https://www.huawei.com/cn/news/2026/7/atlas-950-superpod
+    full_scale_target:
+      cards: 8192
+      card_type: "Ascend 950DT"
+      compute_fp4_EFLOPS: 16
+      npus_per_cabinet: 64
+      announced_at: "MWC 2026"
+      note: "unchanged from the MWC 2026 announcement already in the repo; the card type is corrected from 950PR to 950DT"
+      confidence: confirmed
+      sources:
+        - https://www.huawei.com/en/news/2026/3/mwc-superpod-ai
+    atlas_850e:
+      description: "air-cooled variant for conventional datacenters"
+      commercially_deployed_cards: 96
+      scaling_range: "8 to 1,024 NPUs"
+      confidence: confirmed
+      sources:
+        - https://www.huawei.com/cn/news/2026/7/atlas-950-superpod
+        - https://www.huawei.com/en/news/2026/3/mwc-superpod-ai
+    atlas_384_series:
+      commercial_deployments: "750+"
+      confidence: confirmed
+      sources:
+        - https://www.huawei.com/cn/news/2026/7/atlas-950-superpod
+
+  ascend_950dt_schedule:
+    official_commercial_release: "Q4 2026"
+    huawei_cloud_deployment_announced_for: "August 2026"
+    announced_by: "Chen Lin, Huawei VP"
+    venue: "Huawei Cloud 2026 INSPIRE Creators event"
+    reported: "2026-06-06/08"
+    status: announced
+    status_note: "as of 2026-08-08 NO confirmation found that the August deployment has gone live; this is an announced schedule, not an accomplished fact"
+    chen_lin_statement_character: "qualitative only - 'greatly improve vector compute, memory bandwidth, natively support FP8'; no spec disclosure"
+    restated_specs:
+      memory_GB: 144
+      bandwidth_TBps: 4
+      data_types: [FP8, MXFP8, MXFP4, HiF8]
+    process_node: not_disclosed
+    process_node_note: "'SMIC N+3' is analyst inference only (low confidence); Huawei has not disclosed the node"
+    early_adopter:
+      name: DeepSeek
+      basis: "press reporting, not a Huawei statement; DeepSeek V4 already runs on the Ascend 950 platform"
+      confidence: single_source
+    confidence: confirmed
+    sources:
+      - https://www.trendforce.com/news/2026/06/08/news-huawei-brings-forward-ascend-950dt-deployment-to-august-deepseek-v4-2-seen-as-potential-early-adopter/
+      - https://www.huaweicentral.com/huawei-confirms-ascend-950dt-ai-chip-to-debut-in-august/
+      - https://winbuzzer.com/2026/06/10/huawei-cloud-ties-agentic-infra-to-ascend-950dt-window-xcxwbn/
+
+  non_findings:
+    - claim: "no Huawei Ascend talk at Hot Chips 2026"
+      verdict: INVALID
+      reason: "Hot Chips 38 runs 2026-08-23 to 08-25, 15 days after this scan; the program has not occurred. Any Ascend talk there is 'disclosure scheduled, Hot Chips 38, Aug 2026 - content not yet public'. Carries zero evidentiary weight."
+    - claim: "no Huawei Ascend submission in MLPerf Inference v6.0"
+      verdict: UNVERIFIED
+      reason: "results published 2026-04-01 with 24 submitting organizations (itself pre-baseline); the submitter list could not be enumerated. Plausible but not a confirmed negative."
+      sources:
+        - https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/
+        - https://mlcommons.org/benchmarks/inference-datacenter/
+    - claim: "Ascend 960 / 970 schedule change"
+      verdict: NONE FOUND
+      reason: "no evidence of any change since the 2026-04-05 baseline"
+    - claim: "'910D' as a live product name"
+      verdict: SUPERSEDED
+      reason: "appears only in older press; nothing retrieved contradicts the repo's existing note that it was superseded by 950-series branding"
+
+  methodology_caveat: >
+    The scan producing this update exhausted its WebSearch budget before starting. Discovery ran via
+    WebFetch against DuckDuckGo HTML/Lite result pages plus direct primary-source fetches. Coverage of
+    low-visibility items (conference programs, auth-gated SDK changelogs) is thinner than a normal scan.
+    hiascend.com/en/software/cann and hotchips.org/program (HTTP 403) yielded no content.
+
+  next_research_step: >
+    Direct text extraction from the image-only Ascend 950 whitepaper PDF would resolve most of the
+    single_source microarchitecture items above (core counts, per-core buffer sizes, sector cache,
+    BufferID synchronization, Linx816 AI CPU, UnifiedBus RTP/CTP split).

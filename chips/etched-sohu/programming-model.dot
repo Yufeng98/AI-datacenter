@@ -1,0 +1,145 @@
+digraph etched_sohu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.export / ONNX export\nModel definition", fillcolor="#D6E4F0"];
+        onnx [label="ONNX\nModel interchange format\nAlternative entry point", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        transformer_compiler [label="Etched Transformer Compiler\nArchitecture validation\nWeight packing\nPipeline mapping\nBinary generation", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== NO OP / KERNEL LIBRARY =====================
+    subgraph cluster_nolayers {
+        label="Op / Kernel Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        nolibrary [label="NOT APPLICABLE\nNo op library / kernel library\nTransformer ops are hardwired silicon\nnot software-dispatched kernels", fillcolor="#D4EDDA", fontcolor="#555555", style="rounded,filled,dashed"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        runtime [label="Etched Runtime\nThin static executor\nModel binary loader\nHBM3E weight loading\nBatching + token streaming", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pcie_driver [label="PCIe Host Driver\nBAR mapping, command queues\n(details not disclosed)", fillcolor="#E0E0E0"];
+        nofirmware [label="No On-chip Firmware Runtime\nFixed pipeline ASIC\nno RM / no on-chip OS\n(unlike NVIDIA GSP)", fillcolor="#E0E0E0", style="rounded,filled,dashed", fontcolor="#555555"];
+    }
+
+    // ===================== SERVING API =====================
+    subgraph cluster_api {
+        label="Serving API";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        api [label="HTTP Serving API\n(likely OpenAI-compatible;\nnot yet disclosed)", fillcolor="#FFE0CC", style="rounded,filled,dashed"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        noisa [label="NOT APPLICABLE\nNo user-programmable ISA\nNo PTX / HIP equivalent\nHardware IS the function", fillcolor="#EFEBE9", style="rounded,filled,dashed", fontcolor="#555555"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Etched Sohu Hardware (TSMC 4nm, Reticle-limit ~800 mm²)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        attention [label="Hardwired Attention Engine\nQKV projection + proprietary non-GEMM attn\nsoftmax(QKᵀ/√d)V + output projection\nMHA / GQA / MQA variants", fillcolor="#283593", fontcolor="white"];
+        ffn [label="Hardwired FFN Engine\nLinear 1 → GELU/SiLU → Linear 2\nDedicated matrix pipeline", fillcolor="#283593", fontcolor="white"];
+        norm [label="Hardwired Norm + Residual\nLayer Norm / RMS Norm\nResidual Add ALU", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory: 144 GB HBM3E\n~4-5 TB/s bandwidth\n(1.8× H100; 0.75× B200)\nCoWoS 2.5D packaging", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework → Compiler
+    pytorch -> transformer_compiler [label="torch.export\nor ONNX"];
+    onnx -> transformer_compiler;
+
+    // Compiler → Runtime
+    transformer_compiler -> runtime [label="Sohu binary"];
+
+    // Op/kernel library: not applicable
+    transformer_compiler -> nolibrary [style=dashed, color="#AAAAAA", label="ops are\nhardware"];
+
+    // Runtime → Driver
+    runtime -> pcie_driver;
+    pcie_driver -> nofirmware [style=invis];
+
+    // ISA: not applicable
+    transformer_compiler -> noisa [style=dashed, color="#AAAAAA", label="no ISA\nto compile to"];
+
+    // Serving API layer
+    api -> runtime [style=dashed, color="#FF6D01", label="HTTP request\n→ inference call"];
+
+    // Driver → Hardware
+    pcie_driver -> attention [style=dashed, color="#283593"];
+
+    // Hardware internal flow
+    mem -> attention [label="weights\n@ HBM3E BW", color="#283593"];
+    mem -> ffn [label="weights", color="#283593"];
+    attention -> norm [label="attended\nactivations", color="#283593"];
+    norm -> ffn [label="normed\nactivations", color="#283593"];
+    ffn -> norm [label="FFN\noutput", color="#283593"];
+}

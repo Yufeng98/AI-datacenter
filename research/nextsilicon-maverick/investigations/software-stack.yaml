@@ -1,0 +1,387 @@
+chip: nextsilicon-maverick
+as_of: "2026-08-08"
+device_class: "Reconfigurable Dataflow Accelerator (runtime-JIT spatial grid; HPC-first)"
+investigation: software-stack
+
+headline: >
+  The programming model IS the product. There is no kernel language, no device-side source dialect,
+  and no kernel compiler for device code — that absence is the deliberate architectural choice, not a
+  research gap. Vendor slogan: "BYOC — bring your own code"; the spec-table programming-model row
+  reads "Any program."
+
+evidence_note: >
+  The SDK is gated (docs.nextsilicon.com returns HTTP 401, re-verified 2026-08-08) and the architecture
+  whitepaper is "COMING SOON". Almost every concrete component name below comes from upstream Kokkos —
+  a non-vendor-controlled repository where NextSilicon had to expose real interface names to get a
+  backend merged. That is source code and CI config, not marketing copy.
+
+layers:
+
+  framework_integration:
+    shipping: none
+    roadmap: [CUDA, "HIP/ROCm", "leading AI frameworks"]
+    roadmap_source_label: "vendor product page: 'upcoming integrations planned'"
+    confidence: confirmed
+    sources:
+      - https://www.nextsilicon.com/maverick
+
+  graph_capture:
+    applicable: false
+    note: "No graph capture — there is no ML graph in this programming model."
+    confidence: confirmed
+
+  graph_compiler:
+    applicable: false
+    note: "No ML graph compiler exists."
+    confidence: confirmed
+
+  kernel_compiler:
+    - name: nextcxx
+      function: "C++ compiler driver (LLVM/MLIR-based); the only compiler entry point"
+      bundled: "LLVM binutils tree at $NEXT_HOME/llvm/bin/ (ar, ranlib, ...)"
+      open_source: false
+      arch_flag: "none — NextSilicon is the only Kokkos device backend with no Kokkos_ARCH_* option"
+      cxx_standard_in_ci: 20
+      maturity_signal: "CI must pass -Wno-return-type -Wno-invalid-noreturn"
+      sdk_versions_seen: ["1.2.0", "1.3.0-395"]
+      confidence: confirmed
+      sources:
+        - https://github.com/kokkos/kokkos/blob/develop/.github/workflows/snl-ci.yml
+        - https://github.com/kokkos/kokkos/blob/develop/cmake/kokkos_arch.cmake
+
+  kernel_language:
+    exists: false
+    supported_host_languages_shipping: ["C", "C++", "Fortran", "OpenMP", "Kokkos"]
+    supported_languages_roadmap: ["CUDA", "HIP/ROCm", "Python", "AI frameworks"]
+    fortran_caveat: "vendor-stated only; no Flang-specific artifact found. Front end not disclosed."
+    contradiction:
+      product_page: "C/C++, FORTRAN, OpenMP, Kokkos native; CUDA, HIP/ROCm, AI frameworks 'upcoming'"
+      faq: "claims C/C++, Python, Fortran, CUDA, Kokkos, ROCM/HIP, OpenCL, TensorFlow, OneAPI today"
+      launch_blog: "claims unmodified C++, Python, Fortran, CUDA and AI framework code 'out of the box'"
+      resolution: >
+        All independent corroboration supports the product page only. Record C/C++/Fortran/OpenMP/Kokkos
+        as shipping and everything else as roadmap. Chips and Cheese's 'compatible with CUDA and ROCm'
+        is a podcast paraphrase that conflicts with the product page.
+    confidence: confirmed
+    sources:
+      - https://www.nextsilicon.com/maverick
+      - https://www.nextsilicon.com/faq
+      - https://www.nextsilicon.com/insights/elads-blog-Maverick2-launch/
+
+  tensor_api:
+    exists: false
+    note: "The unit of work is parallel_for over an index range, not a tensor."
+    confidence: confirmed
+
+  compiler_ir:
+    ir_stack: MLIR
+    evidence:
+      - "Kokkos_NextSilicon_Intrinsics.hpp declares __ns_immutable_thread_invariant_parameter_struct, documented as communicating 'to the MLIR compiler stack' that a struct is immutable and thread invariant 'for the full duration of the microtask'; body is a no-op 'to be filled in by NS toolchain'"
+      - "NextSilicon compiler-engineer job posting advertises an 'innovative MLIR compiler team' contributing to upstream MLIR and LLVM"
+    llvm_fork:
+      repo: https://github.com/nextsilicon/llvm-project
+      branches: 41
+      active_through: "2026-08-01"
+      branch_clusters:
+        ir_import_metadata: [loop-info, loop-info-import, loop-info-refactor, parameter_attributes, more-param-attrs, parameter_attribute_import, access-group-attr, align-attribute, passthrough-import, llvm-typed-ptr, experimental-noalias-scope]
+        scalar_opt_in_mlir: [mlir-mem2reg, mlir-mem2reg-memref, mlir-sroa]
+        inlining: [inline-llvm-func, move-llvm-inliner, debug-llvm-inliner, inliner-interface, inline-alloca, inline-lifetime-intrinsics]
+      interpretation: "importing LLVM IR into MLIR while preserving optimization-critical metadata, then running classical scalar optimization inside MLIR"
+      interpretation_confidence: likely
+      interpretation_note: "inferred from branch names — strong but circumstantial"
+    lowering_to_grid: "proprietary and not disclosed"
+    seed_correction:
+      claim_rejected: "AIIR as a NextSilicon IR name"
+      finding: >
+        The mlir-to-aiir branch contains exactly two non-upstream commits, both by one developer, both
+        timestamped 2026-04-01: '[AIIR] Rename MLIR to AIIR (rocket emoji)' and '[AIIR] Also change
+        occurrences that are spelled out.' It is a bulk textual find-and-replace on April Fools' Day.
+        DO NOT record AIIR as an IR name. The broader MLIR claim stands on other evidence.
+      confidence: confirmed
+      sources:
+        - https://github.com/nextsilicon/llvm-project/commits/mlir-to-aiir
+    confidence: confirmed
+    sources:
+      - https://github.com/kokkos/kokkos/blob/develop/core/src/NextSilicon/Kokkos_NextSilicon_Intrinsics.hpp
+      - https://www.nextsilicon.com/careers/compiler-engineer/
+      - https://github.com/nextsilicon/llvm-project
+
+  runtime:
+    - name: nextsystemd
+      function: "optimizer + telemetry daemon; identifies hot flows, builds the optimized compute graph, projects it onto the grid"
+      config_tree: "optimizer-pi: { enable-telemetry-less: bool, mlc: { acceleration-threshold: N } }"
+      config_key_expansion: "not disclosed — 'mlc' and 'pi' are not expanded anywhere public; do not guess"
+      telemetry_sink_flag: "--ui-collector-address"
+      open_source: false
+      confidence: confirmed
+
+    - name: libnextapi.so  # NextAPI
+      function: "host-side runtime API; the only public surface is what the Kokkos backend reaches"
+      install_root: "$NEXT_HOME (default /opt/nextsilicon); lib under $NEXT_HOME/lib, headers under $NEXT_HOME/include"
+      public_headers:
+        - header: nextapi/parallelism.hpp
+          symbols: ["nextapi::parallel_for(begin, end, {.chunk_size=N}, fn, ctx)"]
+          semantics: "OpenMP-style host-driven parallel loop — the ENTIRE dispatch API. No streams, no queues, no kernel launch."
+        - header: nextapi/intrinsics.h
+          symbols: ["__next_is_in_handed_off_code()"]
+          semantics: "true iff the calling thread is actually executing on the grid; 'handoff' is the official host->grid term"
+        - header: nextapi/memory.h / nextapi/memory.hpp
+          symbols: ["nextapi_memory_copy", "nextapi_memory_fill", "nextapi_mem_migrate", "NEXTAPI_PAGE_LOC_HOST"]
+          semantics: "copies let the runtime select the implementation; migrate/pin drives UVM placement"
+      full_api_surface: "not disclosed — no published reference manual (docs.nextsilicon.com is 401-gated)"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/kokkos/kokkos/blob/develop/cmake/Modules/FindTPLNEXTAPI.cmake
+        - https://github.com/kokkos/kokkos/tree/develop/core/src/NextSilicon
+
+    - name: nextcli
+      function: "control CLI. 'nextcli application status' exposes Optimization state: IDLE | OPTIMIZING | IMPROVED; 'nextcli system status' reports the device as 'Maverick 2'"
+      open_source: false
+      confidence: confirmed
+
+    - name: optimizer cache
+      function: "persistent projection cache under XDG_CACHE_HOME; amortizes the training pass across runs"
+      evidence: "Kokkos CI maps a named volume to $HOME/optimizer-cache; PR #9162 'enable persistent optimizer cache'"
+      format: "not disclosed"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/kokkos/kokkos/pull/9162
+
+  driver:
+    - name: "(unnamed kernel driver)"
+      function: "Linux kernel driver for the PCIe Gen5 device"
+      public_name: "not disclosed"
+      source_availability: "closed"
+      device_node: "not disclosed"
+      sdk_install_root: "$NEXT_HOME, default /opt/nextsilicon"
+      confidence: likely
+      note: "A driver must exist for a PCIe Gen5 device, but no public source names it."
+
+  isa:
+    published: false
+    note: >
+      There is no published ISA, bitstream format, or configuration-word specification. Grid
+      configuration is a projected dataflow graph, not an instruction stream. Fallback tiers execute
+      RISC-V (on-die E-cores) and x86-64 (host).
+    confidence: confirmed
+
+  portability_layer:
+    - name: "Kokkos NextSilicon execution space"
+      upstream: true
+      repo: https://github.com/kokkos/kokkos/tree/develop/core/src/NextSilicon
+      license: "Apache-2.0 WITH LLVM-exception"
+      files: 19
+      landed_in: "Kokkos 5.2.0"
+      changelog_entry: "Add NextSilicon execution space and NextSiliconSharedSpace memory space (#8998, #9100)"
+      space_factory_id: "180_NextSilicon"
+      execution_space: NextSilicon
+      memory_space: NextSiliconSharedSpace
+      array_layout: LayoutLeft
+      concurrency: 65536
+      concurrency_note: "FIXME placeholder in source — NOT a hardware spec"
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://raw.githubusercontent.com/kokkos/kokkos/develop/CHANGELOG.md
+        - https://github.com/kokkos/kokkos/pull/8998
+        - https://github.com/kokkos/kokkos/pull/9100
+
+      maturity:
+        tracking_issue: https://github.com/kokkos/kokkos/issues/9032
+        opened: "2026-04-02"
+        levels_total: 16
+        landed: ["RangePolicy parallel_for", "DeepCopy", "View"]
+        outstanding:
+          - "RangePolicy parallel_reduce"
+          - "MDRange parallel_for / parallel_reduce"
+          - "TeamPolicy parallel_for"
+          - "nested parallelism"
+          - "scratch memory"
+          - "parallel_scan"
+          - "SIMD"
+          - "Containers"
+          - "Algorithms"
+          - "Benchmarks"
+          - "NextSiliconSpace (device-only memory space, distinct from the shared space)"
+        vendor_staging_fork: "nextsilicon/kokkos-public branches nextsilicon-backend-pr-1/2/2b/2c (latest 2026-07-16) contain the SAME file set as upstream — nothing more advanced is public"
+        confidence: confirmed
+
+  profiling_debug:
+    - name: Profiler
+      function: "real-time telemetry: performance patterns and bottlenecks"
+      open_source: false
+      confidence: confirmed
+    - name: Chip Viewer
+      function: "live hardware-level information"
+      open_source: false
+      confidence: confirmed
+    - name: Projection Viewer
+      function: "visualizes what is happening inside each mill core in real time"
+      open_source: false
+      patent: US11995419B1
+      patent_detail: >
+        GUI simultaneously presenting source code and an interactive node/edge graph of the source
+        mapped to physical configurable elements; bidirectional source<->graph navigation via compiler
+        debug data; live control-flow branch counters, cache-bin and HBM occupancy, grid occupancy;
+        four abstraction levels (logical -> compute -> hardware -> projection). Patent vocabulary:
+        'logical element units (LEUs)' arranged into 'grid compute units (GCU)'.
+      confidence: confirmed
+      sources:
+        - https://www.nextsilicon.com/tech/
+        - https://patents.google.com/patent/US11995419B1/en
+    - name: "Kokkos Tools integration"
+      symbol: "Kokkos::Profiling::Experimental::DeviceType::NextSilicon"
+      limitation: "device_id reporting stubbed pending NextAPI support (ticket CS-611)"
+      open_source: true
+      confidence: confirmed
+
+  collective_communication:
+    library: null
+    note: "No NCCL/RCCL analogue is named in any retrieved source."
+    confidence: confirmed
+
+# ── Execution model (the distinguishing mechanism) ────────────────────────────
+execution_model:
+  name: "two-pass train-then-project (compile once, JIT the spatial mapping at run time)"
+  primary_evidence: https://github.com/kokkos/kokkos/blob/develop/scripts/nextsilicon-test-wrapper.sh
+  steps:
+    - step: 1
+      name: "AOT compile"
+      detail: "one binary via nextcxx; no device object, no fat binary, no arch flag"
+    - step: 2
+      name: "training run"
+      detail: "program executes ON THE HOST while nextsystemd collects telemetry"
+      kokkos_quote: "NextSilicon kernels may run on the host during training/telemetry collection while still being 'within' the device execution space"
+    - step: 3
+      name: "optimization / projection"
+      detail: "nextsystemd identifies hot flows, builds an optimized compute graph, projects it onto the grid as mill cores"
+      observable_states: [IDLE, OPTIMIZING, IMPROVED]
+      idle_meaning: "'no mills found' — nothing was worth accelerating"
+      ci_budget: "up to 5 minutes wall clock"
+    - step: 4
+      name: "device run"
+      detail: "re-execute; hot regions hand off to the grid"
+    - step: 5
+      name: "continuous re-optimization"
+      detail: "telemetry keeps flowing and the mapping keeps changing; TNP: 'the longer the code runs, the better it gets'"
+    - step: 6
+      name: "persistent cache"
+      detail: "projections cached under XDG_CACHE_HOME across runs, amortizing the training pass"
+  telemetry_less_mode:
+    exists: true
+    config: "optimizer-pi: { enable-telemetry-less: true }"
+    semantics: "static projection path; any projection error counts as a failure"
+    status: "DISABLED in current upstream CI — 'FIXME_NEXTSILICON: re-enable when telemetry-less mode is working'"
+    confidence: confirmed
+  confidence: confirmed
+
+telemetry:
+  observable: "branch / logic-path execution counts — NOT conventional performance counters"
+  vendor_framing: >
+    Three-stage vendor flow figure: (1) SOFTWARE identify likely flow — a branch-likelihood histogram
+    partitioned into GRID / RISC-V E-CORES / HOST CPU; (2) SOFTWARE generate optimized compute graph;
+    (3) HARDWARE project compute graph onto grid; TELEMETRY arrow feeds (3) back to (2). Caption claims
+    the software identifies the "top 1% of code flows" and reconfigures "in nanoseconds". Figure carries
+    patent marking US16/053,382.
+  corroboration:
+    - "WO2019055675A1: telemetry tracks 'the number of times that each logic path has been taken' to identify 'likely compute paths'"
+    - "US11995419B1: the GUI surfaces 'control flow branch counters'"
+    - "Chips and Cheese: Raz frames the model as 'likely flows' vs 'unlikely flows'"
+  sampling_rate: "not disclosed"
+  record_format: "not disclosed"
+  confidence: confirmed
+  sources:
+    - https://image.nextplatform.com/214600.webp?imageId=214600&width=1412&height=598&format=jpg
+    - https://patents.google.com/patent/WO2019055675A1/en
+    - https://patents.google.com/patent/US11995419B1/en
+
+optimizer_actions:
+  patent: US20190042282A1
+  patent_note: "priority 2017-08-03, Elad Raz; app. US16/053,382 — the number printed on the vendor flow figure. Actions performed 'in real-time, simultaneous to the operation of the target computational device'."
+  actions:
+    - name: relocation
+      detail: "two computation groups that often call each other are allocated topologically close to each other (this is what the non-uniform NoC penalty makes matter)"
+    - name: duplication
+      detail: "hot groups duplicated several times on the grid to speed up calculation and open bottlenecks"
+    - name: in-lining
+      detail: "two frequently-communicating groups fused into one logical group"
+    - name: shrinking
+      detail: "unused duplicates reconfigured out and their resources released"
+    - name: host demotion
+      detail: "a function not needed in an accelerator is relocated to be executed on a CPU"
+  internal_algorithm: "not disclosed"
+  confidence: confirmed
+  note: "Patent disclosure corroborated by the vendor FAQ's description of 'relocating communicating cores and duplicating bottlenecked cores'."
+  sources:
+    - https://patents.google.com/patent/US20190042282A1/en
+    - https://www.nextsilicon.com/faq
+
+# ── Runtime semantics revealed by the open-source backend ─────────────────────
+runtime_semantics:
+  dispatch: "synchronous and blocking — NOT the async stream model of CUDA/HIP/SYCL"
+  fence: "NextSilicon::fence() is a no-op — 'fence doesn't do anything in the OpenMP-style interface'"
+  concurrency: "kernel launch takes a device mutex — 'Acquire the device for potential handoff before kernel execution begins'; one kernel at a time"
+  functor_transfer: "copied into a 4 MB minimum heap buffer in shared space; driver cloned to prevent the stack from being migrated to device"
+  host_device_predicate: >
+    KOKKOS_IF_ON_HOST / KOKKOS_IF_ON_DEVICE cannot be resolved at compile time. A runtime thread-local
+    is used: is_on_device() = __next_is_in_handed_off_code() || host_thread_is_on_device(). Source
+    comment: "unlike other backends, NextSilicon kernels may run on the host during training/telemetry
+    collection while still being 'within' the device execution space, so we cannot simply equate
+    'on device' with 'offloaded to device'."
+  limitations:
+    - "printf from grid code does not work (guarded by !__next_is_in_handed_off_code(); ticket CS-515)"
+    - "abort from grid code does not work (ticket CS-694)"
+    - "fork() unsupported — Kokkos death-tests filtered out in CI"
+    - "device-side cycle counters unavailable (clock_tic_device() unimplemented, PR #9378)"
+  open_tickets_referenced: [CS-515, CS-611, CS-682, CS-694, CS-737, SW-25677]
+  confidence: confirmed
+  sources:
+    - https://github.com/kokkos/kokkos/blob/develop/core/src/NextSilicon/Kokkos_NextSilicon_ThreadSpaceGuard.hpp
+    - https://github.com/kokkos/kokkos/blob/develop/core/src/NextSilicon/Kokkos_NextSilicon_ParallelFor_Range.hpp
+    - https://github.com/kokkos/kokkos/pull/9378
+
+# ── Open vs proprietary ───────────────────────────────────────────────────────
+openness:
+  open_source:
+    - "Kokkos NextSilicon backend (upstream; Apache-2.0 WITH LLVM-exception)"
+    - "scripts/nextsilicon-test-wrapper.sh (documents the execution model)"
+    - "nextsilicon/llvm-project MLIR fork (Apache-2.0 WITH LLVM-exception; staging for upstream)"
+    - "nextsilicon/kokkos-kernels-public, kokkos-tools-public, kokkos-core-wiki"
+    - "nextsilicon/ns-gem5 (BSD; RISC-V PMP / cache / prefetcher work — models the Arbel/E-core side, NOT the dataflow grid)"
+  proprietary:
+    - nextcxx
+    - "MLIR -> grid lowering"
+    - "projection / mapping algorithm"
+    - libnextapi.so
+    - nextsystemd
+    - nextcli
+    - "telemetry format and sampling rate"
+    - "optimizer cache format"
+    - "kernel driver"
+    - "grid configuration encoding ('ISA')"
+    - "Profiler / Chip Viewer / Projection Viewer"
+    - "all SDK documentation (401-gated)"
+  not_applicable_by_design:
+    - "kernel language"
+    - "kernel compiler for device code"
+    - "graph capture"
+    - "graph compiler"
+    - "tensor API"
+    - "collective communication library"
+  github_org_note: "14 public repos, ALL forks. There is no first-party NextSilicon SDK repository."
+  confidence: confirmed
+  sources:
+    - https://github.com/orgs/nextsilicon/repositories
+
+# ── Explicitly not disclosed ──────────────────────────────────────────────────
+not_disclosed:
+  - "Name, source availability and interface of the Linux kernel driver / device node."
+  - "The grid configuration encoding — no published ISA, bitstream format, or configuration-word spec."
+  - "Expansion of the runtime config keys 'optimizer-pi' and 'mlc'."
+  - "Internal design of nextsystemd's projection/mapping algorithm."
+  - "Telemetry sampling rate, telemetry record format, optimizer-cache format."
+  - "NextAPI's full API surface — no published reference manual; docs.nextsilicon.com is 401-gated."
+  - "Whether Fortran support is via LLVM Flang or another front end."
+  - "Any collective-communication library (NCCL/RCCL analogue) — none named in any source."

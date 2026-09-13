@@ -1,0 +1,146 @@
+digraph tesla_dojo_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nStandard model interface\nNo manual kernels required", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mlcompiler [label="Tesla ML Compiler\nGraph capture from PyTorch\nData/model/graph parallelism\nJIT + kernel caching", fillcolor="#E4DEFF"];
+        llvm [label="LLVM Backend\nTargets Dojo custom ISA\nCode generation\n(source not public)", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP / KERNEL LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op / Kernel Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        oplib [label="Internal Op Library\n(not public)\nGEMM, Conv, Attention\ncompiler-generated", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        runtime [label="Dojo Runtime\n(not public)\nFault-tolerant mesh routing\nSRAM allocation\nAuto-scaling across tiles", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        driver [label="Dojo System Driver\n(not public)\nMesh topology mgmt\nDIP card control\nTTP data ingestion", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ttpoe [label="TTPoE\nTesla Transport Protocol over Ethernet\nLossy fabric, hardware retry\nOpen-sourced (HC2024)\ngithub.com/teslamotors/ttpoe", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        isa [label="Custom Dojo ISA\n64-bit scalar + 64-byte SIMD vector\nBF16 / CFP8 / CFloat16 / FP32\n(spec not public)", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Tesla Dojo Hardware (D1 / Training Tile / ExaPOD)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        d1 [label="D1 Chip (TSMC 7nm, 645mm², 50B transistors)\n354 Training Nodes | 440 MB SRAM\n376 TFLOPS BF16 | 400 W TDP\n576 SerDes lanes, 112GT/s (~8TB/s C2C)", fillcolor="#283593", fontcolor="white"];
+        tile [label="Training Tile (5×5 D1)\n9 PFLOPS BF16 | 11 GB SRAM\n13 TB/s HBM via DIP cards | 15 kW", fillcolor="#283593", fontcolor="white"];
+        exapod [label="ExaPOD (10 cabinets, 3000 D1 chips)\n1 EFLOPS BF16/CFP8\n1.3 TB SRAM + 13 TB HBM", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> mlcompiler [label="graph capture"];
+    mlcompiler -> llvm [label="IR lower"];
+
+    // Compiler -> Op/Kernel
+    llvm -> oplib [label="codegen", style=dashed];
+
+    // Compiler -> ISA
+    llvm -> isa [label="emit binary"];
+
+    // Op Library -> Runtime
+    oplib -> runtime [style=dashed];
+
+    // Runtime -> Driver
+    runtime -> driver;
+
+    // Communication
+    ttpoe -> runtime [style=dashed, label="scale-out\ncollectives"];
+
+    // ISA -> Hardware
+    isa -> d1 [label="execute"];
+
+    // Hardware hierarchy
+    d1 -> tile [label="25 chips\n5x5 tile"];
+    tile -> exapod [label="300 tiles\n10 cabinets"];
+
+    // Driver -> Hardware
+    driver -> d1 [style=dashed, color="#283593"];
+    driver -> tile [style=dashed, color="#283593", label="DIP / TTP\ndata ingestion"];
+
+    // TTPoE -> ExaPOD
+    ttpoe -> exapod [style=dashed, color="#37474F", label="cluster\nnetwork"];
+}

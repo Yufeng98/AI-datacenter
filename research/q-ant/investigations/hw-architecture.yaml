@@ -1,0 +1,396 @@
+chip: q-ant
+device_class: "Photonic NPU (Germany)"
+as_of: "2026-04-05"
+generation: "NPU 1 (2024) / NPU 2 (2025–2026)"
+
+company:
+  name: Q.ANT GmbH
+  founded: 2018
+  origin: "Spin-off from TRUMPF GmbH + Co. KG"
+  hq: "Stuttgart, Germany"
+  founder_ceo: "Michael Förtsch"
+  total_funding_usd: "~$80M"
+  series_a_eur: "€62M"
+  series_a_date: "2025-07-17"
+  series_a_second_close: "2025-10-30"
+  lead_investors:
+    - "Cherry Ventures"
+    - "UVC Partners"
+    - "imec.xpand"
+    - "TRUMPF (strategic)"
+  other_investors:
+    - "L-Bank"
+    - "Verve Ventures"
+    - "Grazia Equity"
+    - "EXF Alpha"
+    - "LEA Partners"
+    - "Onsight Ventures"
+    - "Duquesne Family Office LLC"
+  public_github: null
+  open_source: false
+
+architecture:
+  name: LENA
+  full_name: "Light Empowered Native Arithmetics"
+  paradigm: "Analog photonic matrix-vector multiplication"
+  substrate: "Thin-Film Lithium Niobate on Insulator (TFLNoI)"
+  tfln_thickness_nm: 600
+  core_element: "Mach-Zehnder Interferometer (MZI) mesh"
+  weight_encoding: "Voltage → electro-optic phase shift → MZI transmission coefficient"
+  nonlinear_ops_npu1: "Offloaded to host/CMOS co-processor"
+  nonlinear_ops_npu2: "Native TFLN χ² optical nonlinearity (key NPU 2 advance)"
+  compute_speed: "Picosecond-scale (photons at ~2/3c in waveguide)"
+  precision_format: "Analog continuous amplitude; no digital TOPS metric"
+
+generations:
+  npu_1:
+    released: 2024
+    status: "Commercially shipping"
+    production_status: "Full production capacity (TRUMPF fab, Stuttgart)"
+    hpc_deployments:
+      - site: "Leibniz Supercomputing Centre (LRZ)"
+        location: "Munich, Germany"
+        date: "2025-07"
+  npu_2:
+    announced: "2025-11-18"
+    venue: "Supercomputing 2025 (SC25), St. Louis"
+    status: "Customer shipments H1 2026"
+    key_advance: "Enhanced native optical nonlinear processing"
+    power_chip_w: 30
+    power_nvidia_gpu_comparison_w: "700–1000"
+    energy_efficiency_claim: "30× lower energy per workload vs CMOS"
+    performance_claim: "50× higher performance for nonlinear AI / physics simulation"
+    hpc_deployments:
+      - site: "Leibniz Supercomputing Centre (LRZ)"
+        location: "Munich, Germany"
+        date: "2026-03"
+      - site: "Jülich Supercomputing Centre (JSC), FZ Jülich"
+        location: "Jülich, Germany"
+        date: "2025 (collaboration)"
+      - site: "2× additional HPC centers (unnamed)"
+        date: "Q1 2026"
+
+system:
+  product_name: "NPS (Native Processing Server)"
+  form_factor: "19-inch rack-mount server (1U/2U)"
+  npu_count_per_server: "Multiple (exact count not disclosed)"
+  host_cpu: "x86 (Intel/AMD)"
+  os: Linux
+  host_interface: PCIe
+  networking: "Standard Ethernet / HPC fabric via host NIC"
+  turnkey: true
+  ordering: "Direct from Q.ANT; available now for NPU 2"
+
+memory:
+  on_chip: "None (photonic; weights encoded as MZI phase voltages)"
+  off_chip: "Host DRAM via PCIe (no HBM, no dedicated GDDR)"
+  weight_loading: "DAC → voltage → MZI phase shift (static during inference pass)"
+  activation_readout: "Photodetector array → ADC → host PCIe"
+  memory_hierarchy: "No standard memory hierarchy; host CPU manages all weight/activation buffers"
+
+interconnect:
+  chip_to_host: "PCIe (Gen4/5 not specified)"
+  multi_npu_intra_server: "Multiple NPU dies in NPS; topology not disclosed"
+  multi_server_scale_out: "Standard HPC networking via host NIC (no proprietary fabric)"
+  photonic_interconnect: false
+  note: "Q.ANT does not productize photonic interconnect (unlike Lightmatter Passage)"
+
+manufacturing:
+  fab_location: "Stuttgart, Germany"
+  fab_type: "TRUMPF proprietary photonic fab"
+  process_node: "TFLN photonic process (not CMOS foundry)"
+  transistor_count: null
+  die_size_mm2: null
+  export_controls: null
+
+target_workloads:
+  - "Physics-based AI and simulation"
+  - "Advanced robotics and physical AI"
+  - "Next-generation computer vision and industrial intelligence"
+  - "Audio and video processing"
+  - "Sensor fusion"
+  - "Scientific discovery workloads"
+not_targeted:
+  - "LLM inference (large language model serving)"
+  - "Large-scale model training"
+
+competitive_vs_lightmatter:
+  q_ant_product_type: "All-photonic compute coprocessor"
+  lightmatter_envise: "Photonic compute + CMOS (not yet shipping as of Apr 2026)"
+  lightmatter_passage: "Photonic interconnect (shipping)"
+  q_ant_platform: "TFLN (Thin-Film Lithium Niobate)"
+  lightmatter_platform: "Silicon photonics (SiPh)"
+  q_ant_shipping: true
+  lightmatter_compute_shipping: false
+  q_ant_hpc_deployments: "LRZ + JSC (named, paid, operational)"
+  lightmatter_hpc_deployments: "None publicly confirmed as of Apr 2026"
+
+# ============================================================================
+# Investigation update — appended 2026-08-08
+# Window: 2026-04-05 -> 2026-08-08
+# No new silicon. Verified against Wayback snapshots and independent reporting;
+# two framings from the original scan did not survive (see refuted_from_raw_scan).
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: moderate
+  new_silicon: false
+  verification: "adversarial round-3; verdict PARTIALLY_CONFIRMED (refuted=True)"
+  summary: >
+    No new NPU generation, no new published hardware specification, no NPU 3
+    timeline. Real changes: first commercial customer (IONOS, signed not deployed),
+    manufacturing partner named (IMS CHIPS), Austin US HQ + CTO hire, and
+    qualitative ISC 2026 workload demos. Separately, several vendor specs that the
+    original scan missed are added here with their true PRE-BASELINE provenance.
+
+  fact_groups:
+
+    - group: ionos_first_commercial_customer
+      confidence: high
+      basis: vendor_primary_pr_plus_independent_corroboration
+      facts:
+        customer: IONOS
+        customer_profile: "European cloud/hosting provider, ~6.8M customers across 17 markets in Europe and North America"
+        date_announced: "2026-05-19"
+        venue: "re:publica 2026, Berlin"
+        pr_dateline: "Austin, Texas / Stuttgart, Germany - May 19, 2026"
+        product: "NPS (Native Processing Server) carrying the second-generation NPU"
+        status: signed_not_deployed
+        rollout: "planned 'later this year' (2026); Q.ANT boilerplate: 'first commercial deployment planned for 2026'"
+        deployed_as_of_2026_08_08: false
+        resolves: "the repo's prior 'commercial cloud partner - imminent (as of Apr 2026)' placeholder"
+      sources:
+        - title: "Q.ANT takes photonic AI computing commercial as AI's power demand surges (2026-05-19)"
+          url: "https://qant.com/press-releases/q-ant-takes-photonic-ai-computing-commercial-as-ais-power-demand-surges/"
+        - title: "The Quantum Insider - Q.ANT / IONOS (2026-05-21)"
+          url: "https://thequantuminsider.com/2026/05/21/qant-photonic-ai-computing-commercial-ionos/"
+
+    - group: shipping_status_corrected
+      confidence: high
+      basis: vendor_product_page_language_plus_absence_of_availability_evidence
+      facts:
+        prior_repo_claim: "NPU 2 shipping H1 2026"
+        corrected: >
+          NPU 2 deployed and operational at LRZ Munich and JSC Julich; NPS described by
+          Q.ANT as "available for evaluation in select data center environments today";
+          first commercial deployment (IONOS) planned for later in 2026 and had not
+          occurred as of 2026-08-08.
+        general_commercial_availability: no_evidence
+        public_retraction_of_h1_2026: no_evidence
+        forbidden_word: "slipped"
+        forbidden_word_reason: "implies a withdrawn commitment; no source shows Q.ANT retracting an H1 date"
+      sources:
+        - title: "qant.com/photonic-computing/ (fetched 2026-08-08)"
+          url: "https://qant.com/photonic-computing/"
+
+    - group: manufacturing_ims_chips
+      confidence: high
+      basis: vendor_primary_pr_plus_independent_corroboration
+      facts:
+        pilot_line_location: "Stuttgart, Germany"
+        operator: "operated jointly with IMS CHIPS"
+        vendor_wording: "operates its own TFLN chip pilot line with IMS CHIPS"
+        trumpf_relationship: "Q.ANT remains a TRUMPF spin-off and TRUMPF is a strategic investor - a separate fact from who operates the line"
+        repo_correction: true
+        occurred_in_window: false
+      sources:
+        - title: "Q.ANT IONOS press release (2026-05-19)"
+          url: "https://qant.com/press-releases/q-ant-takes-photonic-ai-computing-commercial-as-ais-power-demand-surges/"
+        - title: "The Quantum Insider (2026-05-21)"
+          url: "https://thequantuminsider.com/2026/05/21/qant-photonic-ai-computing-commercial-ionos/"
+
+    - group: published_specs_pre_baseline
+      confidence: high
+      basis: wayback_snapshot_decisive
+      provenance_note: >
+        Every item below was already verbatim on qant.com/photonic-computing/ in the
+        2026-01-22 Wayback snapshot and persists in the 2026-04-10 snapshot. These are
+        gaps in the repo's ORIGINAL scan, not developments in the 2026-04-05 ->
+        2026-08-08 window. Filing them as new specs would be a pre-baseline-as-new error.
+      facts:
+        throughput_gops: 8
+        throughput_wording: ["Speed-up to 8 GOPS", "Throughput of NPU 8 GOPS"]
+        throughput_scope: "sustained on nonlinear functions, NPU Gen 2"
+        npu_power_w: 150
+        npu_power_wording: "Power consumption of NPU 150 W"
+        pic_platform: "z-cut Lithium Niobate on Insulator (LNoI)"
+        operating_temperature_c: "15 to 35"
+        roadmap: "0.1 GOps (2024) -> 100,000 GOps (2028)"
+        first_public_by: "2026-01-22"
+        repo_conflicts_created:
+          - "'Analog continuous (no TOPS/TFLOPS metric)' is contradicted by the published 8 GOPS figure; the precision statement stands, 'no throughput metric at all' does not"
+          - "'~30 W chip' asserted bare is contradicted by the published 150 W NPU figure; most plausibly PIC-only vs NPU-module, but Q.ANT does not say so - carry both, qualified"
+      sources:
+        - title: "Wayback snapshot of qant.com/photonic-computing/ (2026-01-22)"
+          url: "https://web.archive.org/web/20260122130900/https://qant.com/photonic-computing/"
+        - title: "Wayback snapshot of qant.com/photonic-computing/ (2026-04-10)"
+          url: "https://web.archive.org/web/20260410180106/https://qant.com/photonic-computing/"
+
+    - group: wavelength_multiplexing_wording
+      confidence: high
+      basis: page_diff_against_archived_snapshots
+      facts:
+        old_wording: "Setting the conditions for multidimensional optical scaling"
+        new_wording: "Foundation for wavelength multiplexing"
+        observed: "post-April 2026 on qant.com/photonic-computing/; absent from the 2026-04-10 snapshot"
+        interpretation: "marketing rephrase only"
+        implemented_in_npu_gen2: false
+        do_not_publish:
+          - "wavelength multiplexing is a new NPU Gen 2 capability"
+          - "any date or generation attached to wavelength multiplexing"
+      sources:
+        - title: "qant.com/photonic-computing/ (fetched 2026-08-08), diffed against the 2026-04-10 snapshot"
+          url: "https://qant.com/photonic-computing/"
+
+    - group: gen1_to_gen2_speedup
+      confidence: unresolved
+      basis: conflicting_published_sources
+      facts:
+        qant_pr_claim: "up to 100x performance increase over Q.ANT's first generation, in independent evaluation at LRZ"
+        qant_pr_date: "2026-05-19"
+        independent_report_claim: "up to 50x performance increase over Q.ANT's first generation"
+        independent_report_date: "2026-05-21"
+        same_underlying_announcement: true
+        primary_lrz_measurement_published: false
+        lrz_methodology_published: false
+        lrz_workload_published: false
+        action: "attribute and hedge; do not assert either figure as the chip's speedup"
+        recorded_form: >
+          Q.ANT claims an LRZ evaluation showed up to 100x Gen-1 -> Gen-2 improvement;
+          secondary coverage of the same release reports 50x; the discrepancy is
+          unresolved and no primary LRZ measurement is public.
+      sources:
+        - title: "Q.ANT press release (2026-05-19)"
+          url: "https://qant.com/press-releases/q-ant-takes-photonic-ai-computing-commercial-as-ais-power-demand-surges/"
+        - title: "The Quantum Insider (2026-05-21)"
+          url: "https://thequantuminsider.com/2026/05/21/qant-photonic-ai-computing-commercial-ionos/"
+
+    - group: vendor_efficiency_claims_scoping
+      confidence: medium
+      basis: vendor_self_described_internal_benchmarking
+      facts:
+        claim_pair: "up to 30x higher energy efficiency and up to 50x greater performance per application vs conventional processors"
+        provenance: "Q.ANT internal benchmarking, by Q.ANT's own wording"
+        isc_narrowing: "in the ISC/June framing the 30x is a TARGET 'at the photonic circuit level' for equivalent matrix operations"
+        product_page_framing: "stated more loosely as 'up to 30x energy efficiency and 50x performance gains per application'"
+        both_scopings_exist_in_vendor_material: true
+        independently_measured: false
+        do_not_conflate_with: gen1_to_gen2_speedup
+      sources:
+        - title: "qant.com/photonic-computing/"
+          url: "https://qant.com/photonic-computing/"
+        - title: "Q.ANT runs generative AI on photonic hardware (2026-06-23)"
+          url: "https://qant.com/press-releases/q-ant-runs-generative-ai-on-photonic-hardware/"
+
+    - group: isc_2026_workload_demos
+      confidence: high
+      basis: vendor_primary_pr_plus_independent_corroboration
+      facts:
+        date: "2026-06-23"
+        event: "ISC High Performance 2026, Hamburg"
+        hardware: "second-generation NPU"
+        demo_1: "diffusion model for image-to-image synthesis"
+        demo_2: "TiRex - time-series prediction model built on the xLSTM architecture from NXAI (Austria)"
+        vendor_claim: "first complex, production-relevant AI workloads on photonic hardware; first diffusion model of this complexity"
+        parameter_counts_published: false
+        throughput_published: false
+        latency_published: false
+        energy_published: false
+        accuracy_published: false
+        cpu_gpu_layer_split_disclosed: false
+        independently_quantifiable: false
+        separate_from: daisytuner_compiler_path
+        note: "yields no hardware numbers; none may be inferred from these demos"
+      sources:
+        - title: "Q.ANT runs generative AI on photonic hardware (2026-06-23)"
+          url: "https://qant.com/press-releases/q-ant-runs-generative-ai-on-photonic-hardware/"
+        - title: "The Quantum Insider (2026-06-23) - explicitly notes the absence of comparative benchmarks"
+          url: "https://thequantuminsider.com/2026/06/23/q-ant-runs-generative-ai-on-photonic-hardware/"
+
+    - group: us_expansion_and_cto
+      confidence: high
+      basis: vendor_primary_pr
+      facts:
+        date: "2026-04-23"
+        us_hq: "Austin, Texas"
+        wording_variants:
+          - "U.S. headquarters in Austin, Texas (2026-04-23 PR)"
+          - "U.S. office in Austin, Texas (2026-05-19 PR)"
+        cto: "Bruno Spruth"
+        cto_background: "16 years at IBM, most recently Vice President of POWER Processor Development"
+        cto_remit: "technology strategy, product development, North American operations"
+        headcount_plan: "20 U.S. employees over six months across software development, photonics, and digital system design"
+      sources:
+        - title: "Q.ANT brings commercial photonic computing to the United States; appoints Bruno Spruth as CTO (datePublished 2026-04-23)"
+          url: "https://qant.com/press-releases/q-ant-brings-commercial-photonic-computing-to-the-united-states-appoints-bruno-spruth-as-cto/"
+
+    - group: lrz_workload_attribution
+      confidence: low
+      basis: vendor_sourced_only
+      facts:
+        claim: "Q.ANT processors at LRZ are actively running workloads in climate modeling, medical imaging, and fusion energy research"
+        origin: "Q.ANT 2026-04-23 US-expansion press release"
+        corroborating_lrz_or_jsc_publication: none_found
+        action: "attribute to Q.ANT; do not state as independently confirmed"
+      sources:
+        - title: "Q.ANT US expansion press release (2026-04-23)"
+          url: "https://qant.com/press-releases/q-ant-brings-commercial-photonic-computing-to-the-united-states-appoints-bruno-spruth-as-cto/"
+
+    - group: still_not_disclosed
+      confidence: high
+      basis: absence_confirmed_across_vendor_product_pages_and_press_releases
+      facts:
+        mzi_count: not_disclosed
+        channel_or_matrix_dimensions: not_disclosed
+        clock_rate: not_disclosed
+        enob_effective_analog_precision: not_disclosed
+        pcie_generation: not_disclosed
+        npu_count_per_nps: not_disclosed
+        die_size: not_disclosed
+        npu_3_timeline: not_disclosed
+        funding: "unchanged at ~$80M (Series A, Jul-Oct 2025); no new round in the window"
+      sources:
+        - title: "qant.com/photonic-computing/ (fetched 2026-08-08)"
+          url: "https://qant.com/photonic-computing/"
+
+    - group: conference_calendar_no_content
+      confidence: high
+      basis: program_listing_only
+      facts:
+        hot_chips_38: "Q.ANT is NOT on the Hot Chips 38 program (Aug 23-25, 2026)"
+        hot_chips_38_note: "event is in the future as of 2026-08-08 and is no source of specs regardless"
+        sc_2026: "Q.ANT registered for SC 2026 (Nov 15-20, 2026, McCormick Place, Chicago); no content posted"
+        action: "calendar entries only; not written into chip docs as facts about the chip"
+      sources:
+        - title: "Hot Chips"
+          url: "https://hotchips.org/"
+
+  refuted_from_raw_scan:
+    - claim: "8 GOPS is a NEW spec / the first hard number for Q.ANT"
+      verdict: REFUTED
+      reason: "already verbatim on qant.com/photonic-computing/ in the 2026-01-22 Wayback snapshot, i.e. pre-baseline"
+    - claim: "LRZ independent evaluation showed up to 100x over Gen 1 (asserted)"
+      verdict: NUMBER_CONFLICT
+      reason: "The Quantum Insider reports 50x for the same announcement; no LRZ-authored evaluation published"
+    - claim: "NPU 2 is now in production use ... and signed IONOS (blurs signed vs deployed)"
+      verdict: OVERSTATED
+      reason: "the IONOS agreement is signed; rollout is explicitly 'later this year' and has not happened"
+    - claim: "commercial shipment slipped past H1"
+      verdict: OVERSTATED
+      reason: "'slipped' implies a withdrawn commitment; no source shows Q.ANT retracting an H1 2026 date"
+    - claim: "the Daisytuner work is the ISC 2026 diffusion/xLSTM demo"
+      verdict: DATE_CONTENT_ERROR
+      reason: "Daisytuner's item is Faster R-CNN + ResNet-50 object detection, revealed April 2026 - a separate event"
+    - claim: "the repo's ~30 W chip figure is complete"
+      verdict: MISSING
+      reason: "qant.com publishes 'Power consumption of NPU 150 W'; the bare 30 W was a pre-existing repo error"
+    - claim: "LRZ is running climate modeling, medical imaging and fusion energy workloads (as independent fact)"
+      verdict: UNVERIFIABLE_AS_STATED
+      reason: "traces to Q.ANT's own 2026-04-23 PR; no LRZ or JSC publication found"
+
+  methodology_note: >
+    The raw scan's source list was six qant.com URLs plus hotchips.org - entirely
+    vendor-controlled. The two claims that broke under independent checking (8 GOPS
+    novelty, 100x Gen1->Gen2) are precisely the two that only a vendor page or vendor
+    press release supported. Wayback snapshots and The Quantum Insider were decisive.

@@ -1,0 +1,308 @@
+chip: tianshu-zhixin
+device_class: "GPU (天数智芯 / Iluvatar CoreX)"
+resource: software-stack
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+confidence: medium
+sources_count: 17
+
+platform_name: "IXUCA (Iluvatar CoreX Unified Computing Architecture)"
+open_source_platform: "DeepSpark (github.com/Deep-Spark, deepspark.org.cn)"
+
+layers:
+  framework_integration:
+    components:
+      - name: PyTorch
+        method: "IXUCA device backend / libcuda shim"
+        open_source: false
+      - name: TensorFlow
+        method: "IXUCA compatibility layer"
+        open_source: false
+      - name: PaddlePaddle
+        method: "IXUCA support"
+        open_source: false
+      - name: MindSpore
+        method: "IXUCA support"
+        open_source: false
+      - name: "FlagPerf (BAAI benchmark framework)"
+        method: "Native integration"
+        open_source: true
+
+  compiler_ir:
+    components:
+      - name: "IXUCA Compiler"
+        description: "In-house kernel compiler; targets proprietary Iluvatar ISA"
+        open_source: false
+      - name: "IxRT Compiler"
+        description: "Graph optimizer for inference; TensorRT analog"
+        open_source: true
+        repo: "github.com/Deep-Spark/iluvatar-corex-ixrt"
+
+  # ---- Added 2026-08-08: new layer, previously empty for this vendor ----
+  kernel_authoring_dsl:
+    components:
+      - name: FlyDSL
+        description: >-
+          Python DSL plus MLIR stack for authoring high-performance GPU kernels with
+          explicit layouts and tiling. Fills a layer the survey previously recorded as
+          empty for Iluvatar: a CUTLASS/Triton-tier kernel-authoring entry point.
+        open_source: true
+        repo: "github.com/Deep-Spark/FlyDSL"
+        branch: iluvatar
+        commits_on_iluvatar_branch: 873
+        last_updated: "2026-08-08"
+        provenance: "Fork of an AMD-ROCm-origin project"
+        iluvatar_addition: "FlyIXDL backend targeting Iluvatar GPUs"
+        hardware_coverage: ["MR-50", "MR-100", "BI-V150", "BI-V150s"]
+        hardware_coverage_class: "ivcore11"
+        design_lineage: ["CUTLASS layout algebra", "ROCm Composable Kernel tile patterns"]
+        abstraction_level: "Explicitly lower-level than Triton — programmer states layouts and tiles"
+        tiangai_300_supported: false
+        significance: >-
+          First significant piece of the Iluvatar stack whose upstream is AMD/ROCm rather
+          than NVIDIA; also the clearest public statement of which Iluvatar parts share a
+          core generation (ivcore11 = MR-50/MR-100/BI-V150/BI-V150s). TianGai 300 is absent
+          from that list, consistent with it being a new architecture generation with no
+          public toolchain support yet.
+        confidence: reported
+        sources: ["github-flydsl", "deepspark-github-org"]
+
+  op_library:
+    components:
+      - name: ixnn
+        description: "cuDNN analog — Conv, Attention, Norm, Pooling, Activation"
+        precision: ["FP32", "FP16", "BF16", "INT8"]
+        open_source: false
+      - name: ixblas
+        description: "cuBLAS analog — GEMM, BLAS L1-L3"
+        open_source: false
+
+  inference_runtime:
+    components:
+      - name: IxRT
+        description: "Iluvatar Inference Runtime; TensorRT analog with plugins and deploy tools"
+        open_source: true
+        repo: "github.com/Deep-Spark/iluvatar-corex-ixrt"
+        license: "Apache 2.0"
+      - name: IGIE
+        description: "Iluvatar GPU Inference Engine; complements IxRT for framework-specific inference"
+        open_source: false
+      # ---- Added 2026-08-08 ----
+      - name: "Deep-Spark vLLM fork"
+        description: "Iluvatar-targeted vLLM"
+        open_source: true
+        last_updated: "2026-06-12"
+        confidence: reported
+        sources: ["deepspark-github-org"]
+      - name: xllm
+        description: "Multi-accelerator LLM inference engine"
+        open_source: true
+        added: "2026-05-12"
+        confidence: reported
+        sources: ["deepspark-github-org"]
+      - name: LightX2V
+        description: "Video-generation inference"
+        open_source: true
+        added: "2026-05-12"
+        confidence: reported
+        sources: ["deepspark-github-org"]
+
+  runtime:
+    components:
+      - name: "IXUCA Runtime (ix-runtime / libcuda shim)"
+        description: "cudart analog; CUDA-compatible API interface; enables CUDA code migration"
+        open_source: false
+      - name: "IXUCA Driver API"
+        description: "Lower-level context/module management"
+        open_source: false
+
+  driver_firmware:
+    components:
+      - name: "Iluvatar GPU Kernel Driver (.ko)"
+        description: "Linux PCIe kernel module; BAR/IOCTL/DMA/IRQ"
+        supported_os: ["Ubuntu (x86)", "Kylin", "UOS"]
+        open_source: false
+      - name: ix-container-toolkit
+        description: "Docker/containerd GPU container runtime; ix-container-runtime hook"
+        open_source: true
+        repo: "github.com/Deep-Spark/ix-container-toolkit"
+        license: "Apache 2.0"
+      - name: ix-device-plugin
+        description: "Kubernetes DaemonSet for GPU resource exposure and health monitoring"
+        open_source: true
+      - name: ix-exporter
+        description: "Prometheus HTTP metrics exporter for Iluvatar GPU nodes"
+        open_source: true
+        repo: "github.com/Deep-Spark/ix-exporter"
+
+  communication:
+    components:
+      - name: "CLIF fabric driver"
+        description: "Intra-node proprietary GPU-to-GPU interconnect driver (NVLink analog)"
+        open_source: false
+        bandwidth_gbs: undisclosed
+      - name: "NCCL-compatible CCL"
+        description: "Inter-node collective communication over InfiniBand / RoCE"
+        open_source: false
+
+  debugging_profiling:
+    components:
+      - name: ixGDB
+        description: "GPU debugger; CUDA-GDB 10.2 derived; open-source"
+        open_source: true
+        repo: "github.com/Deep-Spark/ixGDB"
+        license: "GPLv3"
+      - name: ixSMI
+        description: "GPU status monitor; nvidia-smi analog"
+        open_source: false
+      - name: ixPROF
+        description: "GPU performance profiler; nsight analog"
+        open_source: false
+      - name: ixKN
+        description: "Kernel name/trace utility"
+        open_source: false
+      - name: ixSYS
+        description: "System diagnostics and health check"
+        open_source: false
+
+  isa:
+    name: "Iluvatar Proprietary SIMT ISA"
+    documented: false
+    execution_model: SIMT
+    precision: ["FP32", "FP16", "BF16", "INT8", "INT4 (partial)"]
+    notable: "Full in-house ISA; not analogous to PTX (no public virtual ISA)"
+    generation_scope: "Big Island (TianGai-100 / TianGai-150 / Zhikai 100)"
+    # ---- Added 2026-08-08 ----
+    new_generation:
+      name: "New-generation ISA (TianGai 300, announced 2026-07-19)"
+      documented: false
+      execution_model: "SIMT with scalar + vector + tensor execution paths"
+      precision_added: ["FP8", "FP4"]
+      instruction_classes: ["MMA", "DPX", "FMA"]
+      named_extensions:
+        - name: ixSMEX
+          function: "Raises data reuse to cut redundant memory traffic"
+        - name: ixDPX
+          function: "Compresses a six-instruction dynamic-programming sequence into one instruction"
+        - name: ixTrans
+          function: "Lossless matrix transpose; reduces bank conflicts and VRAM overhead"
+      encodings_disclosed: false
+      programmer_exposure: not_disclosed
+      confidence: announced
+      sources: ["tencent-news-tg300-a", "tencent-news-tg300-b", "ithome-tg300"]
+
+  # ---- Added 2026-08-08 ----
+  developer_resources:
+    components:
+      - name: "Iluvatar developer portal"
+        url: "developer.iluvatar.com"
+        launched: "~2026-07-15/19"
+        description: >-
+          Aggregates developer documentation, software images, model cases, technical blogs
+          and DeepSpark resources into a single entry point.
+        acceleration_libraries_claimed: "~100 built since 2018, spanning communication,
+          compilation, drivers, quantization and performance analysis"
+        libraries_enumerated_publicly: false
+        confidence: reported
+        sources: ["iluvatar-dev-portal", "tencent-cloud-waic2026"]
+
+cuda_compatibility:
+  runtime_shim: true
+  source_translator: false
+  migration_effort: "low-to-medium (runtime shim handles most CUDA API calls)"
+  missing_vs_cuda:
+    - "No public PTX equivalent"
+    - "No CUDA source-level translator like Musify"
+    - "Smaller open-source ecosystem"
+
+ecosystem:
+  deployed_gpus: 52000              # cumulative units shipped, as of 2025-06
+  customers: 290                    # as of 2025-06
+  as_of_290_customers: "2025-06"
+  verticals: ["finance", "healthcare", "transportation", "cloud AI"]
+  baai_integration: true
+  llm_training: "Aquila2-70B on BI-V100+BI-V150 mixed cluster (85.3% peak utilization)"
+  benchmark_framework: "BAAI FlagPerf"
+  # ---- Added 2026-08-08; supersedes the Jun 2025 customer count, but measures a
+  #      DIFFERENT quantity (chips concurrently online, not cumulative units shipped) ----
+  deployment_end_2025:
+    customers: "340+"
+    industries: "30+"
+    chips_in_online_cluster_operation: ">10,000"
+    continuous_cluster_uptime_days: "1,000+"
+    as_of: "2025-12-31"
+    stated_at: "WAIC 2026 briefing, 2026-07-19"
+    comparable_to_52k_figure: false
+    confidence: company_stated
+    sources: ["tencent-news-tg300-a", "tencent-cloud-waic2026"]
+
+# ---- Added 2026-08-08 ----
+deepspark_repo_activity_2026:
+  snapshot_date: "2026-08-08"
+  repos:
+    - {name: FlyDSL, last_updated: "2026-08-08", note: "New kernel-authoring DSL"}
+    - {name: DeepSparkInference, last_updated: "2026-08-06", note: "216 curated inference models"}
+    - {name: iluvatar-corex-ixrt, last_updated: "2026-08-05"}
+    - {name: DeepSparkHub, last_updated: "2026-08-03"}
+    - {name: "vllm (fork)", last_updated: "2026-06-12"}
+    - {name: ix-exporter, last_updated: "2026-05-20"}
+    - {name: ix-device-plugin, last_updated: "2026-05-19"}
+    - {name: xllm, added: "2026-05-12", note: "Multi-accelerator LLM inference engine"}
+    - {name: LightX2V, added: "2026-05-12", note: "Video-generation inference"}
+  trend: >-
+    Broadening from 'run frameworks on our GPU' toward serving-engine coverage
+    (vLLM, xllm) and modality coverage (LightX2V), plus a new low-level
+    kernel-authoring entry point (FlyDSL).
+  confidence: reported
+  sources: ["deepspark-github-org"]
+
+tiangai_300_toolchain_disclosure:
+  # ---- Added 2026-08-08 ----
+  found: false
+  checked:
+    - "Compiler release notes mentioning FP8/FP4 codegen"
+    - "Intrinsics documentation for ixSMEX / ixDPX / ixTrans"
+    - "FlyDSL backend target for the new architecture"
+    - "SDK version tied to TianGai 300"
+  note: >-
+    Despite the 2026-07-19 hardware announcement, no software-stack disclosure specific to
+    TianGai 300 was found. How the new ISA extensions are exposed to programmers is not disclosed.
+  confidence: confirmed_absence
+  sources: ["github-flydsl", "deepspark-github-org", "iluvatar-dev-portal"]
+
+not_found_checked_2026_08_08:
+  mlperf_submission:
+    found: false
+    note: "Zero Iluvatar entries in MLCommons results through 2025; none in v6.0."
+  conference_presentation_2026:
+    found: false
+    note: >-
+      No Hot Chips / ISCA / ISSCC 2026 presentation by Iluvatar CoreX. Hot Chips 38
+      (2026-08-23/25) is still in the future as of this investigation; program public,
+      content not.
+
+source_keys:
+  github-flydsl:
+    url: "https://github.com/Deep-Spark/FlyDSL"
+    last_updated: "2026-08-08"
+  deepspark-github-org:
+    url: "https://github.com/orgs/Deep-Spark/repositories?sort=updated"
+    snapshot: "2026-08-08"
+  iluvatar-dev-portal:
+    url: "https://developer.iluvatar.com"
+    launched: "~2026-07-15/19"
+  tencent-cloud-waic2026:
+    url: "https://cloud.tencent.com/developer/news/4280275"
+  tencent-news-tg300-a:
+    url: "https://news.qq.com/rain/a/20260719A08MB800"
+    date: "2026-07-19"
+  tencent-news-tg300-b:
+    url: "https://news.qq.com/rain/a/20260719A08J8N00"
+    date: "2026-07-19"
+  ithome-tg300:
+    url: "https://www.ithome.com/0/978/781.htm"
+
+verification_note: >-
+  The 2026-08-08 adversarial verification pass focused on the TianGai 300 hardware claims
+  and neither corroborated nor contradicted the software-stack items above. They are
+  therefore recorded as 'reported' rather than 'confirmed'.

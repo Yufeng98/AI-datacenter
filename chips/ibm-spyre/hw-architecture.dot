@@ -1,0 +1,128 @@
+digraph ibm_spyre_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    labelloc="t";
+    label="IBM Spyre Accelerator — single-slot PCIe card, 5 nm, 32 AI cores, 128 GB LPDDR5, 75 W\nStatically scheduled dataflow · NO hardware cache anywhere in the compute path";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== HOST SYSTEM =====================
+    subgraph cluster_host {
+        label="Host System — IBM z17 / LinuxONE 5 / Power11";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        host [label="Host CPU (Telum II / Power11)\nLinux on Z · Linux on Power · OpenShift\nNOTE: Telum II's on-die zAIU is a\nSEPARATE accelerator (NNPA / zDNN)", fillcolor="#EEEEEE"];
+        pcie [label="PCIe host link\nSingle-slot card, 75 W, no aux power\nGen5 x16 / 64 GB/s = SECONDARY ONLY\n(IBM primary says only \"PCIe card\")", fillcolor="#EEEEEE"];
+    }
+
+    // ===================== SPYRE CARD =====================
+    subgraph cluster_card {
+        label="Spyre Accelerator Card";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        // ---- SoC ----
+        subgraph cluster_soc {
+            label="Spyre SoC — 5 nm, 25.6 B transistors, 330 mm2 (secondary)";
+            style="rounded,filled";
+            fillcolor="#EBF3FB";
+            color="#0D47A1";
+            fontcolor="#0D47A1";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            cores [label="32 ACTIVE AI CORES  (34 physical, 2 yield spares)\n8 x 4 grid · clock frequency NOT DISCLOSED", fillcolor="#90CAF9"];
+
+            subgraph cluster_core {
+                label="One AI core (x32)";
+                style="rounded,filled";
+                fillcolor="#DCEBFA";
+                color="#1976D2";
+                fontcolor="#1976D2";
+                fontname="Helvetica-Bold";
+                fontsize=10;
+                penwidth=1.2;
+
+                corelet_a [label="Corelet A\nPT: 2D 8x8 SIMD-systolic array\n= 64 low-precision math engines\nfp16 / fp8 / int8 / int4\nSFU: 1D vector array(s)\nGELU, softmax, element-wise, +fp32", fillcolor="#BBDEFB"];
+                corelet_b [label="Corelet B\n(identical to Corelet A)\nPT 8x8 array + SFU 1D vector", fillcolor="#BBDEFB"];
+                lx [label="LX SCRATCHPAD — 2 MB per core\n~1.6 MB usable · shared by both corelets\nCOMPILER-MANAGED · NO HW CACHE\nNO EVICTION POLICY (deliberate)\nInner 2nd level exists, size NOT DISCLOSED", fillcolor="#FFE082"];
+            }
+
+            ring [label="On-chip NoC — BI-DIRECTIONAL RING\n128 B per cycle per direction\nAggregate GB/s NOT DERIVABLE (clock unknown)\nCompiler permutes core IDs so collaborating\ncores sit adjacent (m x n hops -> 1)", fillcolor="#90CAF9"];
+
+            power [label="Power / voltage domains\n0.55 V high-activity AI core array\n0.75 V timing-critical logic, SRAM, IP\nDual-loop controller: fast inner loop absorbs\ncurrent spikes; slow SW outer loop sets average", fillcolor="#90CAF9"];
+        }
+
+        // ---- Card memory ----
+        subgraph cluster_mem {
+            label="Card memory (on the PCB, not on the SoC)";
+            style="rounded,filled";
+            fillcolor="#E8F5E9";
+            color="#2E7D32";
+            fontcolor="#2E7D32";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            lpddr [label="128 GB LPDDR5\n8 dual-channel modules · 16 channels @ 6.4 Gbps\n~204 GB/s peak to the cores · SECDED ECC\nRuntime-allocated (SpyreAllocator / FlexAllocator)\n(SuperDSC JSON still calls this \"HBM\" — legacy name)", fillcolor="#C8E6C9"];
+            limits [label="Compiler / runtime address limits\n256 MB max contiguous span per core\nJob space: 128 GB in 8 segments of <=16 GB\nSegmentId=7 reserved for SpyreCode\nAll addresses 128 B aligned", fillcolor="#C8E6C9"];
+        }
+    }
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scale {
+        label="Multi-card scale-out — NO proprietary chip-to-chip fabric";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        switch [label="Standard PCIe switch fabric\nDirect card-to-card RDMA, host CPU bypassed\n64 GB/s CRC-protected = SECONDARY ONLY", fillcolor="#FFE0B2"];
+        chassis [label="Chassis limits (IBM primary)\nz17 / LinuxONE 5: up to 48 cards\n  = 6.1 TB, 1,536 AI cores\nPower11: up to 16 cards = 2 TB, 512 cores\nSTALE: \"8 cards / 256 cores\" is the Aug-2024\nHot Chips preview, NOT the shipping product", fillcolor="#FFE0B2"];
+        ensemble [label="Single-model ensemble limit\n8 cards / ~1 TB (spyreccl cap + IBM Docs)\nGap vs. the 48-card chassis is UNDOCUMENTED\nMULTI-NODE: NOT SUPPORTED (on-node only)", fillcolor="#FFCC80"];
+    }
+
+    // ===================== DATA PATH NOTE =====================
+    sticks [label="TRANSFER QUANTUM — the \"stick\"\n128-byte aligned chunk = 64 fp16 elements\nBYTES_IN_STICK = 128\nSized to match LPDDR5 <-> LX bandwidth\nInherited from zAIU / zDNN \"stickified tensors\"", shape=note, fillcolor="#FFF9C4", style="filled"];
+
+    // ===================== EDGES =====================
+
+    host -> pcie [style=dashed];
+    pcie -> lpddr [dir=both, label="DMA / RDMA\n(DCI-described)", fontsize=8];
+
+    lpddr -> lx [dir=both, label="compiler-emitted\nload / store\n(128 B sticks)", fontsize=8, penwidth=1.6, color="#C62828"];
+    limits -> lpddr [style=dashed, label="enforced by\nspan reduction", fontsize=8];
+
+    lx -> corelet_a [dir=both, label="operands / results", fontsize=8];
+    lx -> corelet_b [dir=both];
+
+    cores -> ring [style=dashed];
+    ring -> lx [style=dashed, label="inter-core\nreductions", fontsize=8];
+    power -> cores [style=dashed, label="0.55 V / 0.75 V", fontsize=8];
+
+    lpddr -> switch [dir=both, label="card-to-card RDMA", fontsize=8];
+    switch -> chassis [style=dashed];
+    chassis -> ensemble [style=dashed];
+
+    sticks -> lx [style=dotted, color="#9E9E9E", arrowhead=none];
+}

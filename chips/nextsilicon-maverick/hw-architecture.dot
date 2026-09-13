@@ -1,0 +1,139 @@
+digraph nextsilicon_maverick_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    // ===================== DIE-LEVEL DATAFLOW GRID =====================
+    subgraph cluster_die {
+        label="Maverick-2 Die (TSMC 5nm, 2.5D, 1.5 GHz, ~54B transistors, die area NOT DISCLOSED)";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        subgraph cluster_grid {
+            label="Dataflow Grid — 4 compute regions x 56 blocks = 224 compute blocks";
+            style="rounded,filled";
+            fillcolor="#EBF3FB";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            block [label="Compute Block (x224 per die)\n'hundreds of interlinked ALUs'\nexact ALU count NOT DISCLOSED\nFPUs per block NOT DISCLOSED", fillcolor="#BBDEFB"];
+            dispatch [label="Dispatcher\nFires computation only after\nALL operands have arrived\n(dataflow firing rule)", fillcolor="#BBDEFB"];
+            rs [label="Reservation Station\n'Analogous to the general-purpose\nregister state of ISA processors'\nNO architected register file\ncapacity NOT DISCLOSED", fillcolor="#BBDEFB"];
+            mmu [label="MMU / TLB (per block)\nDistributed address translation\nNo speculation, no prediction\n— just fetching", fillcolor="#BBDEFB"];
+            mep [label="MEP — Memory Entry Point\n'act like memory access instructions'", fillcolor="#BBDEFB"];
+            mill [label="Mill Cores (software objects)\nProjected dataflow subgraphs\nMany per block, 'Tetris style'\nLoad/delete in claimed nanoseconds\nper-block capacity NOT DISCLOSED", fillcolor="#90CAF9", style="rounded,dashed,filled"];
+        }
+
+        subgraph cluster_ecores {
+            label="Fallback Tier 2 — on-die control processors";
+            style="rounded,filled";
+            fillcolor="#FFF3E0";
+            color="#E65100";
+            fontcolor="#E65100";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            ecore [label="32 x RISC-V E-cores per die\n(64 on the dual-die OAM)\nPlaced on left/right die edges\nArbel-lineage\nmicroarchitecture NOT DISCLOSED", fillcolor="#FFE0B2"];
+        }
+
+        subgraph cluster_mem {
+            label="Memory Hierarchy (hybrid: SW-managed tiles under a HW cache)";
+            style="rounded,filled";
+            fillcolor="#E8F5E9";
+            color="#2E7D32";
+            fontcolor="#2E7D32";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            tilesram [label="Tile-local SRAM\nSOFTWARE-managed, explicit DMA\nNOT cache coherent\n(CUDA-shared-memory-like)\nper-tile capacity NOT DISCLOSED", fillcolor="#C8E6C9"];
+            l1 [label="Chip-level cache\n128 MB single die / 256 MB dual die\nHARDWARE cache\nvendor row label: 'L1 cache' /\n'Cache Coherence'\ncoherence domain NOT DISCLOSED", fillcolor="#C8E6C9"];
+            hbm [label="HBM3E\n96 GB @ 3.2 TB/s (single die)\n192 GB @ 6.4 TB/s (dual die)\nflavors up to 288 GB\nstack count NOT DISCLOSED", fillcolor="#C8E6C9"];
+        }
+
+        noc [label="Custom NoC — NON-UNIFORM BY DESIGN\n'NOC barriers' between tiles\nCrossing costs a LATENCY penalty\ntopology / width / bandwidth NOT DISCLOSED\n=> motivates optimizer 'relocation'", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== PACKAGE / SKUs =====================
+    subgraph cluster_pkg {
+        label="Package and SKUs";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        card [label="PCIe Card SKU\n1 die | 32 E-cores | 96 GB HBM3E\n128 MB cache | 400 W | air-cooled\nPCIe Gen5 x16 | 1 x 100 GbE", fillcolor="#E4DEFF"];
+        oam [label="OAM SKU\n2 dies (2.5D) | 64 E-cores | 192 GB HBM3E\n256 MB cache | 750 W | liquid-cooled\nPCIe Gen5 x16 | 2 x 100 GbE\n~108B transistors", fillcolor="#E4DEFF"];
+        d2d [label="Die-to-Die Link (OAM)\ntechnology / width / bandwidth / latency\nALL NOT DISCLOSED\nCoherent-as-one-device? NOT DISCLOSED", fillcolor="#E4DEFF", style="rounded,dashed,filled"];
+    }
+
+    // ===================== HOST AND NETWORK =====================
+    subgraph cluster_sys {
+        label="System Attachment";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        host [label="Fallback Tier 3 — External x86 Host CPU\n(spec table: 'External')\nNextSilicon Arbel RISC-V intended\nto fill this role eventually (Q1 2028)", fillcolor="#E0E0E0"];
+        pcie [label="PCI Express 5.0 x16\nHost interface\nAlso the only multi-device path\n(NO NVLink-class scale-up fabric)", fillcolor="#E0E0E0"];
+        eth [label="On-package Ethernet\n2 x 100 GbE (OAM) / 1 x 100 GbE (card)\nIntegrated on the accelerator itself\nCornelis CN5000 400G reference arch\n(CN6000 800G testing H2 2026)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== NUMERICS NOTE =====================
+    numerics [label="NUMERICS — the AI-relevance verdict\nPublished peak table lists FP64 / FP32 / FP16 ONLY\nSingle die: FP64 10.8 s-v / 20.2 m-t | FP32 20.3 / 28.2 | FP16 20.3 / 28.2 TFLOPS\nDual die: FP64 21.6 / 40.3 | FP32 40.7 / 56.1 | FP16 40.7 / 56.4 TFLOPS\nFP32 and FP16 scalar-vector throughput are IDENTICAL — no low-precision multiplier\nBF16 / FP8 / INT8 / INT4 / sparsity: NOT DISCLOSED, absent from the table\nHow the grid forms a matrix/tensor unit: NOT EXPLAINED by any source", shape=note, fillcolor="#FFF9C4", style="filled"];
+
+    // ===================== EDGES =====================
+
+    // Dataflow path inside a compute block
+    mep -> mmu [label="virtual addr", fontsize=8];
+    mmu -> dispatch [label="fetched operands", fontsize=8];
+    dispatch -> rs [label="operand state", fontsize=8];
+    rs -> block [label="fire", fontsize=8];
+    mill -> block [style=dashed, label="projected onto ALUs", fontsize=8];
+
+    // Memory path
+    block -> tilesram [label="explicit DMA (SW-managed)", fontsize=8];
+    mep -> l1 [style=dashed, label="memory ops", fontsize=8];
+    tilesram -> noc [dir=both, label="inter-tile DMA", fontsize=8];
+    noc -> l1 [dir=both];
+    l1 -> hbm [dir=both, label="HW-managed, paged", fontsize=8];
+
+    // Fallback tiers
+    block -> ecore [style=dashed, label="unsuited code\nfalls back", fontsize=8];
+    ecore -> host [style=dashed, label="further fallback", fontsize=8];
+    ecore -> l1 [style=dashed];
+
+    // Package
+    hbm -> card [style=dashed];
+    hbm -> oam [style=dashed];
+    card -> d2d [style=invis];
+    oam -> d2d [dir=both, style=dashed, label="2 dies in package", fontsize=8];
+
+    // System
+    card -> pcie [style=dashed];
+    oam -> pcie [style=dashed];
+    pcie -> host [dir=both, label="UVM demand paging\n(4 KiB .. 16 GiB pages,\nexception-driven)", fontsize=8];
+    oam -> eth [style=dashed];
+    card -> eth [style=invis];
+
+    block -> numerics [style=dotted, arrowhead=none];
+}

@@ -1,0 +1,374 @@
+component: cuda-runtime
+chip: nvidia-gpu
+date_researched: "2026-04-05"
+sources:
+  - https://docs.nvidia.com/cuda/cuda-runtime-api/index.html
+  - https://docs.nvidia.com/cuda/cuda-driver-api/driver-vs-runtime-api.html
+  - https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/asynchronous-execution.html
+  - https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/unified-memory.html
+  - https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/cuda-graphs.html
+  - https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/virtual-memory-management.html
+  - https://docs.nvidia.com/deploy/mps/index.html
+  - https://developer.nvidia.com/cupti
+  - https://developer.nvidia.com/blog/unified-memory-cuda-beginners/
+  - https://developer.nvidia.com/blog/introducing-low-level-gpu-virtual-memory-management/
+  - https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/
+  - https://modal.com/gpu-glossary/host-software/cuda-runtime-api
+  - https://modal.com/gpu-glossary/host-software/cuda-driver-api
+  - https://leimao.github.io/blog/CUDA-Driver-VS-CUDA-Runtime/
+  - https://github.com/pytorch/pytorch/blob/main/c10/cuda/CUDAStream.cpp
+
+layer_mappings:
+  Runtime:
+    - name: CUDA Runtime API
+      library: libcudart.so
+      header: cuda_runtime.h
+      installed_with: CUDA Toolkit
+      description: >
+        High-level GPU management layer. Provides cudaMalloc, cudaMemcpy,
+        kernel launch (<<<>>>), streams, events, and CUDA Graphs.
+        Automatically manages primary context lifecycle per device per process.
+        All calls translate into Driver API calls internally.
+      key_functions:
+        - cudaSetDevice
+        - cudaMalloc
+        - cudaMallocHost
+        - cudaMallocManaged
+        - cudaFree
+        - cudaMemcpy
+        - cudaMemcpyAsync
+        - cudaMemPrefetchAsync
+        - cudaMemAdvise
+        - cudaStreamCreate
+        - cudaStreamDestroy
+        - cudaStreamSynchronize
+        - cudaStreamWaitEvent
+        - cudaEventCreate
+        - cudaEventRecord
+        - cudaEventElapsedTime
+        - cudaLaunchKernel
+        - cudaDeviceSynchronize
+        - cudaGetLastError
+        - cudaStreamBeginCapture
+        - cudaStreamEndCapture
+        - cudaGraphInstantiate
+        - cudaGraphLaunch
+
+    - name: Driver API
+      library: libcuda.so
+      header: cuda.h
+      installed_with: NVIDIA Driver (not Toolkit)
+      description: >
+        Low-level API with explicit context management, dynamic module loading,
+        and fine-grained virtual memory control. Backward-compatible across
+        driver versions. Used by runtime implementers, OpenCL, and frameworks
+        needing direct control.
+      key_functions:
+        - cuInit
+        - cuDeviceGet
+        - cuCtxCreate
+        - cuCtxDestroy
+        - cuCtxSetCurrent
+        - cuCtxPopCurrent
+        - cuDevicePrimaryCtxRetain
+        - cuDevicePrimaryCtxRelease
+        - cuModuleLoad
+        - cuModuleLoadData
+        - cuModuleGetFunction
+        - cuLaunchKernel
+        - cuMemAlloc
+        - cuMemFree
+        - cuMemAllocHost
+        - cuMemcpyHtoD
+        - cuMemcpyDtoH
+        - cuMemcpyPeer
+        - cuMemAddressReserve
+        - cuMemCreate
+        - cuMemMap
+        - cuMemUnmap
+        - cuMemRelease
+        - cuStreamCreate
+        - cuStreamWaitEvent
+
+    - name: CUDA Graphs
+      description: >
+        DAG-based execution model for capturing and replaying sequences of GPU
+        operations (kernels, memcpys, events) as a single launch unit.
+        Eliminates per-operation CPU launch overhead (~5-10 us each).
+        Used extensively by ML frameworks for training loop optimization.
+      capture_api:
+        - cudaStreamBeginCapture
+        - cudaStreamEndCapture
+        - cudaGraphInstantiate
+        - cudaGraphLaunch
+        - cudaGraphExecUpdate
+      driver_api_equivalents:
+        - cuGraphCreate
+        - cuGraphAddKernelNode
+        - cuGraphInstantiate
+        - cuGraphLaunch
+
+    - name: MPS
+      full_name: Multi-Process Service
+      description: >
+        Client-server daemon that enables multiple CUDA processes to share a
+        single GPU simultaneously via Hyper-Q. Server holds one CUDA context;
+        clients submit work through a shared connection. Enables true concurrent
+        kernel execution from independent OS processes. No hardware memory
+        isolation between clients. Works on compute capability >= 3.5.
+      components:
+        - Control Daemon: starts/stops server, coordinates client connections
+        - Client Runtime: built into libcuda.so, transparent to application
+        - MPS Server: shared GPU connection, provides concurrency between clients
+      tradeoff: No fault isolation between clients; a crash in one client can
+        affect others. Use MIG instead when isolation is required.
+
+    - name: MIG
+      full_name: Multi-Instance GPU
+      description: >
+        Hardware-level GPU partitioning into up to 7 isolated instances
+        (A100, H100, A30). Each instance has dedicated SMs, L2 cache slice,
+        and HBM partition. Appears as an independent GPU to the OS and CUDA
+        Runtime. Provides hard fault isolation and performance guarantees.
+        CUDA Runtime interacts with MIG instances identically to physical GPUs.
+      supported_gpus:
+        - NVIDIA H100
+        - NVIDIA A100
+        - NVIDIA A30
+      max_instances: 7
+      isolation_level: hardware
+
+framework_integrations:
+  - framework: PyTorch
+    component: c10::cuda
+    description: >
+      PyTorch's C10 library wraps CUDA Runtime streams and events in RAII
+      types. CUDAStream wraps cuStream with a pool of 32 pre-allocated streams
+      per device per priority level. CUDAGuard and CUDAStreamGuard provide
+      scoped device/stream switching. ATen CUDA kernels are dispatched through
+      this layer. The CUDA Caching Allocator uses the VMM API (cuMemCreate +
+      cuMemMap) to manage HBM pooling without costly cudaMalloc/cudaFree
+      round-trips.
+    key_files:
+      - c10/cuda/CUDAStream.h
+      - c10/cuda/CUDAStream.cpp
+      - c10/cuda/CUDAGuard.h
+      - aten/src/ATen/cuda/CUDAEvent.h
+    cuda_graph_support: torch.cuda.CUDAGraph (wraps cudaStreamBeginCapture)
+
+  - framework: JAX
+    component: jaxlib cuda bindings
+    description: >
+      JAX's jaxlib package contains compiled CUDA bindings. The XLA compiler
+      backend generates PTX/SASS for GPU operations. JAX's jit-compiled
+      functions use XLA's stream execution model, which maps to CUDA streams.
+      CUDA Graphs are leveraged through XLA's persistent compilation cache.
+      Requires libdevice (cuda-nvvm) for math intrinsic lowering.
+    key_dependency: jaxlib (separate wheel from jax, GPU-specific build)
+    cuda_graph_support: via XLA compilation and persistent executable caching
+
+  - framework: TensorFlow
+    component: TF CUDA Runtime integration
+    description: >
+      TensorFlow wraps CUDA Runtime in its StreamExecutor abstraction layer.
+      GPU kernels are managed through the CUDA Device Executor. cuDNN and
+      cuBLAS are invoked through TF's op kernel dispatch. TF also supports
+      CUDA Graphs through tf.function's experimental graph capture feature.
+    cuda_graph_support: tf.function with experimental_relax_shapes
+
+  - framework: CUDA Python (cuda.bindings)
+    component: nvidia-cuda-python
+    description: >
+      Official NVIDIA Python bindings exposing both the CUDA Runtime API
+      (cuda.bindings.runtime) and Driver API (cuda.bindings.driver) as
+      thin Python wrappers with near-zero overhead. Enables Python-native
+      access to VMM, CUDA Graphs, and low-level context management.
+    source: https://nvidia.github.io/cuda-python/cuda-bindings/latest/api.html
+
+key_abstractions:
+  - name: Stream (cudaStream_t / CUstream)
+    description: >
+      Ordered work queue for a GPU execution engine. Operations within a
+      stream are sequentially ordered; operations across streams may overlap.
+      The NULL stream (stream 0) implicitly synchronizes with all other
+      per-thread default streams. Separate copy engines allow H2D, D2H, and
+      compute streams to overlap. PyTorch maintains a pool of 32 streams per
+      device per priority level.
+    api_functions:
+      - cudaStreamCreate
+      - cudaStreamSynchronize
+      - cudaStreamWaitEvent
+      - cudaStreamBeginCapture
+
+  - name: Device Context (CUcontext)
+    description: >
+      Hardware execution context encapsulating a GPU address space, loaded
+      modules, stream handles, and memory allocations. The Runtime API
+      maintains one primary context per (device, process) pair via
+      cuDevicePrimaryCtxRetain. The Driver API supports an explicit context
+      stack (cuCtxCreate/cuCtxPush/cuCtxPop) for advanced use cases. All
+      GPU operations execute within an active context.
+    api_functions:
+      - cuCtxCreate
+      - cuCtxDestroy
+      - cuDevicePrimaryCtxRetain
+      - cuDevicePrimaryCtxRelease
+      - cuCtxSetCurrent
+
+  - name: CUDA Graph (cudaGraph_t / CUgraph)
+    description: >
+      Directed acyclic graph of GPU operations (kernel launches, memory
+      copies, events, memory allocations) captured from stream operations
+      and replayed as a single submission. Reduces launch overhead from
+      O(N x 5-10us) to O(1) for repeated workloads. Supports conditional
+      nodes (CUDA 12.4+) and external semaphores.
+    api_functions:
+      - cudaStreamBeginCapture
+      - cudaStreamEndCapture
+      - cudaGraphInstantiate
+      - cudaGraphLaunch
+      - cudaGraphExecUpdate
+
+  - name: Unified Memory (cudaMallocManaged)
+    description: >
+      Single-pointer memory accessible from both CPU and GPU code without
+      explicit cudaMemcpy. Backed by the UVM kernel driver (nvidia-uvm.ko)
+      which handles page migrations via hardware GPU page faults. The GMMU
+      raises fault interrupts to the host; the UVM driver batches and services
+      faults (up to 256 per batch), migrating pages and replaying faulting
+      instructions. cudaMemPrefetchAsync and cudaMemAdvise allow programmer-
+      guided migration policy for performance-critical paths.
+    api_functions:
+      - cudaMallocManaged
+      - cudaMemPrefetchAsync
+      - cudaMemAdvise
+      - cuMemAllocManaged
+
+  - name: Virtual Memory Management (VMM API)
+    description: >
+      Low-level Driver API (CUDA 10.2+) decoupling virtual address space
+      reservation from physical HBM allocation and mapping. Enables growing
+      allocations without data movement. Used by PyTorch's CUDA Caching
+      Allocator and vLLM's KV cache management.
+    api_functions:
+      - cuMemAddressReserve
+      - cuMemCreate
+      - cuMemMap
+      - cuMemUnmap
+      - cuMemRelease
+      - cuMemSetAccess
+
+  - name: Module (CUmodule)
+    description: >
+      A loaded CUDA binary (fatbinary containing PTX and/or cubin SASS) in a
+      CUDA context. The Runtime API loads modules from the ELF fatbinary
+      embedded at link time. The Driver API supports dynamic loading via
+      cuModuleLoad (from file) or cuModuleLoadData (from memory, enabling
+      NVRTC JIT workflows). CUDA 12.0 introduced context-independent module
+      loading for sharing compiled kernels across multiple contexts.
+    api_functions:
+      - cuModuleLoad
+      - cuModuleLoadData
+      - cuModuleGetFunction
+      - cuLibraryLoadData
+
+  - name: Event (cudaEvent_t / CUevent)
+    description: >
+      A synchronization marker and GPU timestamp that can be recorded into
+      a stream and waited upon by another stream or the host. Events enable
+      fine-grained cross-stream synchronization without full device sync.
+      cudaEventElapsedTime provides microsecond-precision GPU timing. Used
+      by CUPTI for profiling and by frameworks for inter-stream ordering.
+    api_functions:
+      - cudaEventCreate
+      - cudaEventRecord
+      - cudaEventSynchronize
+      - cudaEventElapsedTime
+      - cudaStreamWaitEvent
+
+memory_types:
+  - type: device_memory
+    allocator: cudaMalloc / cuMemAlloc
+    location: GPU HBM (on-package)
+    bandwidth_h100: "~3.35 TB/s (HBM3)"
+    gpu_accessible: true
+    cpu_accessible: false
+    notes: Default allocation; highest bandwidth for GPU kernels.
+
+  - type: pinned_host_memory
+    allocator: cudaMallocHost / cuMemAllocHost
+    location: Host DRAM (page-locked)
+    gpu_accessible: via PCIe DMA
+    cpu_accessible: true
+    notes: >
+      Enables async DMA without staging copy. Required for cudaMemcpyAsync.
+      PCIe 5.0 bidirectional bandwidth ~128 GB/s.
+
+  - type: mapped_memory
+    allocator: cudaHostAlloc with cudaHostAllocMapped
+    location: Host DRAM (page-locked, mapped into GPU VA space)
+    gpu_accessible: true (via PCIe, no explicit copy)
+    cpu_accessible: true
+    notes: Zero-copy access from GPU but limited to PCIe bandwidth.
+
+  - type: unified_managed_memory
+    allocator: cudaMallocManaged / cuMemAllocManaged
+    location: Migrates between Host DRAM and GPU HBM based on access
+    gpu_accessible: true
+    cpu_accessible: true
+    notes: >
+      UVM driver handles migration via GPU page faults. Performance-critical
+      paths should use cudaMemPrefetchAsync to pre-position data.
+
+  - type: virtual_memory_management
+    allocator: cuMemCreate + cuMemMap
+    location: GPU HBM (physical backing) + arbitrary virtual address
+    gpu_accessible: true
+    cpu_accessible: false (unless mapped)
+    notes: >
+      CUDA 10.2+. Separates VA reservation from physical allocation.
+      Used by PyTorch CUDA Caching Allocator for pool growth.
+
+profiling_hooks:
+  - name: CUPTI
+    full_name: CUDA Profiling Tools Interface
+    description: >
+      Library enabling creation of profiling and tracing tools targeting CUDA
+      applications. Provides Activity API (async event records), Callback API
+      (synchronous hooks on CUDA API calls), and PC Sampling. Initialization
+      is lazy (first CUPTI call). Used by Nsight Systems, Nsight Compute,
+      PyTorch Profiler, and JAX's profiler.
+    error_handling: >
+      CUPTI_ERROR_NOT_INITIALIZED indicates CUPTI/driver version mismatch.
+      Always check compatibility before using CUPTI in production profilers.
+
+hardware_mapping:
+  gpu_memory_hierarchy:
+    - level: Registers
+      per_sm: "~65,536 x 32-bit (H100)"
+      latency: "~1 cycle"
+    - level: Shared Memory / L1
+      per_sm: "up to 228 KB (H100)"
+      latency: "~20-40 cycles"
+    - level: L2 Cache
+      total: "50 MB (H100 SXM5)"
+      latency: "~200 cycles"
+    - level: HBM3 (Global Memory)
+      total: "80 GB (H100 SXM5)"
+      bandwidth: "3.35 TB/s"
+      latency: "~600-800 cycles"
+
+  interconnects:
+    - name: NVLink 4.0
+      bandwidth: "900 GB/s bidirectional (H100)"
+      api: cudaMemcpyPeerAsync / cuMemcpyPeer
+    - name: PCIe 5.0
+      bandwidth: "~128 GB/s bidirectional"
+      api: cudaMemcpy H2D/D2H
+
+  kernel_submission_path:
+    - cudaLaunchKernel (Runtime API)
+    - cuLaunchKernel (Driver API)
+    - ioctl /dev/nvidia0 NV_ESC_RM_CONTROL (push buffer write)
+    - GPU Channel Engine reads push buffer
+    - GPC dispatch unit schedules thread blocks to available SMs

@@ -1,0 +1,412 @@
+chip: spinncloud-spinnaker2
+as_of: "2026-08-08"
+device_class: "Event-Driven Neuromorphic Manycore (152 ARM Cortex-M4F PEs + per-PE MAC/2D-conv accelerators)"
+investigation: software-stack
+
+headline: >-
+  There is no tensor compiler. No MLIR/LLVM lowering path, no XLA/StableHLO, no Triton, no
+  TorchDynamo backend, no device tensor type, no collective-communication library, and no
+  kernel-mode driver. Each PE runs a hand-written, pre-compiled bare-metal C program built with
+  stock GNU Arm Embedded GCC and custom linker scripts, statically placed on PEs by a host-side
+  mapper, with a scheduler-PE finite state machine coordinating workers. Framework reach comes
+  from graph import (ONNX for DNNs, NIR for SNNs), not from a native compiler.
+
+three_tier_statement:
+  quote: >-
+    "1) Chip software: Bare metal ARM programs to run on the SpiNNaker2 PEs are written in C and
+    compiled using a GCC toolchain with custom linker scripts. C-library functions are available
+    for on-chip communication and control of hardware units such as accelerators. 2) A C++-based
+    low-level host software provides memory-mapped access via UDP to the chip's register files,
+    SRAM, and DRAM... 3) Python-based high-level software for SNN and DNN applications."
+  confidence: confirmed
+  sources: [https://arxiv.org/abs/2607.24396]
+
+layers:
+
+  framework_integration:
+    - name: PyTorch
+      function: "Training front-end for the DNN path (OctopuScheduler flow starts from a trained PyTorch model) and for deep SNNs before NIR export"
+      open_source: true
+      confidence: confirmed
+      sources: [https://arxiv.org/abs/2507.13736]
+
+    - name: NIR (Neuromorphic Intermediate Representation)
+      function: "The interoperability layer for SNNs; py-spinnaker2 imports NIR graphs"
+      exporting_frameworks: [snnTorch, Norse, Sinabs, Rockpool, Nengo, Lava-DL, Spyx]
+      open_source: true
+      reference: "Pedersen et al., Nature Communications 15:8122, 2024"
+      confidence: confirmed
+      sources:
+        - https://spinnaker2.gitlab.io/py-spinnaker2/user_guide/qs-nir.html
+        - https://doi.org/10.1038/s41467-024-52259-9
+
+    - name: "PyNN-inspired API (NOT PyNN itself)"
+      function: "Populations / Projections / Network model in py-spinnaker2"
+      license: Apache-2.0
+      confidence: confirmed
+      sources: [https://gitlab.com/spinnaker2/py-spinnaker2]
+
+    - name: Brian2 backend
+      file: "py-spinnaker2 brian2_sim.py"
+      function: "Software simulation backend that quantizes weights and delays BIT-IDENTICALLY to hardware, so models can be developed without a board"
+      license: Apache-2.0
+      confidence: confirmed
+      sources: [https://gitlab.com/spinnaker2/py-spinnaker2]
+
+    - name: snntorch-to-spinnaker2
+      repo: https://gitlab.com/spinnaker2/snntorch-to-spinnaker2
+      function: "Standalone snnTorch converter (created July 2022, 30 commits)"
+      license: Apache-2.0
+      confidence: confirmed
+
+    - name: NESTML
+      status: "roadmap — 'We are currently working on NESTML support'"
+      confidence: confirmed
+      sources: [https://arxiv.org/abs/2607.24396]
+
+    - name: absent_integrations
+      value: "No TensorFlow/JAX production path, no vLLM, no HuggingFace serving integration, no torch.compile backend"
+      confidence: confirmed
+      sources: [https://arxiv.org/abs/2607.24396, https://gitlab.com/spinnaker2/py-spinnaker2]
+
+  graph_capture:
+    dnn_path:
+      flow: "trained PyTorch model -> ONNX export -> post-training quantization -> lowering"
+      dynamo_or_fx_tracing: false
+      capture_boundary: ONNX
+      confidence: confirmed
+      sources: [https://arxiv.org/abs/2507.13736]
+    snn_path:
+      entry_point: "spinnaker2.s2_nir.from_nir()"
+      config: "ConversionConfig — timestep dt, weight rescaling to the chip's dynamic range, Forward vs Exponential-Euler integration, reset method, recording spec"
+      node_mapping:
+        IF: "lif (leak disabled)"
+        LIF: "lif"
+        CubaLIF: "lif_curr_exp"
+        Input: "spike_list"
+        Linear: "Projection"
+        Affine: "Projection + i_offset"
+        Conv2d: "Conv2dProjection"
+        SumPool2d: "Projection / Conv2dProjection"
+        Flatten: "merged into the projection"
+      confidence: confirmed
+      sources: [https://spinnaker2.gitlab.io/py-spinnaker2/user_guide/qs-nir.html]
+    tooling:
+      - name: model-explorer
+        repo: https://gitlab.com/spinnaker2/model-explorer
+        function: "Google's model-graph visualizer/debugger mirrored into the spinnaker2 namespace (Apache-2.0, created June 2026, 614 commits)"
+        note: "No SpiNNaker2-specific additions evident in its README; treat as tooling, not a compiler component"
+        confidence: unconfirmed
+        sources: [https://gitlab.com/spinnaker2/model-explorer]
+
+  graph_compiler:
+    - name: OctopuScheduler
+      function: >-
+        DNN graph compiler + on-chip scheduler. Lowers the quantized ONNX graph into an
+        "application graph" (layers with parameters and quantization scales as nodes, tensors as
+        edges), applies layer fusion (Linear+ReLU into a single MLA operation; redundant
+        Quantize/Dequantize pairs removed and their scales folded into neighbours), topologically
+        sorts into a linear chain, then converts each node into an S2Layer instance.
+      ir_name: "application graph"
+      low_level_classes:
+        S2Layer: "tiling, PE mapping, memory allocation, layer-config generation; carries a reference model per layer type"
+        S2Model: "assembles the whole DRAM image — global config, per-layer 128-bit headers (layer type / worker count / next-layer address), scheduler config, layer parameters, shared worker config, per-PE input/output tile addresses, constants; plans every activation location"
+      tiling_selection: "automated design-space exploration"
+      publications:
+        - "Langer et al., OctopuScheduler, NICE 2025, pp. 1-10"
+        - "Jobst et al., ICONS 2025 / arXiv:2507.13736 (multi-layer extension)"
+      public_repo: "not located — parts live in spinnaker2-ml"
+      supported_ops: "not disclosed — chip paper says only 'a limited number of layer types and operators is currently supported'"
+      open_source: "unknown"
+      confidence: confirmed
+      sources: [https://arxiv.org/abs/2507.13736, https://arxiv.org/abs/2607.24396]
+
+    - name: AMD Quark
+      repo: https://github.com/amd/Quark
+      function: "Post-training quantization of the ONNX graph: INT8 power-of-two quantization with MSE optimization and cross-layer equalization on a small calibration set"
+      open_source: true
+      confidence: confirmed
+      sources: [https://arxiv.org/abs/2507.13736]
+
+    - name: "py-spinnaker2 mapping pipeline (src/spinnaker2/graph/)"
+      function: "The SNN-side compiler: partition populations into sub-populations that fit a PE's SRAM; sub-populations + projections form a machine graph from which the routing table is generated"
+      files: [partitioner.py, placer.py, placement_strategy.py, pe_config_generator.py, pipeline_stages.py, pipeline_factory.py, snapshot.py]
+      pipelines: [legacy_mapping_pipeline.py, pacman_mapping_pipeline.py]
+      new_in_v0_8_0: "snapshot.py — mapping save/load"
+      license: Apache-2.0
+      confidence: confirmed
+      sources: [https://gitlab.com/spinnaker2/py-spinnaker2]
+
+    - name: PACMAN2
+      repo: https://gitlab.com/spinnaker2/PACMAN2
+      expansion: "Partitioning And Configuration MANager"
+      function: "'utilities for partitioning, placing and routing on a SpiNNaker machine', with a token-based algorithm workflow executor"
+      license: ECL-2.0
+      commits: 5016
+      created: "2024-09"
+      active_to: "2026-06"
+      lineage: "README text is identical to Manchester's SpiNNaker1 PACMAN; GitLab reports it as a standalone repo, not a fork, so the SpiNNaker1 lineage is INFERRED"
+      confidence: likely
+      sources: [https://gitlab.com/spinnaker2/PACMAN2]
+
+    - name: "MicroTVM (Apache TVM)"
+      status: "research-stage"
+      single_core: "microTVM AoT targeting the M4F + 16x4 MAC array; 'CMSIS-NN kernels outperform generic TVM schedules, making them preferred'"
+      multi_core: "custom graph partitioner splits the model into PE-sized regions, each compiled independently through single-core microTVM, because 'microTVM lacks mature parallel pipeline support'"
+      production_use: "the robot demo's GRU gesture classifier"
+      publication: "Liu et al., 'Deploying Machine Learning Models to Ahead-of-Time Runtime on Edge Using MicroTVM', CODAI Workshop 2024, pp. 37-40"
+      confidence: confirmed
+      sources: [https://spinnaker2.gitlab.io/internal/research/13-tvm-workflow.internal/]
+
+    - name: "Serial/parallel paradigm selector"
+      function: "AdaBoost classifier (91.69 % accuracy over 12 candidates) predicts before compilation whether an SNN layer should use the serial or MAC-array-parallel inference paradigm, cutting host compile time and memory"
+      confidence: confirmed
+      sources: [https://arxiv.org/abs/2406.17049]
+
+  kernel_compiler:
+    toolchain: "GNU Arm Embedded GCC (arm-none-eabi) cross-compiler"
+    linker_scripts: "custom; sections .myDataSpecSection, .myLogErrorSection; heap/stack 4 kB at 0x1F000"
+    build_system:
+      historical: "make export in the SDK's chip-side app folder"
+      current: "py-spinnaker2 v0.8.0 (31 July 2026) migrated to CMake, exposing snn_add_application()"
+      injected_defines: [N_NEURONS, SYNAPSE_INDEX_BITS, SYNAPSE_WEIGHT_BITS, SYNAPSE_DELAY_BITS, "data/log addresses"]
+    reference_kernel_library: "ARM CMSIS / CMSIS-NN"
+    autotuner: false
+    polyhedral_scheduler: false
+    jit: false
+    compilation_model: "entirely ahead-of-time"
+    confidence: confirmed
+    sources:
+      - https://arxiv.org/abs/2607.24396
+      - https://spinnaker2.gitlab.io/py-spinnaker2/advanced_topic/custom_model/custom-model-guide-hw.html
+      - https://spinnaker2.gitlab.io/py-spinnaker2/advanced_topic/memory/memory-structure.html
+
+  kernel_language:
+    language: "plain C, bare metal"
+    dsl: false
+    tile_language: false
+    mla_api:
+      library: "ml-lib (shipped inside s2-sim2lab-app)"
+      pattern: "populate struct mlacc_params -> execute_mm() or execute_conv() -> __WFE() until the MLA completion interrupt"
+      limitation: "software currently only reaches each core's LOCAL MLA, though the hardware supports remote access"
+    custom_neuron_model_files:
+      - "lib/<model>/neuron_model_impl.c — state equations, neuron_model_has_spiked() reset logic"
+      - "neuron.c — init + timestep"
+      - "include/<model>/regions.h — region enum that must stay in lockstep with the Python class"
+      - "mandatory structs neuron_t and neuron_params_t"
+    profiling: "monitor.h and PROFILE_SCOPE() macros"
+    warning: "docs state 'the neuron model code is currently undergoing substantial restructuring'"
+    accelerator_access: "memory-mapped behind an AHB slave mux; programmed by MMIO, not by ISA extensions"
+    confidence: confirmed
+    sources:
+      - https://spinnaker2.gitlab.io/external/documentation/hardware/1-ml-accelerator/
+      - https://spinnaker2.gitlab.io/py-spinnaker2/advanced_topic/custom_model/custom-model-guide-hw.html
+
+  tensor_api:
+    device_tensor_type: false
+    note: "No analogue of MTIATensor or a CUDA tensor. Host-side data is NumPy; on-device data is raw memory regions written by the host into a statically planned map."
+    python_modules:
+      snn: [Population, Projection, Network]
+      neuron_models: "22 modules — lif_neuron, lif_curr_exp, lif_conv2d, lif_adaptive_threshold, lif_prob, izhikevich, charge_and_spike, qubo_neuron, gas, poisson_process, spike_list, spike_receiver, spike_replicator, relay, conv2d_if_neuron_rate_code, spikes_from_array_latency_code, ..."
+      mla: [conv2d.py, mla_config.py, mla_helpers.py]
+      other: [synapses.py, s2_nir.py, hardware.py, brian2_sim.py, coordinates.py]
+    hardware_handles:
+      SpiNNaker2Chip: "single chip, 148 usable cores"
+      SpiNNcloud48NodeBoard: "7,104 usable cores"
+      config_file: "/etc/opt/spinnaker/spinnaker2_network_config.yml"
+    confidence: confirmed
+    sources: [https://gitlab.com/spinnaker2/py-spinnaker2, https://spinnaker2.gitlab.io/py-spinnaker2/]
+
+  runtime:
+    on_chip:
+      operating_system: false
+      language: "bare-metal C"
+      snn_loop: "timer-interrupt timer_callback() — memory setup, spike reception via master-population-table lookup, ring-buffer synaptic update, neuron state update, spike emission; WFI/WFE sleep between ticks; chip-global interrupt for start-of-simulation"
+      barrier_synchronization: false
+      dnn_loop: "OctopuScheduler scheduler-PE FSM drives up to 151 workers entirely on-chip"
+      scamp: "inherited SpiNNaker1 name; the per-chip program planned to trigger the chip-global interrupt and compensate inter-board clock drift in multi-chip runs"
+      confidence: confirmed
+      sources:
+        - https://spinnaker2.gitlab.io/py-spinnaker2/advanced_topic/execution_workflow/run-walkthrough-2.html
+        - https://arxiv.org/abs/2607.24396
+
+    host_side:
+      - name: "ExperimentRunner (C++)"
+        function: "reads spec.json (active_pes by coordinate+ID, mem_files per PE, duration_in_s, mem_data_to_send, mem_regions_to_read), loads binaries and data to the chip over UDP Ethernet, runs, retrieves memory blocks, writes results.json (raw 32-bit words)"
+        build: "built automatically during py-spinnaker2 install; needs CMake >= 3.10"
+        license: "ships in s2-sim2lab-app (gated); invoked by Apache-2.0 py-spinnaker2"
+        confidence: confirmed
+        sources: [https://spinnaker2.gitlab.io/py-spinnaker2/advanced_topic/experiment-runner.html]
+
+      - name: "py-spinnaker2 experiment backends"
+        files: [cpp_experiment_backend.py, spinnman2_experiment_backend.py, spinnman2_interface.py, experiment_backend_factory.py]
+        license: Apache-2.0
+        confidence: confirmed
+        sources: [https://gitlab.com/spinnaker2/py-spinnaker2]
+
+      - name: SpiNNMan2
+        repo: https://gitlab.com/spinnaker2/SpiNNMan2
+        function: "'Utilities for interacting with a SpiNNaker machine' — host communication library covering both SpiNNaker1 and SpiNNaker2"
+        depends_on: [spinnaker2-stm, SpiNNUtils2, SpiNNMachine2]
+        license: ECL-2.0
+        commits: 3091
+        active_to: "2026-08"
+        confidence: confirmed
+
+      - name: "SpiNNMachine2 / SpiNNUtils2"
+        function: "machine model / configuration manager (SpiNNaker1 lineage)"
+        license: ECL-2.0
+        confidence: confirmed
+        sources: [https://gitlab.com/spinnaker2/SpiNNMachine2, https://gitlab.com/spinnaker2/SpiNNUtils2]
+
+      - name: spinnaker2-stm
+        repo: https://gitlab.com/spinnaker2/spinnaker2-stm
+        function: "Python interface to the board's STM32 microcontroller"
+        confidence: confirmed
+
+      - name: "Power runtime"
+        api: "hw.run(record_power=True) -> power.parquet (per-channel timestamped samples) + power.png with load_start / sim_start / sim_end / readout_start markers; live_power=True serves a browser dashboard"
+        cadence: "0.1 s single-chip, 0.2 s on 48-node boards"
+        license: Apache-2.0
+        new_in: "v0.8.0"
+        confidence: confirmed
+        sources: [https://spinnaker2.gitlab.io/py-spinnaker2/user_guide/power_measurement.html]
+
+      - name: "Data streaming"
+        function: "bidirectional real-time spike streaming to/from a running simulation"
+        license: Apache-2.0
+        confidence: confirmed
+        sources: [https://spinnaker2.gitlab.io/py-spinnaker2/]
+
+  driver_firmware:
+    kernel_mode_driver: false
+    pcie: false
+    dev_node: false
+    ioctl_layer: false
+    host_transport: "userspace process speaking UDP (+UDT) over 1 GbE Ethernet to a memory-mapped view of the chip's register files, SRAM and DRAM"
+    note: "Architecturally unusual for a datacenter accelerator and worth calling out explicitly."
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2607.24396, https://spinnaker2.gitlab.io/py-spinnaker2/advanced_topic/experiment-runner.html]
+
+    components:
+      - name: "Digilent Adept2 Runtime 2.27.9"
+        function: "installed by libs_install.sh (x86_64 and aarch64, Debian/RPM) for JTAG/USB-side access"
+        confidence: confirmed
+      - name: spinnaker2_os
+        contents: [SARK, SCAMP, Spin2API]
+        note: "names inherited from SpiNNaker1"
+        access: "HTTP 403 — access-gated"
+        confidence: confirmed
+        sources: [https://gitlab.com/spinnaker2/spinnaker2_os]
+      - name: s2-sim2lab-app
+        contents: ["ARM-C libraries incl. ml-lib", "host-side communication utilities", "example applications", "Dockerfile"]
+        access: "HTTP 403 — access-gated; granted on request"
+        public_export: "s2-sim2lab-app-snn (Apache-2.0, SNN-only, created 28 May 2025)"
+        confidence: confirmed
+        sources: [https://gitlab.com/spinnaker2/s2-sim2lab-app, https://gitlab.com/spinnaker2/s2-sim2lab-app-snn]
+      - name: s2_cpp_host_interface
+        function: "C++ interface for the 48-node board"
+        access: gated
+        confidence: confirmed
+      - name: "s2-stm-software / s2_board_firmware"
+        function: "STM32 firmware for single-chip boards (SpiNNode) and for the 48-node board STM32 + Backbone Card"
+        access: gated
+        confidence: confirmed
+      - name: boot_chain
+        description: "STM32 boots the SpiNNaker2 chip over SPI, then the chip is driven over UDP Ethernet. Two-stage on-chip boot: JTAG/I2C/SPI slave or autonomous SPI-flash, then high-speed application load, optionally broadcast to all PEs by the periphery M4"
+        confidence: confirmed
+        sources: [https://arxiv.org/abs/2607.24396]
+      - name: mercury-xu8-bsp
+        repo: https://gitlab.com/spinnaker2/mercury-xu8-bsp
+        function: "board support package for the Enclustra Mercury XU8 (Zynq UltraScale+ MPSoC SoM); consistent with an FPGA-based backbone/host card in larger systems"
+        note: "README not retrievable — role INFERRED"
+        confidence: unconfirmed
+      - name: spinnaker2-config-tools
+        repo: https://gitlab.com/spinnaker2/spinnaker2-config-tools
+        function: "sysadmin helper scripts for /etc/opt/spinnaker/spinnaker2_network_config.yml (machine names, board types, board counts, lockfiles, user groups)"
+        confidence: confirmed
+      - name: mlops-infrastructure
+        access: "HTTP 403"
+        purpose: "not disclosed"
+        confidence: unconfirmed
+
+  isa:
+    architecture: "ARMv7E-M / Thumb-2 with DSP extensions and the FPv4-SP single-precision FPU (Cortex-M4F)"
+    custom_isa: false
+    vendor_compiler_backend: false
+    upstream_support: "fully supported by upstream GCC/LLVM"
+    management_core: "Cortex-M4 WITHOUT FPU or accelerators"
+    accelerator_exposure: "all acceleration (MLA, exp/log, rounding, PRNG, DMA, NoC interface, event handler) is memory-mapped on AHB/APB, controlled by MMIO writes and 45 interrupt lines — not ISA instructions"
+    consequence: >-
+      The "kernel compiler" problem reduces to ordinary embedded-ARM C compilation plus explicit
+      MMIO driver calls. There is no vendor codegen backend and no autotuner; the compiler-shaped
+      work (tiling, placement, memory planning) lives entirely in host-side Python.
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2607.24396]
+
+  communication:
+    collective_library: null
+    rdma: false
+    note: "No NCCL/RCCL/HCCL equivalent. Multi-chip communication is the SpiNNaker multicast event router plus the 6 chip-to-chip links; the host attaches over Ethernet."
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2607.24396]
+
+# ── Licensing / openness ──────────────────────────────────────────────────────
+openness:
+  public_apache_2_0:
+    repos:
+      - {name: "py-spinnaker2", repo: "https://gitlab.com/spinnaker2/py-spinnaker2", note: "flagship SDK; 340+ commits since 14 Jun 2022; v0.8.0 released 31 Jul 2026; Zenodo-archived"}
+      - {name: "spinnaker2-ml", repo: "https://gitlab.com/spinnaker2/spinnaker2-ml"}
+      - {name: "snntorch-to-spinnaker2", repo: "https://gitlab.com/spinnaker2/snntorch-to-spinnaker2"}
+      - {name: "s2-sim2lab-app-snn", repo: "https://gitlab.com/spinnaker2/s2-sim2lab-app-snn"}
+      - {name: "spinnaker2-config-tools", repo: "https://gitlab.com/spinnaker2/spinnaker2-config-tools"}
+      - {name: "spinnaker2.gitlab.io docs", repo: "https://spinnaker2.gitlab.io/"}
+      - {name: "model-explorer", repo: "https://gitlab.com/spinnaker2/model-explorer"}
+      - {name: "spinncloud_docs_theme"}
+      - {name: "s2-chip-paper", repo: "https://gitlab.com/tud-hpsn/public/s2-chip-paper", note: "reproduces the chip paper's measurements"}
+    confidence: confirmed
+
+  public_ecl_2_0:
+    note: "SpiNNaker1-lineage host toolchain being carried forward to S2; all created 2024, actively developed through mid-2026"
+    repos: [PACMAN2, SpiNNMan2, SpiNNMachine2, SpiNNUtils2]
+    confidence: confirmed
+
+  access_gated_http_403:
+    repos:
+      - s2-sim2lab-app
+      - spinnaker2_os
+      - mlops-infrastructure
+      - s2_cpp_host_interface
+      - s2-stm-software
+      - s2_board_firmware
+    confidence: confirmed
+
+  snn_core_submodule:
+    path: "src/spinnaker2/libs"
+    reference: "git@gitlab.com:spinnaker2/snn-core.git (SSH only)"
+    claim: "py-spinnaker2 v0.8.0 changelog states chip-side code was 'open sourced' in that release"
+    resolution: "no public HTTPS project page resolved"
+    confidence: unconfirmed
+
+  proprietary_large_scale_stack:
+    exists: true
+    evidence:
+      - "'integrating the edge-based approach presented here into the proprietary stack being developed at SpiNNcloud for large-scale systems' — arXiv:2507.13736 SVI"
+      - "'The software stack for large-scale deployment on this system is currently under development' — chip paper SV"
+    name: "not disclosed"
+    architecture: "not disclosed"
+    licensing: "not disclosed"
+    practical_consequence: >-
+      The open stack is single-chip and 48-node-board scoped. The 35k-chip Dresden machine and
+      Sandia's NERL Braunfels run on software that is not public.
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2507.13736, https://arxiv.org/abs/2607.24396]
+
+# ── Explicitly not public ─────────────────────────────────────────────────────
+not_disclosed:
+  - "Whether OctopuScheduler is or will be released as open source — no standalone public repository located"
+  - "Public status of the snn-core submodule (chip-side SNN kernels)"
+  - "Complete list of DNN layer types and operators supported by OctopuScheduler"
+  - "Contents and purpose of s2-sim2lab-app, spinnaker2_os, s2_cpp_host_interface, s2-stm-software, s2_board_firmware and mlops-infrastructure beyond one-line portal descriptions"
+  - "The exact role of mercury-xu8-bsp (Enclustra Mercury XU8 / Zynq UltraScale+ SoM) in SpiNNcloud systems"
+  - "The name, architecture and licensing of SpiNNcloud's proprietary large-scale-system stack"

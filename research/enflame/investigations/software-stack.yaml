@@ -1,0 +1,336 @@
+chip: enflame
+as_of: 2026-08-08
+baseline_as_of: 2026-04-05   # everything outside update_2026_08_08 is the baseline investigation
+device_class: Data Transfer Unit (China)
+investigation: software-stack
+platform_name: TopsRider
+sdk_line: TopsRider 3.7.x (as of 2026-08-08; baseline referenced 2.5.115 doc slug)
+
+layers:
+  framework_integration:
+    - name: TopsTorch
+      type: proprietary
+      description: PyTorch plug-in; torch.device("gcu"); ATen dispatch to TopsBlasOps
+      confidence: medium
+      source: hami-enflame-docs
+
+    - name: vllm-gcu
+      type: open_source
+      url: https://github.com/EnflameTechnology/vllm-gcu
+      description: vLLM fork for GCU S60; LLM inference serving; OpenAI-compatible API
+      confidence: high
+
+    - name: candle-gcu
+      type: open_source
+      url: https://github.com/EnflameTechnology/candle-gcu
+      description: HuggingFace Candle Rust ML framework on GCU
+      confidence: high
+
+    - name: PaddleNLP GCU backend
+      type: integration
+      url: https://paddlenlp.readthedocs.io/en/latest/llm/devices/gcu/llama/README.html
+      description: PaddlePaddle custom device backend for GCU; LLaMA2-13B on S60
+      confidence: high
+
+    - name: Qwen2 GCU support
+      type: integration
+      url: https://github.com/QwenLM/Qwen2/pull/456
+      description: GCU backend merged to Alibaba Qwen2
+      confidence: high
+
+  compiler_ir:
+    - name: TopsCC
+      type: proprietary
+      description: Graph compiler; lowers to GCU-CARE static dataflow; handles memory tiling; sparsity annotation
+      confidence: high
+      source: hami-enflame-docs, hc33-ieee
+
+    - name: GCU-CARE Scheduler
+      type: proprietary
+      description: Integrated into TopsCC; compile-time SIP graph mapping; no runtime thread dispatch
+      confidence: high
+      source: hc33-ieee
+
+  op_library:
+    - name: TopsBlasOps
+      type: proprietary
+      description: GEMM + BLAS + Conv + Attention + Norm primitives; dispatched by TopsTorch
+      confidence: medium
+      source: hami-dependency-manifest
+
+    - name: TopsCodec / FFmpeg-GCU
+      type: open_source
+      url: https://github.com/EnflameTechnology/FFmpeg-GCU
+      description: Hardware video encode/decode; FFmpeg plugin interface
+      confidence: high
+
+  kernel_library:
+    - name: TopsPlatform Kernel Library
+      type: proprietary
+      description: GCU-CARE native binary kernels; bundled with TopsCC; not open-sourced
+      confidence: medium
+      source: inferred from vllm-gcu deps
+
+  runtime:
+    - name: TopsRuntime
+      type: proprietary
+      binary: libTopsRuntime.so
+      description: Device memory mgmt; stream/event model; kernel launch
+      confidence: high
+      source: vllm-gcu-readme, hami-enflame-docs
+
+    - name: GCU Monitor
+      type: proprietary
+      url: https://support.enflame-tech.com/onlinedoc_dev_2.5.115/6-k8s/k8s/GCU_monitor_examples/content/source/index.html
+      description: Runtime observability; Prometheus-style metrics; profiling
+      confidence: high
+
+  driver_firmware:
+    - name: TopsDrv
+      type: proprietary
+      description: Linux kernel module; PCIe BAR; IOCTL; DMA; interrupt handling
+      confidence: high
+      source: hami-enflame-docs
+
+    - name: HAMi GCU plugin
+      type: open_source
+      url: https://github.com/Project-HAMi/HAMi
+      description: Kubernetes device plugin for GCU resource sharing and health monitoring
+      confidence: high
+
+  communication:
+    - name: ECCL
+      type: proprietary
+      package: eccl_3.5*.deb
+      description: Enflame Collective Communication Library; AllReduce/AllGather; NCCL analog
+      confidence: high
+      source: EnflameTechnology-github, vllm-gcu
+
+    - name: GCU-LARE Protocol
+      type: proprietary_hw
+      description: Chip-to-chip intra-node interconnect; 300 GB/s bidir (LARE 2.0)
+      confidence: high
+      source: hc33-lare-slides, enflame-support-bridge
+
+  assembler_isa:
+    - name: GCU-CARE ISA
+      type: proprietary
+      public_docs: false
+      description: Static dataflow instruction set; TopsCC handles all lowering; not user-accessible
+      confidence: inferred
+
+    - name: GCU-DARE ISA
+      type: proprietary
+      public_docs: false
+      description: On-chip data movement instruction set; intra-SIC tile routing
+      confidence: inferred
+
+ecosystem_gaps:
+  - No public ISA documentation (unlike NVIDIA PTX or Cambricon MLISA)
+  - No open-source kernel library (unlike Cambricon mlu-ops or NVIDIA CUTLASS)
+  - TopsTorch not open-sourced (unlike torch_mlu for Cambricon)
+  - No academic papers on TopsCC internals
+
+github_org: https://github.com/EnflameTechnology
+
+# ============================================================
+# UPDATE 2026-08-08 — window 2026-04-05 -> 2026-08-08
+# Additive only. Nothing above is deleted; supersessions are
+# stated explicitly in `supersedes_baseline`.
+# ============================================================
+
+update_2026_08_08:
+  as_of: 2026-08-08
+  window: 2026-04-05 .. 2026-08-08
+  sdk_line: TopsRider 3.7.x
+
+  layers:
+    framework_integration:
+      - name: torch-gcu
+        type: source_published        # deliberately NOT "open_source project" — see caveats
+        url: https://github.com/EnflameTechnology/torch-gcu
+        repo_created: 2026-06-23
+        repo_last_push: 2026-06-23
+        license: BSD-style, derived from PyTorch's; Copyright (c) 2026 Enflame 燧原科技
+        version_matrix:
+          torch_gcu: 2.10.0
+          pytorch: 2.10.0
+          python: ['3.9', '3.10', '3.12']
+          topsrider: v3.7.1
+        backend_mechanism: PyTorch official PrivateUse1 dispatch key (C++ tensors show as privateuseoneFloatType)
+        features:
+          - Extensive ATen operator coverage with automatic CPU fallback
+          - torch.distributed backend "eccl" — full collectives plus send/recv/isend/irecv
+          - torch.compile / Inductor backend integration
+          - AMP via torch.gcu.amp.autocast and GradScaler
+          - torch.gcu.GCUGraph (CUDA-Graph analog)
+          - ProfilerActivity.GCU / Kineto profiler integration
+          - PyTorch-compatible caching allocator
+          - transfer_to_gcu one-line CUDA migration shim
+          - libtorch_gcu C++ inference (single-device inference only; no multi-device, no training)
+        source_tree_notes: [csrc/aotfusion/, csrc/efficient_ops/]
+        hardware_support_table: [CloudBlazer S60]     # ONLY entry; no T20, no L600
+        known_limitation: GCU lacks native 64-bit types; F64/I64 implicitly down-cast to 32-bit
+        caveats:
+          - No source states torch_gcu is a rename of or replacement for TopsTorch
+          - Single-commit code drop (created_at == pushed_at); no follow-on commits; no press coverage
+          - Support matrix covers one inference product only
+        confidence: high (contents); low (that it is a live open-source project)
+        sources: [enflame-torch-gcu-readme, enflame-torch-gcu-license, enflame-github-org-api]
+
+      - name: vllm-gcu
+        type: open_source
+        url: https://github.com/EnflameTechnology/vllm-gcu
+        latest_release: v0.11.0
+        latest_release_date: 2026-05-12
+        prior_releases:
+          - {tag: v0.9.2, date: 2025-12-23}
+          - {tag: v0.8.0, date: 2025-09-17}
+        last_push: 2026-07-07
+        v0_11_0_highlights:
+          - DeepSeek 3.2 runtime work — async scheduling, MTP, DBO, FlashMLA, indexer optimization, FP8 KV cache
+          - Layer-wise KV-cache transfer and first-token reuse
+          - New GCU custom / native operators
+          - FP8 linear and FP8 MoE paths; W8A8-INT8 MoE
+          - GCU Docker source builds
+          - Model enablement — Qwen2.5/3-VL, Qwen3-Next, DeepSeek 3.2, DeepSeek-OCR, Hunyuan-OCR/A13B, GLM-4.5-Air, Step3-VL, MiniCPM-V, Paddle-VL
+        confidence: high
+        sources: [vllm-gcu-releases-api]
+
+      - name: PaddlePaddle FastDeploy — Enflame GCU backend
+        type: integration
+        url: https://github.com/PaddlePaddle/FastDeploy/blob/develop/docs/get_started/installation/Enflame_gcu.md
+        description: S60 + ERNIE 4.5 under a unified GCU/GPU inference interface
+        pins: {driver: 1.5.0.5, topsrider: 3.4.623, container: topsrider3.5.102}
+        timing: PRE-BASELINE — dates to the 2025 ERNIE 4.5 open-source release, not this window
+        confidence: high
+        sources: [fastdeploy-enflame-gcu-doc]
+
+      - name: FlagOS support branch
+        type: open_source
+        url: https://github.com/EnflameTechnology/FlagOS
+        repo_created: 2026-05-29
+        confidence: high (existence); contents not investigated
+        sources: [enflame-github-org-api]
+
+    runtime:
+      - name: TopsRider SDK 3.7.x
+        type: proprietary
+        evidence:
+          - torch-gcu README pins TopsRider v3.7.1
+          - Docker tag v2.10.0-TR3.7.107-ubuntu2204
+          - bundled driver enflame-x86_64-gcc-1.7.2.2402-20260429134535.run (2026-04-29)
+          - torch-gcu repo .version = 3.7
+        supersedes: onlinedoc_dev_2.5.115 doc references in the baseline
+        doc_site_slug: not disclosed   # support.enflame-tech.com returns Tencent WAF HTTP 403 on all onlinedoc paths
+        confidence: high (version line); not confirmed (doc URL slug)
+        sources: [enflame-torch-gcu-readme, enflame-waf-403]
+
+      - name: PyTorch profiler integration
+        type: open_source
+        description: ProfilerActivity.GCU with Kineto backend, shipped in torch-gcu
+        confidence: high
+        sources: [enflame-torch-gcu-readme]
+
+    communication:
+      - name: ECCL as torch.distributed backend
+        type: proprietary_lib_with_public_binding
+        description: backend="eccl"; full collectives plus send/recv/isend/irecv, exposed by torch-gcu
+        confidence: high
+        sources: [enflame-torch-gcu-readme]
+
+      - name: nixl / ucx forks
+        type: fork_only
+        urls:
+          - https://github.com/EnflameTechnology/nixl
+          - https://github.com/EnflameTechnology/ucx
+        repo_created: 2026-06-08
+        note: >-
+          created_at == pushed_at, zero stars, no visible Enflame commits. NIXL+UCX is the
+          standard stack for prefill/decode disaggregation and KV-cache transfer, so the
+          direction is plausible — but this is fork creation, NOT a shipped disaggregation stack.
+        confidence: low (weak signal)
+        sources: [enflame-github-org-api]
+
+  other_repo_activity:
+    findtops: {created: 2026-07-24}
+    candle-gcu: {last_push: 2026-07-17}
+    candle-vllm-gcu: {last_push: 2026-07-18}
+    Ubridge: {last_push: 2026-07-18}
+    FFmpeg-GCU: {last_push: 2026-07-17}
+    gcushare: {last_push: 2026-06-29}
+    gcu-exporter: {last_push: 2026-06-29}
+    confidence: high
+    sources: [enflame-github-org-api]
+
+  ecosystem_datapoints_pre_baseline:
+    - date: 2026-02-02
+      item: >-
+        Enflame and Biren among the first domestic vendors to complete adaptation of
+        StepFun's Step 3.5 Flash foundation model; L600 named.
+      confidence: medium
+      sources: [sina-stepfun-adaptation]
+
+  supersedes_baseline:
+    - baseline_claim: 'TopsTorch: The proprietary PyTorch plug-in backend'
+      corrected: >-
+        A PyTorch backend source is public as torch_gcu (2026-06-23, BSD-style). No source
+        links it to the TopsTorch name; its Hardware Support table lists only the S60; it is a
+        single-commit code drop. Characterize as a source-code publication, not a live OSS project.
+      confidence: high
+    - baseline_claim: 'documentation references onlinedoc_dev_2.5.115'
+      corrected: >-
+        Current SDK line is TopsRider 3.7.x. The doc-site URL slug itself is unverifiable
+        (Tencent WAF 403 on every onlinedoc_dev_* path); record no slug.
+      confidence: high
+    - baseline_claim: 'The full kernel library is not open-sourced'
+      corrected: >-
+        Still true. torch-gcu ships csrc/aotfusion/ and csrc/efficient_ops/, but TopsBlasOps
+        and the TopsCC back end remain closed.
+      confidence: high
+
+  ecosystem_gaps_reassessed:
+    public_isa_documentation: unchanged — GCU-CARE / GCU-DARE still undocumented
+    open_source_kernel_library: unchanged — TopsBlasOps and TopsCC back end still closed
+    pytorch_backend_openness: partially closed — see torch-gcu caveats
+    academic_papers_on_topscc: unchanged — no Enflame paper or talk at ISCA 2026 or any in-window venue
+
+  explicitly_not_found:
+    - Statement linking torch_gcu to TopsTorch
+    - torch-gcu support for T20 or L600
+    - MLPerf submission for S60 or L600
+    - Verifiable documentation-site version slug
+    - Any Enflame conference paper or talk in-window
+  hot_chips_38_note: >-
+    Hot Chips 38 runs 2026-08-23..25, after this as_of date. Nothing from that program is
+    cited or usable as a source.
+
+  sources_2026_08_08:
+    - key: enflame-torch-gcu-readme
+      url: https://raw.githubusercontent.com/EnflameTechnology/torch-gcu/main/README.md
+      label: torch-gcu README — PrivateUse1, ECCL, torch.compile, GCUGraph, transfer_to_gcu, libtorch_gcu, TopsRider v3.7.1, S60-only support table
+      confidence: high
+    - key: enflame-torch-gcu-license
+      url: https://raw.githubusercontent.com/EnflameTechnology/torch-gcu/main/LICENSE
+      label: BSD-style licence, Copyright (c) 2026 Enflame 燧原科技; companion /.version = 3.7
+      confidence: high
+    - key: enflame-github-org-api
+      url: https://api.github.com/orgs/EnflameTechnology/repos
+      label: Org repo listing with created_at/pushed_at — torch-gcu 2026-06-23, nixl/ucx 2026-06-08, FlagOS 2026-05-29, findtops 2026-07-24
+      confidence: high
+    - key: vllm-gcu-releases-api
+      url: https://api.github.com/repos/EnflameTechnology/vllm-gcu/releases
+      label: v0.11.0 published 2026-05-12T02:41:23Z; v0.9.2 2025-12-23; v0.8.0 2025-09-17, with full release bodies
+      confidence: high
+    - key: fastdeploy-enflame-gcu-doc
+      url: https://raw.githubusercontent.com/PaddlePaddle/FastDeploy/develop/docs/get_started/installation/Enflame_gcu.md
+      label: FastDeploy Enflame GCU install — S60 + ERNIE 4.5; driver 1.5.0.5 / TopsRider 3.4.623 (pre-baseline)
+      confidence: high
+    - key: enflame-waf-403
+      url: https://support.enflame-tech.com/
+      label: Doc site returns Tencent WAF HTTP 403 for all onlinedoc_dev_* paths (2.5.115, 3.5, 3.6, 3.7) — slug unverifiable
+      confidence: high
+    - key: sina-stepfun-adaptation
+      url: https://finance.sina.com.cn/
+      label: Sina Finance / MSN 2026-02-02 — 壁仞科技、燧原科技完成阶跃星辰Step 3.5 Flash模型适配 (pre-baseline; article URL not captured, outlet + date recorded)
+      confidence: medium

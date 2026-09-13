@@ -1,0 +1,114 @@
+digraph cerebras_wse_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== SCALE-OUT INTERCONNECT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        swarmx [label="SwarmX Fabric\n100GbE + RoCE RDMA\nTree topology (MemoryX→CS-3s)\nBroadcast weights / Reduce grads\nUp to 2,048 CS-3 systems", fillcolor="#FFE0CC"];
+        memoryx_ext [label="MemoryX Appliance\nDRAM+Flash | 4TB–2.4PB\nWeight-only external storage\nElastic SKUs (4TB/24TB/36TB/120TB/1.2PB)\nWeight update scheduler", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== HOST INTERFACE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cs3_pkg [label="CS-3 System Package\nPCIe host interface\nCustom 300mm wafer PCB\n(cross-scribe-line metal)\nWater-cooling cold plate\n~23 kW TDP", fillcolor="#E0E0E0"];
+        host_cpu [label="Host CPU Server\nCompile server + MemDataLoader\nSdkRuntime / Appliance API\ncsctl job management", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== WSE-3 WAFER =====================
+    subgraph cluster_wse {
+        label="WSE-3 — Single 300mm TSMC 5nm Wafer (46,225 mm², 4T transistors)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        // Scale-up mesh
+        swarm_mesh [label="Swarm 2D Mesh (Scale-up)\n5-port hardware router per PE\n24 colors (virtual channels)\n32-bit wavelets, ~1 ns/hop\n100 Pb/s aggregate | <1 pJ/bit\nNo software overhead", fillcolor="#283593", fontcolor="white"];
+
+        // PE Array
+        pe_array [label="900,000 Processing Elements (PEs)\nPer-PE: FP16/BF16 8-wide SIMD\nINT8 16-wide SIMD | FP32 scalar\nOwn program counter per PE\n0.05 mm² per PE | 125 PF FP16 total", fillcolor="#283593", fontcolor="white"];
+
+        // On-chip memory
+        sram [label="44 GB On-chip SRAM\n48 KB per PE × 900K PEs\n21 PB/s total bandwidth (7,000× H100 HBM)\nSingle-cycle access | No HBM | No cache hierarchy\nAddressed via CSL DSDs", fillcolor="#283593", fontcolor="white"];
+
+        // Defect tolerance
+        defect [label="Defect Tolerance Layer\n0.05 mm² PE (100× smaller than H100 SM)\n1–1.5% redundant PEs per region\nDynamic routing table: reroutes around failed PEs\nPost-fab remapping → commercial yield at 5nm", fillcolor="#3949AB", fontcolor="white"];
+    }
+
+    // ============ HETEROGENEOUS DISAGGREGATED INFERENCE (ANNOUNCED) ============
+    subgraph cluster_disagg {
+        label="Disaggregated Inference — ANNOUNCED 2026-07-23, expected H2 2026 (not shipping)";
+        style="rounded,dashed";
+        color="#C62828";
+        fontcolor="#C62828";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        helios [label="AMD Helios rack-scale (Instinct)\nPREFILL tier: prompt + long-context\nVendor-modelled up to 5x tokens/s/W\n(footnote: TPS/kW vs WSE-only baseline)\nAnnounced only — via Cerebras Cloud H2 2026", fillcolor="#FFCDD2", style="rounded,filled,dashed"];
+    }
+
+    // ===================== EXECUTION MODES =====================
+    subgraph cluster_modes {
+        label="Execution Modes";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pipeline [label="Layer Pipelined Mode\nModel ≤ 44 GB weights\nAll weights+activations on SRAM\nZero off-chip access during compute\nMax compute utilization", fillcolor="#E4DEFF"];
+        weight_stream [label="Weight Streaming Mode\nModel > 44 GB weights\n24T params per CS-3 (1.2PB MemoryX)\nWeights streamed layer-by-layer from MemoryX\nActivations held in PE SRAM", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== EDGES =====================
+
+    // PE ↔ SRAM
+    pe_array -> sram [color="white", label="48KB/PE\nsingle cycle", fontcolor="white", fontsize=8];
+
+    // PE ↔ Mesh
+    pe_array -> swarm_mesh [color="white", label="wavelet\nrouting", fontcolor="white", fontsize=8];
+
+    // Defect tolerance spans PE + Mesh
+    defect -> pe_array [color="#7986CB", style=dashed, label="spare PEs", fontsize=8, fontcolor="#7986CB"];
+    defect -> swarm_mesh [color="#7986CB", style=dashed, label="reroute", fontsize=8, fontcolor="#7986CB"];
+
+    // Host → WSE
+    host_cpu -> cs3_pkg [label="PCIe\ncompile+launch", fontsize=8];
+    cs3_pkg -> pe_array [color="#283593", label="data injection\nat mesh boundary", fontsize=8, fontcolor="#283593"];
+
+    // SwarmX → WSE (weight streaming)
+    swarmx -> cs3_pkg [label="weight broadcast\n(RoCE RDMA)", fontsize=8, color="#FF6D01", fontcolor="#FF6D01"];
+    memoryx_ext -> swarmx [label="layer weights", fontsize=8];
+    swarmx -> memoryx_ext [label="gradient reduce", fontsize=8, style=dashed];
+
+    // Disaggregated inference: Helios prefill -> WSE decode (announced; link not disclosed)
+    helios -> cs3_pkg [style=dashed, color="#C62828", fontcolor="#C62828", fontsize=8, label="KV state / activations\ninterconnect NOT DISCLOSED\n(WSE = decode tier)"];
+
+    // Execution modes annotation
+    pipeline -> sram [style=dashed, label="model fits", fontsize=8, color="#7B61FF", fontcolor="#7B61FF"];
+    weight_stream -> memoryx_ext [style=dashed, label="weights from\nMemoryX", fontsize=8, color="#7B61FF", fontcolor="#7B61FF"];
+}

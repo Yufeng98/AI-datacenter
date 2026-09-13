@@ -1,0 +1,127 @@
+resource: rccl
+url: https://github.com/ROCm/rccl
+type: github_repo
+as_of: "2026-04-05"
+commit_sha: 57e5868
+doc_version: null
+chip: amd-gpu
+device_class: GPU
+
+layer_mappings:
+  - layer: Communication
+    component: RCCL (ROCm Communication Collectives Library)
+    confidence: confirmed
+    sources:
+      - src/collectives.cc
+      - src/enqueue.cc
+      - docs/what-is-rccl.rst
+
+  - layer: Communication
+    component: XGMI/Infinity Fabric Transport (P2P Direct)
+    confidence: confirmed
+    sources:
+      - src/transport/p2p.cc
+      - src/graph/topo.cc:584  # ncclTopoAddXGMI
+      - src/graph/topo.h:36-39  # XGMI bandwidth constants
+
+  - layer: Communication
+    component: InfiniBand / RoCE Network Transport
+    confidence: confirmed
+    sources:
+      - src/transport/net_ib.cc
+      - src/transport/net_ib_rocm.cc
+
+  - layer: Communication
+    component: Ring and Tree Collective Algorithms
+    confidence: confirmed
+    sources:
+      - src/graph/rings.cc
+      - src/graph/trees.cc
+      - src/graph/search.cc
+      - src/device/all_reduce.h
+
+  - layer: Communication
+    component: Rome/EPYC Topology Model Database
+    confidence: confirmed
+    sources:
+      - src/graph/rome_models.cc
+      - src/graph/rome_models.h
+
+  - layer: Communication
+    component: Rail-Optimized Multi-Node Trees
+    confidence: confirmed
+    sources:
+      - src/graph/connect.cc:586
+      - src/graph/rome_models.cc:2046-2080
+      - src/graph/topo.h:218  # useRailOptimizedTrees
+
+  - layer: Runtime
+    component: AMD SMI / ROCm SMI Topology Query
+    confidence: confirmed
+    sources:
+      - src/init.cc
+      - src/include/amdsmi_wrap.h
+      - src/include/rocm_smi_wrap.h
+
+  - layer: Runtime
+    component: MSCCL++ Custom Collective Scheduler (optional)
+    confidence: confirmed
+    sources:
+      - src/init.cc:56-138
+      - src/msccl.cc
+      - src/include/mscclpp/mscclpp_nccl.h
+
+framework_integrations:
+  - framework: PyTorch Distributed (torch.distributed)
+    integration_point: >
+      PyTorch's ProcessGroupNCCL backend uses RCCL via the NCCL-compatible
+      C API (ncclAllReduce, ncclBroadcast, etc.) on ROCm builds.
+      librccl.so is dynamically loaded the same way libnccl.so is on CUDA.
+
+  - framework: DeepSpeed
+    integration_point: >
+      DeepSpeed ZeRO optimizer uses collective operations (AllReduce, ReduceScatter,
+      AllGather) through the rccl backend when running on AMD GPUs.
+
+  - framework: MPI (OpenMPI / MPICH)
+    integration_point: >
+      RCCL communicators can be initialized from MPI communicators via
+      ncclCommInitRankConfig, enabling multi-process multi-node collective training.
+
+key_abstractions:
+  - name: ncclTopoSystem
+    description: >
+      Node-level topology graph containing GPU, PCI switch, CPU (NUMA), NIC, and NET
+      nodes with pre-computed all-pairs bandwidth paths; central data structure for
+      algorithm selection and channel assignment.
+
+  - name: ncclTopoXGMISpeed / ncclTopoAddXGMI
+    description: >
+      AMD-specific function pair that reads XGMI XML nodes from the hardware topology
+      scan and inserts LINK_NVL edges with per-architecture bandwidth (24/36/48 GB/s
+      for Vega/MI200/MI300X respectively) into the topology graph.
+
+  - name: rcclRomeModel
+    description: >
+      Pre-computed topology template struct for known AMD EPYC server configurations;
+      encodes GPU bus IDs, XGMI connectivity matrix, GDR levels, and optimal
+      ringBase/treeRail pattern strings to bypass expensive graph search at startup.
+
+  - name: Primitives<T, RedOp, Fan, Proto>
+    description: >
+      Templated GPU device-side class that implements the core data movement and
+      reduction operations (recvReduceSend, recvCopySend) for ring/tree algorithms,
+      parameterized by data type, reduction op, fan-in/out, and wire protocol.
+
+  - name: getAlgoInfo
+    description: >
+      Runtime algorithm and protocol selector that uses topology bandwidth (populated
+      from XGMI/PCIe/network link speeds) and message size to choose the optimal
+      combination of collective algorithm (Ring/Tree/CollNet) and wire protocol
+      (LL/LL128/Simple) for each operation.
+
+  - name: useRailOptimizedTrees
+    description: >
+      Boolean flag on ncclTopoSystem that triggers AMD-specific rail-aware tree
+      construction in connect.cc, routing collectives through NIC-local GPUs first
+      to maximize GPU Direct RDMA efficiency in multi-node AMD clusters.

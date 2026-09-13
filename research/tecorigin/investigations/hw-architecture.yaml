@@ -1,0 +1,474 @@
+chip: tecorigin
+as_of: "2026-08-08"
+device_class: "Heterogeneous Many-Core Accelerator (SPA/SPE array with software-managed SPM scratchpad; China, 太初元碁)"
+investigation: hw-architecture
+
+# ─────────────────────────────────────────────────────────────────────────────
+# METHODOLOGY — read before using any number below
+#
+# Tecorigin publishes NO datasheet. Every quantitative fact here was recovered
+# from vendor programming manuals, driver telemetry (teco-smi), the debugger
+# (TecoGDB), or published performance cost models — i.e. from what the software
+# must know about the machine. These are strong sources for STRUCTURE and
+# absent sources for PEAK PERFORMANCE. Do not back-derive peak throughput.
+#
+# The docs portal is a Vue SPA whose content is served as Yjs CRDT binary via
+# an undocumented REST API (http://docs.tecorigin.com/api/api/...). Naive byte
+# scraping of the CRDT interleaves edit history and produces SCRAMBLED DIGITS
+# (an early pass produced "2 TFLOPS" where the text reads "29 TFLOPS").
+# All numbers below were recovered by proper CRDT decoding with pycrdt.
+#
+# WebSearch was unavailable for the entire research pass (budget 200/200 at
+# start). No press, analyst, funding or export-control evidence was checked.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Chip identity ────────────────────────────────────────────────────────────
+identity:
+  chip_family_name: "T1"
+  architecture_target: "T100 系列 (compiler flag --sdaa-arch=pcx_100)"
+  driver_reported_card: "TECO_AICARD_01 (brand TECO_AI_01, PCI device ID 0x071900A1)"
+  card_skus:
+    - "元碁 T100 — PCIe card"
+    - "元碁 T110 — air-cooled OAM module"
+    - "元碁 T111 — liquid-cooled OAM module"
+  systems:
+    - "AI workstation (1-4 cards)"
+    - "T1008 — 4U / 8 cards"
+    - "I1004 — 2U / 4 cards, inference"
+    - "T1108 — 6U / 8 OAM cards, '8 IB/RoCE 高速通信'"
+    - "T1118 — 2U / 8 cards, liquid-cooled"
+    - "元碁 SuperPOD-128 — 128 cards per rack"
+  note: "T100/T110/T111 are CARD SKUs; T1 is the CHIP. Firmware images are named aiflash_v<ver>_T1."
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/tecosmi
+    - http://docs.tecorigin.com/release/sdaart
+    - http://docs.tecorigin.com/release/pcx
+    - https://www.tecorigin.com/cn/technology.html
+
+  process_node: "not disclosed"
+  foundry: "not disclosed"
+  die_size: "not disclosed"
+  transistor_count: "not disclosed"
+  packaging: "not disclosed"
+  spa_construction: "not disclosed — whether the 4 SPAs are 4 dies, 4 chiplets in one package, or 4 clusters on one monolithic die is unstated"
+  identity_gaps_confidence: unconfirmed
+  identity_gaps_note: "Absent from all 17 vendor manuals (~3.2 MB) and the entire vendor website. Must never be estimated."
+
+# ── Compute Engine ───────────────────────────────────────────────────────────
+compute_engine:
+  hierarchy:
+    spa_per_card: 4
+    spe_per_spa: 32
+    spe_per_card: 128
+    spa_definition: "SPA = Synergistic Processor Element Array. Each SPA owns its own Global memory and is exposed to software as an INDEPENDENT device ('每个SPA类似于GPU的一张卡'). No shared address space across SPAs."
+    spe_definition: "SPE = Synergistic Processor Element, called 从核 ('slave core') in Tecorigin's own kernel comments. A fully independent core with its own compute, memory-access and control logic."
+    confidence: confirmed
+    derivation_note: "spa_per_card and spe_per_spa are each independently vendor-stated; spe_per_card = 4 x 32 is DERIVED from those two confirmed numbers."
+    evidence:
+      - "teco-smi -q reports 'Minor Number : 0 1 2 3' for one card; teco-smi -c shows 4 device rows sharing one Bus-Id"
+      - "TecoPyTorch DDP: '每张加速卡上有4个可用的SDAA计算设备'"
+      - "Teco-vLLM: '1张太初AI加速卡有4个SDAA计算设备', derives tensor_parallel_size=8 for 2 cards"
+      - "TecoGDB prints 'Switching to SPA 3, SPE 6' and 'Has 32 GPC' with SPE rows 0..31"
+      - "TecoGDB: 'SPE：发生异常的SPE，大于31时表示特殊模块' — indices >31 are special modules, not SPEs"
+      - "Shipped kernels use CORE_NUM = 32 / '32个从核'"
+      - "Cross-check: Teco-Megatron-LM DeepSeek-R1-Distill-Llama-70B recipe = TP4 x PP8 = 32 ranks on 1 node x 8 cards"
+    sources:
+      - http://docs.tecorigin.com/release/tecosmi
+      - http://docs.tecorigin.com/release/tecogdb
+      - http://docs.tecorigin.com/release/torch2.7
+      - http://docs.tecorigin.com/release/teco_vllm
+      - http://docs.tecorigin.com/release/teco_megatron_lm
+      - https://github.com/Tecorigin/teco-ops/blob/main/doc/teco-ops-hardware.md
+
+  per_spe_units:
+    su: "Scalar Unit + SREG scalar register file"
+    vpu: "Vector Processing Unit + VREG — vector arithmetic, type conversion, compare/select, vector load/store"
+    fu: "Function Unit — the matrix/MMA engine. Reads and writes SPM DIRECTLY and can touch nothing else."
+    spm: "Private on-chip software-managed scratchpad"
+    pipeline: "not disclosed — perf manual states only 'multi-stage, multi-issue pipelines' with no depth, issue width, or pipeline count"
+    confidence: confirmed
+    sources:
+      - https://github.com/Tecorigin/teco-ops/blob/main/doc/teco-ops-hardware.md
+      - http://docs.tecorigin.com/release/sdaac
+      - http://docs.tecorigin.com/release/pcx
+
+  matrix_unit:
+    operation_tile: "128 x 32 x 32 MMA per operation"
+    dataflow: "weight-stationary, double-buffered weight register (matmul_load_weight; .update_weight switches the load buffer)"
+    accumulator: "accumulator buffer; .flush_output controls drain to SPM"
+    weight_masking: "individual weight rows maskable / zero-paddable via an 8-bit-plus mask"
+    input_stride_granularity_bytes: 64
+    internal_mac_array_shape: "not disclosed"
+    cycles_per_mma: "not disclosed"
+    confidence: confirmed
+    evidence:
+      - "'由于矩阵乘接口每次进行的是一个 128×32×32 的 MMA' (operator perf manual)"
+      - "PCX matmul_compute / matmul_store accept row = 1..128"
+      - "SDAA C matmul alignment rules single out k == 32 && n == 32 as the zero-overhead case"
+    sources:
+      - http://docs.tecorigin.com/release/op_perf_opt
+      - http://docs.tecorigin.com/release/pcx
+      - http://docs.tecorigin.com/release/sdaac
+
+  matrix_unit_datatypes:
+    supported:
+      - {encoding: "0x606", input: FP16, output: FP16}
+      - {encoding: "0x806", input: FP16, output: FP32}
+      - {encoding: "0x404", input: S16,  output: S16}
+      - {encoding: "0x704", input: S16,  output: S32}
+    absent: [BF16, TF32, FP8, INT8]
+    statement: "There is NO BF16, TF32, FP8 or INT8 path in the matrix unit. This is a real hardware limit, not a documentation gap."
+    confidence: confirmed
+    corroboration:
+      - "TORCH_SDAA_BF16_CLIP clips bf16 matmul inputs to [-65407, 65407] — essentially the FP16 maximum; bf16 GEMM is emulated by down-converting into the FP16 unit"
+      - "SDAA C: bfloat16 '目前仅支持指针操作' (storage/pointer only, via simd_load_widen / simd_store_narrow)"
+      - "Teco-vLLM quantization menu is entirely WEIGHT-ONLY (INT8 W8A16, INT4 W4A16, GPTQ, AWQ, KV-cache-INT8) — no W8A8, exactly as expected if activations must enter a 16-bit matrix unit"
+      - "TORCH_SDAA_CONV_USE_FP32 documents Conv '算子内部将FP32输入转FP16进行计算' by default"
+    sources:
+      - http://docs.tecorigin.com/release/pcx
+      - http://docs.tecorigin.com/release/sdaac
+      - http://docs.tecorigin.com/release/torch2.7
+      - http://docs.tecorigin.com/release/teco_vllm
+
+  scalar_vector_datatypes:
+    sdaa_c_scalar: ["half (IEEE-754 binary16)", "bfloat16 (STORAGE ONLY)", "C/C++ base types"]
+    sdaa_c_vector: [intv16, uintv16, floatv16, shortv32, ushortv32, halfv16]
+    simd128: "a separate 128-bit SIMD instruction form exists (simd_round128, simd_floor128, ...; compiler option use_simd128)"
+    pcx_isa_types: [".s8/.s16/.s32/.s64", ".u8/.u16/.u32/.u64", ".bool", ".f16/.f32/.f64", ".v<Type><N>", ".b<N>", ".str"]
+    fp64: "PRESENT in the PCX ISA (.f64) — consistent with the vendor's HPC + AI positioning"
+    physical_vreg_width: "not disclosed"
+    vreg_width_warning: "Do NOT infer VREG width from the vector types — they are internally inconsistent (halfv16 = 256 bit vs floatv16 = 512 bit)."
+    confidence: confirmed
+    sources:
+      - http://docs.tecorigin.com/release/sdaac
+      - http://docs.tecorigin.com/release/pcx
+
+  clocks:
+    mpe:  {current_mhz: 2000, max_mhz: 2300, meaning: "management/master processing element — ROLE NOT DISCLOSED"}
+    spe:  {current_mhz: 2000, max_mhz: 3000, meaning: "SPE compute clock; initial frequency is eFUSE-set"}
+    hbm:  {current_mhz: 1600, max_mhz: 1650, meaning: "HBM"}
+    glb:  {current_mhz: 2200, max_mhz: 2200, meaning: "太初AI加速卡环网 — the on-chip RING NETWORK"}
+    benchmark_clock_ghz: 2.36
+    controls: "teco-smi -lsc / -rsc lock and reset SPE clocks; -lpm enables a low-power mode"
+    confidence: confirmed
+    sources:
+      - http://docs.tecorigin.com/release/tecosmi
+
+  mpe_domain:
+    exists: true
+    role: "not disclosed"
+    count: "not disclosed"
+    isa: "not disclosed"
+    programmable: "not disclosed — invisible to both SDAA C and PCX"
+    confidence: unconfirmed
+    note: >-
+      A partial correction to the seed's 'no on-device management core is documented'. teco-smi DOES expose
+      an Mpe clock domain distinct from Spe, and TecoGDB notes SPE indices >31 denote unnamed special
+      modules. But nothing states what the MPE is or does, and nothing states it is an SW26010-style MPE
+      forming a core group. Report as an observed clock/telemetry domain ONLY.
+    sources:
+      - http://docs.tecorigin.com/release/tecosmi
+      - http://docs.tecorigin.com/release/tecogdb
+
+  peak_performance:
+    peak_fp16_tflops: "not disclosed"
+    peak_fp32_tflops: "not disclosed"
+    peak_fp64_tflops: "not disclosed"
+    peak_int16_tops: "not disclosed"
+    peak_int8_tops: "not disclosed (no INT8 matrix path exists)"
+    confidence: unconfirmed
+    note: "Peak dense throughput at ANY precision is not disclosed anywhere."
+
+  measured_microbenchmark:
+    matrix_unit_tflops: 29
+    vector_instruction_tflops: 2.5
+    precision: FP16
+    conditions: "128x32x32 MMA loop resident in SPM, SPE clock 2.36 GHz, operator perf-optimization manual"
+    scope: "NOT STATED by the document. The kernel is __global__ with no threadIdx guard, so it runs on all 32 SPEs of ONE SPA, making per-SPA the most likely reading — but that is inference."
+    vendor_caveat: "Tecorigin explicitly writes '上述实验远没有达到太初AI加速卡乘加运算的浮点性能峰值' — far below peak."
+    confidence: likely
+    warning: "This is a TUTORIAL MICRO-BENCHMARK, not a peak figure. DO NOT SCALE IT."
+    sources:
+      - http://docs.tecorigin.com/release/op_perf_opt
+
+# ── Execution model / data path ──────────────────────────────────────────────
+execution_model:
+  style: "SPMD — '同一计算核心阵列SPA内所有计算核心SPE运行同一份应用程序'"
+  ids: "threadIdx = SPE ID within the SPA; threadDim = SPE count in the SPA"
+  device_mapping: "One SPA = one device. sdaaSetDevice(n) selects the SPA; TecoPyTorch: '一个SDAA设备对应一个计算核心阵列SPA'"
+  thread_groups: "ThreadGroup with thread_group_set_mask / include / exclude scopes sync, broadcast and RMA to SPE subsets"
+  host_master: "The HOST CPU is the master. No on-device master/management core is documented (see mpe_domain)."
+  inconsistency_note: >-
+    PCX describes intra-thread-group execution as SIMD ('每个线程组中的线程以SIMD方式，执行同样的机器指令'),
+    a stronger lock-step claim than SDAA C's SPMD framing. The two vendor documents are not perfectly
+    consistent. TecoGDB's per-SPE focus switching and independent PCs suggest the practical model is SPMD
+    with independent control flow.
+  device_language_restrictions:
+    - "no exceptions, no RTTI, no STL"
+    - "no new, no global constructors/destructors, no local statics"
+    - "no file I/O"
+    - "no native C/C++ atomics (device atomics provided as intrinsics: atomic_inc/add/sub/cas)"
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/sdaac
+    - http://docs.tecorigin.com/release/pcx
+    - http://docs.tecorigin.com/release/tecogdb
+    - http://docs.tecorigin.com/release/torch2.7
+
+data_movement:
+  host_to_global: "sdaaMemcpy (blocking / stream-async)"
+  global_to_spm: "DMA — blocking memcpy, memcpy_stride; non-blocking memcpy_async / memcpy_wait with MemcpyHandle"
+  spe_to_spe: "RMA — direct SPM-to-SPM, no round trip through Global. rma_get / rma_put; non-blocking rma_async_get / rma_async_put / rma_complete / rma_wait; RmaNormalMode and RmaCustomizeMode"
+  broadcast: "hardware broadcast — broadcast, broadcast_async, memcpy_broadcast; thread-group scoped"
+  overlap: "non-blocking DMA/RMA/broadcast/transpose/matmul handles on device; host-side streams and events with multi-stream concurrency"
+  graph_capture: "sdaaErrorStreamCaptureUnsupported / ...Invalidated exist in the runtime error enum — CUDA-Graph-style capture is at least stubbed"
+  significance: "RMA + hardware broadcast between slave cores is the Sunway athread idiom and is the clearest architectural fingerprint of the lineage."
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/sdaac
+    - http://docs.tecorigin.com/release/sdaart
+    - http://docs.tecorigin.com/release/pcx
+
+# ── Memory hierarchy ─────────────────────────────────────────────────────────
+memory_model:
+  levels: 3
+  statement: "'太初AI加速卡设备端的存储器模型可以分为3层：Global存储、SPM存储和寄存器' — registers / SPM / Global, all movement explicit."
+  hardware_data_cache: "NONE documented at any level. Never stated as an explicit negative, but strongly implied by the consistent three-level framing plus mandatory explicit DMA/RMA."
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/op_perf_opt
+
+on_chip_memory:
+  registers:
+    scope: "per SPE"
+    sreg_size: "not disclosed"
+    vreg_size: "not disclosed"
+    confidence: unconfirmed
+
+  spm:
+    scope: "PRIVATE PER SPE"
+    usable_ceiling_kb: 235
+    usable_ceiling_bytes: 240512
+    physical_size: "not disclosed — 235 KB is the usable ALLOCATION ceiling, not the array size"
+    arithmetic_note: "240512 B + 128 B wrapper overhead = 240640 B = exactly 235 KiB"
+    partitions:
+      heap: "malloc / free; get_heap_size"
+      stack: "get_stack_size; movable to Global with --stack-on-global"
+      local: "__local__ / __scoped_local__; get_local_size"
+    partition_sizes: "not disclosed — runtime-queried only"
+    confidence: confirmed
+    sources:
+      - https://github.com/Tecorigin/teco-ops/blob/main/README.md
+      - https://github.com/Tecorigin/teco-ops/blob/main/doc/README_OP.md
+      - http://docs.tecorigin.com/release/sdaac
+
+  instruction_cache:
+    present: true
+    scope: "per SPE"
+    size: "not disclosed"
+    evidence: "SDAA C perf sampling exposes an '指令缓存脱靶次数 (Instruction Cache Miss)' counter via perf_start/perf_stop/perf_print; TecoGDB prints per-SPE GPC as '指令cache首地址'"
+    note: "This is the ONLY cache documented anywhere on the device."
+    confidence: confirmed
+    sources:
+      - http://docs.tecorigin.com/release/sddac_perf_opt
+      - http://docs.tecorigin.com/release/tecogdb
+
+  measured_dma:
+    global_to_spm_best_gbps: 45.45
+    global_to_spm_misaligned_gbps: 0.92
+    degradation_factor: 49
+    conditions: "single SPE, 2.36 GHz, 128 KB transfers; best case = 4-byte-aligned src AND dst; worst case = src/dst with different mod-4 residues"
+    direction_ranking: "SPM->SPM > Global->SPM > SPM->Global > Global->Global"
+    global_to_global_note: "requires SPM as a staging buffer and transiently consumes 20 KB of SPM heap"
+    aggregate_bandwidth_at_full_occupancy: "not disclosed"
+    confidence: confirmed
+    sources:
+      - http://docs.tecorigin.com/release/sddac_perf_opt
+
+off_chip_memory:
+  type: HBM
+  type_evidence: "teco-smi exposes dedicated Power/Voltage/Current/Clocks domains named 'Hbm' alongside 'Chip', plus per-card '设备内存芯片' telemetry"
+  capacity_per_spa_mb: 15296
+  capacity_per_card_mb: 65536
+  capacity_note: >-
+    Driver-reported, from real captured teco-smi output (TecoPyTorch/TecoPaddle FAQ show '0MB / 15296MB'
+    on each of 4 devices at 35C 90W; teco-smi -q shows 'Total : 65536 MB'). 4 x 15296 = 61184 MB usable of
+    65536 MB physical; the ~4.3 GB gap is plausibly ECC/reserve. Tecorigin publishes NO datasheet capacity —
+    treat 64 GB as 'documented driver-reported capacity of the T100-generation card'.
+  bandwidth: "NOT DISCLOSED"
+  bandwidth_note: "Only the HBM clock (1600 MHz, max 1650) is exposed. HBM generation (HBM2/2E/3), stack count and bus width are all undisclosed, so bandwidth CANNOT be derived."
+  hbm_generation: "not disclosed"
+  ecc: "present — sdaaErrorECCNotCorrectable in the SDAARuntime error enum"
+  cross_spa_address_space: "NONE — each SPA is a separate device with its own Global memory; frameworks treat SPAs as separate ranks (TP=4 within one card)"
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/tecosmi
+    - http://docs.tecorigin.com/release/torch2.7
+    - http://docs.tecorigin.com/release/tecopaddle
+    - http://docs.tecorigin.com/release/sdaart
+
+# ── On-chip interconnect ─────────────────────────────────────────────────────
+on_chip_interconnect:
+  ring_network:
+    topology: "ring (环网)"
+    clock_mhz: 2200
+    evidence: "teco-smi documents the Glb clock domain as '太初AI加速卡环网的实时频率'"
+    bandwidth: "not disclosed"
+    bisection: "not disclosed"
+    confidence: confirmed
+    note: "This is the ONLY direct vendor statement of on-chip network topology found anywhere."
+    sources:
+      - http://docs.tecorigin.com/release/tecosmi
+
+  spe_grid:
+    shape: "8 columns x 4 rows = 32 SPEs"
+    confidence: likely
+    derivation: >-
+      DERIVED, but from an unusually strong source: Tecorigin's own PUBLISHED PERFORMANCE COST MODELS,
+      not marketing copy.
+    evidence:
+      - "RMA cost model: '令 D(x, y) = abs(x/8 - y/8) + abs(x%8 - y%8)，则 D(x, y) 的值越小，性能越好' — Manhattan distance on a grid with row = id/8, column = id%8"
+      - "Broadcast fast groups are exactly the rows {0-7},{8-15},{16-23},{24-31} and the columns {0,8,16,24}...{7,15,23,31} — i.e. row and column broadcast buses"
+      - "sync_threads is fast when group members share a quotient (same row) OR a remainder (same column) mod 8, and ~2.2x slower otherwise"
+      - "DMA bandwidth is best when participating SPEs have DISTINCT id % 8 — id % 8 selects a memory-side port/bank"
+    comparison: "Architecturally the same idea as the Sunway SW26010's 8x8 CPE mesh with row/column buses, at 8x4."
+    do_not_cite: "The SDAA C '横向、纵向广播' example is a SOFTWARE-SIMULATED logical 4x4 grouping and is NOT evidence of physical topology."
+    sources:
+      - http://docs.tecorigin.com/release/sddac_perf_opt
+
+# ── Host interface ───────────────────────────────────────────────────────────
+host_interface:
+  pcie: "PCIe Gen4 x16"
+  pcie_evidence: "teco-smi: 'PCIe Generation Max: 4', 'Link Width Max: 16x'"
+  device_nodes: "/dev/tcaicardN — one node per CARD (containers pass --device=/dev/tcaicard0..3)"
+  form_factors: ["PCIe card (T100)", "OAM air-cooled (T110)", "OAM liquid-cooled (T111)"]
+  telemetry_fields: [VBIOS version, MCU version, PCB version]
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/tecosmi
+    - https://github.com/PaddlePaddle/PaddleCustomDevice/blob/develop/backends/sdaa/README.md
+
+# ── Scale-up ─────────────────────────────────────────────────────────────────
+scale_up:
+  proprietary_fabric: "NONE DOCUMENTED — and the evidence is negative"
+  documented_path: "PCIe peer-to-peer"
+  negative_evidence:
+    - "teco-smi topo's legend contains exactly SYS / NODE / PHB / PXB / PIX — the nvidia-smi PCIe set — with NO NVLink-equivalent entry; the sample matrix shows two devices connected via NODE"
+    - "P2P read/write is queryable via topo -p2p r|w; the runtime carries sdaaErrorPeerAccessUnsupported and '启动P2P所需的硬件资源已经用尽'"
+    - "Teco-vLLM runs TP=8 across 2 cards over PCIe P2P"
+  superpod_128_topology: "not disclosed"
+  confidence: confirmed
+  note: "A material architectural limitation vs NVLink / HCCS / MLU-Link peers, and consistent with the SPA-as-independent-device model."
+  sources:
+    - http://docs.tecorigin.com/release/tecosmi
+    - http://docs.tecorigin.com/release/sdaart
+    - http://docs.tecorigin.com/release/teco_vllm
+
+# ── Scale-out ────────────────────────────────────────────────────────────────
+scale_out:
+  fabric: "standard InfiniBand / RoCE"
+  required_stack: "MLNX_OFED 5.9-0.5.6.0 (including NVIDIA SHARP 3.2.0) + Open MPI 4.1.5rc2, redistributed by Tecorigin from mirrors.tecorigin.com"
+  multi_node_frameworks: "Ray + GLOO_SOCKET_IFNAME for multi-node vLLM"
+  server_claim: "T1108 advertised with '8 IB/RoCE 高速通信'"
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/software_installation
+    - http://docs.tecorigin.com/release/teco_vllm
+    - https://www.tecorigin.com/cn/technology.html
+
+deployment_link_claims:
+  claims:
+    - {site: "Yan'an / Lihu", claim: "四链路 400 Gbps 计算网络互联"}
+    - {site: "open-source platform", claim: "四链路 200 Gbps 国产 AI 计算网络"}
+    - {site: "self-developed", claim: "200G 高速无损互联技术"}
+  confidence: unconfirmed
+  note: "VENDOR MARKETING, unspecified precision, no independent corroboration."
+  sources:
+    - https://www.tecorigin.com/cn/products.html
+
+# ── Power / thermal ──────────────────────────────────────────────────────────
+power_thermal:
+  tdp: "not disclosed"
+  observed_idle: "90 W at 0% SPE utilization, 35-40 C (captured teco-smi -c output — NOT a TDP figure)"
+  shutdown_temp_c: 70
+  throttle_threshold: "a slowdown threshold field exists; value not captured"
+  cooling: "air (T100 PCIe, T110 OAM) / liquid (T111 OAM)"
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/tecosmi
+
+rack_level_claim:
+  product: "太湖之光A+"
+  cards_per_rack: 128
+  pflops: 32
+  power_kw: 100
+  extra: "claimed highest compute density in China"
+  precision: "unspecified"
+  confidence: unconfirmed
+  note: "VENDOR CLAIM from Tecorigin's own products page. Precision of the PFLOPS figure is unstated. No independent corroboration."
+  sources:
+    - https://www.tecorigin.com/cn/products.html
+
+# ── Host CPU support (distinguishing datapoint) ──────────────────────────────
+host_cpu_support:
+  combinations:
+    - {cpu: "Intel / AMD", isa: x86_64, os: "Ubuntu 22.04"}
+    - {cpu: "Hygon 海光 7380 / 7375", isa: x86_64, os: "Kylin V10"}
+    - {cpu: "Phytium 飞腾 S5000C", isa: ARMv8, os: "Kylin V10 国防版"}
+    - {cpu: "Sunway 申威 8A", isa: "SW-64", os: "UOS Server 20"}
+    - {cpu: "Loongson 龙芯 3C6000", isa: LoongArch, os: "Loongnix Server 23.1"}
+  coverage: "Full framework stacks (TecoPyTorch, TecoPaddle, Teco-vLLM) built and validated for all five."
+  significance: "Shipping a full AI stack on an SW-64 host is close to unique in this registry and is the strongest CONCRETE evidence of the Sunway ecosystem tie."
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/software_installation
+
+# ── Sunway lineage assessment ────────────────────────────────────────────────
+sunway_lineage:
+  verdict: "TEAM / ECOSYSTEM / IDIOM lineage — NOT architectural derivation"
+  confidence: likely
+  supported_by:
+    - "Core team from Tsinghua University and the National Supercomputing Center in Wuxi (home of Sunway TaihuLight); three Gordon Bell Prizes (vendor About page)"
+    - "First-class Sunway 申威 SW-64 host CPU support in the shipping stack"
+    - "Flagship deployment branded 太湖之光A+ ('TaihuLight A+')"
+    - "athread idiom set: slave-core array (SPEs literally called 从核), LDM-like private scratchpad with heap/stack/local, explicit DMA + inter-core RMA + hardware row/column broadcast, SPMD with per-core IDs, FP64 in the ISA, documented 2-D-mesh cost model"
+  NOT_supported_by:
+    - "No source states the SDAA/T1 shares the SW ISA or derives from SW26010 — explicitly looked for, not found"
+    - "No on-device MPE+CPE core-group structure is documented; the HOST CPU is the master"
+    - "The programming stack is deliberately CUDA-shaped"
+    - "PCX is an explicitly PTX-like abstraction layer whose whole purpose is to DECOUPLE software from the machine ISA"
+  sources:
+    - https://www.tecorigin.com/cn/about.html
+    - http://docs.tecorigin.com/release/sddac_perf_opt
+    - http://docs.tecorigin.com/release/software_installation
+    - http://docs.tecorigin.com/release/pcx
+
+# ── Explicitly not disclosed ─────────────────────────────────────────────────
+not_disclosed:
+  confidence: unconfirmed
+  note: "Render each of these as 'not disclosed' in all survey output. NEVER estimate."
+  items:
+    - "Process node, foundry, die size, transistor count, monolithic vs chiplet"
+    - "Whether the 4 SPAs are 4 dies, 4 chiplets, or 4 on-die clusters"
+    - "Peak dense throughput at any precision (FP16/FP32/FP64/INT16/INT8)"
+    - "HBM bandwidth per SPA or per card; HBM generation, stack count, bus width"
+    - "Official datasheet memory capacity (only driver telemetry available)"
+    - "Card TDP (only an idle observation and a 70 C shutdown threshold)"
+    - "Physical SPM size per SPE; heap/stack/local partition sizes"
+    - "Scalar and vector register file sizes; physical VREG width"
+    - "Aggregate Global bandwidth and SPM-to-Global bandwidth at full SPA occupancy"
+    - "On-chip NoC bandwidth and precise topology (only '环网' at 2200 MHz + the derived 8x4 grid)"
+    - "Role, count, ISA and programmability of the MPE"
+    - "Existence, bandwidth and topology of any proprietary card-to-card scale-up link (evidence is negative)"
+    - "SuperPOD-128 rack interconnect topology and bisection bandwidth"
+    - "The T1 machine instruction set — not disclosed BY DESIGN; PCX exists to hide it"
+    - "SPE pipeline depth, issue width, instruction-pipeline count"
+    - "Instruction-cache size per SPE"
+    - "Whether any hardware data cache exists between SPM and Global (absence strongly implied, never stated)"
+    - "Matrix-unit internal MAC-array shape and cycles per 128x32x32 MMA"
+    - "Independent third-party benchmarks — NONE exist (no MLPerf, no SPEC, no external review)"
+    - "Independent corroboration of the deployment claims (Yancheng 206P, 太湖之光A+ 200P/32 PFLOPS/100 kW, Yan'an 200P, Lihu 300P) — STILL OPEN"
+    - "Press coverage, analyst reports, funding records, customer references, export-control listings — NOT CHECKED (WebSearch unavailable, second consecutive pass)"
+    - "Unit shipment volumes, production capacity, total deployed card count"
+    - "Roadmap beyond the T100 series — PCX's compatibility table lists only 'T100系列' while its stated purpose is decoupling software from '多种系列' of Tecorigin hardware, strongly implying successor silicon is planned, but no successor is named"

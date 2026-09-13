@@ -1,0 +1,656 @@
+investigation:
+  chip: amd-gpu
+  device_class: GPU
+  topic: hw-architecture
+  architectures:
+    - name: CDNA3
+      products: [MI300X, MI300A, MI325X]
+      process_xcd: TSMC N5 (5nm)
+      process_iod: TSMC N6 (6nm)
+    - name: CDNA4
+      products: [MI350X, MI355X]
+      process_xcd: TSMC N3P (3nm)
+      process_iod: TSMC N6 (6nm)
+  date: "2026-04-05"
+  confidence_overall: high
+
+layer_mappings:
+
+  - layer: 1_compute_engine
+    label: "Compute Engine"
+    confidence: high
+    sources:
+      - url: "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-3-white-paper.pdf"
+        type: official_whitepaper
+      - url: "https://rocm.docs.amd.com/en/latest/conceptual/gpu-arch/mi300.html"
+        type: official_docs
+      - url: "https://chipsandcheese.com/p/amds-cdna-3-compute-architecture"
+        type: technical_analysis
+    findings:
+      cdna3_mi300x:
+        total_cus: 304
+        xcds: 8
+        cus_per_xcd_enabled: 38
+        cus_per_xcd_physical: 40
+        simd_units_per_cu: 4
+        simd_width: 16
+        wavefront_threads: 64
+        vgpr_per_cu_kb: 128
+        sgpr_per_cu_kb: 12.5
+        matrix_core_per_cu: 1
+        mfma_instruction: true
+        data_types_supported: [FP64, FP32, FP16, BF16, FP8, INT8]
+        flops_per_clock_per_cu:
+          matrix_fp64: 256
+          matrix_fp32: 256
+          matrix_fp16: 2048
+          matrix_bf16: 2048
+          matrix_fp8: 4096
+          matrix_int8: 4096
+        peak_performance:
+          fp8_pflops: 2.6
+          bf16_pflops: 1.3
+          fp64_tflops: 163
+      cdna4_mi350x:
+        total_cus: 256
+        xcds: 8
+        cus_per_xcd_enabled: 32
+        transistors_billion: 185
+        process_improvement: "5nm -> 3nm (TSMC N3P)"
+        throughput_gain_vs_cdna3: "2x per CU for FP16/BF16/FP8/INT8"
+        new_data_types: [FP6, FP4]
+        fp4_peak_pflops: 20
+        gen_on_gen_ai_compute: "4x"
+        new_vector_alu: "2-bit ops; BF16->FP32 accumulation"
+
+  - layer: 2_data_path
+    label: "Data Path"
+    confidence: high
+    sources:
+      - url: "https://rocm.docs.amd.com/projects/rocprofiler-compute/en/latest/conceptual/pipeline-descriptions.html"
+        type: official_docs
+      - url: "https://chipsandcheese.com/p/amds-cdna-3-compute-architecture"
+        type: technical_analysis
+      - url: "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/instruction-set-architectures/amd-instinct-mi300-cdna3-instruction-set-architecture.pdf"
+        type: official_isa_reference
+    findings:
+      wavefront_scheduler:
+        selection_policy: round_robin_across_simds
+        issue_rate: "1 instruction per wavefront per selected SIMD per cycle"
+        occupancy_limit: "VGPR and LDS usage determine max concurrent wavefronts"
+      instruction_pipeline:
+        simd_width: 16
+        cycles_per_wavefront: 4
+        pipeline_depth_hides_latency: true
+      dual_issue:
+        supported: true
+        description: "CDNA3 supports double-issue FP32 — vector + scalar/branch simultaneously"
+      matrix_core_pipeline:
+        instruction: MFMA
+        accumulator_tiles:
+          fp16: "32x32"
+          fp64: "16x16"
+        latency_hiding: "Overlapped with vector/memory ops in other wavefronts"
+
+  - layer: 3_on_chip_memory
+    label: "On-chip Memory"
+    confidence: high
+    sources:
+      - url: "https://rocm.docs.amd.com/en/latest/conceptual/gpu-arch/mi300.html"
+        type: official_docs
+      - url: "https://chipsandcheese.com/p/amds-cdna-3-compute-architecture"
+        type: technical_analysis
+      - url: "https://hc2024.hotchips.org/assets/program/conference/day1/23_HC2024.AMD.MI300X.ASmith(MI300X).v1.Final.20240817.pdf"
+        type: conference_presentation
+    findings:
+      lds_per_cu_kb: 64
+      lds_scope: per_cu
+      lds_type: programmer_managed_scratchpad
+      l1_vector_cache_per_cu_kb: 32
+      l1_scalar_cache_per_cu_kb: 16
+      l1_instruction_cache_per_xcd_kb: 64
+      l2_per_xcd_mb: 4
+      l2_total_mi300x_mb: 32
+      infinity_cache_total_mb: 256
+      infinity_cache_location: IODs
+      infinity_cache_scope: package_wide_shared
+      infinity_cache_note: "32 MB Infinity Cache resides on each of 4 IODs = 256 MB total"
+
+  - layer: 4_off_chip_memory
+    label: "Off-chip Memory (HBM)"
+    confidence: high
+    sources:
+      - url: "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/data-sheets/amd-instinct-mi300x-platform-data-sheet.pdf"
+        type: official_datasheet
+      - url: "https://wccftech.com/amd-instinct-mi300x-mcm-gpu-full-chip-320-cdna-3-compute-units-192-gb-hbm3/"
+        type: press_coverage
+      - url: "https://wccftech.com/amd-instinct-mi350-mi355x-launched-3nm-185-billion-transistors-288-gb-hbm3e-fp4-fp6-2-2x-faster-blackwell-b200/"
+        type: press_coverage
+    findings:
+      mi300x:
+        capacity_gb: 192
+        hbm_type: HBM3
+        stacks: 8
+        gb_per_stack: 24
+        peak_bandwidth_tbs: 5.3
+        bus_width_bits: 8192
+        memory_clock_gbps_per_pin: 2.4
+      mi325x:
+        capacity_gb: 288
+        hbm_type: HBM3e
+        stacks: 8
+        gb_per_stack: 36
+        peak_bandwidth_tbs: 6.0
+      mi350x:
+        capacity_gb: 288
+        hbm_type: HBM3e
+        stacks: 8
+        gb_per_stack: 36
+        stack_height: "12-hi"
+        pin_speed_gbps: 8
+        peak_bandwidth_tbs: 8.0
+        bandwidth_per_watt_improvement: "1.3x vs MI300X"
+
+  - layer: 5_host_interface_package
+    label: "Host Interface / Package"
+    confidence: high
+    sources:
+      - url: "https://spectrum.ieee.org/amd-mi300"
+        type: technical_article
+      - url: "https://www.techinsights.com/blog/amd-instinct-mi300x-processor-floorplan-analysis"
+        type: die_analysis
+      - url: "https://www.tomshardware.com/pc-components/cpus/amd-unveils-instinct-mi300x-gpu-and-mi300a-apu-claims-up-to-16x-lead-over-nvidias-competing-gpus"
+        type: press_coverage
+    findings:
+      mi300x_package:
+        xcds: 8
+        xcds_process: "TSMC N5 (5nm)"
+        iods: 4
+        iods_process: "TSMC N6 (6nm)"
+        hbm_stacks: 8
+        packaging_technology: "TSMC SoIC hybrid bonding + CoWoS interposer"
+        pcie_version: "Gen 5"
+        pcie_lanes: 16
+        pcie_bandwidth_gbs: 128
+        tbp_watts: 750
+        total_transistors_billion: 146
+      mi300a_apu:
+        cpu_dies: 3
+        cpu_die_type: "CCD (Zen 4)"
+        cpu_cores_per_ccd: 8
+        total_cpu_cores: 24
+        gpu_xcds: 6
+        gpu_cus: 228
+        iods: 4
+        unified_memory_gb: 128
+        unified_memory_type: HBM3
+        note: "CPU and GPU share same HBM pool; no PCIe copy overhead"
+      mi350x_package:
+        xcds: 8
+        xcds_process: "TSMC N3P (3nm)"
+        iods: 2
+        iods_process: "TSMC N6 (6nm)"
+        tbp_watts: 1400
+        packaging_technology: "CoWoS + SoIC 3D stacking"
+
+  - layer: 6_scale_up_interconnect
+    label: "Scale-up Interconnect (Infinity Fabric / XGMI)"
+    confidence: high
+    sources:
+      - url: "https://rocm.blogs.amd.com/software-tools-optimization/mi300x-rccl-xgmi/README.html"
+        type: official_blog
+      - url: "https://arxiv.org/html/2410.00801v1"
+        type: research_paper
+      - url: "https://www.amd.com/content/dam/amd/en/documents/instinct-tech-docs/data-sheets/amd-instinct-mi300x-platform-data-sheet.pdf"
+        type: official_datasheet
+    findings:
+      technology: "AMD 4th-Gen Infinity Fabric / XGMI"
+      links_per_gpu: 7
+      lanes_per_link: 16
+      gbps_per_lane: 32
+      bandwidth_per_link_gbs_bidirectional: 128
+      bandwidth_per_link_gbs_unidirectional_theoretical: 64
+      bandwidth_per_link_gbs_unidirectional_practical: 48
+      practical_efficiency_pct: 75
+      aggregate_per_gpu_gbs: 896
+      topology_8gpu: full_mesh
+      topology_options:
+        - config: single_link
+          gpus: 2
+          links_per_gpu: 1
+        - config: dual_link
+          gpus: 4
+          links_per_gpu: 2
+        - config: quad_link_full_mesh
+          gpus: 8
+          links_per_gpu: 7
+      on_package_fabric:
+        components: [XCDs, IODs]
+        type: "direct die-to-die Infinity Fabric (not XGMI)"
+        no_pcie_required: true
+
+  - layer: 7_scale_out_interconnect
+    label: "Scale-out Interconnect (InfiniBand / RoCE)"
+    confidence: high
+    sources:
+      - url: "https://instinct.docs.amd.com/projects/gpu-cluster-networking/en/latest/how-to/gpu-enabled-mpi.html"
+        type: official_docs
+      - url: "https://www.amd.com/en/products/network-interface-cards/pensando.html"
+        type: official_product_page
+      - url: "https://www.supermicro.com/solutions/validated-design/AMD-Instinct-MI325X-Pensando-Pollara-GPU-Cluster.pdf"
+        type: validated_design
+    findings:
+      collective_library: RCCL
+      rccl_transport_intranode: [XGMI, PCIe]
+      rccl_transport_internode: [InfiniBand, RoCEv2, TCP]
+      gpu_aware_mpi:
+        enabled_via: "AMD kernel driver PeerDirect RDMA interface"
+        description: "NICs directly DMA to/from GPU HBM without CPU bounce"
+        hmm_support: true
+      transport_layer: UCX
+      nic_portfolio:
+        pensando_pollara_400:
+          bandwidth_gbps: 400
+          protocol: "Ultra Ethernet (UEC-ready)"
+          p4_engine_generation: 3
+          rccl_improvement_pct: 25
+          max_cluster_nodes: 1024
+          claimed_scale: ">1M GPUs (UEC Ethernet)"
+        salina_400_dpu:
+          role: "Offloads networking/storage; pairs with Pollara 400"
+      network_topologies: [fat_tree, dragonfly]
+      cluster_scale_validated: "16 to 1024 nodes"
+
+key_abstractions:
+  - name: CU
+    full_name: "Compute Unit"
+    description: "The fundamental programmable GPU compute block in CDNA architecture. Contains 4×SIMD16 units, 1 Matrix Core, LDS (64 KB), L1 caches, wavefront scheduler, VGPR/SGPR register files."
+    cdna3_count_per_device: 304
+    cdna4_count_per_device: 256
+
+  - name: Matrix_Core
+    full_name: "Matrix Core (MFMA)"
+    description: "Dedicated tensor accelerator within each CU. Executes Matrix Fused Multiply-Add (MFMA) instructions. CDNA3 supports FP64/FP32/FP16/BF16/FP8/INT8; CDNA4 adds FP6/FP4 (OCP MX micro-scale formats)."
+    cdna3_data_types: [FP64, FP32, FP16, BF16, FP8, INT8]
+    cdna4_data_types: [FP64, FP32, FP16, BF16, FP8, FP6, FP4, INT8]
+
+  - name: Wavefront
+    full_name: "Wavefront (AMD warp equivalent)"
+    description: "AMD's SIMT execution group of 64 threads. One wavefront executes across 4 SIMD16 units over 4 clock cycles. The wavefront scheduler issues instructions in round-robin across SIMDs."
+    threads: 64
+    execution_cycles: 4
+    scheduling: round_robin_simd
+
+  - name: Infinity_Fabric
+    full_name: "Infinity Fabric / XGMI"
+    description: "AMD's coherent high-bandwidth interconnect. On-package: connects XCDs and IODs within MI300X. Inter-chip (XGMI): connects MI300X GPUs within a node — 7 links per GPU, 128 GB/s bidirectional each, full mesh in 8-GPU configs."
+    xgmi_links_per_gpu: 7
+    xgmi_bandwidth_per_link_gbs: 128
+    topology: full_mesh
+
+  - name: XCD
+    full_name: "Accelerator Complex Die"
+    description: "The stackable GPU compute chiplet in AMD's MCM packages. Each XCD in MI300X is TSMC 5nm and contains 40 physical CUs (38 enabled), 4 MB L2 cache. MI300X has 8 XCDs per package; MI350X has 8 XCDs on TSMC N3P."
+    cdna3_process: "TSMC N5 (5nm)"
+    cdna3_cus_physical: 40
+    cdna3_cus_enabled: 38
+    cdna3_l2_mb: 4
+    cdna4_process: "TSMC N3P (3nm)"
+    cdna4_cus_enabled: 32
+
+evidence_quality:
+  primary_sources: 6
+  secondary_sources: 10
+  conference_papers: 2
+  research_papers: 1
+  all_7_layers_covered: true
+  data_types_confirmed: true
+  bandwidth_numbers_confirmed: true
+  chiplet_specs_confirmed: true
+
+# =====================================================================
+# CDNA 5 / Instinct MI455X / Helios — appended 2026-08-08
+# Scan 2026-08-08, adversarially verified. Supersedes the pre-launch
+# "MI400 / CDNA Next / UDNA" facts recorded above where they conflict.
+# =====================================================================
+update_2026_08_08:
+  date: "2026-08-08"
+  architecture:
+    name: "CDNA 5"
+    products: [MI455X, MI430X]
+    process_xcd: "TSMC N2"
+    process_iod_and_fcd: "TSMC N3"
+    packaging: "CoWoS-L"
+    confidence: high
+    notes: >-
+      Architecture name CONFIRMED as CDNA 5 (not "CDNA Next", not UDNA).
+      Process split corroborated only at keynote-slide level.
+    sources:
+      - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html"
+        type: official_blog
+        date: "2026-08-04"
+      - url: "https://chipsandcheese.com/p/amds-instinct-mi455x-aiming-for-the"
+        type: technical_analysis
+        date: "2026-07-23"
+      - url: "https://www.servethehome.com/amd-advancing-ai-2026-keynote-live-coverage/"
+        type: press_coverage
+
+  launch_and_status:
+    confidence: high
+    event: "Advancing AI 2026"
+    keynote_and_press_release_date: "2026-07-23"
+    two_day_july_22_23_framing: not_confirmed
+    architecture_blog_date: "2026-08-04"
+    prior_public_appearances:
+      - "MI450 / Helios public from 2025-10-14 (The Next Platform, 'Altair')"
+      - "MI455X + Venice + Helios hardware displayed at CES 2026 (2026-01-07)"
+    status_language: "in production; shipments start Q3 2026; OpenAI Helios online from Q4 2026"
+    deployed_at_scale: false
+    sources:
+      - url: "https://ir.amd.com/news-events/press-releases/detail/1294/aai-2026-amd-delivers-full-stack-compute-for-the-agentic-ai-era"
+        type: official_press_release
+      - url: "https://www.nextplatform.com/compute/2025/10/14/oracle-leads-ai-innovation-with-amd-altair-mi450-gpus-and-helios-racks/1632443"
+        type: press_coverage
+      - url: "https://www.servethehome.com/amds-epyc-venice-instinct-mi455x-helios-hardware-on-display-for-first-time-at-ces-2026/"
+        type: press_coverage
+
+  layer_mappings:
+
+    - layer: 1_compute_engine
+      label: "Compute Engine (CDNA 5 / MI455X)"
+      confidence: high
+      confidence_note: "Shader organization from third-party deep-dive, not an AMD spec sheet"
+      sources:
+        - url: "https://chipsandcheese.com/p/amds-instinct-mi455x-aiming-for-the"
+          type: technical_analysis
+        - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html"
+          type: official_blog
+      findings:
+        shader_organization:
+          xcds: 8
+          shader_engines_per_xcd: 2
+          wgps_per_shader_engine: 16
+          wgps_per_xcd_active: 32
+          wgps_per_xcd_physical: 34
+          wgps_per_gpu: 256
+          cu_equivalents_per_gpu: 512
+          simds_per_wgp: 4
+          simd_width: 32
+          simd_dual_issue: true
+          matrix_units_per_wgp: 4
+          max_engine_clock_ghz: 2.4
+        common_errors_to_avoid:
+          - "'8 shader engines per XCD, 16 WGPs each' is arithmetically impossible (1,024 WGPs)"
+          - "'256 active CUs / 256 WGPs' conflates CU with WGP; 256 WGPs = 512 CUs"
+        transistors_billion: not_disclosed
+        tbp_watts: not_disclosed
+        peak_performance:
+          mxfp4_pflops: 40.26          # confirmed
+          fp32_tflops: 315             # confirmed
+          mxfp6_fp8_pflops: 20.13      # arithmetically consistent, NOT independently confirmed
+          fp16_bf16_pflops: 5.03       # arithmetically consistent, NOT independently confirmed
+          confirmed_figures: [mxfp4_pflops, fp32_tflops]
+          unconfirmed_figures: [mxfp6_fp8_pflops, fp16_bf16_pflops]
+          vendor_marketing_claim: "up to 4x greater AI compute throughput for key low-precision formats"
+        new_isa_numeric_features:
+          e5m3_scale_format: "extra exponent bit for wider scale range"
+          tensor_lut_instruction: "4-bit Tensor Lookup Table instruction"
+          tensor_data_movers: "dedicated data movement hardware; no microarchitectural detail published"
+          tma_analogy: interpretation_not_vendor_language
+        mi430x:
+          fp64_tflops_max: 288
+          source_type: official_press_release
+          availability: "H1 2027 (announced, not shipping)"
+
+    - layer: 2_data_path
+      label: "Data Path (CDNA 5 wave width)"
+      confidence: high
+      sources:
+        - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html"
+          type: official_blog
+        - url: "https://chipsandcheese.com/p/amds-instinct-mi455x-aiming-for-the"
+          type: technical_analysis
+      findings:
+        wave_width: 32
+        wave_execution: "native Wave32; 4 dual-issue SIMD32 units per WGP"
+        amd_blog_wording: "Wave32 compute execution"
+        prior_generations: "CDNA1-CDNA4 = Wave64 over 4x SIMD16"
+        wave64_removed_from_isa: not_confirmed
+        vector_registers_per_simd_kb: 128   # reported, not independently confirmed
+        software_impact:
+          - "Invalidates 64-wide wavefront as an AMD-wide invariant"
+          - "Occupancy, register-pressure and LDS-bank-conflict reasoning must be re-derived"
+          - "AITER / CK-Tile / Triton-ROCm tuning tables cannot be scaled from gfx942/gfx950"
+
+    - layer: 3_on_chip_memory
+      label: "On-chip Memory (CDNA 5) — structural change"
+      confidence: medium_high
+      confidence_note: >-
+        Cache figures come from the Chips and Cheese deep-dive; AMD's own blog
+        says only "larger L2 caches".
+      sources:
+        - url: "https://chipsandcheese.com/p/amds-instinct-mi455x-aiming-for-the"
+          type: technical_analysis
+        - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html"
+          type: official_blog
+      findings:
+        global_l2_mb: 192
+        global_l2_split: "2 x 96 MB across two Fabric-and-Cache Dies (FCDs)"
+        l2_bandwidth_tbs_per_fcd: 27
+        l2_bandwidth_tbs_aggregate: 54
+        infinity_cache_tier: removed
+        structural_change: >-
+          Replaces CDNA3's 4 MB L2 per XCD + 256 MB Infinity Cache on IODs with a
+          single global L2 on dedicated cache dies; L2 moves off the XCD.
+        lds_per_wgp_kb: 320
+        l1_per_wgp_kb: 128
+        l1_64kb_claim: not_confirmed
+        software_impact: "320 KB LDS/WGP dominates CK-Tile / AITER tile-size search space"
+
+    - layer: 4_off_chip_memory
+      label: "Off-chip Memory (CDNA 5)"
+      confidence: high
+      sources:
+        - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html"
+          type: official_blog
+        - url: "https://chipsandcheese.com/p/amds-instinct-mi455x-aiming-for-the"
+          type: technical_analysis
+      findings:
+        mi455x:
+          capacity_gb: 432
+          hbm_type: HBM4
+          stacks: 12
+          gb_per_stack: 36
+          bus_width_bits_per_stack: 2048
+          channels: 192
+          peak_bandwidth_tbs: 23.3
+          amd_framing: "2.91x memory bandwidth vs prior generation (23.3 / 8.0 = 2.91)"
+          pin_speed: not_disclosed
+        mi430x:
+          capacity_gb: 432
+          hbm_type: HBM4
+          peak_bandwidth_tbs: 23.3
+        repo_correction: "The previously carried 19.6 TB/s MI400 figure is a stale pre-launch estimate"
+
+    - layer: 5_host_interface_package
+      label: "Host Interface / Package (CDNA 5)"
+      confidence: medium_high
+      sources:
+        - url: "https://chipsandcheese.com/p/amds-instinct-mi455x-aiming-for-the"
+          type: technical_analysis
+        - url: "https://www.servethehome.com/amd-advancing-ai-2026-keynote-live-coverage/"
+          type: press_coverage
+      findings:
+        die_composition:
+          xcds: 8
+          xcds_process: "TSMC N2"
+          iods: 2
+          fcds: 2
+          iod_fcd_process: "TSMC N3"
+          hbm_stacks: 12
+          new_die_type: "FCD (Fabric-and-Cache Die), carries 96 MB L2 slice + fabric"
+        process_split_evidence: "keynote-slide level ('2nm compute chiplets, 3nm elsewhere'); no teardown"
+        packaging: "TSMC CoWoS-L"
+        largest_cowos_l_chip_claim: marketing_superlative_not_verified
+        host_link:
+          technology: "dedicated 16-lane Infinity Fabric to EPYC CPU"
+          bandwidth_gbs_bidirectional: 256
+          note: "Not PCIe — first Instinct part whose primary host attach is Infinity Fabric"
+        transistors: not_disclosed
+        tbp: not_disclosed
+        gfx_isa_target: not_disclosed
+
+    - layer: 6_scale_up_interconnect
+      label: "Scale-up Interconnect (CDNA 5 UALoE)"
+      confidence: high
+      sources:
+        - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html"
+          type: official_blog
+        - url: "https://chipsandcheese.com/p/amds-instinct-mi455x-aiming-for-the"
+          type: technical_analysis
+        - url: "https://www.servethehome.com/amd-helios-architecture-deep-dive-amd-broadcom-hardware-combined/"
+          type: press_coverage
+      findings:
+        technology: "UALink-over-Ethernet (UALoE)"
+        replaces: "8-GPU XGMI full mesh"
+        interfaces_per_gpu: 36
+        gbps_per_interface: 400
+        bandwidth_per_gpu_tbs_unidirectional: 1.8
+        bandwidth_per_gpu_tbs_bidirectional: 3.6
+        scale_up_domain_gpus: 72
+        rack_scale_up_bandwidth_tbs: 260
+        switched: true
+        seventy_two_lanes_phrasing: not_confirmed
+        broadcom_partnership: corroborated
+        tomahawk6_count_and_12_plane_topology: not_confirmed
+        in_network_reduction: not_disclosed
+        rccl_impact: >-
+          Pre-computed 8-GPU ring orderings and rcclRomeModel-style topology
+          templates do not describe this generation.
+
+    - layer: 7_scale_out_interconnect
+      label: "Scale-out Interconnect (CDNA 5 / Helios)"
+      confidence: medium_high
+      sources:
+        - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html"
+          type: official_blog
+        - url: "https://www.servethehome.com/amd-helios-architecture-deep-dive-amd-broadcom-hardware-combined/"
+          type: press_coverage
+      findings:
+        nic: "AMD Pensando 'Vulcano'"
+        rack_scale_out_bandwidth_tbs: 43
+        per_gpu_gbps: 2400          # consistent with rack total, NOT independently stated
+        per_gpu_figure_status: consistent_but_not_independently_stated
+        ualink128_ports_per_gpu: not_confirmed
+        salina_400g_dpu_count: not_confirmed
+
+  helios_rack:
+    confidence: high
+    sources:
+      - url: "https://www.servethehome.com/amd-helios-architecture-deep-dive-amd-broadcom-hardware-combined/"
+        type: press_coverage
+      - url: "https://ir.amd.com/news-events/press-releases/detail/1294/aai-2026-amd-delivers-full-stack-compute-for-the-agentic-ai-era"
+        type: official_press_release
+    findings:
+      gpus: 72
+      gpu_model: MI455X
+      cpus: 18
+      cpu_model: 'EPYC "Venice"'
+      aggregate_hbm4_tb: 31
+      aggregate_ddr5_tb_max: 36
+      peak_mxfp4_eflops: 2.9
+      aggregate_hbm_bandwidth_pbs: 1.7
+      aggregate_hbm_bandwidth_note: "72 x 23.3 TB/s = 1.68 PB/s; the 1.4 PB/s aggregator figure is inconsistent and discarded"
+      rack_power_kw: not_disclosed
+      rack_power_note: >-
+        The "225-245 kW" figure is unsourced/refuted. AMD's press-release footnote
+        references a "100 kW power envelope per rack" only as comparison methodology.
+      rack_format: not_disclosed
+      bus_bar: not_disclosed
+      rack_format_note: >-
+        Open Rack Wide (1.2 m x 1.3 m, 44 OU) and a 50 V liquid-cooled bus bar are
+        reported but not confirmed against a primary AMD spec sheet.
+
+  sku_segmentation:
+    confidence: high
+    sources:
+      - url: "https://ir.amd.com/news-events/press-releases/detail/1294/aai-2026-amd-delivers-full-stack-compute-for-the-agentic-ai-era"
+        type: official_press_release
+      - url: "https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html"
+        type: official_docs
+      - url: "https://en.wikipedia.org/wiki/AMD_Instinct"
+        type: reference
+    findings:
+      - sku: MI455X
+        architecture: "CDNA 5"
+        position: "flagship rack-scale training/inference"
+        status: "in production; shipping from Q3 2026"
+        confidence: high
+      - sku: MI430X
+        architecture: "CDNA 5"
+        position: "HPC / sovereign"
+        fp64_tflops_max: 288
+        status: "announced; H1 2027 availability"
+        confidence: high
+      - sku: MI350P
+        architecture: "CDNA 4"
+        gfx_target: gfx950
+        position: "dual-slot PCIe enterprise inference card; announced 2026-05-07; re-promoted at Advancing AI 2026"
+        status: "shipping; listed in ROCm 7.14.0 compatibility matrix"
+        capacity_144gb_claim: not_confirmed
+        note: "NOT an MI400-series / CDNA 5 SKU — category error to avoid"
+        confidence: high
+      - sku: MI440X
+        status: not_confirmed
+        note: "Absent from AMD's press release; not entered in the repo"
+      - naming: "MI450 / MI450-series coexists with MI455X in AMD's own materials"
+
+  customer_commitments:
+    confidence: high
+    note: "Corporate/roadmap announcements, NOT deployed capacity"
+    sources:
+      - url: "https://ir.amd.com/news-events/press-releases/detail/1294/aai-2026-amd-delivers-full-stack-compute-for-the-agentic-ai-era"
+        type: official_press_release
+      - url: "https://www.servethehome.com/amd-advancing-ai-2026-keynote-live-coverage/"
+        type: press_coverage
+    findings:
+      anthropic:
+        commitment: "deploy up to 2 GW of AMD Instinct MI455X GPUs"
+        amd_investment_5b: not_confirmed
+      openai:
+        helios_online: "beginning Q4 2026"
+        six_gw_figure: "pre-existing October 2025 agreement, restated in keynote coverage; not a new July 2026 disclosure"
+      meta:
+        status: "has begun testing and validating workloads on AMD Helios racks"
+        capacity_figure: none
+        repo_correction: "The prior repo statement 'AMD + Meta: 6 GW' was wrong; 6 GW belongs to OpenAI"
+      microsoft:
+        status: "named among Helios adopters"
+        capacity_figure: none
+
+  roadmap:
+    confidence: medium
+    sources:
+      - url: "https://ir.amd.com/news-events/press-releases/detail/1294/aai-2026-amd-delivers-full-stack-compute-for-the-agentic-ai-era"
+        type: official_press_release
+      - url: "https://www.servethehome.com/amd-advancing-ai-2026-keynote-live-coverage/"
+        type: press_coverage
+    findings:
+      mi500:
+        year: 2027
+        architecture: "CDNA 6"
+        architecture_source: keynote_coverage
+        amd_press_release_wording: "Next-generation AMD Instinct MI500 Series GPUs are coming in 2027"
+        process: not_disclosed
+        memory: not_disclosed
+        performance: not_disclosed
+        deleted_claim: "'~1,000x vs MI300X' had no primary source and has been removed"
+        amd_marketing_line: "'2000x performance improvement in just 4 years' — marketing claim, not a spec"
+      mi600:
+        year: 2028
+        status: "in development; specifications not disclosed"
+
+  method_caveat: >-
+    Adversarial verification ran with the session's WebSearch budget exhausted;
+    confirmation came from directly fetched pages rather than broad search.
+    Items marked not_confirmed may still be true and warrant another pass.

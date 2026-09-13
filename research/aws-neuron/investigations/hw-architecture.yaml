@@ -1,0 +1,297 @@
+chip: aws-neuron
+device_class: Systolic Array Accelerator
+investigation: hw-architecture
+date: 2026-04-05
+
+layer_mappings:
+  - layer: Compute
+    components:
+      - name: Tensor Engine (NeuronCore-v2)
+        description: 128×128 BF16 systolic array; >90 TFLOPS FP16/BF16; supports FP16, BF16, TF32, INT8, FP32 mixed precision; Trainium1 / Inferentia2
+      - name: Tensor Engine (NeuronCore-v3)
+        description: 128×128 BF16 systolic array; 158 cFP8 TFLOPS / 79 BF16 TFLOPS / 20 FP32 TFLOPS; Trainium2
+      - name: Tensor Engine (NeuronCore-v4)
+        description: 512×128 MXFP8/MXFP4 systolic array (OCP compliant); 315 MXFP8 TFLOPS; supports MXFP8, MXFP4, FP16, BF16, TF32, FP32; Trainium3
+      - name: Vector Engine
+        description: Parallel vector compute for reductions and activation functions; ~2.3 TFLOPS FP32 on v2; scaled up on v3/v4
+      - name: Scalar Engine
+        description: Element-wise scalar operations; ~2.9 TFLOPS FP32 on v2; scales on subsequent generations
+      - name: GPSIMD Engine
+        description: 8× 512-bit wide fully programmable vector processors per NeuronCore; run general-purpose C code; direct SRAM access; present on v2/v3/v4
+      - name: DGE (Dynamic Grouping Engine)
+        description: Hardware block on NeuronCore-v3 and v4; dynamic data grouping and rearrangement for structured sparsity; feeds Tensor Engine for MoE token routing
+
+  - layer: Data Path
+    components:
+      - name: DMA Engine
+        description: Handles all HBM↔SBUF and HBM↔PSUM transfers; operates independently from compute engines; enables double-buffering (prefetch next tile while computing current)
+      - name: SBUF→Tensor Engine pipeline
+        description: Staged tile computation; SBUF partitions supply weight and activation tiles to Tensor Engine; PSUM accumulates partial sums across tiles
+      - name: Compute Engine pipeline
+        description: Tensor → PSUM → Vector → Scalar → SBUF producer-consumer chain; asynchronous execution across engines for throughput pipelining
+
+  - layer: On-chip Memory
+    components:
+      - name: SBUF (State Buffer)
+        description: Software-managed SRAM scratchpad; 24 MiB (v2), 28 MiB (v3), 32 MiB (v4); 128 partitions; no hardware cache; explicitly addressed by compiler and NKI kernels
+      - name: PSUM (Partial Sum Buffer)
+        description: 2 MiB SRAM; receives direct output from Tensor Engine systolic array; holds partial accumulations before Vector Engine post-processing; unchanged across v2/v3/v4
+
+  - layer: Off-chip Memory
+    components:
+      - name: HBM (NeuronCore-v2)
+        description: 32 GiB HBM2e per chip (Trainium1); 820 GB/s per chip; shared across all NeuronCore instances in chip
+      - name: HBM (NeuronCore-v3)
+        description: 96 GiB HBM2e per Trainium2 chip; 2.9 TB/s per chip; Trn2 instance aggregate 1.5 TiB / 46 TB/s
+      - name: HBM (NeuronCore-v4)
+        description: 144 GiB HBM3e per Trainium3 chip (4 stacks); 4.9 TB/s per chip; Trn3 UltraServer up to 20 TB HBM total
+
+  - layer: Host Interface
+    components:
+      - name: PCIe
+        description: NeuronDevices connect to host CPU via PCIe; aws-neuronx-dkms kernel driver handles BAR mapping, command queues, interrupts
+      - name: Nitro Integration
+        description: AWS Nitro hypervisor provides direct device passthrough; near-bare-metal PCIe throughput; device enumeration via Nitro device model
+
+  - layer: Scale-up
+    components:
+      - name: NeuronLink-v2 (Trainium1)
+        description: 768 GB/s bidirectional chip-to-chip; 2D Torus topology in trn1.32xlarge (16 chips)
+      - name: NeuronLink-v3 (Trainium2)
+        description: 1 TB/s bidirectional; 4×4 2D Torus per node (16 chips); 3D Torus in Trn2 UltraServer (64 chips via NL32×2; ~6,100 copper cables)
+      - name: NeuronLink-v4 + NeuronSwitch-v1 (Trainium3)
+        description: 2.5 TB/s bidirectional; NeuronSwitch-v1 all-to-all switched fabric replaces 2D/3D Torus; Trn3 NL32×2 (64 chips), NL72×2 (144 chips); optimized for MoE all-to-all and tensor parallelism
+
+  - layer: Scale-out
+    components:
+      - name: EFAv2 (Trn1)
+        description: Up to 1,600 Gbps per trn1 instance for inter-node collective communication
+      - name: EFAv3 (Trn2/Trn3)
+        description: 3.2 Tbps per trn2 instance; 12.8 Tbps per Trn2 UltraServer; higher bandwidth for Trn3 UltraServers
+      - name: EC2 UltraClusters
+        description: Multiple UltraServers interconnected with petabit-scale EFA networking; scales to 500,000+ chips (Project Rainier); enables cluster-level data and pipeline parallelism
+
+key_abstractions:
+  - name: Software-Managed SRAM (SBUF/PSUM)
+    description: NeuronCore eliminates hardware cache entirely. SBUF (state buffer) and PSUM (partial sum buffer) are explicitly allocated and addressed by the compiler or NKI programmer. This enables deterministic memory access latency and compiler-predictable tile movement — at the cost of requiring explicit DMA management. SBUF grows each generation (24→28→32 MiB) to reduce HBM refetch pressure.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/general/arch/neuron-hardware/neuron-core-v2.html
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/nki/guides/architecture/trainium2_arch.html
+
+  - name: Heterogeneous Engine Pipeline
+    description: Each NeuronCore contains four independently-pipelined execution units (Tensor, Vector, Scalar, GPSIMD) that operate in a producer-consumer chain. The compiler schedules all four engines to maximize hardware utilization. GPSIMD provides a general-purpose escape hatch for non-standard ops.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/general/arch/neuron-hardware/neuron-core-v2.html
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/neuron-core-v3.html
+
+  - name: NeuronLink Scale-Up Interconnect
+    description: Proprietary chip-to-chip interconnect evolving from 768 GB/s 2D Torus (v2) to 1 TB/s 3D Torus (v3) to 2.5 TB/s all-to-all switched fabric (v4 + NeuronSwitch-v1). Topology choice directly shapes which parallelism strategies are efficient — Torus favors ring-based AllReduce; switched fabric enables all-to-all for MoE expert parallelism.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/general/arch/neuron-hardware/trn1-arch.html
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trn3-arch.html
+
+  - name: DGE (Dynamic Grouping Engine)
+    description: A hardware block introduced in NeuronCore-v3 that performs dynamic data grouping and token rearrangement, enabling structured sparsity and efficient MoE token routing at hardware speed. Feeds prepared token groups directly into the Tensor Engine's systolic array without software-managed scatter/gather overhead.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/neuron-core-v3.html
+
+  - name: NeuronSwitch-v1 All-to-All Fabric
+    description: Introduced with Trainium3, NeuronSwitch-v1 replaces the fixed 2D/3D Torus topology with an all-to-all switched fabric. This enables O(1)-hop connectivity between any two chips in the UltraServer domain (up to 144 chips), halving worst-case all-to-all collective latency and removing the bandwidth asymmetry between near and far neighbors in a torus.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trn3-arch.html
+      - https://newsletter.semianalysis.com/p/aws-trainium3-deep-dive-a-potential
+
+framework_integrations:
+  - framework: NKI
+    mechanism: Direct hardware access via nki.isa opcodes targeting specific engines; nl.ndarray maps to SBUF partitions; DMA via nl.load/nl.store
+  - framework: neuronx-cc compiler
+    mechanism: Automatic tiling, SBUF allocation, DMA scheduling, engine pipelining from XLA HLO / MLIR input
+  - framework: NCCom (Neuron Collective Communication)
+    mechanism: Routes AllReduce/AllGather/ReduceScatter over NeuronLink (intra-node) or EFA (inter-node) without CPU involvement
+
+key_sources:
+  - title: NeuronCore-v2 Architecture
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/general/arch/neuron-hardware/neuron-core-v2.html
+  - title: NeuronCore-v3 Architecture
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/neuron-core-v3.html
+  - title: NeuronCore-v4 Architecture
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/neuron-core-v4.html
+  - title: Trainium2 Architecture
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trainium2.html
+  - title: Trainium3 Architecture
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trainium3.html
+  - title: Amazon EC2 Trn2 Architecture (NeuronLink)
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trn2-arch.html
+  - title: Amazon EC2 Trn3 Architecture (NeuronSwitch)
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trn3-arch.html
+  - title: Trainium2 Architecture Guide for NKI (Memory)
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/nki/guides/architecture/trainium2_arch.html
+  - title: SemiAnalysis - AWS Trainium3 Deep Dive
+    url: https://newsletter.semianalysis.com/p/aws-trainium3-deep-dive-a-potential
+  - title: SemiAnalysis - Amazon AI Self-Sufficiency (Trainium2)
+    url: https://newsletter.semianalysis.com/p/amazons-ai-self-sufficiency-trainium2-architecture-networking
+
+# ---------------------------------------------------------------------------
+# Update appended 2026-08-08. Window: 2026-04-05 -> 2026-08-08.
+# Verification method: direct fetch of primary sources (GitHub API, raw
+# githubusercontent revisions, vendor pages). WebSearch was unavailable, so
+# absence claims are "no evidence found", not "verified absent".
+# ---------------------------------------------------------------------------
+update_2026_08_08:
+  as_of: 2026-08-08
+  window_start: 2026-04-05
+
+  fact_groups:
+    - name: Trn3 UltraServer specification table
+      confidence: confirmed
+      note: >
+        NOT a change in the window. The complete Gen1/Gen2 spec table has been on the AWS
+        Trn3 architecture page since the 2025-12-02 re:Invent commit 6e694cbb and was
+        unchanged through commit b741ad5b (2026-01-29). The survey's earlier
+        "exact GA specs pending" was our own research gap. Per-device values are identical
+        whether derived from Gen1 (/64) or Gen2 (/144) aggregates.
+      key_specs:
+        gen1:
+          devices: 64
+          servers: 4
+          hbm3e_GiB: 9216
+          hbm_bandwidth_TBps: 313.6
+          mxfp8_mxfp4_TFLOPS: 161088
+          fp16_bf16_tf32_TFLOPS: 42944
+          fp32_TFLOPS: 11712
+          efa_Gbps: 12800
+          host_vcpus: 768
+          host_memory_GiB: 8192
+        gen2:
+          devices: 144
+          servers: 36
+          hbm3e_GiB: 20736
+          hbm_bandwidth_TBps: 705.6
+          mxfp8_mxfp4_TFLOPS: 362448
+          fp16_bf16_tf32_TFLOPS: 96624
+          fp32_TFLOPS: 26352
+          efa_Gbps: 28800
+          host_vcpus: 2304
+          host_memory_GiB: 27648
+        per_device:
+          hbm3e_GiB: 144
+          hbm_bandwidth_TBps: 4.9
+          mxfp8_mxfp4_TFLOPS: 2517
+          neuronlink_v4_GiBps: 2048
+          efa_Gbps: 200   # 12800/64 == 28800/144; AWS reports EFA at UltraServer granularity
+        efa_per_instance: not disclosed
+      sources:
+        - title: "Trn3 architecture page (live)"
+          url: "https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trn3-arch.html"
+        - title: "trn3-arch.rst at 6e694cbb (2025-12-02) — spec table already present"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/6e694cbb/about-neuron/arch/neuron-hardware/trn3-arch.rst"
+        - title: "trn3-arch.rst commit history"
+          url: "https://api.github.com/repos/aws-neuron/aws-neuron-sdk/commits?path=about-neuron/arch/neuron-hardware/trn3-arch.rst"
+
+    - name: Trn3 scale-up fabric is PCIe Gen6 switched
+      confidence: confirmed
+      note: >
+        NEW in the window. Section "Trn3 UltraServer Connectivity and Networking" was
+        appended by commit 539a73c5 on 2026-04-09 (shipped with Neuron SDK 2.29.0) and is
+        byte-identical to the current master version. AWS states the PCIe switch fabric
+        replaces "the point-to-point NeuronLink topology used in previous generations
+        (Trn1, Trn2)". Architecturally load-bearing: NeuronSwitch-v1 is a PCIe Gen6 switch
+        fabric and NeuronLink-v4 is carried over PCIe Gen6 x8 lane groups, qualifying the
+        survey's framing of NeuronLink as bespoke vendor interconnect IP.
+      key_specs:
+        intra_server: {links_per_chip: "4 x PCIe Gen6 x8", aggregate_bidir_GBps: 256, scope: "4-chip sled to intra-server switch"}
+        inter_server: {links_per_chip: "5 x PCIe Gen6 x8", aggregate_bidir_GBps: 320, scope: "server-to-server within rack"}
+        inter_rack:   {links_per_chip: "2 x PCIe Gen6 x8", aggregate_bidir_GBps: 128, scope: "direct rack-to-rack links"}
+        routing: "address-based; (rack, server, chip) tuple encoded in upper bits of outbound PCIe address; switches use BAR address matching to select output port; transparent to workloads, configured by runtime and compiler"
+        synchronization: "hardware semaphores; data and its completion semaphore guaranteed to traverse the same physical path, giving ordering without software fences"
+      sources:
+        - title: "trn3-arch.rst at master (136 lines; adds PCIe Gen6 connectivity section)"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/about-neuron/arch/neuron-hardware/trn3-arch.rst"
+        - title: "trn3-arch.rst at b741ad5b (2026-01-29, 83 lines; no PCIe section) — establishes the section is new"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/b741ad5b/about-neuron/arch/neuron-hardware/trn3-arch.rst"
+
+    - name: Trn3 per-device scale-up bandwidth — unreconciled figures
+      confidence: contested
+      note: >
+        Three figures circulate and none reconciles with the others. AWS's own page is
+        internally inconsistent. Cite 2,048 GiB/s/device as the vendor spec-table figure and
+        record the other two; do not average, silently select, or present 2.5 TB/s as
+        vendor-stated. The 2.5 TB/s figure was previously carried in this survey without
+        attribution.
+      key_specs:
+        aws_spec_table_GiBps_per_device: 2048
+        aws_connectivity_section_link_budget_GBps_per_chip: 704   # 256 + 320 + 128
+        semianalysis_bidirectional_TBps: 2.5
+        reconciliation: none available from any primary source
+      sources:
+        - title: "Trn3 architecture page (both the spec table and the connectivity section)"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/about-neuron/arch/neuron-hardware/trn3-arch.rst"
+        - title: "SemiAnalysis — AWS Trainium3 Deep Dive (source of the 2.5 TB/s figure)"
+          url: "https://newsletter.semianalysis.com/p/aws-trainium3-deep-dive-a-potential"
+
+    - name: Deployment scale — Anthropic/Amazon expansion
+      confidence: confirmed
+      note: >
+        Supersedes the ~500,000-chip Project Rainier figure previously carried in three
+        places. Recommended survey wording: "Project Rainier reached ~500,000 Trainium2
+        chips in 2025; as of April 2026 Anthropic states it uses over one million Trainium2
+        chips across AWS." These are the parties' own statements, not audited counts.
+      key_specs:
+        date: "2026-04-20"
+        trainium2_chips_in_use: ">1,000,000 (Anthropic-stated)"
+        prior_repo_figure: "~500,000 (Project Rainier, 2025)"
+        new_capacity_GW: "up to 5"
+        trn2_new_capacity_online: "Q2 2026"
+        trn3_scaled: "later in 2026"
+        combined_trn2_trn3_end_2026_GW: "nearly 1"
+        amazon_investment: "$5B immediately + up to $20B milestone-based, on top of $8B previously"
+        anthropic_commitment: "$100B+ to AWS over ten years"
+      sources:
+        - title: "Anthropic — Amazon compute expansion (2026-04-20)"
+          url: "https://www.anthropic.com/news/anthropic-amazon-compute"
+
+    - name: Trn3 instance availability
+      confidence: not_disclosed
+      note: >
+        The EC2 Trn3 product page publishes only UltraServer aggregates ("up to 144 chips,
+        20.7 TB HBM3e, 706 TB/s, 362 MXFP8 PFLOPs") and states neither GA nor preview; no
+        instance sizes and no regions are listed. Keep availability hedged in the survey.
+      sources:
+        - title: "Amazon EC2 Trn3 instances"
+          url: "https://aws.amazon.com/ec2/instance-types/trn3/"
+
+    - name: Trainium4 / NeuronCore-v5
+      confidence: unverified
+      note: >
+        Roadmap unchanged in the window. No new primary-source confirmation found between
+        2026-04-05 and 2026-08-08 (web search was unavailable, so this is "no evidence
+        found", not "verified absent"). All figures below are vendor preview claims from
+        re:Invent December 2025, not independently confirmed specifications. Process node,
+        die configuration, and NeuronCore-v5 microarchitecture are not disclosed.
+      key_specs:
+        vendor_preview_claims_vs_trainium3:
+          fp4: ">=6x"
+          fp8: "3x"
+          memory_bandwidth: "4x"
+          memory_capacity: "2x"
+          memory: "8 stacks of HBM4"
+          scale_up_fabric: "NVIDIA NVLink 6 / NVLink Fusion participation in a shared scale-up fabric"
+        availability_reported: "late 2026-2027"
+        process_node: not disclosed
+      sources:
+        - title: "NextPlatform — With Trainium4, AWS Will Crank Up Everything (re:Invent Dec 2025 preview)"
+          url: "https://www.nextplatform.com/2025/12/03/with-trainium4-aws-will-crank-up-everything-but-the-clocks/"
+
+    - name: Negative results
+      confidence: confirmed
+      note: >
+        Nothing to record for either venue. Hot Chips 38 is also 15 days in the future as of
+        2026-08-08; no slides, abstracts or specs exist regardless.
+      key_specs:
+        hot_chips_38: "AWS / Amazon / Annapurna absent from the Aug 23-25 2026 program"
+        mlperf_training_v6_0: "published 2026-06-16, 24 submitters; no AWS/Amazon/Trainium submission — record no Trainium MLPerf result"
+      sources:
+        - title: "Hot Chips 38 program"
+          url: "https://hotchips.org/program/conference/"
+        - title: "MLPerf Training v6.0 results (2026-06-16)"
+          url: "https://mlcommons.org/2026/06/mlperf-training-v6-0-results/"

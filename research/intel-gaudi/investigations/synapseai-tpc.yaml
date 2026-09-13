@@ -1,0 +1,189 @@
+resource: synapseai-tpc
+url: https://docs.habana.ai/en/latest/Gaudi_Overview/Intel_Gaudi_Software_Suite.html
+type: docs_site
+as_of: 2026-08-08
+baseline_as_of: 2026-04-05
+commit_sha: null
+doc_version: "1.24.0"
+chip: intel-gaudi
+device_class: "Mixed (GEMM + VLIW TPC)"
+
+layer_mappings:
+  - layer: Compiler/IR
+    component: SynapseAI Graph Compiler
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/Gaudi_Overview/Intel_Gaudi_Software_Suite.html
+      - https://docs.habana.ai/en/latest/PyTorch/PyTorch_Gaudi_Theory_of_Operations.html
+
+  - layer: Compiler/IR
+    component: TPC-C LLVM Compiler (tpc_llvm)
+    confidence: confirmed
+    sources:
+      - https://github.com/HabanaAI/tpc_llvm
+      - https://docs.habana.ai/en/latest/TPC/TPC_Getting_Started/TPC_Getting_Started.html
+
+  - layer: Kernel Library
+    component: TPC Kernel Library (1400+ kernels)
+    confidence: confirmed
+    sources:
+      - https://developer.habana.ai/get-started/kernel-libraries/
+      - https://docs.habana.ai/en/latest/TPC/TPC_User_Guide/index.html
+
+  - layer: Op Library
+    component: SynapseAI Graph API ops
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/Gaudi_Overview/Intel_Gaudi_Software_Suite.html
+
+  - layer: Op Library
+    component: Habana Transformer Engine (FP8)
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/PyTorch/Reference/Python_Packages.html
+
+  - layer: Framework Integration
+    component: gaudi-pytorch-bridge
+    confidence: confirmed
+    sources:
+      - https://github.com/HabanaAI/gaudi-pytorch-bridge
+      - https://docs.habana.ai/en/latest/PyTorch/Reference/PyTorch_Gaudi_Theory_of_Operations.html
+
+  - layer: Framework Integration
+    component: habana_frameworks.torch
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/PyTorch/Reference/Python_Packages.html
+
+  - layer: Runtime
+    component: SynapseAI Runtime
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/Gaudi_Overview/Intel_Gaudi_Software_Suite.html
+
+framework_integrations:
+  - framework: PyTorch
+    integration_point: gaudi-pytorch-bridge registers HPU device backend via PyTorch plugin mechanism; habana_frameworks.torch.core import triggers registration
+  - framework: HuggingFace Transformers
+    integration_point: optimum-habana wraps Trainer and inference pipelines to use HPU device and HCCL distributed backend
+  - framework: PyTorch Lightning
+    integration_point: lightning-Habana HPUAccelerator plugin maps Lightning training loop onto HPU device and HCCL
+  - framework: DeepSpeed
+    integration_point: Intel Gaudi DeepSpeed fork replaces NCCL backend with HCCL; ZeRO stages 1/2/3 supported
+
+key_abstractions:
+  - name: SynapseAI Graph
+    description: AOT-compiled DAG mapping framework ops to MME configuration descriptors and TPC kernel binaries; the fundamental unit of device execution
+  - name: TPC Kernel (TPC-C)
+    description: VLIW SIMD program compiled from C99+intrinsics by tpc-clang; runs on one or more of the 64 TPC processors; 256-byte vector lane, 4-slot VLIW
+  - name: Habana Bridge lazy IR
+    description: Deferred op accumulation mechanism in gaudi-pytorch-bridge; ops are recorded as IR nodes until mark_step() flushes them to the graph compiler
+  - name: mark_step()
+    description: Synchronization boundary in habana_frameworks.torch that triggers graph compiler invocation and runtime execution of the accumulated lazy graph
+  - name: SynapseAI Lowering Module
+    description: C++ layer inside gaudi-pytorch-bridge that translates ATen ops to SynapseAI graph nodes, handling layout conversion and type promotion
+
+# ---------------------------------------------------------------------------
+# Dated update — 2026-08-08 (software stack)
+# Some items are pre-baseline public facts recorded here as repo gap closures.
+# ---------------------------------------------------------------------------
+updates:
+  - date: "2026-08-08"
+    window: "2026-04-05 to 2026-08-08"
+    headline: >
+      Documentation bumped to v1.24.0; Gaudi 3 kernel driver confirmed NOT in mainline Linux;
+      SynapseAI_Core reference implementation archived (production user-space still shipping);
+      Crescent Island successor stack confirmed as oneAPI/SYCL + Level Zero, not SynapseAI.
+
+    fact_groups:
+      - group: sdk-documentation-version
+        confidence: confirmed
+        facts:
+          current_doc_version: "1.24.0"
+          previously_recorded: "1.23.0"
+          note: Software releases continue to ship in 2026.
+        sources:
+          - https://docs.habana.ai/en/latest/
+
+      - group: kernel-driver-upstream-status
+        layer: Driver / Firmware
+        confidence: confirmed
+        confidence_basis: Verified directly against the mainline Linux source tree on 2026-08-08.
+        correction_of: >
+          Prior repo text "habanalabs kernel driver (open-source, upstreamed in Linux kernel)"
+          stated without generation qualification.
+        facts:
+          upstreamed_generations: [Goya, Gaudi 1, Gaudi 2]
+          mainline_subdirs: [common, goya, gaudi, gaudi2, include]
+          gaudi3_in_mainline: false
+          gaudi3_upstreaming: >
+            Code posted late Nov 2025; PR "accel/habanalabs: Gaudi3 support and updates for v6.19"
+            (dri-devel, Dec 2025) rejected on code-quality grounds; targets a later cycle.
+          gaudi3_requirement: out-of-tree habanalabs driver
+        sources:
+          - https://github.com/torvalds/linux/tree/master/drivers/accel/habanalabs
+          - https://lists.freedesktop.org/archives/dri-devel/2025-December/539169.html
+          - https://www.phoronix.com/news/Intel-SynapseAI-Stops
+
+      - group: repository-archival-scope
+        layer: Compiler / IR, Framework Integration
+        confidence: confirmed
+        confidence_basis: >
+          GitHub org repository listing plus a direct REST API check on
+          repos/HabanaAI/gaudi-pytorch-bridge (archived=false, pushed_at 2026-07-13T06:39:25Z).
+        facts:
+          archived:
+            SynapseAI_Core:
+              archived_on: "2025-02-03"
+              what_it_is: open reference implementation of the SynapseAI API
+              notice: >
+                "This project will no longer be maintained by Intel. Intel has ceased development
+                and contributions including, but not limited to, maintenance, bug fixes, new
+                releases, or updates."
+            Gaudi-tutorials: {archived_on: "2025-09-18"}
+            Model-References: {archived_on: "2026-01-08"}
+          not_archived:
+            gaudi-pytorch-bridge: {last_push: "2026-07-13"}
+            vllm-fork: {last_push: "2026-07-27"}
+            optimum-habana-fork: {last_push: "2026-07-17"}
+            gaudi-k8s-operator-suite: {last_push: "2026-07-23"}
+            Megatron-LM: {last_push: "2026-07-10"}
+            Setup_and_Install: {last_push: "2026-07-10"}
+          correct_framing: >
+            The archived reference implementation removes the accompanying open userspace that
+            Linux's accel subsystem expects from a driver submission — a material obstacle to
+            Gaudi 3 driver upstreaming — while the production PyTorch/vLLM enablement path
+            continues to ship. NOT "the user-space stack is archived".
+        sources:
+          - https://github.com/orgs/HabanaAI/repositories?type=all&sort=updated
+          - https://www.phoronix.com/news/Intel-SynapseAI-Stops
+
+      - group: successor-stack-crescent-island
+        layer: Compiler / IR, Runtime
+        product: Crescent Island
+        confidence: confirmed
+        confidence_basis: Enablement visible in public Intel source trees and release notes.
+        resolves_open_question: >
+          Whether SynapseAI/HCCL carries forward to Crescent Island. Answer: it does not.
+        facts:
+          stack: oneAPI / SYCL over the Level Zero Compute Runtime
+          compiler: Intel Graphics Compiler (IGC)
+          synapseai_carried_forward: false
+          hccl_carried_forward: false
+          enablement_timeline:
+            - {component: Intel Compute Runtime, version: "26.01.36711.4", date: "2026-01-14", change: early Crescent Island support}
+            - {component: Intel Graphics Compiler, version: "v2.27.10", date: "2026-01", change: initial Crescent Island support}
+            - {component: Intel Compute Runtime, date: "2026-04-20", change: Crescent Island support promoted}
+          intel_statement_ocp_2025_10: >
+            Unified stack being developed and validated on Arc Pro B-series GPUs; will extend to Xe3P.
+        sources:
+          - https://www.phoronix.com/news/Intel-CR-26.01.36711.4
+          - https://www.techpowerup.com/345253/intel-nova-lake-s-and-crescent-island-support-added-to-graphics-compiler
+
+      - group: not-disclosed
+        confidence: n/a
+        facts:
+          crescent_island_collective_api: not disclosed
+          crescent_island_multicard_path: not disclosed
+          jaguar_shores_software_stack: not disclosed
+          gaudi3_mlperf_v6_results: none submitted

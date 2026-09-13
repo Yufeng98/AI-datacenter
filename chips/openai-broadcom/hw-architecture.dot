@@ -1,0 +1,235 @@
+digraph openai_broadcom_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    labelloc="t";
+    label="OpenAI-Broadcom Jalapeno — Hardware / Software Stack (as_of 2026-08-08)\nUnveiled 2026-06-24. Status: SAMPLING (engineering samples in lab). Dashed = not public / inferred.";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nPrimary framework (inferred)\nOpenAI's entire ML infra\ntorch.compile custom backend", fillcolor="#D6E4F0"];
+        other_fw [label="JAX / TF / ONNX\nNot confirmed\nLikely unsupported in Gen 1", fillcolor="#EEF4FA", style="rounded,dashed,filled"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        torchcompile [label="torch.compile\nTorchDynamo graph capture\nTorchInductor (custom backend)", fillcolor="#E4DEFF"];
+        triton [label="Triton Compiler\nOpenAI's Python DSL for accelerators\nMLIR-based IR pipeline\nJalapeno backend: in dev, NOT PUBLIC", fillcolor="#E4DEFF"];
+        jalapeno_isa [label="Jalapeno ISA / Codegen\n(NOT PUBLIC)\nLLVM -> Jalapeno microcode\nInternal only", fillcolor="#E4DEFF", style="rounded,dashed,filled"];
+    }
+
+    // ===================== OP/KERNEL LIBRARY =====================
+    subgraph cluster_opkernel {
+        label="Op / Kernel Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kernels [label="Triton Kernels (NOT PUBLIC)\nWritten internally by OpenAI\nCompiler/Kernels team\nAttention, Norm, Softmax\n(no public cuDNN/CUTLASS equivalent)", fillcolor="#D4EDDA", style="rounded,dashed,filled"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        runtime [label="OpenAI Inference Runtime (NOT PUBLIC)\nInternal serving infrastructure\nWeight loading, batching\nToken streaming, KV-cache mgmt\nProven in lab: GPT-5.3-Codex-Spark\nran on engineering samples (2026-06-24)", fillcolor="#F8D7DA", style="rounded,dashed,filled"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        driver [label="PCIe Kernel Driver (NOT PUBLIC)\nDevice enumeration + BAR mapping\nDMA command queues\nHost-to-HBM data transfer", fillcolor="#E0E0E0", style="rounded,dashed,filled"];
+        firmware [label="On-chip Firmware (NOT PUBLIC)\nArchitecture unknown\nMay include management controller\nMatrix-engine dispatch", fillcolor="#E0E0E0", style="rounded,dashed,filled"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication (Broadcom All-Ethernet)";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        eth_coll [label="Broadcom Ethernet Collective Library\n(NOT PUBLIC — NCCL equivalent)\nAllReduce / AllGather over Ethernet\nRoCE v2 transport (inferred)", fillcolor="#FFE0CC", style="rounded,dashed,filled"];
+        tomahawk [label="Broadcom Tomahawk Ethernet\nCONFIRMED by OpenAI + Broadcom\n(2026-06-24 joint release)\nLarge-scale production networking\nPort speed: NOT PUBLIC", fillcolor="#FFCFA8", penwidth=2];
+        jericho4 [label="Broadcom Jericho4 AI Switch\nINFERRED — NOT CONFIRMED\nAbsent from the 2026-06-24 announcement\n(scale-up attribution unsupported)", fillcolor="#FFE0CC", style="rounded,dashed,filled"];
+    }
+
+    // ===================== COMPUTE HARDWARE =====================
+    subgraph cluster_compute {
+        label="Jalapeno Compute Chiplet (~840 mm2 — third-party estimate)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        matrix [label="Tiled / Systolic Matrix Engine\nGEMM-primary (reported, not vendor-confirmed)\nArray dimensions: NOT PUBLIC\nTile size: NOT PUBLIC\nSparsity support: NOT PUBLIC\nWafer floorplan: regular, repeated, columnar\n(third-party photo inference)", fillcolor="#283593", fontcolor="white"];
+        vector [label="Vector / Activation Units\n(inferred — standard for this class)\nElementwise ops, activation functions\nLayer norm, softmax support\nSpecifications: NOT PUBLIC", fillcolor="#283593", fontcolor="white"];
+        sram [label="On-chip SRAM Buffers\nWeight-stationary accumulators\nActivation SRAM (unified buffer)\nScratchpad for op fusion\nCapacity: NOT PUBLIC | BW: NOT PUBLIC", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== PACKAGE (MULTI-DIE) =====================
+    subgraph cluster_pkgdies {
+        label="Package — multi-die (third-party estimate from released photos)";
+        style="rounded,dashed";
+        color="#00838F";
+        fontcolor="#00838F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        io_chiplet [label="I/O Chiplet (separate die)\nEstimated from package photography\nFunction split: NOT DISCLOSED\nDie-to-die link: NOT DISCLOSED", fillcolor="#B2EBF2", style="rounded,dashed,filled"];
+        dummy [label="2 x Structural Dummy Die\n(mechanical, no logic)\nEstimated from package photography", fillcolor="#E0F7FA", style="rounded,dashed,filled"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_mem {
+        label="Off-chip Memory";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hbm [label="HBM — GENERATION NOT DISCLOSED\nHBM3E vs HBM4 never stated by either company\n6 stacks (third-party photo estimate)\nCapacity: NOT PUBLIC | BW: NOT PUBLIC\nSamsung HBM4 exclusive: REPORTED, NOT CONFIRMED", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== PROCESS / ROADMAP =====================
+    subgraph cluster_pkg {
+        label="Process / Roadmap";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pkg [label="Process Node: NOT DISCLOSED\n3nm-class (TSMC N3) per prior reporting only\nDie: ~25.46 x 33 mm ~= 840 mm2 (estimate)\nvs ~858 mm2 EUV reticle limit\nTransistors: NOT PUBLIC | TDP: NOT PUBLIC\nPackaging: NOT PUBLIC (2.5D inferred)", fillcolor="#E1BEE7"];
+        host [label="Host Interface\nNOT PUBLIC\n(PCIe Gen5/6 inferred)\nHost CPU: Arm server CPU = RUMOR ONLY", fillcolor="#E1BEE7", style="rounded,dashed,filled"];
+        gen2 [label="Gen 2 (unnamed publicly)\nTSMC A16 (1.6nm): UNCONFIRMED REPORTING\nDev start H2 2026 | Deploy 2027+ (reported)\n'Multi-generation roadmap' (Hock Tan) — no specifics", fillcolor="#E1BEE7", style="rounded,dashed,filled"];
+    }
+
+    // ===================== RACK SYSTEM =====================
+    subgraph cluster_rack {
+        label="Rack System — 10 GW Program";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        rack [label="Jalapeno Rack (Celestica integration)\nCelestica: board + rack system integration,\nscalable production systems (CONFIRMED 2026-06-24)\nChips per rack: NOT PUBLIC\nPower per rack: NOT PUBLIC\nEstimated program cost: $350B-$500B", fillcolor="#B2DFDB"];
+        scaleout [label="Scale-out Fabric\nBroadcom Ethernet switching\nTomahawk (CONFIRMED) / Jericho4 (inferred)\n400 GbE / 800 GbE (inferred)\nOptical connectivity included\nOpenAI facilities + partner data centers", fillcolor="#B2DFDB"];
+        deploy [label="Deployment (TARGET, not achieved)\nInitial deployment by end of 2026\n'expanding in the years ahead'\nMicrosoft named as gigawatt-scale partner\n(Hock Tan, Broadcom CEO)\n10 GW total -> 2029", fillcolor="#B2DFDB", style="rounded,dashed,filled"];
+    }
+
+    // ===================== STATUS / DISCLOSURE =====================
+    subgraph cluster_status {
+        label="Status and Scheduled Disclosure";
+        style="rounded,dashed";
+        color="#B71C1C";
+        fontcolor="#B71C1C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        status [label="SAMPLING (2026-06-24)\nEngineering samples running ML workloads in lab\nat production target frequency and power,\nincluding GPT-5.3-Codex-Spark\nNOT mass production | NOT deployed at scale\nPerformance: NO NUMBERS DISCLOSED\n(perf/W claim is unquantified vendor marketing)\nNine-month design-to-tape-out = VENDOR CLAIM", fillcolor="#FFCDD2"];
+        hotchips [label="Hot Chips 38 — Tue 2026-08-25\nHo / Narayanaswami / Leary (OpenAI):\n'You Can Just Build Things ... Chips' (AI 2)\nBroadcom: 'Thor Ultra' Ethernet NIC\nDISCLOSURE SCHEDULED — CONTENT NOT YET PUBLIC", fillcolor="#FFEBEE", style="rounded,dashed,filled"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> torchcompile;
+    torchcompile -> triton;
+    triton -> jalapeno_isa [style=dashed, color="#AAAAAA"];
+
+    // Compiler -> Kernels
+    triton -> kernels;
+
+    // Framework -> Runtime (model serving)
+    pytorch -> runtime [style=dashed, color="#AAAAAA", label="model def", fontsize=8];
+
+    // Kernels -> Runtime
+    kernels -> runtime [label="compiled ops", fontsize=8];
+
+    // Runtime -> Driver
+    runtime -> driver;
+
+    // Driver chain
+    driver -> firmware [style=dashed];
+    firmware -> matrix [style=dashed, color="#283593"];
+
+    // ISA -> Compute
+    jalapeno_isa -> matrix [label="microcode", fontsize=8, color="#7B61FF"];
+
+    // Compute internal
+    matrix -> vector [color="#283593"];
+    vector -> sram [color="#283593"];
+    sram -> matrix [color="#283593", style=dashed, label="activations\n+ weights", fontsize=8];
+
+    // HBM <-> compute
+    hbm -> sram [label="stream weights\nBW NOT PUBLIC", color="#2E7D32"];
+    sram -> hbm [label="KV-cache", color="#2E7D32", style=dashed];
+
+    // Package multi-die
+    io_chiplet -> matrix [style=dashed, color="#00838F", label="die-to-die\nNOT DISCLOSED", fontsize=8];
+    io_chiplet -> host [style=dashed, color="#00838F"];
+    dummy -> io_chiplet [style=invis];
+
+    // Process/package -> compute
+    pkg -> matrix [style=dashed, color="#6A1B9A", label="node NOT\nDISCLOSED", fontsize=8];
+    pkg -> gen2 [style=dashed, color="#6A1B9A"];
+
+    // Communication
+    eth_coll -> driver [style=dashed];
+    eth_coll -> tomahawk [label="AllReduce\nAllGather", fontsize=8, color="#FF6D01"];
+    eth_coll -> jericho4 [style=dashed, color="#FF6D01", label="unconfirmed", fontsize=8];
+
+    // Rack system
+    rack -> tomahawk [style=dashed, color="#00695C"];
+    rack -> scaleout [style=dashed, color="#00695C"];
+    rack -> deploy [style=dashed, color="#00695C"];
+    scaleout -> tomahawk [color="#00695C", label="scale-out\nEthernet", fontsize=8];
+    scaleout -> jericho4 [color="#00695C", style=dashed];
+
+    // Status
+    status -> matrix [style=dashed, color="#B71C1C", label="silicon status", fontsize=8];
+    status -> hotchips [style=dashed, color="#B71C1C"];
+}

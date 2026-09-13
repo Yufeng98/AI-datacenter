@@ -1,0 +1,322 @@
+chip: enflame
+as_of: 2026-08-08
+baseline_as_of: 2026-04-05   # everything outside update_2026_08_08 is the baseline investigation
+device_class: Data Transfer Unit (China)
+investigation: hw-architecture
+
+compute_engine:
+  unit: SIP (Scalable Intelligent Processor)
+  cluster: SIC (Scalable Intelligent Cluster, 8 SIPs)
+  units_per_die: 32 SIPs / 4 SICs (DTU 1.0 and 2.0; DTU 3.0/4.0 not disclosed)
+  execution_model: static_dataflow_GCU-CARE
+  sparsity: hardware_unstructured_zero_skip
+  precisions:
+    dtu_1_2: [FP32, TF32, FP16, BF16, INT32, INT16, INT8]
+    dtu_4: [FP32, TF32, FP16, BF16, INT32, INT16, INT8, FP8]
+
+products:
+  - name: CloudBlazer T10 / DTU 1.0
+    code: 邃思1.0
+    process: GF 12LP FinFET
+    transistors: 14B
+    hbm: HBM2
+    memory_gb: 32
+    memory_bw_tbps: 0.512
+    pcie: Gen4 x16
+    package: 2.5D MCM (compute die + HBM2 stacks)
+    peak_fp32_tflops: ~8 (est.)
+    peak_int8_tops: ~32 (est.)
+
+  - name: CloudBlazer i20 / DTU 2.0 (inference)
+    code: 邃思2.0
+    process: 12nm
+    hbm: HBM2e
+    memory_gb: 16
+    memory_bw_tbps: 0.819
+    pcie: Gen4 x16
+    peak_fp32_tflops: 32
+    peak_tf32_tflops: 128
+    peak_int8_tops: 256
+    tdp_w: 150
+
+  - name: CloudBlazer T20 / DTU 2.0 (training)
+    code: 邃思2.0
+    process: 12nm
+    hbm: HBM2e x4
+    memory_gb: 64
+    memory_bw_tbps: 1.8
+    pcie: Gen4 x16
+    package: 9-die MCM (57.5mm x 57.5mm)
+    peak_fp32_tflops: 40
+    peak_tf32_tflops: 160
+    peak_int8_tops: 320
+
+  - name: CloudBlazer S60 / DTU 3.0
+    code: 邃思3.0 (SCORPIO-AO)
+    process: TSMC N6NTO-HPC
+    hbm: HBM2e
+    memory_gb: TBD
+    memory_bw_tbps: TBD
+    pcie: Gen4 x16
+    units_shipped: 70000 (by 2024)
+    peak_fp16_tflops: ~128 (est.)
+    peak_int8_tops: ~512 (est.)
+    export_scrutiny: TSMC N6; NBCNews/TechInsights 2025
+
+  - name: CloudBlazer L600 / DTU 4.0
+    code: 邃思4.0
+    process: TSMC 5nm (rumored)
+    hbm: HBM3
+    memory_gb: 144
+    memory_bw_tbps: 3.6
+    pcie: Gen5 (likely)
+    fp8_support: true
+    announced: WAIC July 2025
+    positioning: H100-class replacement for China domestic market
+
+scale_up:
+  name: GCU-LARE (Local Area Reconfigurable Engine)
+  lare_2_bw_bidir_gbps: 300
+  bridge_card: true
+  bridge_card_ports: 3
+  bridge_card_topology: 4-card full-mesh intra-server
+  scalability: SmartCluster (1000s of cards)
+
+scale_out:
+  library: ECCL (Enflame Collective Communication Library)
+  protocol: Ethernet / RoCE
+  proprietary_nic: false
+
+packaging:
+  type: 2.5D MCM
+  interposer: silicon (CoWoS-style)
+
+sources:
+  - url: https://gf.com/gf-press-release/enflame-technology-announces-cloudblazer-dtu-chip-globalfoundries-12lp-finfet/
+    label: GF press release DTU 1.0
+    confidence: high
+  - url: https://ieeexplore.ieee.org/document/9567224
+    label: IEEE HC33 AI Compute Chip paper
+    confidence: high
+  - url: https://www.servethehome.com/enflame-dtu-1-0-ai-compute-chip-at-hot-chips-33/
+    label: HC33 ServeTheHome coverage
+    confidence: high
+  - url: https://zhidx.com/p/281331.html
+    label: 智东西 DTU 2.0 T20 specs (Chinese)
+    confidence: high
+  - url: https://www.techinsights.com/blog/enflame-s60-ai-accelerator-processor-floorplan-analysis
+    label: TechInsights S60 floorplan
+    confidence: high
+  - url: https://www.trendforce.com/news/2025/07/29/news-chinese-ai-chip-unicorns-enflame-metax-unveil-next-gen-chips-shortly-after-nvidias-h20-return/
+    label: TrendForce L600 announcement
+    confidence: medium
+
+# ============================================================
+# UPDATE 2026-08-08 — window 2026-04-05 -> 2026-08-08
+# Additive only. Nothing above is deleted; corrections are
+# stated explicitly in `corrections_2026_08_08`.
+# ============================================================
+
+update_2026_08_08:
+  as_of: 2026-08-08
+  window: 2026-04-05 .. 2026-08-08
+  new_silicon_generation: false
+
+  supernode_systems:
+    - name: 云燧 ESL64-O
+      partner: ZTE (中兴通讯)
+      announced: 2026-07-18
+      venue: WAIC 2026 (Shanghai, 2026-07-17 .. 2026-07-20)
+      construction: OEX 正交无背板 — orthogonal, backplane-free chassis
+      cabling: '"0 线缆" zero-cable card-to-card interconnect'
+      marketed_on: [interconnect cost, latency, signal integrity, thermals, serviceability]
+      cards_per_node: not disclosed   # "64" in the name is inference only, NOT confirmed
+      per_card_interconnect_bw: not disclosed
+      host_silicon: not disclosed     # sources say only 自研AI芯片; NOT confirmed to be L600
+      max_cluster_scale: not disclosed
+      confidence: high (existence, date, partner, design); parameters not disclosed
+      sources: [c114-esl64-copos, ithome-esl64o, sina-esl64]
+
+    - name: 云燧 ESL64-C
+      partner: ZTE (中兴通讯)
+      announced: 2026-07-18
+      construction: conventional copper Cable-tray
+      max_cluster_scale: 万卡级以上 (10,000+ cards)
+      note: >-
+        The 10,000+ card claim is attributed by sources specifically to ESL64-C.
+        No source makes that claim for ESL64-O.
+      confidence: medium-high
+      sources: [sohu-esl64c, sina-esl64]
+
+  optical_interconnect:
+    - name: NPO (near-package optics) prototype
+      status: prototype demonstration only — no product
+      claim: 已实现对512张加速卡以上超节点架构的稳定支持 (stable support for 512+ accelerator-card supernodes)
+      link_rate: not disclosed
+      wavelength_count: not disclosed
+      optical_engine_supplier: not disclosed
+      industry_note: Biren demonstrated NPO optical scale-up at the same event (WAIC 2026)
+      confidence: medium
+      sources: [sina-esl64, zol-npo]
+
+  packaging_roadmap:
+    - name: CoPoS (Chip-on-Panel-on-Substrate) glass-substrate panel-level package
+      partner: 先封科技 (XianFeng Technologies, Shanghai)
+      date: 2026-07-18
+      status: SAMPLE ONLY — explicitly 不等同于台积电最终量产规格; engineering validation of a domestic CoPoS route
+      claimed_properties: [tunable CTE, good planarity, low signal loss]
+      applied_to: 'Enflame high-end AI compute die (per sources) — specific die not disclosed'
+      billing: 国内首款面向AI算力芯片的玻璃基板CoPoS先进封装样品
+      affects_shipping_products: false
+      confidence: high (as a sample)
+      sources: [c114-esl64-copos, sina-copos, itzhijia-copos]
+
+  scale_up_backfill:
+    - product: CloudBlazer L600 / DTU 4.0
+      interconnect_bw_gbps: 800
+      memory_gb: 144
+      memory_bw_tbps: 3.6
+      fp8: native
+      announced: 2025-07-27   # PRE-BASELINE — repo gap, not a development in this window
+      lare_generation: not disclosed
+      note: >-
+        No source ties 800 GB/s to a named GCU-LARE generation. Recorded as an
+        L600 card-level spec; does NOT supersede LARE 2.0 300 GB/s bidir for T20-class parts.
+      confidence: high (figure); pre-baseline (timing)
+      sources: [qq-l600-waic2025, dramx-l600, baike-l600]
+
+  roadmap_generations:
+    - name: DTU 5.0 (5th-gen AI chip series)
+      evidence: IPO use-of-proceeds line 基于五代AI芯片系列产品研发及产业化项目
+      funding_rmb: 1.503e9
+      tapeout: not announced
+      silicon: not announced
+      specs: not disclosed
+      confidence: high (as a funded project only)
+      sources: [dramx-ipo-projects]
+    - name: DTU 6.0 (6th-gen AI chip series)
+      evidence: IPO use-of-proceeds line 基于六代AI芯片系列产品研发及产业化项目
+      funding_rmb: 1.197e9
+      tapeout: not announced
+      silicon: not announced
+      specs: not disclosed
+      confidence: high (as a funded project only)
+      sources: [dramx-ipo-projects]
+
+  corporate:
+    ipo:
+      market: SSE STAR Market
+      accepted: 2026-01-22
+      listing_committee_pass: 2026-06-15
+      csrc_registration_effective: 2026-07-09
+      trading_debut: not confirmed   # no ticker, price, or subscription date as of 2026-08-08
+      status_2026_07: 发行筹备阶段 (issuance preparation stage)
+      shares_max: 68349980
+      shares_floor: 43035173
+      target_raise_rmb: 6.0e9
+      use_of_proceeds:
+        fifth_gen_chip_rmb: 1.503e9
+        sixth_gen_chip_rmb: 1.197e9
+        ai_hw_sw_co_innovation_rmb: 3.3e9
+      profitability_projection: not sourced — deliberately omitted
+      confidence: high
+      sources: [dramx-ipo-projects, sina-listing-committee, c114-esl64-copos, 10jqka-csrc]
+
+  corrections_2026_08_08:
+    - field: L600 production status
+      previously_circulating: "in mass production and supernode system delivery (per IPO prospectus)"
+      corrected: >-
+        Silicon returned (已回片), early commercialization; scale production and supernode
+        delivery still forward-looking as of the June 2026 filing. The prospectus sentence
+        随着公司第四代训推一体产品L600规模化量产及超节点系统的交付，公司将持续拓展训练领域 is
+        forward-looking, not a present-tense fact. Training products were 1.15% of
+        AI-accelerator-card revenue in 2025.
+      confidence: high
+      sources: [sohu-prospectus-l600]
+    - field: packaging
+      previously: "All generations use 2.5D MCM with silicon interposers"
+      corrected: >-
+        Still correct for all SHIPPING products. CoPoS is a 2026-07-18 sample only and does
+        not change any shipping package.
+      confidence: high
+    - field: IPO framing
+      previously: "filed for a STAR Market IPO in January 2026 targeting RMB 6 billion"
+      corrected: >-
+        Registration became effective 2026-07-09; shares had NOT begun trading as of 2026-08-08.
+        Only 45% of proceeds go to the two chip-generation projects.
+      confidence: high
+
+  explicitly_not_found:
+    - DTU 5.0 tape-out or silicon announcement
+    - MLPerf submission for S60 or L600
+    - Enflame paper or talk at ISCA 2026 or any other in-window venue
+    - SIP/SIC counts for DTU 3.0 and DTU 4.0
+    - S60 HBM capacity and bandwidth
+    - L600 peak FLOPS at any precision; L600 process node (only a "TSMC 5nm" rumour)
+    - ESL64 card count, per-card bandwidth, host silicon
+    - Confirmed IPO trading debut
+  hot_chips_38_note: >-
+    Hot Chips 38 runs 2026-08-23..25, after this as_of date. No Enflame talk is cited;
+    nothing from that program is usable as a source.
+
+  sources_2026_08_08:
+    - key: c114-esl64-copos
+      url: https://www.c114.net.cn/industry/101611.html
+      label: Enflame + ZTE ESL64-O launch, OEX orthogonal zero-cable, CoPoS, IPO registration 2026-07-09
+      confidence: high
+    - key: ithome-esl64o
+      url: https://www.ithome.com/0/978/716.htm
+      label: ESL64-O launch detail; confirms no card count / bandwidth / chip model disclosed
+      confidence: high
+    - key: sina-esl64
+      url: https://finance.sina.com.cn/tech/shenji/2026-07-21/doc-iniipxxe9278635.shtml
+      label: ESL64-O vs ESL64-C positioning; NPO optical prototype 512+ cards
+      confidence: high
+    - key: sohu-esl64c
+      url: https://www.sohu.com/a/1051829208_313745
+      label: ESL64-C Cable-tray design meeting 万卡级以上 cluster networking
+      confidence: medium
+    - key: zol-npo
+      url: https://ai.zol.com.cn/1219/12193958.html
+      label: NPO optical prototype, stable support for 512+ card supernode architectures
+      confidence: medium
+    - key: sina-copos
+      url: https://finance.sina.com.cn/stock/t/2026-07-18/doc-iniifanf8343506.shtml
+      label: CoPoS glass-substrate panel-level sample with 先封科技
+      confidence: high
+    - key: itzhijia-copos
+      url: https://www.ithome.com/
+      label: IT之家 2026-07-20 先封介绍国内首款 AI 算力芯片玻璃基 CoPoS 样品 (article URL not captured; outlet + date recorded)
+      confidence: medium
+    - key: qq-l600-waic2025
+      url: https://news.qq.com/rain/a/20250727A06S1L00
+      label: L600 144 GB / 3.6 TB/s / 800 GB/s announced 2025-07-27 (pre-baseline)
+      confidence: high
+    - key: dramx-l600
+      url: https://www.dramx.com/News/IC/20250728-38864.html
+      label: DRAMeXchange L600 spec coverage 2025-07-28
+      confidence: high
+    - key: baike-l600
+      url: https://baike.baidu.com/item/%E7%87%A7%E5%8E%9FL600/67178547
+      label: 百度百科 燧原L600 — 4th-gen train+inference chip, WAIC 2025-07-27, 144GB/3.6TB/s/800GB/s
+      confidence: medium
+    - key: sohu-prospectus-l600
+      url: https://www.sohu.com/a/1037503510_237556
+      label: Prospectus wording (forward-looking); training = 1.15% of AI accelerator card revenue
+      confidence: high
+    - key: dramx-ipo-projects
+      url: https://www.dramx.com/News/IC/20260616-40620.html
+      label: IPO project breakdown — 15.03亿 5th-gen, 11.97亿 6th-gen, 33亿 AI HW/SW co-innovation
+      confidence: high
+    - key: sina-listing-committee
+      url: https://finance.sina.com.cn/wm/2026-06-15/doc-inicnuhr8205604.shtml
+      label: Listing committee pass 2026-06-15; RMB 6.0 B raise
+      confidence: high
+    - key: 10jqka-csrc
+      url: https://stock.10jqka.com.cn
+      label: 2026-07-10 CSRC published approval of Enflame IPO registration; share range 4,303.5173万–6,834.9980万股
+      confidence: medium
+    - key: waic2026
+      url: https://www.worldaic.com.cn/
+      label: WAIC 2026 held 2026-07-17 to 07-20
+      confidence: high

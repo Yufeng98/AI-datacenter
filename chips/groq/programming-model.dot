@@ -1,0 +1,151 @@
+digraph groq_lpu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.55;
+    nodesep=0.35;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.nn.Module\n(offline compiled via GroqFlow)", fillcolor="#D6E4F0"];
+        onnx_fe [label="ONNX / TensorFlow / CoreML\nONNX-MLIR bxing-groq fork\n(alternate entry point)", fillcolor="#D6E4F0"];
+        groq_py [label="groq-python SDK\nOpenAI-compatible REST\nGroqCloud API (pip install groq)\n750-900 tok/s Llama 3.3 70B", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== GROQFLOW =====================
+    subgraph cluster_groqflow {
+        label="GroqFlow (Open Source — github.com/groq/groqflow)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        groqflow [label="GroqFlow\ngroqit(model, inputs)\nModel tracing + MLIR conversion\nBuild caching (.iop reuse)\nmlagility benchmarks", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR (Groq Compiler — groq-devtools)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        torch_mlir [label="torch-MLIR frontend\n(PyTorch → standard MLIR IR)", fillcolor="#E4DEFF"];
+        gten [label="Groq GTen Dialect\n(MLIR dialect for DL/HPC)\nSpatial placement: op → 2D grid unit\nCycle-exact scheduling: op → clock cycle\nSRAM assignment: tensor → SRAM bank\nInter-chip: packet → delivery cycle", fillcolor="#E4DEFF"];
+        iop [label=".iop Binary\n(Instruction Operation Program)\nCycle-exact schedule + weights\n+ inter-chip routing tables\nZero runtime decisions", fillcolor="#E4DEFF"];
+        torch_mlir -> gten [label="lower to GTen", fontsize=8];
+        gten -> iop [label="compile", fontsize=8];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime (groq-runtime — GroqWare SDK)";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        groq_rt [label="groq-runtime\nLoad .iop binary to chip\nOne-time SRAM weight loading\nDeterministic execution replay\n(no dynamic scheduling, no JIT)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        driver [label="PCIe Linux Kernel Module\nBAR mapping, command queues, IRQ\n(No on-chip firmware RM — unlike NVIDIA GSP)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        plesioc [label="Compiler-Scheduled Plesiosynchronous\nInter-chip packets at compile-time cycles\n(No NCCL — no runtime collective library)\nSoftware drift correction for crystal clocks", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        isa [label="No user-visible virtual ISA\n(no PTX equivalent)\n.iop format proprietary\nVLIW-like internal format (ISCA 2020)\nBare-metal assembler for research", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Groq LPU Hardware (Samsung 14nm v1 / 4nm v2 — NVIDIA Groq 3 LPX LP30, announced 2026-03-16, node not disclosed)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        compute [label="Compute: 320x320 Fused Dot Product (GEMM)\n+ 5,120 Vector ALUs (activations, norm, element-wise)\nNO warp scheduler / branch predictor / OoO buffer\nINT8: 750 TOPS | FP16: 188 TFLOPS @ 900 MHz (v1)", fillcolor="#283593", fontcolor="white"];
+        sram [label="All-SRAM Memory: ~230 MB/die\n80 TB/s internal bandwidth\nWeight storage + activations (NOT a cache)\nNO off-chip DRAM on single chip\n(Groq 3 LPX: 500 MB/die, 150 TB/s;\nrack adds 12 TB DDR5 tier)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="GroqRack Scale-up: 576 chips\nPlesiosynchronous direct mesh (no switches)\n~130 GB total SRAM | aggregate BW unverified\nAppear as single coherent memory\n(Groq 3 LPX: 256 LPUs / 32 trays, 40 PB/s SRAM,\n640 TB/s rack scale-up)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> GroqFlow
+    pytorch -> groqflow [label="offline compile"];
+    onnx_fe -> groqflow [style=dashed];
+
+    // GroqFlow -> Compiler
+    groqflow -> torch_mlir;
+
+    // Compiler internal handled by nested edges above
+
+    // iop -> Runtime
+    iop -> groq_rt [label="load binary"];
+
+    // Runtime -> Driver
+    groq_rt -> driver;
+
+    // Driver -> Hardware
+    driver -> compute [label="PCIe dispatch"];
+    driver -> sram [label="weight load", style=dashed];
+
+    // Runtime -> Communication
+    groq_rt -> plesioc [label="multi-chip\nmodels", style=dashed];
+
+    // ISA (side note — no user flow, just informational)
+    iop -> isa [style=dashed, label="encodes", color="#795548", fontcolor="#795548", fontsize=8];
+
+    // Hardware internal
+    sram -> compute [label="stream weights\n@ 80 TB/s"];
+    compute -> sram [label="write results", style=dashed];
+    plesioc -> interconnect [label="physical fabric"];
+
+    // Cloud path (separate)
+    groq_py -> groq_rt [style=dashed, label="GroqCloud\nHTTPS REST", color="#888888", fontsize=8];
+}

@@ -1,0 +1,217 @@
+// Preferred Networks MN-Core programming model / software stack
+// as_of: 2026-08-08
+// chip: preferred-networks-mn-core
+// device_class: Compiler-Scheduled SIMD Accelerator (Japan)
+digraph preferred_networks_mn_core_pm {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    title [label="Preferred Networks MN-Core Programming Model (MLSDK 0.7)\nONNX spine end to end  |  everything load-bearing is a closed binary .deb under an EULA\nGreen = open / publicly readable   Grey = proprietary binary\nas_of 2026-08-08",
+           shape=plaintext, style="", fontname="Helvetica-Bold", fontsize=13, fontcolor="#1A237E"];
+
+    // ===================== FRAMEWORK =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        torch [label="PyTorch - PFN CUSTOM BUILD\ntorch 2.9.0 + torchvision 0.24.0 (SDK 0.7)\nOfficial wheels do NOT work\nThe one supported framework", fillcolor="#D6E4F0"];
+        purefn [label="Programming model\nCompile a PURE function\nCallable[[Dict[str,Tensor]], Dict[str,Tensor]]\nNo eager device; static shapes only\nfwd + bwd + optimizer -> ONE device program", fillcolor="#D6E4F0"];
+        ppe [label="pytorch-pfn-extras 0.9.0\nApache-2.0 (PFN OSS)\nTraining-loop extensions", fillcolor="#C8E6C9"];
+        jax_note [label="JAX\nClaimed on PFN marketing pages,\nABSENT from all SDK docs\n-> unsubstantiated", fillcolor="#ECEFF1", color="#B0BEC5", style="rounded,filled,dashed"];
+    }
+
+    // ===================== TENSOR API =====================
+    subgraph cluster_api {
+        label="Tensor API (mlsdk)";
+        style="rounded,dashed";
+        color="#00838F";
+        fontcolor="#00838F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        mlsdk_api [label="mlsdk\nContext.compile / register_param / register_buffer\nTensorProxy (.cpu(), .load_from())\nCacheOptions (compiles are slow - caching is first class)\ntrace_event / trace_scope -> Perfetto", fillcolor="#B2EBF2"];
+        opt [label="Device-side fused optimizers\nMNCoreSGD / MNCoreAdam / MNCoreAdamW\nMNCoreLRScheduler\n(AdamW NOT bit-compatible with LibTorch)", fillcolor="#B2EBF2"];
+        devstr [label="MNDevice - one string, same source\npfvm:cpu  ->  pfvm:cuda  ->  emu2  ->  mncore2:auto\nFour-way debug matrix:\n(PyTorch vs Compiled graph) x (LibTorch vs codegen)", fillcolor="#B2EBF2"];
+    }
+
+    // ===================== GRAPH CAPTURE =====================
+    subgraph cluster_capture {
+        label="Graph Capture";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        fx2onnx [label="fx2onnx  (/opt/pfn/pfcomp/fx2onnx)\ntorch.fx tracing with FakeTensors\nfx2onnx.linter.lint pre-flight (v0.6+)\nLegacy torch.onnx path deprecated", fillcolor="#E4DEFF"];
+        exported_onnx [label="Exported ONNX", fillcolor="#F3E5F5", shape=note];
+    }
+
+    // ===================== COMPILERS =====================
+    subgraph cluster_compiler {
+        label="Compiler - two graph compilers, then a code emitter";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pfvm [label="PFVM  (/opt/pfn/pfcomp/pfvm)\nCompiler AND runtime\nconst-prop, CSE, fusion, backend-specialized ops,\ninjects weight-update as custom ONNX ops\nRuntime executes ops in LibTorch = pfvm:cpu / pfvm:cuda", fillcolor="#E1BEE7"];
+        compiled_onnx [label="Compiled ONNX", fillcolor="#F3E5F5", shape=note];
+
+        codegen_graph [label="codegen Graph Compiler  (historic \"L3IR\")\nCompiled ONNX -> MNGraph (MNNode + MNValue)\nDumps l3ir.txt / l3ir_stripped.onnx", fillcolor="#E1BEE7"];
+
+        mnvalue [label="MNValue = the MN-Core programming model\n1. Dtype   - mixed precision graph-wide\n2. Location - DRAM or LM0/LM1 ONLY\n              (GRF, L1BM, L2BM are never Locations)\n3. Layout  - mapping onto the physical tree, e.g.\n   (64,128)/((8_L2B:1, 8:2),(16_MAB:1,2:1,4_PE:1); B@[L1B,W])", fillcolor="#FFF9C4", color="#F9A825"];
+
+        passes [label="Pass pipeline\n1 Dtype Planner\n2 Location Planner (initial)\n3 Layout Planner (lpz) -> MNCoreLayoutSwitch\n4 Location Planner -> MNCoreUpload / MNCoreDownload\n5 Time-Slice (>2048 LW) -> Time subaxis, InputSplit/OutputConcat\n6 Location Planner (sliced)\n7 Node Simulation - really compiles nodes to MEASURE cycles\n8 Scheduler - spill/refill, LM0<->LM1, Forget, auto_recompute_sa\n9 Address Planner\n10 Gene propagation", fillcolor="#E1BEE7"];
+
+        tuning [label="Tuning surface\nPresets O0..O4 + debug.json (L1Merge at O3)\n~35 CODEGEN_* env vars, incl.\nCODEGEN_AUTO_RECOMPUTE_HACK_FOR_QWEN\nsram_budget, layout_planner, scheduler, simulation_mode", fillcolor="#E1BEE7"];
+
+        mngraph [label="MNGraph", fillcolor="#F3E5F5", shape=note];
+
+        emitter [label="codegen Code Emitter\nPer-MNNode compile, then link\nConcat strategy | L1Merge strategy\n(blocked by in-place I/O -> MNCoreReorderAddress)\ncodegen/layers operator impls NOT shipped as source\n-> users CANNOT add an operator", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== LOW LEVEL =====================
+    subgraph cluster_lowlevel {
+        label="Low-level entry points";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        vsm_isa [label="MN-Core 2 assembly (VSM)\nFULLY PUBLIC ~130-page ISA manual\n(rev. 2026-06-02): ~24 MV transfer modes,\nPE operand namespaces, hazard rules,\nMAU/ALU/L1BM/L2BM instruction expressions", fillcolor="#C8E6C9"];
+        emu [label="assemble3 + gpfn3_package_main\nAssembler + cycle-faithful emulator\nFREE, no login (mncore2_emuenv tarball);\nbundled in the SDK since v0.6\nStripped ELF binaries, \"AS IS\" disclaimer", fillcolor="#DCEDC8"];
+        mncl [label="HPCSDK / MNCL  (/opt/pfn/pfcomp/mncl)\nOpenCL-like C/C++; OpenACC subset promised 2023\nSTATUS: ALPHA, NO public documentation\n(\"refer to the header files\")", fillcolor="#ECEFF1", color="#B0BEC5", style="rounded,filled,dashed"];
+        edu [label="mncore_simple_graph_compiler_for_education\nPublicly readable teaching compiler:\ntorch.fx -> ONNX -> VSM, trains MNIST on the emulator\nNO LICENSE FILE - not open-source-licensed", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== BINARY =====================
+    subgraph cluster_binary {
+        label="Model Binary";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        gpfnapp [label="GPFNApp (FlatBuffers)\nVSM / GPFNBin (assembled machine code)\nI/O metadata: name, Dtype, Layout, Address\nModel parameters + RELOCATION info\nInspect with dump_gpfnapp", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        rt [label="codegen runtime\nDesigned around GPFNApp REUSE\n(\"repeatedly execute the same computations\")\nStated weakness: poor at heavy indexing\nExclusive device lock; CAP_SYS_NICE needed", fillcolor="#F8D7DA"];
+        upload [label="Host<->device path\nAll traffic via Group 0's PDM over PCIe\nLayout transposition done on the HOST CPU\nPinned-memory \"IDMA chunk\" allocation", fillcolor="#F8D7DA"];
+        comm [label="Communication - NO collectives library\nNo NCCL/RCCL/CNCL analogue,\nno device-side collectives\nMulti-board = OpenMPI + torch.distributed (gloo),\nhost-memory dist.send / dist.recv", fillcolor="#F8D7DA"];
+        dash [label="Codegen Dashboard\nreport.json, model.vsm, l3ir.txt,\nsimulation_result.json, trace.json\nNetron graph view + Perfetto UI", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / PLATFORM =====================
+    subgraph cluster_driver {
+        label="Driver / Platform";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        libgpfn3 [label="libgpfn3-0 / libgpfn3-dev\nUser-space driver + headers\n(binary .deb, EULA)", fillcolor="#E0E0E0"];
+        kmod [label="gpfn3-dkms -> kernel module gpfn3\nPCIe vendor 0ccd; /dev/mnc2p<bus>s<n>\nApplies clock/MAB config at load time\n(settings volatile across power cycles)", fillcolor="#E0E0E0"];
+        smi [label="gpfn3-smi (the nvidia-smi analogue)\nlist / reset / clear / config clock --core 750 --gddr6 15000\nconfig mab / mtest self-test", fillcolor="#E0E0E0"];
+        apt [label="APT repo mncore-packages\nGoogle Artifact Registry (private)\nmncore-sdk pinned via apt-mark hold\nUbuntu 24.04 / 22.04 only, container-first", fillcolor="#E0E0E0"];
+        pfcp [label="PFCP (operated by PFCI:\nPFN / Mitsubishi Corp / IIJ JV)\nManaged Kubernetes; resource preferred.jp/mncore2\nReserved + Shared nodes; pricing NOT published", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="MN-Core 2 Hardware (host-sequenced VLIW/SIMD tree)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        hw_exec [label="Execution\nMV (async, upper memories) + PE (VLIW, L2B and below)\n4-cycle \"step\" because 1-cycle issue would\nsaturate the host PCIe link\nNo PC, no decoder, no interlocks, no branches", fillcolor="#283593", fontcolor="white"];
+        hw_mem [label="Memory - no cache at any tier\nLM 128 MiB | GRF 16 MiB | L1BM 4 MiB\nL2BM 2 MiB | PDM 16 MiB  (~166 MiB, derived)\nGDDR6 16 GiB @ 512 GB/s", fillcolor="#283593", fontcolor="white"];
+        hw_net [label="Interconnect\nBroadcast/reduction tree, no NoC\nPCIe Gen5 x16 to host\nNO chip-to-chip fabric on gen 2", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+    title -> torch [style=invis];
+
+    torch -> purefn;
+    ppe -> torch [style=dashed, color="#AAAAAA"];
+    jax_note -> torch [style=dotted, color="#B0BEC5"];
+
+    purefn -> mlsdk_api [label="Context.compile", fontsize=8];
+    opt -> mlsdk_api [style=dashed, color="#AAAAAA"];
+    devstr -> mlsdk_api [style=dashed, color="#AAAAAA"];
+
+    mlsdk_api -> fx2onnx [label="trace", fontsize=8];
+    fx2onnx -> exported_onnx;
+    exported_onnx -> pfvm;
+    pfvm -> compiled_onnx;
+    compiled_onnx -> codegen_graph;
+
+    mnvalue -> codegen_graph [style=dashed, color="#F9A825"];
+    passes -> codegen_graph [style=dashed, color="#6A1B9A"];
+    tuning -> passes [style=dashed, color="#6A1B9A"];
+
+    codegen_graph -> mngraph;
+    mngraph -> emitter;
+    emitter -> gpfnapp [label="assemble + link\n(Concat / L1Merge)", fontsize=8];
+
+    vsm_isa -> emu [label="assemble3", fontsize=8];
+    emu -> gpfnapp [style=dashed, color="#2E7D32", label="hand-written VSM\nbypasses the graph compiler", fontsize=8];
+    edu -> vsm_isa [style=dashed, color="#2E7D32"];
+    mncl -> gpfnapp [style=dotted, color="#B0BEC5", label="alpha path", fontsize=8];
+
+    gpfnapp -> rt [label="load + relocate + execute", fontsize=8];
+    rt -> upload;
+    rt -> comm [style=dashed];
+    rt -> dash [style=dashed, color="#AAAAAA"];
+
+    upload -> libgpfn3;
+    libgpfn3 -> kmod;
+    smi -> kmod [style=dashed, color="#AAAAAA"];
+    apt -> kmod [style=dashed, color="#AAAAAA"];
+    apt -> pfcp [style=dashed, color="#AAAAAA"];
+
+    kmod -> hw_exec [label="PCIe Gen5 x16\ninstruction stream", fontsize=8, color="#1A237E", penwidth=1.6];
+
+    hw_exec -> hw_mem [color="#283593"];
+    hw_mem -> hw_net [style=dashed, color="#283593"];
+
+    // verification path
+    pfvm -> devstr [style=dotted, color="#00838F", label="pfvm:cpu / pfvm:cuda\nreference execution", fontsize=8];
+    emu -> devstr [style=dotted, color="#00838F", label="emu2", fontsize=8];
+}

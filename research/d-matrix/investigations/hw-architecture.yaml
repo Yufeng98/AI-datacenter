@@ -1,0 +1,259 @@
+chip: d-matrix
+investigation: hw-architecture
+date: "2026-04-05"
+confidence: high
+sources:
+  - url: "https://www.servethehome.com/d-matrix-corsair-in-memory-computing-for-ai-inference-at-hot-chips-2025/"
+    type: conference_coverage
+    title: "d-Matrix Corsair at Hot Chips 2025 — ServeTheHome"
+  - url: "https://chipsandcheese.com/p/d-matrix-corsair-256gb-of-lpddr-for"
+    type: deep_dive_analysis
+    title: "d-Matrix Corsair: 256GB of LPDDR — Chips & Cheese"
+  - url: "https://d-matrix.ai/pdf/d-Matrix-WhitePaper-Technical-FINAL.pdf"
+    type: vendor_whitepaper
+    title: "d-Matrix Technical White Paper"
+  - url: "https://ieeexplore.ieee.org/iel8/40/5210076/11108245.pdf"
+    type: peer_reviewed_paper
+    title: "Corsair: An In-memory Computing Chiplet Architecture — IEEE"
+
+architecture:
+  paradigm: "Digital In-Memory Compute (DIMC)"
+  generation: "Corsair / 3DIMC"
+  process_node: "TSMC 6nm"
+  host_interface: "PCIe Gen5 x16"
+
+compute_engine:
+  name: "DIMC Core"
+  mac_array: "64x64 (INT8) or 64x128 (INT4)"
+  cores_per_chiplet: 256
+  organization: "4 quads x 4 slices x 16 cores"
+  intra_chiplet_interconnect: "all-to-all"
+
+chiplet:
+  chiplets_per_chip: 4
+  chips_per_card: 2
+  total_cores_per_card: 2048
+  dual_card_cores: 4096
+  die_to_die_interconnect: "DMX Link"
+  die_to_die_bandwidth_TB_per_s: 1.0
+
+numeric_formats:
+  - MXINT4
+  - MXINT8
+  - MXINT16
+
+memory:
+  performance_memory:
+    type: SRAM
+    capacity_per_card_GB: 2
+    bandwidth_TB_per_s: 150
+    note: "Integrated in DIMC cores; weight-stationary"
+  capacity_memory:
+    type: LPDDR5X
+    capacity_per_card_GB: 256
+    bandwidth_GB_per_s: 400
+    note: "Off-chip; KV-cache and overflow model weights"
+
+performance:
+  peak_tops_int8_per_card: 2400
+  llama3_8b_tokens_per_sec: 60000
+  llama3_8b_latency_ms: 1
+  llama3_70b_tokens_per_sec: 30000
+  llama3_70b_latency_ms: 2
+
+scale_out:
+  card: "JetStream 400G"
+  bandwidth_gbps: 400
+  transport: "Ethernet (400GbE)"
+  intra_rack: "GigaIO PCIe SuperNODE fabric (acquired)"
+
+vs_gpu:
+  throughput_speedup: "10x"
+  tco_improvement: "3x"
+  energy_efficiency_improvement: "3x"
+
+# =====================================================================
+# UPDATE — 2026-08-08
+# Appended, not replacing. Fields above describe the 2026-04-05 baseline
+# and remain valid for Corsair. Nothing above was deleted or edited.
+# =====================================================================
+updates:
+  - date: "2026-08-08"
+    scope: "Corsair productization; Raptor (3DIMC) early silicon; rack-scale specs; fabric detail"
+
+    productization:
+      confidence: high
+      status: "in full production"
+      status_date: "2026-06-09"
+      status_verb: "IN FULL PRODUCTION / BEGINNING VOLUME SHIPMENT (not 'deployed at scale')"
+      volume_shipment: "beginning summer 2026 to priority customers"
+      availability: "gated - 'available for select, qualified customers' as of 2026-07"
+      customers: "not disclosed"
+      first_reference_systems: "SquadRack, slated for deployment summer 2026"
+      manufacturing_partner: "Alchip Technologies (design/production)"
+      process_node: "TSMC N6"
+      packaging: "organic substrate; no HBM; no CoWoS"
+      foundry_capacity: "multi-year TSMC/Alchip capacity secured (vendor statement, no volumes)"
+      sources:
+        - "https://www.d-matrix.ai/announcements/d-matrix-corsair-ai-inference-platform-enters-full-production-to-meet-customer-demand/"
+        - "https://www.hpcwire.com/off-the-wire/d-matrix-corsair-ai-inference-platform-enters-full-production-to-meet-customer-demand/"
+        - "https://techedgeai.com/d-matrix-launches-corsair-inference-accelerator-to-slash-ai-latency/"
+        - "https://www.parasail.io/blogs/parasail-d-matrix-accelerators"
+
+    next_generation:
+      confidence: high
+      name: "Raptor"
+      architecture: "3DIMC (3D-DRAM in-memory compute)"
+      role: "successor to Corsair; commercial debut vehicle for 3DIMC"
+      test_silicon_predecessor: "Pavehawk (lab-validated)"
+      announced: "2025-11-18 (joint with Alchip)"
+      vendor_claim: "up to 10x faster inference than HBM4-based solutions"
+      status: "EARLY SILICON / PRE-PRODUCTION"
+      launch_date: "not disclosed"
+      sampling_date: "not disclosed"
+      pricing: "not disclosed"
+      primary_disclosure:
+        venue: "ISCA 2026 (2026-06-27 to 2026-07-01, Raleigh Convention Center)"
+        title: "Early Silicon of Raptor: The First 3D-DRAM Accelerator for Generative Inference"
+        authors: "Nair, Hadidi, Ganesh, Kodge, Rathore, Thanawala, Reddy, Saharia, Patankar, Tiruvur, Kurella, Bhoja (d-Matrix Inc. / UBC)"
+        nature: "on-silicon characterization, not simulation"
+      logic_process: "TSMC N4P"
+      integration: "logic die face-to-face bonded onto a 3D-DRAM die"
+      ubump_pitch_um: 36
+      chiplet_organization: "4 gangs x 4 slices"
+      slice: "4x4 tensor-engine array + 1 SIMD core"
+      slices_per_chiplet: 16
+      dram_banks_per_chiplet: 840
+      dram_channels_per_chiplet: 256
+      dram_channels_per_slice: 16
+      chiplets_per_mcm: 4
+      chiplet_clock_GHz: 1.2
+      mcms_per_card_max: 4
+      substrate: "9-4-9 organic substrate onto a 3D CoWoS interposer"
+      power_per_mcm_W: 422
+      tj_max_C: 105
+      secondary_memory: "8 on-package LPDDR5X-9600 devices"
+      secondary_memory_capacity_per_mcm_GB: 128
+      host_interface: "PCIe Gen7"
+      inter_mcm_interface: "PCIe Gen7"
+      d2d: "Gen-2 D2D at 32 Gbps/lane"
+      peak_tflops: "not disclosed"
+      peak_tops: "not disclosed"
+      numeric_formats: "not disclosed"
+      on_die_sram: "not disclosed"
+      dram_capacity: "not disclosed"
+      measured:
+        note: "the only measured (non-marketing) figures in this file"
+        dram_bandwidth_TB_per_s_per_card: 105
+        dram_bandwidth_measurement_clock_MHz: 700
+        avg_flit_latency_ns: 2.5
+        paper_comparison: "~12.5x an HBM3 card"
+      paper_throughput_claim:
+        vs_hbm: "4.71x"
+        vs_sram: "2.44x"
+        models: ["Llama-3.1 70B", "DeepSeek-V3", "Kimi K2", "GPT-OSS", "Whisper", "Canary"]
+      sources:
+        - "https://ramyadhadidi.github.io/files/dMatrix-Raptor-ISCA.pdf"
+        - "https://iscaconf.org/isca2026/"
+        - "https://www.d-matrix.ai/announcements/d-matrix-and-alchip-announce-collaboration-on-worlds-first-3d-dram-solution-to-supercharge-ai-inference/"
+        - "https://www.tomshardware.com/pc-components/ram/new-3d-stacked-memory-tech-seeks-to-dethrone-hbm-in-ai-inference-d-matrix-claims-3dimc-will-be-10x-faster-and-10x-more-efficient"
+
+    rack_scale_corsair:
+      confidence: high
+      claim_type: "vendor marketing - no batch size, accuracy-vs-precision, or methodology disclosed"
+      consistency: "internally consistent with the per-card figures above (2 GB @ 150 TB/s, 256 GB LPDDR5X); additive, not contradictory"
+      dual_card:
+        cards: 2
+        dense_MXINT8_TFLOPS: 4800
+        dense_MXINT4_TFLOPS: 19200
+        performance_memory_GB: 4
+        performance_memory_TB_per_s: 300
+        capacity_memory_GB_max: 512
+        total_silicon_mm2: 6400
+        card_to_card_link: "DMX Bridge"
+        card_to_card_bandwidth_GB_per_s: 512
+      inference_server:
+        cards: 8
+        dense_MXINT8_PFLOPS: 19.2
+        dense_MXINT4_PFLOPS: 76.8
+        performance_memory_GB: 16
+        performance_memory_TB_per_s: 1200
+        capacity_memory_TB_max: 2
+        scale_up: "PCIe-based"
+        llama3_8b_tokens_per_sec: 60000
+        llama3_8b_latency_ms: 1
+      inference_rack:
+        servers: 8
+        cards: 64
+        performance_memory_GB: 128
+        performance_memory_PB_per_s: 9.6
+        capacity_memory_TB_max: 16.4
+        performance_mode_params_max: "100B"
+        capacity_mode_params_max: "1T+"
+        llama3_70b_tokens_per_sec: 30000
+        llama3_70b_latency_ms: 2
+      sources:
+        - "https://www.d-matrix.ai/product/"
+        - "https://www.d-matrix.ai/blog/scaling-ai-the-right-way-introducing-our-rack-level-inference-solution/"
+
+    interconnect_clarification:
+      confidence: high
+      note: "DMX Link and DMX Bridge are DIFFERENT links. A circulating 'correction' claiming the 1 TB/s figure should be 512 GB/s was checked and REJECTED. Do not change die_to_die_bandwidth_TB_per_s above."
+      dmx_link:
+        scope: "die-to-die / chiplet-to-chiplet"
+        bandwidth_TB_per_s: 1.0
+        latency_ns: 115
+        source: "https://www.servethehome.com/d-matrix-corsair-in-memory-computing-for-ai-inference-at-hot-chips-2025/"
+      dmx_bridge:
+        scope: "card-to-card"
+        bandwidth_GB_per_s: 512
+        source: "https://www.d-matrix.ai/product/"
+
+    intra_rack_fabric:
+      confidence: high
+      note: "prior-window item (closed 2026-04-02, before the 2026-04-05 baseline); now fully specified"
+      acquisition: "GigaIO datacenter business"
+      acquisition_date: "2026-04-02"
+      terms: "not disclosed"
+      assets:
+        - "SuperNODE system (up to 32 accelerators)"
+        - "FabreX PCIe Gen5 memory fabric (sub-200 ns cross-server memory access)"
+        - "Carlsbad engineering team"
+      seller_status: "GigaIO, Inc. continues independently, focused on edge; its site footer now reads 'FabreX is a trademark of d-Matrix, Inc.'"
+      sources:
+        - "https://secure.businesswire.com/news/home/20260402375332/en/GigaIO-Sells-Groundbreaking-Datacenter-Technology-and-Assets-to-d-Matrix"
+        - "https://www.supercomputing.news/ai/d-matrix-acquires-gigaios-data-center-business"
+        - "https://gigaio.com/"
+        - "https://www.datacenterdynamics.com/en/news/chip-startup-d-matrix-acquires-supernode-and-fabrex-from-gigaio/"
+
+    rack_blueprint:
+      confidence: high
+      name: "SquadRack"
+      announced: "2025-10-14, OCP Global Summit"
+      partners: ["Arista", "Broadcom", "Supermicro"]
+      description: "first blueprint for disaggregated standards-based rack-scale inference; named vehicle for the summer 2026 first deployments"
+      note: "absent from all repo revisions prior to 2026-08-08"
+
+    corsair_power:
+      confidence: high
+      supersedes: "the 'power: not publicly disclosed' line in section 7 above"
+      tdp_W_at_800MHz: 275
+      tdp_W_at_1200MHz: 550
+      efficiency_claim_TOPS_per_W: 38
+      source: "https://www.servethehome.com/d-matrix-corsair-in-memory-computing-for-ai-inference-at-hot-chips-2025/"
+
+    negative_findings:
+      confidence: high
+      mlperf: "confirmed negative - no d-Matrix/Corsair submission in any MLPerf Inference round"
+      hot_chips_38: "not listed in the advance program. Hot Chips 38 runs 2026-08-23 to 2026-08-25 at Stanford, i.e. AFTER this update. Recheck after the conference."
+      funding_2026: "no 2026 round confirmed. The $275M on record is the November 2025 Series C at ~$2B valuation (~$450M raised to date; Bullhound Capital, Triatomic Capital, Temasek leading; QIA, EDBI, Microsoft M12 participating). M12 participation explains June 2026 'Microsoft backing' headlines - NOT a new investment."
+      corsair_32_compute_units: "UNVERIFIED vendor phrasing appearing in third-party Infinity coverage. Does not reconcile with 2,048 DIMC cores / 16 chiplets per dual card. Deliberately NOT recorded as a spec."
+      parasail: "announced partnership and INTENT, not deployment. Corsair is NOT running across 40+ datacenters; Parasail's own post says they 'plan to explore expanded integration'. Intended split: NVIDIA Hopper/Blackwell prefill + Corsair decode. 'Up to 10x faster interactive inference' and 'up to 3x better energy efficiency' are unqualified vendor claims with no model, baseline, batch size or benchmark."
+      gimlet_labs: "out of window (2026-03-12, predates the 2026-04-05 baseline); vendor-relayed, workload unspecified, framed illustratively by Gimlet itself. Marketing, not a benchmark."
+      sources:
+        - "https://mlcommons.org/benchmarks/inference-datacenter/"
+        - "https://www.vlsi.kr/en/hot-chips-2026-company-lineup-preview-en/"
+        - "https://www.hotchips.org"
+        - "https://www.d-matrix.ai/news/"
+        - "https://www.parasail.io/blogs/parasail-d-matrix-accelerators"
+        - "https://gimletlabs.ai/blog/low-latency-spec-decode-corsair"

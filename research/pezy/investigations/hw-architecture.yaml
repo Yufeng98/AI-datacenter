@@ -1,0 +1,361 @@
+resource: hw-architecture
+chip: pezy
+as_of: "2026-04-05"
+confidence: medium
+source_urls:
+  - https://www.pezy.co.jp/wp-content/uploads/2025/09/HC2025.PEZYComputing.NaoyaHatta.v06.pdf
+  - https://chipsandcheese.com/p/pezy-sc4s-at-hot-chips-2025
+  - https://www.nextplatform.com/2025/09/04/why-is-japan-still-investing-in-custom-floating-point-accelerators/
+  - https://en.wikichip.org/wiki/pezy/pezy-scx/pezy-sc4
+  - https://ieeexplore.ieee.org/document/11154388/
+  - https://www.pezy.co.jp/en/products/zettascaler-3-0/
+  - https://arxiv.org/abs/2301.07510
+
+chip_family: PEZY-SCx
+latest_generation: PEZY-SC4s
+device_class: "Manycore HPC/FP64 (Japan)"
+compute_model: MIMD  # Multiple Instruction Multiple Data — not SIMD/GPU-style
+
+compute:
+  pe_count: 2048
+  threads_per_pe: 8  # SMT8: two groups of 4; fine-grained within group, coarse-grained between
+  simd_width_fp64: "4-wide (256-bit)"
+  simd_width_bf16: "wider (exact not disclosed)"
+  data_types:
+    - FP64
+    - FP32
+    - FP16
+    - BF16  # New in SC4s
+    - INT8
+  clock_ghz: 1.5
+  peak_fp64_tflops: 24.6  # simulated; not independently verified
+  peak_bf16_tflops: null   # not disclosed
+  fp64_gf_per_watt: ~91    # simulated; cf H200 ~49, MI300A ~110
+
+memory:
+  on_chip:
+    l1_i_cache_per_pe_kb: 4
+    l1_d_cache_per_pe_kb: 4
+    scratchpad_per_pe_kb: 24
+    l2_i_per_city_kb: 32   # city = 16 PEs
+    l2_d_per_city_kb: 64
+    l3_per_state_mb: 64    # state = 2048 PEs (8 prefectures)
+    total_on_chip_sram_est_mb: ~140
+  off_chip:
+    technology: HBM3
+    stacks: 4
+    capacity_gb: 96
+    bandwidth_tb_s: 3.2
+
+hierarchy:
+  pe: "1 core, 8 threads, 4+4+24 KB caches"
+  village: "4 PEs share scratchpad"
+  city: "4 villages = 16 PEs; 32 KB L2-I + 64 KB L2-D"
+  prefecture: "18 cities (~288 PEs); 16 active in SC4s"
+  state: "8 prefectures = 2,048 active PEs; 64 MB L3"
+
+management_processor:
+  isa: RISC-V
+  core: "Rocket Core (open-source, in-order, scalar)"
+  count: 4
+  clock_ghz: 1.5
+  capability: "Host-independent Linux OS (no x86 required)"
+
+process:
+  foundry: TSMC
+  node: 5nm
+  die_size_mm2: 556
+  packaging: "2.5D (4x HBM3 + SC4s on silicon interposer)"
+  tdp_w: ~600
+
+host_interface:
+  type: PCIe
+  generation: 5
+  lanes: 16
+  bandwidth_gb_s: 128  # bidirectional
+
+scale_up:
+  type: "None (PCIe within node)"
+  note: "No proprietary chip-to-chip fabric; 4 SC4s per node via PCIe"
+scale_out:
+  type: InfiniBand
+  bandwidth: "400 Gb/s NDR per node"
+
+system:
+  name: ZettaScaler 4.0 (planned)
+  host_cpu: "AMD EPYC 9555P (Zen 5, 64-core Turin, 1.5 GHz)"
+  chips_per_node: 4
+  cooling: "Liquid immersion (fluorine-type inert liquid; also air-cooling option)"
+  test_cluster_nodes: 90
+  test_cluster_chips: 360
+  test_cluster_pes: 737280
+  test_cluster_fp64_pflops: 8.6
+
+status:
+  production: false
+  all_perf_numbers_are: "PEZY simulation only; no independent benchmarks"
+  as_of: "2026-08-08"   # re-verified 2026-08-08; still pre-production. See update_2026_08_08 below.
+  on_vendor_product_page: false
+  vendor_stated_release_target: "end of 2025 (PEZY release 2025-06-06) - missed by 8+ months, no revised date"
+
+product_line_history:
+  - gen: PEZY-SC
+    year: 2014
+    pe_count: 1024
+    process: "TSMC 28nm"
+    clock_ghz: 0.733
+    fp64_tflops: 1.5
+    system: "Shoubu (RIKEN) — Green500 #1 Jun/Nov 2015 @ 7.03 GF/W"
+  - gen: PEZY-SC2
+    year: 2017
+    pe_count: 2048
+    process: "TSMC 16FF+"
+    clock_ghz: 1.0
+    fp64_tflops: 4.1
+    system: "Gyoukou (JAMSTEC, TOP500 #4) — Green500 #1 Nov 2017 @ 17 GF/W"
+  - gen: PEZY-SC3
+    year: 2020
+    pe_count: 4096
+    process: "TSMC 7nm"
+    clock_ghz: 1.2
+    fp64_tflops: 19.7
+    system: "ZettaScaler3.0 — Green500 #12 Nov 2021 @ 24.6 GF/W"
+  - gen: PEZY-SC4s
+    year: 2025
+    pe_count: 2048
+    process: "TSMC 5nm"
+    clock_ghz: 1.5
+    fp64_tflops: 24.6
+    status: "Pre-production (simulated)"
+    system: "ZettaScaler4.0 (planned)"
+
+# ============================================================================
+# PEZY status update — appended 2026-08-08
+# NOTE: no hardware specification above changed. This block records the
+# verified NON-events, the schedule slip, and one new primary publication.
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  window: "2026-04-05 -> 2026-08-08"
+  change_class: moderate
+  supersedes_hw_specs: false
+  trigger: >
+    Landscape re-scan plus adversarial verification. No SC4s silicon news exists in
+    the window. The warranted edits are a refreshed status date stamp, a newly
+    identified undeclared schedule slip, one new primary citation (IEEE Micro), and
+    two SC3-based vendor application results. All compute/memory/interconnect
+    specifications recorded above remain as disclosed at Hot Chips 37 (Aug 2025).
+
+  fact_groups:
+
+    - group: sc4s_product_status
+      confidence: high
+      basis: vendor_site_absence_verified_independently
+      facts:
+        status: pre_production
+        as_of: "2026-08-08"
+        on_vendor_product_page: false
+        product_page_contents_2026_08_08:
+          - ZettaScaler 3.0
+          - PEZY-SC3 Processor and Module
+          - ZettaVEGA
+          - PZLAST
+          - Photo Real 3D
+          - 3D Viewer for Medical
+          - AI-based Image Analysis
+          - ZettaScaler-2.0
+          - PEZY-SC2
+        zettascaler_4_0_on_product_page: false
+        homepage_highlights: ["ZettaScaler 3.0", "PEZY-SC3", "ZettaVEGA"]
+        news_items_in_calendar_2026: 2
+        news_item_dates_2026: ["2026-05-11", "2026-05-13"]
+        prior_news_item: "2025-11-21 (board appointment)"
+        mentions_of_sc4s_taped_out_sampling_shipping_massproduction: none
+        measured_silicon_results: none
+      sources:
+        - title: "PEZY news index (Japanese), fetched 2026-08-08"
+          url: "https://www.pezy.co.jp/news/"
+        - title: "PEZY news index (English), fetched 2026-08-08"
+          url: "https://www.pezy.co.jp/en/news/"
+        - title: "PEZY products page (English), fetched 2026-08-08"
+          url: "https://www.pezy.co.jp/en/products/"
+        - title: "PEZY homepage (English), fetched 2026-08-08"
+          url: "https://www.pezy.co.jp/en/"
+
+    - group: sc4s_schedule_slip
+      confidence: medium-high
+      basis: vendor_stated_target_plus_verified_absence_of_any_follow_up
+      facts:
+        vendor_stated_release_target: "end of 2025"
+        vendor_stated_target_source_date: "2025-06-06"
+        target_met: false
+        slip_months_minimum: 8
+        revised_date_announced: not_disclosed
+        vendor_delay_or_cancellation_notice: none
+        characterization: >
+          Undeclared slip. Inferred from absence of any announcement, not confirmed
+          by PEZY. Do not describe as a vendor-acknowledged delay.
+      sources:
+        - title: "PEZY press release 2025-06-06 (PyTorch/generative-AI support; states SC4s 'release at the end of the year')"
+          url: "https://www.pezy.co.jp/en/news/news20250606-pezysc-pytorch-generativeai/"
+        - title: "PEZY news index (no follow-up item through 2026-08-08)"
+          url: "https://www.pezy.co.jp/en/news/"
+
+    - group: sc4s_ieee_micro_journal_version
+      confidence: high
+      basis: crossref_metadata
+      facts:
+        title: "PEZY-SC4s: The Fourth-Generation MIMD Many-Core Processor with High Energy Efficiency and Flexibility for HPC and AI"
+        authors: [Hatta, Tsunoda, Uchida, Ishitani, Koizumi, Shioya, Ishii]
+        venue: "IEEE Micro"
+        pages: "1-8"
+        doi: "10.1109/MM.2026.3698804"
+        crossref_created: "2026-06-01"
+        crossref_deposited: "2026-06-02"
+        distinct_from: "HC37 proceedings paper DOI 10.1109/HCS66204.2025.11154388 (2025-08-24)"
+        contents_retrieved: false
+        contents_note: >
+          not disclosed to this survey - IEEE Xplore returns HTTP 418/403 to automated
+          fetch, so neither abstract nor body could be read. It is UNKNOWN whether this
+          version reports measured silicon or still only the ~91 GF/W simulation.
+          No SC4s figure was upgraded on the strength of this citation.
+      sources:
+        - title: "Crossref record for 10.1109/MM.2026.3698804"
+          url: "https://api.crossref.org/works/10.1109/mm.2026.3698804"
+
+    - group: sc3_vendor_application_results_2026
+      confidence: medium
+      basis: vendor_claim_single_workload_no_independent_replication
+      facts:
+        - name: pzMutect2
+          date: "2026-05-11"
+          system: "ZettaVEGA (PEZY-SC3-based; attribution inferred from release slug and PEZY 2024-12-26 ZettaVEGA announcement, not stated on the release page)"
+          claim_speedup: "139x vs Mutect2 in GATK 4.2.6.1"
+          claim_wall_clock: "62h36m05s -> 26m57s"
+          claim_accuracy: ">99.99% concordance verified via bcftools isec"
+          chip_named_on_release_page: false
+          independent_replication: none
+          applies_to_sc4s: false
+        - name: PZLAST-MAG
+          date: "2026-05-13"
+          system: "PEZY-SC3"
+          description: "free public protein-sequence search server for metagenome-assembled genomes; no registration"
+          partners: "National Institute of Genetics (Mori, Kurokawa); ROIS Data Science Common Use Platform Bio-generative AI R&D Center (Higashi)"
+          scale_mags: 210000
+          scale_sequences: "~400 million"
+          scale_amino_acids: "~100 billion"
+          latency: "~5-15 min for large-scale searches"
+          accuracy_claim: "PEZY describes accuracy as comparable to DIAMOND and MMseqs2"
+          service_url: "https://pzlast.nig.ac.jp/pzlast/mag"
+          paper_doi: "10.1093/bioadv/vbag129"
+          applies_to_sc4s: false
+      sources:
+        - title: "PEZY news 2026-05-11 (pzMutect2 on ZettaVEGA)"
+          url: "https://www.pezy.co.jp/news/news20260511-humangenome-zettavega-pzmutect2/"
+        - title: "PEZY news 2026-05-13 (PZLAST-MAG)"
+          url: "https://www.pezy.co.jp/en/news/news20260513-pzlastmag/"
+
+    - group: green500_june_2026_negative
+      confidence: high
+      basis: independent_list_check_top20_only
+      facts:
+        pezy_in_top_20: false
+        zettascaler_in_top_20: false
+        exascaler_in_top_20: false
+        top_20_leaders:
+          - {system: KAIROS (CALMIP/CNRS), gf_per_w: 73.282}
+          - {system: ROMEO-2025, gf_per_w: 70.912}
+          - {system: Levante GPU extension, gf_per_w: 69.426}
+          - {system: Isambard-AI phase 1, gf_per_w: 68.835}
+          - {system: Otus, gf_per_w: 68.177}
+          - {system: Frontier TDS (rank 20), gf_per_w: 62.684}
+        top_20_composition: "entirely NVIDIA GH200/H100 and AMD MI300A/MI250X"
+        implication: "SC4s ~91 GF/W FP64 remains a simulation with no measured list entry behind it"
+        comparability_caveat: "not directly comparable to these mixed-precision-optimized HPL efficiency numbers"
+        scope_limit: >
+          Only the top 20 was verified. The stronger claim 'PEZY appears nowhere in the
+          June 2026 Green500' is UNPROVEN and must not be written.
+      sources:
+        - title: "Green500 June 2026 list"
+          url: "https://top500.org/lists/green500/list/2026/06/"
+
+    - group: corporate_status_negative
+      confidence: medium
+      basis: absence_on_vendor_index_only
+      facts:
+        cancellation_news: none
+        delay_news: none
+        funding_news: none
+        acquisition_news: none
+        corporate_status_news: none
+        caveat: >
+          ExaScaler's own site could not be checked: www.exascaler.co.jp presents a TLS
+          certificate valid only for pezy.co.jp / pezy.jp and is unreachable to automated
+          fetch. This negative rests on PEZY's news index alone.
+      sources:
+        - title: "PEZY news index (JA), fetched 2026-08-08"
+          url: "https://www.pezy.co.jp/news/"
+
+    - group: hot_chips_38
+      confidence: high
+      basis: conference_program_listing
+      facts:
+        pezy_talk_on_hc38_program: false
+        hc38_dates: "2026-08-23 to 2026-08-25"
+        hc38_venue: "Stanford Memorial Auditorium"
+        evidentiary_status: >
+          HC38 is in the future as of 2026-08-08. No content is public. The program is
+          not a valid source for any specification claim in either direction; this row
+          records only that no PEZY SC4s follow-up talk is scheduled.
+      sources:
+        - title: "Hot Chips 38 site / advance program"
+          url: "https://www.hotchips.org/"
+
+    - group: third_party_sc3s_porting_work
+      confidence: high
+      basis: crossref_metadata
+      facts:
+        - title: "PEZY-DPM: Porting and optimization of the DPM Monte Carlo dose calculation code on the PEZY-SC3s MIMD processor"
+          authors: [Zhu, Cui, Wang, Liu]
+          venue: "Computer Physics Communications"
+          volume_pages: "328:110319"
+          print_date: "2026-11"
+          crossref_indexed: "2026-08-07"
+          doi: "10.1016/j.cpc.2026.110319"
+          target_part: PEZY-SC3s
+        - title: "Optimize Winograd Convolution for a Novel MIMD Many-core Architecture PEZY-SC3s"
+          venue: "PACT 2025"
+          date: "2025-11-03"
+          doi: "10.1109/PACT65351.2025.00045"
+          target_part: PEZY-SC3s
+          note: "pre-baseline; recorded here for context - an AI convolution kernel on SC3s"
+      naming_note: >
+        Both papers use the designation PEZY-SC3s (512-PE, 109 mm2, TSMC 7nm small module),
+        which this survey previously did not distinguish from the 4,096-PE PEZY-SC3. The
+        distinction is now explicit in chips/pezy/hw-architecture.md section 1.
+      sources:
+        - title: "Crossref record for 10.1016/j.cpc.2026.110319"
+          url: "https://api.crossref.org/works/10.1016/j.cpc.2026.110319"
+        - title: "Crossref bibliographic sweep for the SC4s paper title"
+          url: "https://api.crossref.org/works?query.bibliographic=PEZY-SC4s+Fourth-Generation+MIMD+Many-Core+Processor"
+
+  unresolved:
+    - "Whether the IEEE Micro 2026 version reports measured SC4s silicon or only simulation - not disclosed (Xplore blocks automated fetch)"
+    - "SC4s tape-out / sampling / mass-production status - not disclosed"
+    - "Revised SC4s release date - not disclosed"
+    - "Whether PEZY appears anywhere in the June 2026 Green500 below rank 20 - unverified"
+    - "ExaScaler corporate status - unverifiable (exascaler.co.jp TLS certificate mismatch)"
+
+  update_sources:
+    - https://www.pezy.co.jp/news/
+    - https://www.pezy.co.jp/en/news/
+    - https://www.pezy.co.jp/en/news/news20250606-pezysc-pytorch-generativeai/
+    - https://www.pezy.co.jp/news/news20260511-humangenome-zettavega-pzmutect2/
+    - https://www.pezy.co.jp/en/news/news20260513-pzlastmag/
+    - https://www.pezy.co.jp/en/products/
+    - https://www.pezy.co.jp/en/
+    - https://api.crossref.org/works/10.1109/mm.2026.3698804
+    - https://api.crossref.org/works/10.1016/j.cpc.2026.110319
+    - https://top500.org/lists/green500/list/2026/06/
+    - https://www.hotchips.org/

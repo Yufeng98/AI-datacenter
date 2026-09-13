@@ -1,0 +1,81 @@
+resource: hccl
+url: https://docs.habana.ai/en/latest/API_Reference_Guides/HCCL_APIs/index.html
+type: docs_site
+as_of: 2026-04-05
+commit_sha: null
+doc_version: "1.23.0"
+chip: intel-gaudi
+device_class: "Mixed (GEMM + VLIW TPC)"
+
+layer_mappings:
+  - layer: Communication
+    component: HCCL (Habana Collective Communications Library)
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/API_Reference_Guides/HCCL_APIs/index.html
+      - https://docs.habana.ai/en/latest/API_Reference_Guides/HCCL_APIs/Overview.html
+
+  - layer: Communication
+    component: Integrated RoCE v2 NIC (21+3 × 200 GbE on Gaudi 3)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+      - https://cdrdv2-public.intel.com/833842/gaudi-3-ai-accelerator-cluster-ref-design-white-paper.pdf
+
+  - layer: Communication
+    component: Scale-up fabric (21 × 200 GbE, intra-node/rack)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/833842/gaudi-3-ai-accelerator-cluster-ref-design-white-paper.pdf
+
+  - layer: Communication
+    component: Scale-out fabric (3 × 200 GbE, inter-rack)
+    confidence: confirmed
+    sources:
+      - https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf
+
+  - layer: Framework Integration
+    component: torch.distributed backend="hccl"
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/PyTorch/PyTorch_Scaling_Guide/Distributed_Backend_Initialization.html
+
+  - layer: Framework Integration
+    component: DeepSpeed HCCL backend (Intel Gaudi fork)
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/PyTorch/DeepSpeed/DeepSpeed_User_Guide/DeepSpeed_User_Guide.html
+
+  - layer: Framework Integration
+    component: Megatron-DeepSpeed for Gaudi (HabanaAI fork, 3D parallelism)
+    confidence: confirmed
+    sources:
+      - https://github.com/HabanaAI/Megatron-DeepSpeed
+
+  - layer: Runtime
+    component: HCCL communicator + QP management
+    confidence: confirmed
+    sources:
+      - https://docs.habana.ai/en/latest/API_Reference_Guides/HCCL_APIs/index.html
+
+framework_integrations:
+  - framework: PyTorch Distributed
+    integration_point: "torch.distributed.init_process_group(backend='hccl') — drop-in NCCL replacement; all collective ops (AllReduce, AllGather, etc.) route through HCCL"
+  - framework: DeepSpeed
+    integration_point: "Intel Gaudi DeepSpeed fork sets dist_backend='hccl'; ZeRO stages 1/2/3 use HCCL for optimizer state and gradient sharding"
+  - framework: Megatron-DeepSpeed
+    integration_point: HabanaAI fork adds HPU device support and HCCL backend for 3D parallelism (tensor/pipeline/data) in LLM pretraining
+  - framework: PyTorch Lightning
+    integration_point: lightning-Habana HPUDDPStrategy uses HCCL as the distributed backend for multi-card training
+
+key_abstractions:
+  - name: HCCL Communicator
+    description: Handle encapsulating a group of ranks with pre-established RoCE Queue Pairs; created via hcclCommInitRank, maps logical rank to physical NIC port
+  - name: Integrated RoCE v2 on-die NIC
+    description: 24 × 200 GbE Ethernet ports implemented as on-die SerDes on Gaudi 3; enables RDMA directly to/from HBM2e without discrete NIC chip
+  - name: Two-level topology (scale-up / scale-out)
+    description: 21 on-die ports for intra-node and rack-level traffic, 3 ports for inter-rack scale-out; both use same RoCEv2 protocol over Ethernet
+  - name: RDMA-to-HBM2e
+    description: HCCL registers HBM2e tensor buffers as RDMA memory regions; peer cards issue RDMA READ/WRITE directly to HBM2e physical addresses with no CPU copy
+  - name: Compute-communication overlap
+    description: Integrated NIC engines operate independently from MME/TPC engines; HCCL non-blocking ops allow AllReduce to overlap with forward/backward compute of next micro-batch

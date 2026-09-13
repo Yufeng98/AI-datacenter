@@ -1,0 +1,185 @@
+digraph tianshu_zhixin_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nIXUCA device backend\nlibcuda shim", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow / PaddlePaddle\nIXUCA compatibility layer", fillcolor="#D6E4F0"];
+        flagperf [label="FlagPerf (BAAI)\nLLM training benchmark\nResNet50 validation", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ixuca_compiler [label="IXUCA Compiler\nIn-house kernel compiler\nTargets proprietary ISA", fillcolor="#E4DEFF"];
+        ixrt_compiler [label="IxRT Compiler\nGraph optimizer\nLayer fusion + INT8 quant\n(open-source)", fillcolor="#E4DEFF"];
+        flydsl [label="FlyDSL (new, 2026)\nPython DSL + MLIR stack\nExplicit layouts + tiling\nFlyIXDL backend (ivcore11:\nMR-50/MR-100/BI-V150/BI-V150s)\nCUTLASS layout algebra +\nROCm CK tile patterns\nLower-level than Triton\n(open-source, Deep-Spark fork)", fillcolor="#D1C4E9"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ixnn [label="ixnn (cuDNN analog)\nConv, SDPA, Norm, Pooling\nFP32/FP16/BF16/INT8", fillcolor="#D4EDDA"];
+        ixblas [label="ixblas (cuBLAS analog)\nGEMM + BLAS L1-L3\nTensor unit optimized", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== INFERENCE RUNTIME =====================
+    subgraph cluster_infrt {
+        label="Inference Runtime";
+        style="rounded,dashed";
+        color="#009688";
+        fontcolor="#009688";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ixrt [label="IxRT\nIluvatar Inference Runtime\nTensorRT analog\nPlugins + deploy tools\n(open-source Apache 2.0)", fillcolor="#E0F2F1"];
+        igie [label="IGIE\nIluvatar GPU Inference Engine\nTF/Paddle graph execution", fillcolor="#E0F2F1"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ixuca_rt [label="IXUCA Runtime\nix-runtime / libcuda shim\nixMalloc/ixFree/ixMemcpy\nStream + Event management", fillcolor="#F8D7DA"];
+        ixuca_driver_api [label="IXUCA Driver API\nContext + Module mgmt\nFine-grained memory control", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware / Tools";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="Iluvatar GPU Driver (.ko)\nLinux PCIe kernel module\nBAR / IOCTL / DMA / IRQ\nUbuntu x86, Kylin, UOS", fillcolor="#E0E0E0"];
+        container [label="ix-container-toolkit\nDocker/containerd GPU runtime\nix-device-plugin (K8s DaemonSet)\nix-exporter (Prometheus metrics)", fillcolor="#E0E0E0"];
+        tools [label="ixSMI / ixPROF / ixGDB\nixKN / ixSYS\nnvidia-smi / CUDA-GDB analogs\n(ixGDB open-source GPLv3)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        clif [label="CLIF\nCluster Interconnect Fabric\nIntra-node GPU-to-GPU\n(NVLink analog; BW undisclosed)", fillcolor="#FFE0CC"];
+        ccl [label="NCCL-compatible CCL\nInter-node collectives\nAllReduce / AllGather\nIB / RoCE Ethernet", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        isa [label="Iluvatar Proprietary SIMT ISA\nFully in-house design\nWarp-based execution\nBig Island: FP32/FP16/BF16/INT8\n(not publicly documented)", fillcolor="#EFEBE9"];
+        isa_g3 [label="New-gen ISA (TianGai 300, 2026)\nSIMT: scalar + vector + tensor\nAdds FP8 / FP4\nMMA / DPX / FMA classes\nExtensions: ixSMEX (data reuse),\nixDPX (6 instrs -> 1),\nixTrans (lossless transpose)\n(encodings not disclosed)", fillcolor="#D7CCC8"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Iluvatar GPU Hardware (TianGai / Big Island)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        compute [label="Compute Units (SIMT)\nTensor Compute Units\n(FP16/BF16/INT8 matrix accel.)\nFP32/FP16 ALUs + SFUs\nWarp-based divergence\n(TianGai-150: ~TPP density 3,040)", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nPer-CU L1 scratchpad\nL2 cache (HW-managed)\nHBM2: 64 GB / 1.4 TB/s (BI-V150)\nGDDR6: 32 GB inference (MR-V100)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect\nCLIF (intra-node, BW undisclosed)\n8 GPUs per server\nPCIe Gen4 x16 FHFL\nEthernet/IB scale-out\nTSMC 7nm + 2.5D CoWoS", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> ixuca_compiler;
+    pytorch -> ixrt_compiler [style=dashed, color="#AAAAAA", label="inference", fontsize=8];
+    tf -> ixuca_compiler;
+    tf -> igie [style=dashed, color="#AAAAAA"];
+    flagperf -> pytorch [style=dashed, color="#AAAAAA"];
+
+    // Compiler -> Op / Inference
+    ixuca_compiler -> ixnn;
+    ixuca_compiler -> ixblas;
+    ixrt_compiler -> ixrt;
+    ixrt_compiler -> igie;
+
+    // Framework direct to Op
+    pytorch -> ixnn [style=dashed, color="#AAAAAA", label="ops", fontsize=8];
+    pytorch -> ixblas [style=dashed, color="#AAAAAA", label="GEMM", fontsize=8];
+
+    // Op / Inference -> Runtime
+    ixnn -> ixuca_rt;
+    ixblas -> ixuca_rt;
+    ixrt -> ixuca_rt;
+    igie -> ixuca_rt;
+
+    // Runtime chain
+    ixuca_rt -> ixuca_driver_api;
+    ixuca_driver_api -> kmod;
+    kmod -> container [style=dashed];
+    kmod -> tools [style=dashed];
+
+    // ISA chain
+    ixuca_compiler -> isa [label="codegen", fontsize=8];
+    isa -> compute;
+    isa -> isa_g3 [label="ISA generation", fontsize=8, color="#795548"];
+
+    // Kernel-authoring DSL
+    flydsl -> ixblas [style=dashed, color="#AAAAAA", label="hand-tuned\nGEMM kernels", fontsize=8];
+    flydsl -> isa [label="MLIR -> FlyIXDL\ncodegen", fontsize=8];
+    pytorch -> flydsl [style=dashed, color="#AAAAAA", label="custom kernels", fontsize=8];
+
+    // Communication
+    ccl -> ixuca_rt [style=dashed];
+    clif -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    kmod -> compute [style=dashed, color="#283593"];
+
+    // Hardware internal
+    compute -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+}

@@ -1,0 +1,162 @@
+digraph esperanto_et_soc1_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.55;
+    nodesep=0.4;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        et_minion [label="1,088 × ET-Minion Core\nIn-order RISC-V RV64GCV\nFine-grained multithreaded\n128 INT8 GOPS/GHz/core\n(No warp scheduler, no branch predictor)", fillcolor="#FFCDD2"];
+        vtu [label="Per-ET-Minion Vector/Tensor Unit\nTensor instructions: up to 512 cycles\n32,000 MACs per instruction\nVector transcendental unit:\nexp/log/sin/cos/tanh/sigmoid (HW)\nData types: INT8, FP16, BF16, FP32", fillcolor="#FFCDD2"];
+        et_maxion [label="4 × ET-Maxion Core\nQuad-issue out-of-order RV64GCV\nBranch prediction + prefetch\nRuns Linux OS / control plane", fillcolor="#FFCDD2"];
+        chip_perf [label="Chip-wide: 100–200 INT8 TOPS\nTDP: <20W | Efficiency: ~5–10 TOPS/W\nTSMC 7nm | 570mm² | 24B transistors\n89 metal layers", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        spmd [label="SPMD Execution Model\n1,088 independent RISC-V threads\nCompiler partitions ML graph\nper-core RISC-V ELF binaries\nNo GPU-style SIMT divergence", fillcolor="#FFE0B2"];
+        overlap [label="Tensor/Integer Overlap\nLong tensor instructions (512 cycles)\nInteger pipeline prefetches during\ntensor unit execution\n(Instruction-level parallelism)", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP SRAM =====================
+    subgraph cluster_onchip {
+        label="On-chip SRAM (Software-Managed Scratchpad)";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sram [label=">160 MB Distributed On-chip SRAM\nSW-managed scratchpad (no HW caches)\nWeight tiles + activations + intermediates\nDirect RISC-V load/store access\nSufficient for DLRM embeddings + SLM KV-cache", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        lpddr [label="LPDDR4x DRAM\nUp to 32 GB per chip\n~137 GB/s bandwidth (estimated)\nLow power (~30-40% vs. GDDR6/DDR4)\nBottleneck for large transformer models", fillcolor="#C8E6C9"];
+        emmc [label="eMMC Flash\nModel weight persistence\nPre-load weights at boot", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== HOST INTERFACE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pcie [label="PCIe Gen4 x8\nHost x86 server interface\nInput DMA + result collection", fillcolor="#E1BEE7"];
+        modes [label="Dual Operating Mode:\nPCIe Accelerator (host-driven)\nOR Standalone Linux Server\n(ET-Maxion runs inference service)", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP =====================
+    subgraph cluster_scaleup {
+        label="Scale-up: Glacier Point v2 Card";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        gp_card [label="Glacier Point v2 Card\n6 × ET-SoC-1 chips\n6,558 ET-Minion + 24 ET-Maxion cores\n192 GB LPDDR4x | ~822 GB/s BW\n~600–1,200 INT8 TOPS\nNo dedicated chip-to-chip fabric\n(host PCIe mediated coordination)", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        scaleout [label="Standard Ethernet / PCIe\nvia host x86 server\nNo proprietary scale-out fabric\nCloud access via Esperanto evaluation program", fillcolor="#CFD8DC"];
+    }
+
+    // ============ SUCCESSOR: CORE-ET SILICON PLATFORM (2026) ============
+    subgraph cluster_etsp {
+        label="Successor: CORE-ET Silicon Platform (ETSP) — Ainekko / OpenHW Foundation, 2026 — TAPEOUT IN PROGRESS";
+        style="rounded,dashed";
+        color="#AD1457";
+        fontcolor="#AD1457";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        etsp_core [label="CORE-ET compute IP\n16nm node (foundry not disclosed)\nRISC-V 'Minion'-lineage IP,\nre-translated to clean SystemVerilog\nCore count: NOT DISCLOSED\nPeak TOPS / TDP: NOT DISCLOSED", fillcolor="#F8BBD0"];
+        etsp_mram [label="Integrated MRAM on-die memory\n(NEW memory tier vs ET-SoC-1)\nMRAM 'with SRAM-like performance'\nNon-volatile; first in the lineage\nCapacity / BW / density: NOT DISCLOSED\n(vendor brand 'iRAM' — nekko.ai only)", fillcolor="#F8BBD0"];
+        etsp_noc [label="Scalable Network-on-Chip (NoC)\n(headline platform feature)\nIntra-die fabric — NOT chip-to-chip\nTopology / width / BW: NOT DISCLOSED", fillcolor="#F8BBD0"];
+        etsp_gov [label="Published as OpenHW Foundation project\ngithub.com/openhwgroup/core-et (+ -erbium)\nrepos created 2026-04-20\nLICENSE file: verbatim Apache-2.0\nPress release names Solderpad HW v2.1\nNot Esperanto's production ET-SoC-1 RTL", fillcolor="#FCE4EC"];
+
+        etsp_core -> etsp_mram [label="on-die"];
+        etsp_core -> etsp_noc [label="interconnect"];
+        etsp_noc -> etsp_mram [style=dashed];
+        etsp_core -> etsp_gov [style=invis];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute internal
+    et_minion -> vtu [label="per-core VTU"];
+    et_minion -> chip_perf [style=invis];
+    et_maxion -> chip_perf [style=invis];
+
+    // Data path -> Compute
+    spmd -> et_minion [label="1 thread per core"];
+    overlap -> vtu [label="pipeline overlap"];
+
+    // On-chip SRAM <-> Compute
+    sram -> et_minion [label="weight tiles\n+ activations"];
+    et_minion -> sram [label="write results", style=dashed];
+
+    // Off-chip -> On-chip
+    lpddr -> sram [label="DMA: weight tiling\n~137 GB/s"];
+    emmc -> lpddr [label="boot load", style=dashed];
+
+    // Host Interface
+    pcie -> sram [label="input DMA"];
+    sram -> pcie [label="output DMA", style=dashed];
+    pcie -> modes [style=invis];
+
+    // Scale-up
+    gp_card -> pcie [label="6× chips via\nhost PCIe", style=dashed];
+
+    // Scale-out
+    gp_card -> scaleout [label="multi-rack via\nhost server"];
+
+    // Lineage: ET-SoC-1 IP -> Ainekko/OpenHW successor (no silicon yet)
+    et_minion -> etsp_core [label="IP acquired by Ainekko 2025-11-19;\nre-translated, MRAM added (Veevx merger 2026-01-29)", style=dashed, color="#AD1457", fontcolor="#AD1457", fontsize=9];
+    sram -> etsp_mram [label="SRAM-only  →  SRAM + MRAM", style=dotted, color="#AD1457", fontcolor="#AD1457", fontsize=9];
+}

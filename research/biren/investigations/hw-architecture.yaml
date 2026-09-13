@@ -1,0 +1,433 @@
+resource: Biren BR10X / BR20X Hardware Architecture
+url: https://hc34.hotchips.org/assets/program/conference/day1/GPU%20HPC/HC2022.BirenTech.MikeHong.LingjieXu.v01.pdf
+chip: biren
+as_of: 2026-08-08
+baseline_as_of: 2026-04-05
+investigation_report: hw-architecture.md
+
+layer_mappings:
+  - layer: Compute Engine
+    components:
+      - name: SPC (Streaming Processing Cluster)
+        role: Top-level compute grouping; 32 SPCs per die (64 total in BR100); each SPC has 16 EUs and 4,096 threads
+        entry_points:
+          - 16 Execution Units (EUs) per SPC
+          - 4,096 threads per SPC
+          - C-Warp warp scheduler
+        confidence: confirmed
+
+      - name: EU (Execution Unit)
+        role: Atom-level compute block; analogous to NVIDIA SM; contains FP32/BF16/TF32+/INT8 pipelines plus tensor units
+        confidence: confirmed
+
+      - name: BR100 peak compute
+        role: 256 TFLOPS FP32, 1024 TFLOPS BF16, 2048 TOPS INT8; 77B transistors dual-die TSMC 7nm
+        confidence: confirmed
+
+      - name: BR104 peak compute
+        role: 128 TFLOPS FP32, ~1024 TOPS INT8; monolithic single die; 300W PCIe
+        confidence: confirmed
+
+      - name: Precision formats
+        role: FP32, TF32+, BF16, FP16, INT8; NO FP64
+        confidence: confirmed
+
+      - name: TF32+ (Biren extended TF32)
+        role: Extended dynamic range vs NVIDIA TF32; key training throughput advantage claimed by Biren
+        confidence: confirmed
+
+  - layer: Data Path
+    components:
+      - name: C-Warp execution model
+        role: SIMT warp execution adapted for data-flow workloads; threads in SPC execute same instruction; hardware divergence handling
+        confidence: confirmed
+
+      - name: Data-flow architecture (six features)
+        role: TF32+ precision, TDA (data-flow access), C-Warp parallel, NME (near-memory engine), NUMA/UMA, SVI (stream virtualization isolation)
+        confidence: confirmed
+
+      - name: Mesh on-chip network
+        role: SPCs connected via mesh to distributed L2 cache slices; all-to-all SPC communication; similar to Intel Sapphire Rapids topology
+        confidence: inferred
+
+      - name: Die-to-die link (CoWoS-S interposer)
+        role: 896 GB/s bidirectional bandwidth between two BR100 dies via silicon interposer
+        confidence: confirmed
+
+  - layer: On-chip Memory
+    components:
+      - name: L2 cache (distributed, 300 MB)
+        role: Hardware-managed distributed cache across all SPCs; 300 MB total — ~6x NVIDIA A100 L2; reduces HBM pressure
+        confidence: confirmed
+
+      - name: L1 / shared memory per EU
+        role: Per-EU L1 cache and configurable shared memory; specific capacity not disclosed
+        confidence: inferred
+
+  - layer: Off-chip Memory
+    components:
+      - name: HBM2e (BR100)
+        role: 64 GB total (2 stacks per die × 4 stacks), 2,300 GB/s (2.3 TB/s), 4096-bit interface
+        confidence: confirmed
+
+      - name: HBM2e (BR104)
+        role: 32 GB, 819 GB/s, 2048-bit interface
+        confidence: confirmed
+
+      - name: HBM supply constraint (export controls)
+        role: US controls block SK Hynix / Samsung HBM for Biren; production severely impacted 2022-2026
+        confidence: confirmed
+
+  - layer: Host Interface / Package
+    components:
+      - name: PCIe Gen5 x16 + CXL
+        role: ~128 GB/s bidir host interface; CXL 1.1/2.0 support for coherent memory expansion
+        confidence: confirmed
+
+      - name: TSMC CoWoS-S 2.5D packaging (BR100)
+        role: Two dies + 4 HBM2e stacks on silicon interposer; 896 GB/s die-to-die link
+        confidence: confirmed
+
+      - name: OAM form factor (BR100)
+        role: Open Accelerator Module; 550W TDP; 8-card per server via BLink
+        confidence: confirmed
+
+      - name: PCIe FHFL card (BR104)
+        role: Standard full-height full-length PCIe card; 300W TDP; single die
+        confidence: confirmed
+
+  - layer: Scale-up Interconnect
+    components:
+      - name: BLink (Biren proprietary GPU interconnect)
+        role: 8 bidirectional links × 64 GB/s = 512 GB/s aggregate; connects up to 8 BR100 GPUs per server; NVLink analog
+        confidence: confirmed
+
+      - name: 8-way BLink topology
+        role: 8 BR100 GPUs per server node with full peer-to-peer GPU memory access; no external switch ASIC disclosed
+        confidence: confirmed
+
+  - layer: Scale-out Interconnect
+    components:
+      - name: Standard InfiniBand / Ethernet
+        role: Inter-node communication via commodity NICs; no proprietary scale-out network ASIC
+        confidence: confirmed
+
+      - name: BCCL (Biren Collective Comms Library)
+        role: NCCL analog for AllReduce/AllGather over SUPA runtime; intra-node and cross-node collectives
+        confidence: inferred
+
+key_abstractions:
+  - name: SPC (Streaming Processing Cluster)
+    description: >
+      Biren's top-level compute grouping containing 16 EUs and 4,096 threads.
+      Analogous to NVIDIA's GPC. The BR100 has 32 SPCs per die (64 total).
+    layer: Compute Engine
+    hardware_mapping: Array of 32 SPCs per die connected via mesh to L2 cache slices
+
+  - name: C-Warp
+    description: >
+      Biren's SIMT warp execution unit. Groups threads that execute the same instruction
+      simultaneously within an EU. Hardware divergence handling via predication.
+      Programming model compatible with BIRENSUPA GPU kernel model.
+    layer: Data Path
+    hardware_mapping: Warp schedulers within each EU
+
+  - name: TF32+
+    description: >
+      Biren's extended TF32 numerical format with higher dynamic range than NVIDIA TF32.
+      Key throughput-per-accuracy advantage for deep learning training at 512 TFLOPS.
+    layer: Compute Engine
+    hardware_mapping: Tensor units within EU
+
+  - name: BLink
+    description: >
+      Biren's proprietary GPU-to-GPU scale-up interconnect. 8 links × 64 GB/s = 512 GB/s aggregate.
+      Enables 8-GPU single-server configurations analogous to NVIDIA DGX A100 NVLink topology.
+    layer: Scale-up Interconnect
+    hardware_mapping: SerDes links on OAM board
+
+  - name: 300 MB L2 Cache
+    description: >
+      Massive distributed hardware-managed L2 cache across all SPCs. At 300 MB, this is
+      ~6x NVIDIA A100's L2. Reduces HBM bandwidth pressure for workloads with large working sets
+      (transformer KV-cache, weight reuse). Key architectural differentiator vs contemporaries.
+    layer: On-chip Memory
+    hardware_mapping: Distributed cache slices on mesh between SPCs
+
+product_generations:
+  - name: BR100
+    year: 2022
+    dies: 2
+    process: TSMC 7nm CoWoS-S
+    memory: HBM2e 64GB 2.3TB/s
+    peak_fp32_tflops: 256
+    peak_bf16_tflops: 1024
+    peak_int8_tops: 2048
+    transistors_B: 77
+    die_area_mm2: 1074
+    tdp_w: 550
+    form_factor: OAM
+    host_interface: PCIe Gen5 + CXL
+    scale_up: BLink 8x 64GB/s
+    notes: "Blocked from mass production by US export controls (TSMC suspension Oct 2022)"
+
+  - name: BR104
+    year: 2022
+    dies: 1
+    process: TSMC 7nm
+    memory: HBM2e 32GB 819GB/s
+    peak_fp32_tflops: 128
+    peak_int8_tops: 1024
+    tdp_w: 300
+    form_factor: PCIe FHFL
+    host_interface: PCIe Gen4/5
+    notes: "Monolithic die; more producible variant; targeted domestic China market"
+
+  - name: BR106 (壁砺106)
+    year: 2023
+    dies: 1
+    process: TSMC 7nm (BR10X first-generation architecture)
+    memory: not disclosed
+    peak_fp32_tflops: not disclosed
+    peak_bf16_tflops: not disclosed
+    peak_int8_tops: not disclosed
+    tdp_w: "106M: 400 (peak); 106B: not disclosed"
+    form_factor: "106M: OAM air-cooled; 106B: FHFL dual-width PCIe"
+    host_interface: not disclosed
+    scale_up: BLink (per-link bandwidth not disclosed for this generation)
+    notes: "First commercially shipping Biren silicon. Development from 2020, tape-out 2021, mass production Jan 2023. Biren publishes form factor and peak power only."
+
+  - name: BR110 (壁砺110)
+    year: 2024
+    dies: 1
+    process: TSMC 7nm (BR10X first-generation architecture)
+    memory: not disclosed
+    peak_fp32_tflops: not disclosed
+    peak_bf16_tflops: not disclosed
+    peak_int8_tops: not disclosed
+    tdp_w: not disclosed
+    form_factor: not disclosed
+    host_interface: not disclosed
+    scale_up: not disclosed
+    notes: "Same architecture as BR106, single die. Mass production Oct 2024. Positioned for edge inference. No product page on birentech.com."
+
+  - name: BR166 (壁砺166)
+    year: 2025
+    dies: 2
+    process: TSMC 7nm (BR10X); 2.5D chiplet co-package of two BR106 dies
+    memory: not disclosed
+    peak_fp32_tflops: not disclosed
+    peak_bf16_tflops: not disclosed
+    peak_int8_tops: not disclosed
+    tdp_w: "166M: 550 (peak); 166L: 600 (peak); 166C: 300 (peak)"
+    form_factor: "166M: 4U OAM V1.1 air-cooled; 166L: OAM cold-plate liquid-cooled; 166C: FHFL 290 mm dual-width PCIe"
+    host_interface: not disclosed
+    scale_up: BLink (per-link bandwidth not disclosed)
+    die_to_die_bandwidth: not disclosed
+    notes: >
+      Mass production began Aug 2025; shipped at scale 2H2025. Vendor claim: "compute and memory
+      performance doubled vs the prior generation" (unquantified, unverified). The widely circulated
+      "BF16 800 TFLOPS / 128 GB HBM" figures are aggregator-only (Toutiao) and are NOT adopted.
+
+  - name: BR20X ("BR2xx")
+    year: planned 2026
+    dies: chiplet (count not disclosed)
+    process: not disclosed
+    memory: not disclosed ("increased memory capacity and bandwidth" per vendor)
+    peak_fp32_tflops: not disclosed
+    peak_bf16_tflops: not disclosed
+    peak_int8_tops: not disclosed
+    data_types: Native FP8 and FP4 (first sub-INT8 numerics in the Biren line)
+    tdp_w: not disclosed
+    form_factor: not disclosed
+    scale_up: BLink 2.0 native supernode interconnect (~1,000-card scale)
+    status: >
+      IN DEVELOPMENT. R&D from 2024; architecture design complete; currently in physical design and
+      tape-out verification (流片验证). NOT taped out, NOT sampling, NOT shipping. Commercial launch
+      planned for 2026 (some reports 2H26/autumn 2026) — a stated plan, not a committed date.
+    notes: >
+      WAIC-day primary press coverage uses the generic name "BR2xx series"; the string "BR20X" comes from
+      prospectus / annual-report language, analyst notes and Baidu Baike (secondary, not a datasheet).
+
+  - name: BR30X / BR31X
+    year: targeted 2028
+    dies: not disclosed
+    process: not disclosed
+    memory: not disclosed
+    notes: "Roadmap only. BR30X targets cloud training/inference; BR31X targets edge inference. No specifications disclosed."
+
+# =====================================================================
+# UPDATE 2026-08-08 — 壁砺 product line, WAIC 2026 fabric, BR20X
+# Fact groups below carry per-group confidence and sources.
+# Prior content above is retained as architectural history.
+# =====================================================================
+
+update_2026_08_08:
+  investigated: 2026-08-08
+  supersedes: >
+    The 2026-04-05 baseline documented only the BR100/BR104 parts announced at Hot Chips 34 (Aug 2022),
+    which never reached volume production after the Oct 2022 TSMC suspension. Prior-generation content is
+    retained; the fact groups below are current where they conflict with it.
+
+  fact_groups:
+
+    - group: Product naming and generation framing
+      confidence: confirmed
+      facts:
+        - 壁砺™ (Bili) is the product brand for the SAME BR series, not a separate naming system: 壁砺106 = BR106, 壁砺110 = BR110, 壁砺166 = BR166.
+        - All of BR100, BR104, BR106, BR110 and BR166 are the BR10X first-generation architecture on TSMC 7nm.
+        - The repo's stale element was the GENERATION covered (BR100/BR104, 2022, export-control blocked), not the naming convention.
+        - birentech.com's hardware menu lists exactly five SKUs — 壁砺™166L, 166M, 166C, 106M, 106B — and has no BR100 or BR104 product page.
+      sources:
+        - https://www.birentech.com/
+        - https://baike.baidu.com/item/BR106/67163892
+        - https://www.birentech.com/product/hardware/106m/
+
+    - group: Shipping SKU form factors and peak power
+      confidence: confirmed (primary, vendor product pages)
+      facts:
+        - "壁砺™166M: 4U OAM V1.1 air-cooled module, 550 W peak power."
+        - "壁砺™166L: cold-plate liquid-cooled OAM module, 600 W peak power."
+        - "壁砺™166C: full-height full-length (290 mm) dual-width PCIe inference card, 300 W peak power."
+        - "壁砺™106M: air-cooled OAM module, 400 W peak power."
+        - "壁砺™106B: FHFL dual-width PCIe card; peak power not disclosed."
+        - Every Biren product page publishes form factor and peak power ONLY — no FLOPS table, no memory table, no process node.
+      sources:
+        - https://www.birentech.com/product/hardware/166m/
+        - https://www.birentech.com/product/hardware/166l/
+        - https://www.birentech.com/product/hardware/166c/
+        - https://www.birentech.com/product/hardware/106m/
+
+    - group: Production history
+      confidence: confirmed (encyclopedia citing Biren official; annual-report media coverage)
+      facts:
+        - "BR106: development began 2020, tape-out 2021, mass production January 2023. Single die."
+        - "BR110: same architecture as BR106, single die, mass production October 2024, edge-inference positioning; no product page on birentech.com."
+        - "BR166 series (2025): 2.5D chiplet co-packaging two BR106 dies with a die-to-die interconnect; mass production began August 2025; shipped at scale in 2H2025."
+        - "Vendor claim for BR166: 'compute and memory performance doubled vs the prior generation' — unquantified and unverified."
+      sources:
+        - https://baike.baidu.com/item/BR106/67163892
+        - https://baike.baidu.com/item/%E5%A3%81%E7%A0%BA166%E7%B3%BB%E5%88%97/67163995
+        - https://m.thepaper.cn
+
+    - group: Rejected 166-series specification
+      confidence: refuted as spec (low-confidence aggregator claim)
+      facts:
+        - The widely repeated "BF16 800 TFLOPS / 128 GB HBM" for the 166 series appears only on Chinese aggregators, traced to a Toutiao post.
+        - All four Biren product pages (166M / 166L / 166C / 106M) were fetched directly and publish no FLOPS or memory figures.
+        - A search summarizer falsely attributed these numbers to the 166M product page. They are NOT adopted as spec anywhere in this repo.
+        - No public datasheet gives FLOPS, HBM type/capacity/bandwidth, per-link BLink bandwidth, or process node for the 166 series or BR20X.
+      sources:
+        - https://www.toutiao.com/w/1865240228792329/
+        - https://www.birentech.com/product/hardware/166m/
+
+    - group: BLink 2.0 protocol (announced WAIC 2026)
+      confidence: confirmed (announcement, Biren primary newsroom); bandwidth not disclosed
+      facts:
+        - Memory-semantic interconnect letting up to 1,024 GPUs share one memory space.
+        - In-network computing — collectives offloaded into the switch nodes. This implies a BLink switch ASIC, a departure from BR100-era switchless point-to-point BLink 1.x.
+        - Intelligent congestion control.
+        - Multi-layer link self-healing, from the physical layer through the framework layer.
+        - "Per-link and aggregate bandwidth: NOT DISCLOSED. Biren cites a per-GPU scale-up requirement exceeding 1 TB/s as motivation — a requirement statement, not a product spec."
+        - "A '224 Gbps port rate' attributed to this announcement elsewhere is NOT present in Biren's release and has been dropped."
+      sources:
+        - https://www.birentech.com/news/odug5ugc29npl8m6slum8d9k/
+        - https://www.jiemian.com/article/14787272.html
+        - https://www.sohu.com/a/1052133469_114760
+
+    - group: NPO near-packaged optics
+      confidence: confirmed (verbatim from Biren press release)
+      facts:
+        - NPO fuses the optical engine into the GPU module.
+        - Removes the high-power DSP chip (retimer) — "去掉了高功耗的DSP芯片".
+        - Optical reach "several hundred metres" — "光信号传输距离可达数百米".
+        - Stated motivation - copper signalling "attenuates severely within 3 metres".
+      sources:
+        - https://www.birentech.com/news/odug5ugc29npl8m6slum8d9k/
+
+    - group: Distributed decoupled supernode — three-tier matrix
+      confidence: confirmed (announcement); NOT a shipping product
+      facts:
+        - GPU nodes and switch nodes are physically separated and optically linked, letting GPU nodes stay in standard server form factors.
+        - "Tier 1: 16-card standard server, electrical."
+        - "Tier 2: 128-card high-density cabinet, electrical — the prior scale-up ceiling."
+        - "Tier 3: 1,024-card distributed decoupled supernode, NPO optical."
+        - No availability date, per-link bandwidth, or customer was disclosed. This is an architecture/roadmap announcement.
+      sources:
+        - https://www.birentech.com/news/odug5ugc29npl8m6slum8d9k/
+        - https://www.163.com/tech/article/L22F1NH700098IEO.html
+        - https://www.10jqka.com.cn
+
+    - group: BR20X second-generation architecture
+      confidence: confirmed (status); not disclosed (all quantitative specs)
+      facts:
+        - Native FP8 and FP4 — the first sub-INT8 numerics in the Biren line.
+        - Chiplet packaging; die count not disclosed. Process node not disclosed.
+        - Native supernode interconnect (BLink 2.0, ~1,000-card scale).
+        - Vendor states increased compute density, memory capacity and memory bandwidth — no absolute figures given.
+        - "STATUS - R&D from 2024; architecture design complete; currently in PHYSICAL DESIGN and TAPE-OUT VERIFICATION (流片验证). NOT taped out, NOT sampling, NOT shipping."
+        - Commercial launch planned for 2026 (some reports 2H26/autumn 2026) — a stated plan.
+        - "Naming caveat - primary WAIC coverage says 'BR2xx series'; 'BR20X' comes from prospectus/annual-report language, analyst notes and Baidu Baike (secondary)."
+        - Follow-ons BR30X (cloud training/inference) and BR31X (edge inference) target 2028 commercialization.
+      sources:
+        - https://www.birentech.com/news/odug5ugc29npl8m6slum8d9k/
+        - https://www.sohu.com/a/1003843604_313745
+        - https://www.jiemian.com/article/14787272.html
+        - https://m.thepaper.cn
+
+    - group: Deployment at scale — 2,048-card dOCS cluster
+      confidence: confirmed (deployment); qualified (card count is from annual report and media, not Biren's release)
+      facts:
+        - Biren's FY2025 report states it delivered multiple thousand-card intelligent computing clusters "including a 2,048-card optical-interconnect / optical-switching GPU supernode cluster".
+        - Independent WAIC coverage attributes this to the PREVIOUS-generation dOCS (distributed optical circuit switching) supernode — a 32-card / 4-chassis building block.
+        - Aggregated to a 2,048-card cluster at a national-level computing platform, reported as Shanghai INESA (上海仪电).
+        - "IMPORTANT - this is NOT a 2,048-card single scale-up / shared-memory domain, and it is NOT BLink 2.0."
+        - Biren's own WAIC press release mentions the national-platform dOCS deployment WITHOUT stating a card count.
+      sources:
+        - https://www.sohu.com/a/1003843604_313745
+        - https://www.163.com/tech/article/L22F1NH700098IEO.html
+        - https://www.birentech.com/news/odug5ugc29npl8m6slum8d9k/
+
+    - group: FY2025 financial results (published 2026-03-30, pre-baseline)
+      confidence: confirmed (multiple independent Chinese media reporting the annual report)
+      facts:
+        - "Revenue RMB 1.0346 B (10.346 亿元), +207.2% YoY from RMB 337 M."
+        - "Gross profit RMB 557.0 M, +210.8%. Gross margin 53.8%, +63 bps."
+        - "R&D expense RMB 1.476 B, +78.5%."
+        - "Adjusted net loss ~RMB 874 M. The IFRS reported loss is far larger, dominated by non-cash fair-value movements on convertible preferred shares — do not quote the headline loss without that caveat."
+        - "Cash and financial assets at end-2025 RMB 2.896 B; early-2026 IPO net proceeds RMB 5.631 B; total funding reserve above RMB 8.5 B."
+        - "UNIT HAZARD - all source figures are 亿元-denominated. RMB 10.35亿 = RMB 1.035 billion, NOT RMB 10.35 billion."
+        - Published 2026-03-30, i.e. BEFORE the repo's 2026-04-05 baseline — a baseline miss, not news from the update window.
+      sources:
+        - https://news.qq.com/rain/a/20260330A08PTQ00
+        - https://www.jiemian.com/article/14185757.html
+        - https://news.futunn.com/post/70839289/
+        - https://xueqiu.com/9983210953/381860568
+        - https://www.sohu.com/a/1003843604_313745
+
+    - group: Sales volume (pre-baseline, cumulative)
+      confidence: secondary media reporting of the HK IPO prospectus
+      facts:
+        - Combined 壁砺106 + 壁砺110 sales "exceeded 12,000 units" per the HK IPO prospectus.
+        - HKEX listing hearing cleared 2025-12-17; IPO January 2026. The figure is cumulative to the prospectus cut-off, not a current run rate.
+        - Backlog reported at approximately RMB 1.2 B.
+      sources:
+        - https://chinabizinsider.com/chinese-gpu-chip-designer-biren-technology-clears-hong-kong-ipo-hurdle-eyes-listing/
+
+    - group: Not disclosed / not verified
+      confidence: not disclosed
+      facts:
+        - FLOPS, HBM type/capacity/bandwidth and process node for BR106, BR110, BR166 and BR20X.
+        - Per-link and aggregate BLink 2.0 bandwidth; BLink bandwidth for the shipping 壁砺 generation.
+        - "BR166 die-to-die bandwidth. The 896 GB/s figure is BR100/CoWoS-S specific and must NOT be carried over."
+        - BR20X die count, chiplet composition and tape-out date.
+        - "No Biren paper found at Hot Chips 2026 / ISCA 2026 / ISSCC 2026. The Hot Chips program page returned HTTP 403, so this is 'could not verify', not 'absent'. Hot Chips 38 runs 2026-08-23 to 08-25 — after this investigation — and no slides or abstracts exist yet."
+        - No MLPerf submission found for any Biren part.
+      sources:
+        - https://www.birentech.com/product/hardware/166m/
+        - https://www.birentech.com/news/odug5ugc29npl8m6slum8d9k/
+
+  methodology_caveat: >
+    This update ran with an exhausted WebSearch budget; independent discovery went through WebFetch against
+    DuckDuckGo HTML and direct primary URLs. English-language coverage is thinner than ideal. Baidu Baike
+    returned HTTP 403 on direct fetch and was read only via search snippets.

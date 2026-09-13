@@ -1,0 +1,223 @@
+chip: nvidia-gpu
+investigation: software-stack
+date: "2026-08-08"
+confidence: high
+scope: >
+  Cross-cutting, dated record of NVIDIA platform software changes. Per-component detail
+  lives in the sibling investigations (cuda-programming-guide, cuda-runtime, cccl-cublas,
+  cudnn, cutlass, triton, nccl, ptx-isa, open-gpu-kernel-modules). Created 2026-08-08.
+
+# ============================================================================
+# Window scanned: 2026-04-05 -> 2026-08-08
+# ============================================================================
+update_2026_08_08:
+  headline: >
+    No new silicon, but the CUDA platform moved: NCCL 2.30.x removes SM occupancy from
+    collectives and adds MoE-specific collectives (NCCL EP), and the survey's coverage of
+    NVIDIA's tile programming stack (Tile IR + cuTile) was missing entirely — that stack
+    predates the survey baseline and is recorded here as a gap closed, not as news.
+
+  fact_groups:
+
+    - group: cuda_tile_stack
+      layer: "Compiler / IR, Kernel Library, Assembler / ISA"
+      confidence: confirmed
+      window_status: pre_baseline_coverage_gap
+      facts:
+        cuda_tile_repo:
+          name: NVIDIA/cuda-tile
+          description: "MLIR-based IR and compiler infrastructure targeting NVIDIA tensor core units"
+          created: "2025-11-05"
+          releases:
+            v13.1.0: "2026-01-14"
+            v13.2.0: "2026-03-24"
+            v13.3.0: "2026-05-28"
+            v13.3.1: "2026-06-27"
+            v13.3.2: "2026-06-27"
+            v13.3.3: "2026-07-22"
+        cutile_python_repo:
+          name: NVIDIA/cutile-python
+          description: "cuTile is a programming model for writing parallel kernels for NVIDIA GPUs"
+          created: "2025-06-13"
+          releases:
+            v1.3.0: "2026-04-19"
+            v1.4.0: "2026-05-26"
+            v1.5.0: "2026-07-07"
+        tile_ir_as_component:
+          name: "CUDA TILE-IR AS"
+          cuda_13_2_GA: "13.2.51"
+          cuda_13_3_update_1_GA: "13.3.36"
+          cuda_13_4_preview: "13.4.46"
+        hardware_support_limitation: "tileiras (version 13.2) supports Blackwell and Ampere/Ada GPUs only; 'Hopper GPU will be supported in the coming versions'"
+        toolchain_requirements: "CUDA Toolkit 13.1+; driver r580+"
+      rejected_claims:
+        - claim: "cuTile went from experimental (13.1) to stable (13.2)"
+          verdict: unsupported
+          reason: "No release note documents any experimental-to-stable transition; the README only separates a stable core cuda.tile API from separately marked experimental features."
+        - claim: "CUDA TILE-IR AS is a novelty of the 13.4 developer preview"
+          verdict: false
+          reason: "Already present in CUDA 13.2 GA at 13.2.51 and in 13.3 Update 1 GA at 13.3.36."
+      sources:
+        - title: "NVIDIA/cuda-tile"
+          url: "https://github.com/NVIDIA/cuda-tile"
+        - title: "NVIDIA/cutile-python"
+          url: "https://github.com/NVIDIA/cutile-python"
+        - title: "cutile-python README"
+          url: "https://raw.githubusercontent.com/NVIDIA/cutile-python/main/README.md"
+        - title: "CUDA Toolkit Release Notes (GA)"
+          url: "https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html"
+
+    - group: cuda_toolkit_versions
+      layer: "Compiler / IR, Runtime, Driver / Firmware"
+      confidence: confirmed
+      facts:
+        current_GA: "CUDA 13.3 Update 1"
+        developer_preview:
+          version: "CUDA 13.4"
+          release_notes_dateline: "2026-07-16"
+          prerelease: true
+          usage_constraint: "NVIDIA: performance data from this preview 'must not be published, reported, compared, or used to characterize NVIDIA hardware' — cite for feature existence only"
+          listed_features:
+            - "New and updated PTX ISA, including some Rubin capabilities"
+            - "CUDA Tile and TileIR compilation and inspection"
+            - "CUDA Toolkit preview for RTX Spark and Rubin"
+            - "RTX Spark Windows-on-Arm preview"
+          cpp_tile_additions:
+            - "numeric formats and mixed precision"
+            - "MMA operations"
+            - "tile views / layouts / sub-views"
+            - "reductions and user-defined reductions"
+            - "tile-level synchronization and communication"
+          component_versions:
+            cuda_tile_ir_as: "13.4.46"
+            cublas: "13.7.0.10"
+            cufft: "12.4.0.16"
+          driver_unbundled: "Starting with CUDA 13.4 the NVIDIA Linux driver is no longer bundled with the CUDA Toolkit"
+          minimum_driver: "R616+"
+        rubin_compute_capability_in_GA: not disclosed
+        sm_targets_referenced_in_GA_notes: [sm_90, sm_100, sm_103, sm_120, sm_121]
+        cuda_13_2_GA_library_changes:
+          - "cuBLASLt experimental Grouped GEMM extended to MXFP8 inputs on compute capability 10.x and 11.0"
+          - "FP64 fixed-point emulation added to cublas[D|Z]syrk / syr2k / Zherk / Zher2k"
+          - "cuSOLVER fixed-point FP64 emulation APIs"
+        doc_pins_refreshed:
+          ptx_isa: "v9.3 (was v9.2 in repo)"
+          cublas: "13.7.x (was v13.2 in repo)"
+      rejected_claims:
+        - claim: "CUDA 13.2 extended Cooperative Groups with new grid_group synchronization primitives"
+          verdict: unsupported
+          reason: "The 13.2 notes document only CUDA 13.0's removal of multi-device (this_multi_grid) APIs."
+        - claim: "sm_110 (arm64-sbsa) is a supported SM target"
+          verdict: unconfirmed
+          reason: "Not present in the GA notes read; GA notes reference sm_90/100/103/120/121."
+      sources:
+        - title: "CUDA Toolkit Release Notes (GA — 13.3 Update 1)"
+          url: "https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html"
+        - title: "CUDA 13.4 Developer Preview Release Notes PDF"
+          url: "https://docs.nvidia.com/cuda/developer-preview/13.4/pdf/CUDA_Toolkit_Release_Notes.pdf"
+        - title: "CUDA 13.2 Archived Release Notes"
+          url: "https://docs.nvidia.com/cuda/archive/13.2.0/cuda-toolkit-release-notes/index.html"
+        - title: "PTX ISA v9.3"
+          url: "https://docs.nvidia.com/cuda/parallel-thread-execution/"
+
+    - group: nccl_2_30_x
+      layer: Communication
+      confidence: confirmed
+      date_corroboration: "git committer timestamps on the tagged commits, fetched via the GitHub API"
+      facts:
+        v2_30_3_1:
+          date: "2026-04-15"
+          changes:
+            - "GIN contexts no longer shared between device communicators on the same host communicator"
+            - "per-context GPU-/CTA-scoped GIN resource sharing"
+            - "elastic buffers: large tensors split into multi-segment windows, active region in GPU memory, remainder in host memory"
+            - "TMA support in select built-in symmetric kernels (NCCL_SYM_TMA_ENABLE=1)"
+            - "experimental gin.get with nonblocking flush"
+            - "Dynamic Direct Path (DDP)"
+        v2_30_4_1:
+          date: "2026-04-22"
+          changes:
+            - "elastic buffer support with GIN"
+            - "nccl_param header fix"
+        v2_30_7_1:
+          date: "2026-06-04"
+          changes:
+            - "hierarchical zero-SM collectives (AllGather, All2all): RMA CPU proxy inter-node + Copy Engines intra-node, enabled with NCCL_CTA_POLICY_ZERO"
+            - "experimental GPU Push Interface (GPI) backend for GIN"
+            - "explicit Strong/Weak GIN signal semantics"
+            - "RMA plugin restructure"
+            - "window registration during CUDA graph capture"
+            - "experimental MPS with MLOPart (CUDA Memory Locality Optimized Partition, up to 2 ranks per physical GPU)"
+        architectural_significance: "zero-SM collectives remove SM occupancy cost from collectives, decoupling communication from compute occupancy"
+        experimental_flags: [GPI backend for GIN, MPS with MLOPart]
+      sources:
+        - title: "NVIDIA/nccl releases (GitHub API)"
+          url: "https://api.github.com/repos/NVIDIA/nccl/releases"
+
+    - group: moe_collectives
+      layer: Communication
+      confidence: confirmed
+      facts:
+        nccl_ep:
+          tag: nccl-ep-v0.1.0
+          date: "2026-06-08"
+          location: "release tag inside the NVIDIA/nccl repository (not a standalone repo)"
+          description: "high-performance NCCL API extension for efficient Mixture-of-Experts (MoE) communication"
+          built_on: "NCCL Device API (LSA + GIN)"
+          features:
+            - "dispatch/combine primitives for Expert Parallelism"
+            - "CUDA-Graph-compatible handle management: ncclEpInitHandle (control path) / ncclEpUpdateHandle (data path)"
+            - "user-settable SM count"
+            - "NCCL Window association for zero-copy"
+            - "Flat / Expert-major / Rank-major dispatch layouts"
+            - "active-rank masking for fault tolerance"
+        nccl4py:
+          tag: nccl4py-v0.3.1
+          date: "2026-06-11"
+          prior_release: {tag: nccl4py-v0.2.0, date: "2026-04-24", content: "RMA/GIN/elastic-communicator bindings"}
+          features:
+            - "nccl.ep Python package"
+            - "nccl.core.device.cute — CuTeDSL kernels calling NCCL device APIs"
+            - "free-threaded CPython support"
+        nccl_extensions:
+          repo: NVIDIA/nccl-extensions
+          created: "2026-07-07"
+          last_push_observed: "2026-08-08"
+          description: "Communication patterns for AI, built on top of NCCL device and host APIs"
+          status: watch_item
+      rejected_claims:
+        - claim: "NCCL EP has full Multi-Node-NVLink support"
+          verdict: unsupported
+          reason: "MNNVL is not mentioned in the v0.1.0 release notes; they describe it as built on the NCCL Device API (LSA + GIN)."
+        - claim: "NCCL EP and nccl4py are two new standalone NVIDIA packages"
+          verdict: false
+          reason: "Both are release tags inside NVIDIA/nccl, and nccl4py is not new (v0.2.0 shipped 2026-04-24)."
+      sources:
+        - title: "NVIDIA/nccl releases (GitHub API)"
+          url: "https://api.github.com/repos/NVIDIA/nccl/releases"
+        - title: "NVIDIA/nccl-extensions"
+          url: "https://github.com/NVIDIA/nccl-extensions"
+
+    - group: benchmark_software_versions
+      layer: "Framework Integration"
+      confidence: confirmed
+      facts:
+        mlperf_training_v6_0_nvidia_stack:
+          container: "NeMo container 26.06"
+          techniques:
+            - "full-iteration CUDA Graphs for token-dropless MoEs"
+            - "Spectrum-X Ethernet Advanced Adaptive Routing"
+      rejected_claims:
+        - claim: "NeMo Framework 26.04 was the MLPerf v6.0 stack"
+          verdict: false
+          reason: "NVIDIA's own results post states NeMo container 26.06."
+      sources:
+        - title: "NVIDIA Blackwell Tops MLPerf Training v6.0 — NVIDIA Technical Blog"
+          url: "https://developer.nvidia.com/blog/nvidia-blackwell-tops-mlperf-training-6-0-with-industry-leading-scale-and-performance/"
+
+  not_yet_public:
+    - item: "Hot Chips 38 (Aug 23-25, 2026)"
+      status: "disclosure scheduled, content not yet public"
+      note: "15 days in the future as of 2026-08-08; program is public but no slides, abstracts, or specs exist. No talk title is cited as a source for any spec."
+
+openness: proprietary_platform_with_significant_oss_components

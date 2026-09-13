@@ -1,0 +1,130 @@
+chip: qualcomm-cloud-ai-100
+investigation: software-stack
+date: "2026-04-05"
+confidence: high
+
+layers:
+  framework:
+    inputs: [PyTorch, TensorFlow, ONNX]
+    public: true
+  compiler:
+    name: qaic-compile / AI Hub Workbench
+    input_formats: [ONNX, TorchScript]
+    quantization: INT8_post_training
+    fusion: [conv_bn, gemm_activation, multi_op]
+    output: QNN_context_binary
+    custom_ops: C++_plugin
+    public: false  # closed binary
+  onnx_runtime_path:
+    name: QNN Execution Provider
+    description: ONNX Runtime -> QNN SDK -> AIC100
+    public: true
+  executorch_path:
+    name: ExecuTorch Qualcomm AI Engine Direct backend
+    public: true
+  runtime:
+    name: libQAic (Cloud AI SDK)
+    language: "C++, Python"
+    async: true
+    multi_soc_sharding: true  # Ultra card
+    github: "https://github.com/quic/cloud-ai-sdk"
+    public: true
+  driver:
+    name: QAIC kernel driver
+    location: "drivers/accel/qaic/ (Linux upstream)"
+    upstream_since_kernel: "6.3"
+    mq_dma: true
+    public: true
+  firmware:
+    name: AIC100 firmware
+    public: false
+
+openness: mostly_open  # driver and SDK open; compiler closed
+
+sources:
+  - https://quic.github.io/cloud-ai-sdk-pages/latest/Getting-Started/Architecture/
+  - https://docs.kernel.org/accel/qaic/aic100.html
+  - https://github.com/quic/cloud-ai-sdk
+  - https://onnxruntime.ai/docs/execution-providers/QNN-ExecutionProvider.html
+
+# =====================================================================
+# UPDATE 2026-08-08 — Modular acquisition + SDK release provenance
+# Additive: the qaic-compile -> QNN -> libQAic -> QAIC driver path above
+# is unchanged and remains the production path for Cloud AI 100.
+# =====================================================================
+update_2026_08_08:
+  as_of: "2026-08-08"
+
+  modular_acquisition:
+    confidence: high
+    status: COMPLETED            # NOT 'pending' — the deal closed
+    announced: "2026-06-24"
+    announced_pr_title: "Qualcomm to Acquire Modular"
+    close_guidance_at_announcement: "H2 2026"
+    completed: "2026-07-29"
+    completed_pr_title: "Qualcomm Completes Acquisition of Modular"
+    financial_terms: not_disclosed
+    products_continuing_as_brands: [Mojo, MAX, "Modular Cloud"]
+    leadership: "Chris Lattner became Qualcomm EVP of Advanced AI Software and Platforms"
+    caveat_pr_wording: >-
+      Qualcomm's June acquisition PR does NOT name Mojo or MAX. It describes acquiring 'an open,
+      AI-native software stack' running 'across CPU, GPU, NPU, and custom ASIC architectures'.
+      The Mojo/MAX identification comes from Modular's side.
+    framing:
+      correct: >-
+        Adds an open, MLIR-based, silicon-agnostic compute layer ALONGSIDE Qualcomm's existing
+        closed qaic-compile + QNN context binary + libQAic path.
+      incorrect: >-
+        'Modular replaces Qualcomm's software stack.' No source says this. No Mojo/MAX backend
+        for AI200/AI250/AI300 has been described.
+    sources:
+      - https://www.qualcomm.com/news/releases/2026/06/qualcomm-to-acquire-modular
+      - https://www.qualcomm.com/news/releases/2026/07
+      - https://www.modular.com/blog/qualcomm-completes-acquisition-of-modular
+      - https://www.modular.com/blog
+
+  efficient_transformers_releases:
+    confidence: high
+    repo: https://github.com/quic/efficient-transformers
+    date_correction: >-
+      An earlier scan attributed WAN non-unified execution, transformer_high/transformer_low, and
+      first-block-cache for WAN/FLUX to 'April 2026 additions'. There is NO April 2026 release.
+    releases:
+      - version: v1.21.0
+        date: "2025-12-22"
+        contents: ["FLUX.1-schnell diffusion support", "WAN 2.2 support"]
+      - version: v1.22.0
+        date: "2026-06-18"
+        contents:
+          - "WAN 2.2 dual-stage high/low-noise transformers"
+          - "first-block-caching infrastructure for Diffusers models"
+          - "blocked-KV attention"
+          - "layerwise ONNX export for large MoE"
+          - "moves to HF Transformers 5.5.4 and Python 3.12"
+    assessment: "incremental, generative-media-focused; NOT architectural"
+    dragonfly_support: none      # release notes show no AI200/AI250 support; SDK remains Cloud AI 100-targeted
+    sources:
+      - https://github.com/quic/efficient-transformers/releases
+
+  hugging_face:
+    confidence: medium_high
+    note: "Qualcomm and Hugging Face expanded their relationship 'from device to cloud' on 2026-06-24"
+    sources:
+      - https://www.qualcomm.com/news/releases
+
+  dragonfly_toolchain:
+    confidence: high
+    status: none_published
+    note: >-
+      As of 2026-08-08 there is no published compiler, runtime or driver support for AI200, AI250,
+      AI300 or the C1000 CPU. The QAIC upstream driver and libQAic target AIC100 only.
+
+  openness_updated:
+    qaic_linux_driver: open
+    cloud_ai_sdk_libqaic: open
+    efficient_transformers: open
+    qnn_sdk: public_not_fully_open
+    qaic_compile: closed_binary
+    mojo: "MLIR-based, Modular-governed; Qualcomm-owned since 2026-07-29"
+    max_and_modular_cloud: "Modular products continuing under Qualcomm since 2026-07-29"
+    firmware_and_chip_design: closed

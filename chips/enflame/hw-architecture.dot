@@ -1,0 +1,156 @@
+digraph enflame_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.5;
+    nodesep=0.4;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sip [label="SIP — Scalable Intelligent Processor\nTensor ALU (FP32/TF32/FP16/BF16/INT8)\nData Transfer Engine (local DMA)\nLocal SRAM Scratchpad + Sparsity Engine", fillcolor="#FFCDD2"];
+        sic [label="SIC — Scalable Intelligent Cluster\n8 SIPs + Shared SRAM + GCU-DARE fabric\nInter-SIP tile exchange and reduction", fillcolor="#FFCDD2"];
+        count [label="Core Count by Product\nT10 (DTU 1.0, GF 12LP): 32 SIPs / 4 SICs\ni20 (DTU 2.0 infer, 12 nm): 32 SIPs / 4 SICs\nT20 (DTU 2.0 train, 12 nm): 32+ SIPs\nS60 (DTU 3.0, TSMC N6): undisclosed\nL600 (DTU 4.0): undisclosed", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        care [label="GCU-CARE\n(Compute Architecture Reconfigurable Engine)\nStatic compile-time graph mapping\nNo dynamic warp scheduling\nTopsCC lowers graph to CARE fabric", fillcolor="#FFE0B2"];
+        dare [label="GCU-DARE\n(Data-path Architecture Reconfigurable Engine)\nInter-SIP tile routing within SIC\nDouble-buffering DMA overlap\nReduction / broadcast patterns", fillcolor="#FFE0B2"];
+        sparsity [label="Sparsity Engine\nHardware unstructured zero-skip\nWeight + activation sparsity\nNo explicit 2:4 pruning required", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP MEMORY =====================
+    subgraph cluster_onchip {
+        label="On-chip Memory";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sip_sram [label="SIP Local SRAM\nPer-SIP private scratchpad\nActivation tiling + weight staging\nTopsCC-managed (not user-addressable)", fillcolor="#BBDEFB"];
+        sic_sram [label="SIC Shared SRAM\nPer-cluster (8 SIPs share)\nInter-SIP data staging\nTopsCC-managed", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hbm2 [label="HBM2 (T10 / DTU 1.0)\n32 GB | ~512 GB/s\n2.5D MCM, GF 12LP", fillcolor="#C8E6C9"];
+        hbm2e [label="HBM2e (T20 / DTU 2.0)\n64 GB | 1.8 TB/s\n4× HBM2e stacks, 9-die MCM\n57.5×57.5 mm (China largest at launch)\ni20 variant: 16 GB | 819 GB/s", fillcolor="#C8E6C9"];
+        hbm3 [label="HBM3 (L600 / DTU 4.0)\n144 GB | 3.6 TB/s\nFP8 support\nUnveiled WAIC July 2025", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== HOST INTERFACE / PACKAGE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pcie [label="PCIe Gen4 x16 (T10/T20/S60)\nPCIe Gen5 (L600, likely)\n~64 GB/s bidir\nFHFL card form factor", fillcolor="#E1BEE7"];
+        pkg [label="2.5D MCM Advanced Package\nCompute chiplet(s) + HBM stack(s)\nSilicon interposer (CoWoS-style)\nS60: SCORPIO-AO compute chiplet (TSMC N6)", fillcolor="#E1BEE7"];
+        copos [label="CoPoS glass-substrate panel-level pkg\n(sample only, 2026-07-18, with 先封科技)\nTunable CTE, low signal loss\nNot used by any shipping product", fillcolor="#F3E5F5", style="rounded,filled,dashed"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect (GCU-LARE)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        lare [label="GCU-LARE\n(Local Area Reconfigurable Engine)\nProprietary chip-to-chip interconnect\nNon-cache-coherent\nLARE 2.0: 300 GB/s bidir\nL600 card: 800 GB/s (generation unnamed)", fillcolor="#B2DFDB"];
+        lare_bridge [label="GCU-LARE Bridge Card\n3× LARE ports per card\n4-card full-mesh intra-server\nNo external switch ASIC needed", fillcolor="#B2DFDB"];
+        smartcluster [label="SmartCluster\nFull-rack AI compute system\nGCU cards + LARE + ECCL\nScales to 1,000s of cards", fillcolor="#B2DFDB"];
+        esl64 [label="云燧 ESL64 Supernodes (with ZTE, 2026-07-18)\nESL64-O: OEX 正交无背板 orthogonal,\n  backplane-free, zero-cable interconnect\nESL64-C: copper Cable-tray; 10,000+ card clusters\nCard count / per-card BW / host silicon: not disclosed", fillcolor="#80CBC4"];
+        npo [label="NPO Optical Interconnect (prototype)\nNear-package optics; breaks copper reach\nClaimed stable support for 512+ card supernodes\nNo product, link rate, or supplier disclosed", fillcolor="#B2DFDB", style="rounded,filled,dashed"];
+    }
+
+    // ===================== SCALE-OUT INTERCONNECT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        eccl [label="ECCL\n(Enflame Collective Communication Library)\nAllReduce / AllGather\nNNCL analog over Ethernet/RoCE\nMulti-node distributed training", fillcolor="#CFD8DC"];
+        eth [label="Standard Ethernet / RoCE\nInter-node communication\nNo proprietary scale-out NIC\nSmartCluster network fabric", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute -> Data Path
+    sip -> care [label="executes\nstatic graph"];
+    sic -> dare [label="DARE\nroutes tiles"];
+    care -> sparsity [label="zero-skip\nhardware"];
+
+    // Data Path -> On-chip Memory
+    care -> sip_sram [label="R/W\noperands"];
+    dare -> sic_sram [label="async\nstaging"];
+    sic_sram -> sip_sram [label="tile\ndistribute"];
+
+    // On-chip -> Off-chip Memory
+    sip_sram -> hbm2 [label="DMA\n(T10)"];
+    sip_sram -> hbm2e [label="DMA\n(T20/i20)"];
+    sip_sram -> hbm3 [label="DMA\n(L600)"];
+
+    // Off-chip -> Host Interface
+    hbm2e -> pcie [style=dashed, label="host\nDMA"];
+    hbm3 -> pcie [style=dashed, label="host\nDMA"];
+
+    // Package -> PCIe
+    pkg -> pcie [style=dashed];
+    copos -> pkg [style=dashed, label="future\npkg route", color="#6A1B9A"];
+
+    // Scale-up internal
+    lare -> lare_bridge [label="bridge\ncard"];
+    lare_bridge -> smartcluster [label="rack\nscale"];
+    smartcluster -> esl64 [label="supernode\ntier"];
+    npo -> esl64 [style=dashed, label="optical\nscale-up (proto)"];
+
+    // Scale-up -> Scale-out
+    smartcluster -> eth [label="inter-node", style=dashed];
+    esl64 -> eth [label="cluster\nnetworking", style=dashed];
+    eccl -> lare [label="collectives\nover LARE"];
+    eth -> eccl [style=dashed, label="RoCE\nfabric"];
+
+    // HBM evolution
+    hbm2 -> hbm2e [style=dashed, label="DTU 2.0\nupgrade", color="#2E7D32"];
+    hbm2e -> hbm3 [style=dashed, label="DTU 4.0\nupgrade", color="#2E7D32"];
+}

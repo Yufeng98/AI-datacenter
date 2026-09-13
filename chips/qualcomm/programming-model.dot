@@ -1,0 +1,100 @@
+digraph qualcomm_cloud_ai_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK =====================
+    subgraph cluster_framework {
+        label="Model Sources";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nTorchScript / torch.export", fillcolor="#D6E4F0"];
+        onnx_src [label="ONNX\n(dynamic shapes)", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow\n(via ONNX export)", fillcolor="#D6E4F0", style="rounded,dashed,filled"];
+    }
+
+    // ===================== COMPILER =====================
+    subgraph cluster_compiler {
+        label="Compiler";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        qaic_compile [label="qaic-compile / AI Hub Workbench\nONNX/TorchScript → QNN graph\nINT8 quantization\nOperator fusion", fillcolor="#E4DEFF"];
+        qnn_ep [label="ONNX Runtime QNN EP\nDirect ONNX → AIC100\nProduction serving path", fillcolor="#E4DEFF"];
+        executorch [label="ExecuTorch\nQualcomm AI Engine\nDirect backend", fillcolor="#E4DEFF", style="rounded,dashed,filled"];
+    }
+
+    // ============ MODULAR (acquisition completed 2026-07-29) ============
+    subgraph cluster_modular {
+        label="Modular — acquired by Qualcomm, completed 2026-07-29 (additive, not a replacement)";
+        style="rounded,dashed";
+        color="#F9A825";
+        fontcolor="#8D6E00";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mojo [label="Mojo\nMLIR-based kernel language\nsilicon-agnostic", fillcolor="#FFF3CD"];
+        max_platform [label="MAX inference platform\n+ Modular Cloud\n\"write once, run anywhere\"\nCPU / GPU / NPU / custom ASIC", fillcolor="#FFE082"];
+        mojo -> max_platform;
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        libqaic [label="libQAic (Cloud AI SDK)\nC++/Python API\nAsync inference queuing\nMulti-SoC sharding", fillcolor="#F8D7DA"];
+        driver [label="QAIC Kernel Driver\ndrivers/accel/qaic/ (upstream Linux)\nMQ DMA, IOMMU\nPCIe Gen4", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="AIC100 SoC (×1 Standard / ×4 Ultra)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        ai_cores [label="16 Hexagon AI Cores (per SoC)\nTensor (HMX): 8192 INT8 ops/cycle\nVector (HVX): 512 INT8 ops/cycle\nScalar (Q6): 4-way VLIW, 6 threads", fillcolor="#283593", fontcolor="white"];
+        sram [label="On-Chip SRAM\n144 MB/SoC (576 MB Ultra)\nKV-cache + activation storage", fillcolor="#283593", fontcolor="white"];
+        noc [label="3× Network on Chip\nCompute NoC: 186 GB/s\nMemory NoC | Config NoC", fillcolor="#283593", fontcolor="white"];
+        lpddr [label="LPDDR4X DRAM\nStandard: 32 GB, 136 GB/s\nUltra: 128 GB, 548 GB/s\n(no HBM by design)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+    pytorch -> qaic_compile;
+    onnx_src -> qaic_compile;
+    onnx_src -> qnn_ep;
+    pytorch -> executorch [style=dashed];
+    tf -> onnx_src [style=dashed, label="export", fontsize=8];
+    qaic_compile -> libqaic [label="QNN binary", fontsize=8];
+    qnn_ep -> libqaic [style=dashed];
+    executorch -> libqaic [style=dashed];
+    libqaic -> driver;
+    pytorch -> max_platform [style=dotted, color="#F9A825"];
+    max_platform -> driver [style=dotted, color="#F9A825", label="no published\nAI200/AI250/AI300 backend", fontsize=8, fontcolor="#8D6E00"];
+    driver -> ai_cores;
+    ai_cores -> noc;
+    noc -> sram;
+    noc -> lpddr;
+    sram -> ai_cores [style=dashed, label="weights/KV", fontsize=8];
+}

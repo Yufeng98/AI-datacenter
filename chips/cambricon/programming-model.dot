@@ -1,0 +1,182 @@
+digraph cambricon_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch_mlu (device backend)\nATen dispatch → CNNL\ntorch.distributed + CNCL", fillcolor="#D6E4F0"];
+        vllm [label="vllm-mlu\nLLM inference serving\nChunk Prefill, Prefix Cache\nGraph Mode, Sleep Mode (SDK 25.08+)\nDeepSeek-V4 day-0 (2026-04-24)\nTP/PP/SP/DP/EP + PD-separated", fillcolor="#D6E4F0"];
+        paddle [label="PaddlePaddle\nPaddleCustomDevice plugin\n264+ custom ops\nlibpaddle-custom-mlu.so", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        bangc [label="BANG C + CNCC\nC/C++ MLU kernel DSL\n__mlu_global__, __nram__, __wram__\nCNCC → MLISA assembly", fillcolor="#E4DEFF"];
+        magicmind [label="MagicMind\nMLIR inference compiler\nTF/PyTorch/ONNX/Caffe input\nFusion + quant + layout opt", fillcolor="#E4DEFF"];
+        tritonlinalg [label="triton-linalg\nTriton→Linalg conversion\nCambricon backend lowering\n(frontend complete; no public\npush since 2025-02)", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cnnl [label="CNNL\nCambricon Neuware NN Lib\nGEMM, Conv, BN, Attn, Pooling\ncnnlMatMul, cnnlConvForward", fillcolor="#D4EDDA"];
+        cnnl_extra [label="CNNL_Extra\nExtended ML ops\nbeyond core CNNL", fillcolor="#D4EDDA"];
+        tmluops [label="Torch-MLU-Ops\nSelf-developed fused op library\nfor PyTorch (v1.3.2, 2026-02)\nBackend for vLLM / TGI / SD WebUI\nDeepSeek-V4 Compressor + mHC", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mluops [label="mlu-ops / BANGC OPS\nOpen-source BANG C kernels\n100s of ML operators\nCNNL integration helpers", fillcolor="#FFF3CD"];
+        bangpy [label="BANGPy\nPython kernel DSL\ngraph/kernel/op-level\ncustom MLU kernels", fillcolor="#FFF3CD"];
+        cncv [label="CNCV\nComputer Vision Library\nDecode, Resize, Normalize\nvision preprocessing", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cnrt [label="CNRT — libcnrt.so\nQueues (async streams)\nNotifiers (events)\ncnrtMalloc, cnrtInvokeKernel", fillcolor="#F8D7DA"];
+        cndrv [label="CNDrv — libcndrv.so\nDriver API\nContext / module management\nFine-grained memory control", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="cambricon-mlu.ko\nLinux kernel driver\nPCIe BAR, IOCTL dispatch\nDMA engine control", fillcolor="#E0E0E0"];
+        k8s [label="K8s Device Plugin\nDaemonSet\nMLU resource reporting\nPrometheus mlu-exporter", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cncl [label="CNCL\nAllReduce, AllGather\nReduceScatter over MLU-Link\ntorch.distributed backend", fillcolor="#FFE0CC"];
+        gloo [label="Gloo (heterogeneous)\nCross-vendor collectives\nMLU + non-MLU mixed clusters", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mlisa [label="MLISA\n64-bit load-store ISA\nScalar/Vector/Matrix/Control\n64 GPRs per Core", fillcolor="#EFEBE9"];
+        cnas [label="CNAS Assembler\n.mlisa → .cnbin/.cnfatbin\nMulti-generation fat binary", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Cambricon MLU Hardware (Neural Processor)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        core [label="MLU Core (IPU Core)\nFU: Scalar/Vector/Matrix/Tensor\n64 GPRs | NRAM (activations)\nWRAM (weights) | SPMD model", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nNRAM + WRAM (per-core scratchpad)\nShared SRAM (per-cluster)\nGDRAM: LPDDR5 48GB 614GB/s (MLU370)\nor HBM2 32GB 1228GB/s (MLU290)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="MLU-Link + PCIe\nMLU-Link: dual-die, 8-card scale-up\nPCIe Gen4 x16 host interface\nCNCL for intra-node collectives", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> bangc [style=dashed, color="#AAAAAA"];
+    pytorch -> magicmind [style=dashed, color="#AAAAAA", label="inference", fontsize=8];
+    vllm -> bangc [style=dashed, color="#AAAAAA"];
+    tritonlinalg -> bangc [label="lowering", fontsize=8];
+
+    // Framework -> Op (direct dispatch)
+    pytorch -> cnnl [style=dashed, color="#AAAAAA", label="ATen ops", fontsize=8];
+    pytorch -> tmluops [style=dashed, color="#AAAAAA", label="fused ops", fontsize=8];
+    vllm -> tmluops [style=dashed, color="#AAAAAA", label="fused ops", fontsize=8];
+
+    // Compiler -> Op/Kernel
+    magicmind -> cnnl;
+    magicmind -> mluops;
+
+    // Op -> Kernel
+    cnnl -> mluops [label="custom ops", fontsize=8];
+    tmluops -> mluops [label="BANG C kernels", fontsize=8];
+
+    // Kernel -> Runtime
+    mluops -> cnrt;
+    bangpy -> cnrt;
+    cncv -> cnrt;
+
+    // Runtime chain
+    cnrt -> cndrv;
+    cndrv -> kmod;
+
+    // ISA chain
+    bangc -> mlisa [label="CNCC", fontsize=8];
+    mlisa -> cnas [label="assemble", fontsize=8];
+    cnas -> core;
+
+    // Communication
+    cncl -> cnrt [style=dashed];
+    gloo -> cncl [style=dashed, label="heterogeneous", fontsize=8];
+    cncl -> interconnect [style=dashed, color="#283593"];
+
+    // Hardware internal
+    core -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    kmod -> core [style=dashed, color="#283593"];
+    k8s -> kmod [style=dashed];
+}

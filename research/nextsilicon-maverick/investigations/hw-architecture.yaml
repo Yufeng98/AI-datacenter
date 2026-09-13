@@ -1,0 +1,402 @@
+chip: nextsilicon-maverick
+as_of: "2026-08-08"
+device_class: "Reconfigurable Dataflow Accelerator (runtime-JIT spatial grid; HPC-first)"
+investigation: hw-architecture
+
+vendor:
+  name: "NextSilicon Ltd"
+  country: Israel
+  founded: 2017
+  funding_raised_usd_m: 303          # "~$303M over 8 years", third-party reported
+  launch_date: "2025-10-22"
+  maturity: "shipping — limited deployment (1 named supercomputer + 1 EU evaluation)"
+  confidence: confirmed
+  sources:
+    - https://www.businesswire.com/news/home/20251022712360/en/
+    - https://www.nextplatform.com/compute/2025/10/22/nextsilicon-takes-aim-at-cpus-and-gpus-with-maverick-2-dataflow-engine/1639749
+
+# ── Scope flag ────────────────────────────────────────────────────────────────
+scope:
+  is_ai_accelerator: false
+  rationale: >
+    Datacenter-class hardware (OAM, 750 W, HBM3E, PCIe Gen5, deployed in a DOE/NNSA supercomputer)
+    but HPC-first. Published peak table lists FP64/FP32/FP16 only; FP32 and FP16 have identical
+    scalar/vector throughput, i.e. no low-precision multiplier. No BF16/FP8/INT8/sparsity figure
+    anywhere public. No MLPerf, no LLM result, no shipping framework integration.
+  confidence: confirmed
+  sources:
+    - https://image.nextplatform.com/214601.webp?imageId=214601&width=1412&height=1200&format=jpg
+    - https://www.nextsilicon.com/maverick
+    - https://chipsandcheese.com/p/nextsilicon-putting-hpc-first
+
+# ── SKUs ──────────────────────────────────────────────────────────────────────
+skus:
+  maverick2_pcie_card:
+    form_factor: "PCIe card, full-height, double-width"
+    dies: 1
+    riscv_e_cores: 32
+    tdp_w: 400
+    host_interface: "PCI Express 5.0 x16"
+    process_node: "TSMC 5nm"
+    packaging: "2.5D"
+    frequency_ghz: 1.5
+    hbm_type: HBM3E
+    hbm_capacity_gb: 96
+    hbm_bandwidth_tbs: 3.2
+    chip_level_cache_mb: 128        # vendor row label: "L1 cache" (spec table) / "Cache Coherence" (product page)
+    on_package_ethernet: "1 x 100 GbE"
+    cooling: "air"
+    transistors_b: 54
+    die_area_mm2: "not disclosed"
+    confidence: confirmed
+    sources:
+      - https://image.nextplatform.com/214601.webp?imageId=214601&width=1412&height=1200&format=jpg
+      - https://www.nextsilicon.com/maverick
+
+  maverick2_oam:
+    form_factor: "OAM"
+    dies: 2
+    riscv_e_cores: 64
+    tdp_w: 750
+    host_interface: "PCI Express 5.0 x16"
+    process_node: "TSMC 5nm"
+    packaging: "2.5D dual-die"
+    frequency_ghz: 1.5
+    hbm_type: HBM3E
+    hbm_capacity_gb: 192
+    hbm_capacity_note: "Chips and Cheese reports flavors up to 288 GB"
+    hbm_bandwidth_tbs: 6.4
+    chip_level_cache_mb: 256
+    on_package_ethernet: "2 x 100 GbE"
+    cooling: "liquid"
+    transistors_b: 108
+    die_area_mm2: "not disclosed"
+    confidence: confirmed
+    sources:
+      - https://image.nextplatform.com/214601.webp?imageId=214601&width=1412&height=1200&format=jpg
+      - https://www.nextsilicon.com/maverick
+      - https://chipsandcheese.com/p/nextsilicon-putting-hpc-first
+
+# ── Peak performance (vendor spec table, verbatim) ────────────────────────────
+peak_performance:
+  note: >
+    Transcribed verbatim from NextSilicon's own spec table as reproduced by The Next Platform.
+    This figure set is NOT on the vendor's own web page — the third-party reproduction is the only
+    public source for peak FLOPS.
+  single_die:
+    fp64_scalar_vector_tflops: 10.8
+    fp64_matrix_tensor_tflops: 20.2
+    fp32_scalar_vector_tflops: 20.3
+    fp32_matrix_tensor_tflops: 28.2
+    fp16_scalar_vector_tflops: 20.3
+    fp16_matrix_tensor_tflops: 28.2
+  dual_die_oam:
+    fp64_scalar_vector_tflops: 21.6
+    fp64_matrix_tensor_tflops: 40.3
+    fp32_scalar_vector_tflops: 40.7
+    fp32_matrix_tensor_tflops: 56.1
+    fp16_scalar_vector_tflops: 40.7
+    fp16_matrix_tensor_tflops: 56.4
+  bf16: "not disclosed — absent from the published table"
+  fp8: "not disclosed — absent from the published table"
+  int8: "not disclosed — absent from the published table"
+  int4: "not disclosed — absent from the published table"
+  structured_sparsity: "not disclosed — absent from the published table"
+  matrix_unit_mechanism: "not disclosed — no source explains how the grid is configured as a matrix/tensor unit"
+  confidence: confirmed
+  sources:
+    - https://image.nextplatform.com/214601.webp?imageId=214601&width=1412&height=1200&format=jpg
+
+# ── Compute engine ────────────────────────────────────────────────────────────
+compute_engine:
+  paradigm: "non-von-Neumann spatial dataflow ('Intelligent Compute Architecture', ICA)"
+  instruction_stream: "none on the grid — no branch predictor, no speculation, no prediction"
+  confidence: confirmed
+  sources:
+    - https://chipsandcheese.com/p/nextsilicon-putting-hpc-first
+    - https://www.nextplatform.com/compute/2025/10/22/nextsilicon-takes-aim-at-cpus-and-gpus-with-maverick-2-dataflow-engine/1639749
+
+  grid_organization:
+    compute_regions_per_die: 4
+    compute_blocks_per_region: 56       # 7 columns x 8 blocks
+    compute_blocks_per_die: 224
+    alus_per_compute_block: "not disclosed — 'hundreds of interlinked ALUs' (vendor); TNP states NextSilicon is not releasing the number"
+    total_alus_per_die: "not disclosed"
+    fpus_per_compute_block: "not disclosed"
+    riscv_e_core_placement: "32 per die, on the left and right outside edges"
+    confidence: likely
+    note: >
+      The 224 / 4-region / 7x8 counts are The Next Platform's own count from the vendor die shot,
+      not a vendor disclosure. TNP's ~196 ALUs/block and 'tens of thousands to close to a hundred
+      thousand ALUs' totals are explicitly third-party estimates from an illustration — NOT recorded
+      here as specs.
+    sources:
+      - https://www.nextplatform.com/compute/2025/10/22/nextsilicon-takes-aim-at-cpus-and-gpus-with-maverick-2-dataflow-engine/1639749
+      - https://image.nextplatform.com/214596.webp?imageId=214596&width=1412&height=1230&format=jpg
+
+  compute_block_microarchitecture:
+    units:
+      - name: Dispatcher
+        function: "Triggers computation after verifying the arrival of all data (dataflow firing rule)"
+      - name: Reservation Station
+        function: "Analogous to the general-purpose register state of instruction set processors"
+        capacity: "not disclosed"
+      - name: MMU / TLB
+        function: "Translate virtual addresses for local memory operations (per compute block — translation is distributed)"
+      - name: MEP (Memory Entry Point)
+        function: "Contained on compute blocks; acts like memory access instructions"
+    architected_register_file: "none — the reservation station plays that role"
+    patented_combination: "reservation station + dispatcher + dataflow compute block"
+    confidence: confirmed
+    sources:
+      - https://image.nextplatform.com/214597.webp?imageId=214597&width=1412&height=978&format=jpg
+      - https://www.nextplatform.com/compute/2025/10/22/nextsilicon-takes-aim-at-cpus-and-gpus-with-maverick-2-dataflow-engine/1639749
+
+  mill_core:
+    definition: >
+      NOT a physical core. A software-defined, dynamically instantiated projection of a compiled
+      dataflow subgraph onto ALUs. Many mill cores can be laid down on the same compute block
+      'Tetris style' and loaded/deleted as needed. The vendor FAQ calls it a 'software-defined core'.
+    per_block_capacity: "not disclosed"
+    max_graph_size: "not disclosed"
+    reconfiguration_latency: "vendor claims 'nanoseconds' — marketing claim, not measured publicly"
+    confidence: confirmed
+    sources:
+      - https://www.nextplatform.com/compute/2025/10/22/nextsilicon-takes-aim-at-cpus-and-gpus-with-maverick-2-dataflow-engine/1639749
+      - https://www.nextsilicon.com/faq
+
+  threading:
+    vendor_claim: "a mill core can support hundreds of threads at once (CTO Ilan Tayari)"
+    mechanism: >
+      Patent US11875153B1: on an 'inconsistent-latency operation' a thread's runtime context is
+      spilled into a context storage table (rows x columns) so the logical elements can be reused
+      immediately by another thread; the first thread resumes later. Dataflow analogue of GPU warp
+      switching.
+    total_thread_capacity: "not disclosed"
+    kokkos_concurrency_value: 65536
+    kokkos_concurrency_note: "marked FIXME placeholder in the Kokkos source — NOT a hardware spec"
+    confidence: unconfirmed
+    note: "Patent disclosure is not confirmed as shipping in Maverick-2 silicon."
+    sources:
+      - https://patents.google.com/patent/US11875153B1/en
+      - https://github.com/kokkos/kokkos/tree/develop/core/src/NextSilicon
+
+  fallback_tiers:
+    tier_1: "dataflow grid (compute blocks)"
+    tier_2: "32 (64 dual-die) on-die RISC-V E-cores"
+    tier_3: "external x86 host CPU"
+    vendor_offload_claim: "~80% of instruction runtime offloaded to the Maverick ALU blocks"
+    e_core_microarchitecture: "not disclosed — described only as Arbel-lineage control processors"
+    confidence: confirmed
+    sources:
+      - https://image.nextplatform.com/214600.webp?imageId=214600&width=1412&height=598&format=jpg
+      - https://www.nextplatform.com/compute/2025/10/22/nextsilicon-takes-aim-at-cpus-and-gpus-with-maverick-2-dataflow-engine/1639749
+
+# ── Memory hierarchy ──────────────────────────────────────────────────────────
+memory_hierarchy:
+  reservation_station:
+    capacity: "not disclosed"
+    management: "hardware, dataflow-triggered"
+    confidence: confirmed
+
+  tile_local_sram:
+    capacity: "not disclosed individually"
+    management: "software-managed; explicit DMA between tiles; NOT cache coherent"
+    ceo_quote: "'you need to do a DMA and move data around'; described as CUDA-shared-memory-like"
+    confidence: confirmed
+    sources:
+      - https://chipsandcheese.com/p/nextsilicon-putting-hpc-first
+
+  chip_level_cache:
+    capacity_mb: {single_die: 128, dual_die: 256}
+    management: "hardware cache; vendor product page labels the row 'Cache Coherence'"
+    coherence_domain: "not disclosed"
+    coherence_protocol: "not disclosed"
+    tension_note: >
+      Vendor labels this level coherent while the CEO states tile-local SRAM is not coherent. The
+      boundary between the coherent and non-coherent regions is not publicly specified.
+    confidence: likely
+    sources:
+      - https://image.nextplatform.com/214601.webp?imageId=214601&width=1412&height=1200&format=jpg
+      - https://www.nextsilicon.com/maverick
+      - https://patents.google.com/patent/US20190042427A1/en
+
+  hbm:
+    type: HBM3E
+    capacity_gb: {single_die: 96, dual_die: 192}
+    bandwidth_tbs: {single_die: 3.2, dual_die: 6.4}
+    stacks: "not disclosed"
+    per_stack_config: "not disclosed"
+    confidence: confirmed
+
+  unified_virtual_memory:
+    model: "host and device share a single virtual address space"
+    allocation: "NextSiliconSharedSpace::allocate is a plain std::aligned_alloc on the host heap — no explicit device allocation call exists"
+    migration: "exception-based demand page migration by the 'NextSilicon UVM migration runtime'"
+    page_sizes: ["4KiB", "16KiB", "64KiB", "256KiB", "1MiB", "4MiB", "16MiB", "64MiB", "256MiB", "1GiB", "4GiB", "16GiB"]
+    page_size_selection: "chosen by the runtime from the alignment of the allocation"
+    pinning_api: "nextapi_mem_migrate(ptr, size, NEXTAPI_PAGE_LOC_HOST, pin); PageLocation { Host, Device, Any }"
+    known_hazard: "stack can be migrated to device — Kokkos clones the driver to prevent it"
+    confidence: confirmed
+    note: "Best primary evidence on this chip: code comments in a non-vendor-controlled upstream repository."
+    sources:
+      - https://github.com/kokkos/kokkos/blob/develop/core/src/NextSilicon/Kokkos_NextSiliconSpace.cpp
+      - https://github.com/kokkos/kokkos/blob/develop/core/src/NextSilicon/Kokkos_NextSilicon_PageAlignedData.hpp
+
+# ── Interconnect ──────────────────────────────────────────────────────────────
+interconnect:
+  on_chip_noc:
+    type: "custom, non-uniform by design"
+    barriers: "'NOC barriers' between tiles; crossing costs a latency (not throughput) penalty"
+    penalty_magnitude: "not disclosed"
+    topology: "not disclosed"
+    link_width: "not disclosed"
+    bisection_bandwidth: "not disclosed"
+    design_implication: "locality is the explicit objective of the runtime optimizer's 'relocation' action"
+    confidence: confirmed
+    sources:
+      - https://chipsandcheese.com/p/nextsilicon-putting-hpc-first
+
+  die_to_die:
+    present: true
+    technology: "not disclosed"
+    width: "not disclosed"
+    bandwidth: "not disclosed"
+    latency: "not disclosed"
+    coherence: "not disclosed — no source states whether the two OAM dies present as one device or two"
+    confidence: unconfirmed
+
+  scale_up:
+    proprietary_fabric: null
+    note: "No NVLink/Infinity-Fabric analogue in any public source. Multi-device via PCIe Gen5 x16 plus network."
+    confidence: confirmed
+
+  scale_out:
+    on_package_ethernet: "2 x 100 GbE (OAM) / 1 x 100 GbE (card) integrated on the device"
+    other: "CEO mentions InfiniBand, Ethernet, RDMA at system level"
+    partnership:
+      partner: "Cornelis Networks"
+      date: "2026-06-22"
+      scope: "joint reference architectures with CN5000 400 Gbps; testing to extend to CN6000 800 Gbps in H2 2026"
+      attachment_details: "not specified"
+      confidence: confirmed
+      sources:
+        - https://www.nextsilicon.com/insights/cornelis-nextSilicon-to-build-joint-reference-architectures-for-ai-and-hpc/
+    confidence: confirmed
+
+# ── Host / package ────────────────────────────────────────────────────────────
+host_interface:
+  pcie: "PCI Express 5.0 x16 (both SKUs)"
+  host_cpu: "External. NextSilicon's own Arbel RISC-V CPU is intended to fill this role eventually."
+  confidence: confirmed
+
+# ── Companion CPU (context only, NOT an AI accelerator) ───────────────────────
+companion_cpu_arbel:
+  in_registry: false
+  cores: 64
+  frequency_ghz: 3.4
+  pipeline_width: 10
+  rob_entries: 480
+  vector_units: "CONFLICT — vendor product page says 3 x 256-bit; The Next Platform and the vendor's own 2026-06-10 post both say four 128-bit"
+  isa: "RVA23 (Hypervisor) + custom extensions"
+  cache_test_chip: "64 KB L1I + 64 KB L1D, 1 MB L2, 2 MB L3 per core (TNP)"
+  spec_claims: "2.6 SPECint2017/GHz, 3.4 SPECfp2017/GHz — vendor estimates, explicitly NOT reviewed or endorsed by SPEC"
+  status: "test chip on TSMC 5nm, in customer/partner silicon evaluations"
+  production_target: "64- and 128-core parts targeted Q1 2028; production node described only as 'advanced'"
+  link_to_maverick: "vendor states Arbel was 'originally designed as the control processor within Maverick-2' — the on-die E-cores are Arbel-lineage"
+  confidence: likely
+  sources:
+    - https://www.nextsilicon.com/risc-v/
+    - https://www.nextsilicon.com/insights/nextsilicon-productize-arbel-risc-v-core-into-64core-enterprise-processor-for-ai-hpc/
+    - https://www.nextplatform.com/compute/2025/10/22/nextsilicon-takes-aim-at-cpus-and-gpus-with-maverick-2-dataflow-engine/1639749
+
+# ── Performance results (all vendor-supplied) ─────────────────────────────────
+performance_results:
+  evidence_class: "vendor claim — baselines never named, no independent reproduction"
+  benchmarks:
+    gups: {maverick2: 32.6, at_watts: 460, gpu: 5.6, cpu: 1.4}
+    hpcg: {maverick2_gflops_per_w: 0.8, maverick2_gflops: 600, at_watts: 750, gpu: 0.428, cpu: 0.21}
+    stream: {achieved_tbs: 5.2, pct_of_peak: 83.9, caveat: "The Next Platform: 'we do not believe this is possible'"}
+    pagerank: {maverick2_gsteps: 40, graph_size_gb: 40, claim: "10x better; GPU falls off past 25 GB"}
+  umbrella_claims:
+    - "up to 10x the performance of leading GPUs while consuming as much as 60% less power"
+    - "4x greater performance-per-watt"
+  ai_ml_results: "NONE — no MLPerf, no LLM throughput, no training or inference number, no PyTorch benchmark (verified absent)"
+  confidence: confirmed
+  note: "Confirmed that the vendor made these claims; the claims themselves are unverified."
+  sources:
+    - https://image.nextplatform.com/214599.webp?imageId=214599&width=1412&height=874&format=jpg
+    - https://www.businesswire.com/news/home/20251022712360/en/
+
+# ── Deployments ───────────────────────────────────────────────────────────────
+deployments:
+  - name: "Spectra"
+    site: "Sandia National Laboratories"
+    programme: "Vanguard (NNSA Advanced Simulation and Computing; consortium with LLNL and LANL)"
+    programme_note: "second Vanguard platform; the first was Astra (2018)"
+    vendor_shorthand: "'Vanguard-II' in vendor FAQ/blog — inaccurate; Sandia's name is Spectra"
+    nodes: 64
+    accelerators: 128
+    accelerator_sku: "Maverick-2 dual-die OAM (2 per node)"
+    integrator: "Penguin Solutions (Tundra)"
+    cooling: "Chilldyne negative-pressure liquid"
+    day_one_applications: [HPCG, LAMMPS, SPARTA]
+    mission: "advanced fluid-dynamics simulation for nuclear deterrence assessment — not AI"
+    deployed: "2026-01"
+    full_system_acceptance: "2026-05-18"
+    classification: "first-of-kind evaluation testbed — NOT deployment at scale"
+    not_disclosed: [host CPU, node interconnect, storage, system software stack, total system power]
+    confidence: confirmed
+    sources:
+      - https://www.sandia.gov/labnews/2026/01/29/not-the-largest-supercomputer-but-maybe-the-most-interesting/
+      - https://www.nextsilicon.com/insights/spectra-supercomputer-at-sandia-achieves-full-system-acceptance/
+
+  - name: "ODISSEE"
+    site: "EU Horizon Europe consortium (incl. CERN openlab, SKA-related partners)"
+    scale: "2 servers with 4 Maverick-2 cards, for training and development"
+    date: "2026-02-17"
+    classification: "small evaluation deployment"
+    confidence: likely
+    note: "vendor-sourced only; no independent corroboration"
+    sources:
+      - https://www.nextsilicon.com/insights/elads-blog-odissee-annual-consortium-meeting-cern/
+
+  - name: "'dozens of customer sites worldwide'"
+    classification: "uncorroborated vendor marketing"
+    confidence: unconfirmed
+    note: >
+      No independent source names any customer other than Sandia and the ODISSEE consortium.
+      'Available in product volumes now in Q4 2025' is likewise uncorroborated. Unit shipment
+      volumes are not disclosed.
+    sources:
+      - https://www.nextsilicon.com/faq
+
+recognition:
+  awards:
+    - "HPCwire Readers' Choice 2025 — Best HPC Server Product or Technology"
+    - "HPCwire Readers' Choice 2025 — Top New Products or Technologies to Watch"
+  confidence: confirmed
+  sources:
+    - https://www.nextsilicon.com/insights/elads-blog-sc25-reflections/
+
+# ── Explicitly not disclosed (recorded so future passes do not invent them) ───
+not_disclosed:
+  - "Die area (mm2). No vendor page, spec table, PR, TNP, Chips and Cheese or Hackaday source states one."
+  - "ALUs per compute block; total ALU count per die or package."
+  - "FPUs per compute block; whether every ALU has an associated FPU."
+  - "Per-compute-block / per-tile SRAM capacity (only the 128/256 MB aggregate is public)."
+  - "Reservation station capacity and organization."
+  - "Coherence domain and protocol of the 128/256 MB cache level."
+  - "NoC topology, link width, per-link and bisection bandwidth, cross-barrier latency penalty."
+  - "Die-to-die interconnect technology, width, bandwidth, latency, and coherence on the OAM."
+  - "Number of HBM3E stacks and per-stack configuration."
+  - "Whether any scale-up chip-to-chip fabric exists beyond PCIe Gen5 x16 and on-package 100 GbE."
+  - "BF16, FP8, INT8, INT4 and structured-sparsity support — absent from the published table; no source states whether the hardware supports them at all."
+  - "Mill core capacity limits, maximum graph size, and measured reconfiguration latency."
+  - "Thread/context capacity (Kokkos concurrency() = 65536 is a FIXME placeholder)."
+  - "E-core microarchitecture: pipeline, ISA extensions, clock, cache."
+  - "Grid configuration encoding — no published ISA, bitstream format, or configuration-word spec."
+  - "Spectra host CPU, node interconnect, storage, system software stack, total system power."
+  - "Maverick-2 unit shipment volumes; identity of any customer beyond Sandia and ODISSEE."
+  - "Arbel vector-unit configuration (unresolved 3x256-bit vs 4x128-bit conflict) and production process node."
+  - "Maverick-3 or any successor — no roadmap part is named in any retrieved source."

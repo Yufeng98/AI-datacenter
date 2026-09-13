@@ -1,0 +1,144 @@
+digraph sophgo_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        llmtpu [label="LLM-TPU\nQwen2 / LLaMA / HuggingFace\nBM1684X + BM1688\nPCIe + SoC modes", fillcolor="#D6E4F0"];
+        vllmtpu [label="vllm-tpu\nvLLM v0.11.0 fork\nContinuous batching / OpenAI API\nSG2260 target; DeepSeek-V3/R1 FP8\nLlama-3.1-70B, Qwen2-72B (--tp_size 2)", fillcolor="#D6E4F0"];
+        torchtpu [label="torch-tpu (SG2260 / BM1690)\nPyTorch device extension\nJIT (SG2260 only) + eager\nDeepSpeed ZeRO-1/2 + CPU offload\nMegatron-DeepSpeed tensor parallel", fillcolor="#C3D9EC"];
+        sail [label="sophon-sail\nPython / C++ wrapper\nsail.Engine, sail.BMImage\nsail.Decoder", fillcolor="#D6E4F0"];
+        mw [label="SOPHON-MW\nBM-OpenCV + BM-FFmpeg\nH.264/H.265 HW encode/decode\nJPU / VPP integration", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        tpumlir [label="TPU-MLIR (open source)\nmodel_transform.py → Top dialect\nmodel_deploy.py → TPU dialect\nINT8/INT4 calibration + codegen\nv1.29 (2026-07-01)", fillcolor="#E4DEFF"];
+        tpumlir1690 [label="TPU-MLIR BM1690 backend\nlibbackend_bm1690.so (TPUv7)\nppl-based codegen; FP8 E5M2\n8-core codegen (..._core8.bmodel)\nDialect under experimental/;\nllm_convert.py still BM1684X-only", fillcolor="#D6CEFF"];
+        llmctpu [label="llmc-tpu\nQuantization-aware calibration\nINT4/INT8 model preparation\nbefore TPU-MLIR compilation", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== MODEL BINARY =====================
+    subgraph cluster_binary {
+        label="Model Binary";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        bmodel [label=".bmodel\nCompiled tensor ops + DMA cmds\nQuantized weights + topology\nTarget chip metadata", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        bmrt [label="BMRuntime / BMRT\nlibbmrt.so (in libsophon)\nbmrt_load_bmodel\nbmrt_launch_tensor", fillcolor="#F8D7DA"];
+        bmcv [label="BMCV — libbmcv.so\nHW CV preprocessing\nVPP: resize, CSC, normalize\nJPU: JPEG encode/decode", fillcolor="#F8D7DA"];
+        bmlib [label="BMLib — libbmlib.so\nDevice + memory mgmt\nbm_dev_request, bm_malloc\nbm_memcpy_s2d / d2s", fillcolor="#F8D7DA"];
+        tpuv7rt [label="tpuv7-runtime / tpuv7-driver (v1.1.3)\nRuntime for BM1690 / SG2260\ntpu-smi management tool\nbigTpuProfile --arch BM1690\n/lib/firmware/tpuv7/", fillcolor="#F5C2C7"];
+        collectives [label="torch.distributed backend (SG2260)\ndist_test2260: all_reduce, all_gather,\nall_gather_into_tensor, all_to_all,\nbroadcast, reduce, gather, scatter,\np2p, DDP — over SG-Link C2C", fillcolor="#F5C2C7"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="sophon.ko / bmsophon.ko\nLinux kernel driver\nPCIe BAR + IOCTL + DMA\nInterrupt handling", fillcolor="#E0E0E0"];
+        docker [label="libsophon package\nsophgo/tpuc_dev Docker\nK8s device plugin\nUnified SDK distribution", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Sophgo TPU Hardware — BM1684X (Gen 4) and BM1690 / SG2260 (TPUv7)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        tpu [label="BM1684X TPU\nHigh data-width SIMD (4th gen)\n32 TOPS INT8 / 16 TFLOPS FP16\nINT4/INT8/FP16/BF16/FP32", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nOn-chip SRAM scratchpad (compiler-managed)\nLPDDR4X 16 GB @ ~68 GB/s\nDMA engine (async prefetch)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect + Multimedia\nPCIe Gen3/4 x16 (host)\nVPP: 32-ch HD decode, 12-ch encode\nCCIX (SG2042: 2-socket scale-up)\nBM1684X: no chip-to-chip fabric", fillcolor="#283593", fontcolor="white"];
+        tpu1690 [label="BM1690 / SG2260 (TPUv7)\n8 TPU cores × 64 lanes × 512-bit EU\nNative FP8 (E5M2)\n~200 TOPS INT8/FP8 per chip (implied)\nOn-die RISC-V fallback + sort/top-K", fillcolor="#283593", fontcolor="white"];
+        mem1690 [label="BM1690 Memory Hierarchy\nLMEM 16 MB/core (128 MB/chip)\nL2 SRAM 128 MB chip-shared\n~128 GB DRAM @ ~546 GB/s (derived)\nDRAM type not confirmed", fillcolor="#283593", fontcolor="white"];
+        sglink [label="SG-Link (BM1690)\nProprietary multi-chip + multi-card\nscale-up fabric; BW/topology\nNOT DISCLOSED\n8 cards = 16 chips = 2 TB per 4U\nEthernet beyond (~1000 cards)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    llmtpu -> tpumlir [style=dashed, color="#AAAAAA"];
+    llmctpu -> tpumlir [label="calibrated model", fontsize=8];
+
+    // Framework -> Runtime (direct)
+    sail -> bmrt [style=dashed, color="#AAAAAA", label="Engine.process", fontsize=8];
+    sail -> bmcv [style=dashed, color="#AAAAAA", label="image ops", fontsize=8];
+    mw -> bmcv [style=dashed, color="#AAAAAA", label="VPP/JPU", fontsize=8];
+    vllmtpu -> bmrt [style=dashed, color="#AAAAAA"];
+
+    // Compiler -> Binary
+    tpumlir -> bmodel [label="codegen", fontsize=8];
+
+    // Binary -> Runtime
+    bmodel -> bmrt [label="load + execute", fontsize=8];
+
+    // Runtime chain
+    bmrt -> bmlib;
+    bmcv -> bmlib;
+    bmlib -> kmod;
+    kmod -> docker [style=dashed];
+
+    // Hardware internal
+    tpu -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+    tpu1690 -> mem1690 [color="#283593"];
+    mem1690 -> sglink [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    kmod -> tpu [style=dashed, color="#283593"];
+
+    // TPUv7 path (added 2026-08-08)
+    torchtpu -> tpumlir1690 [style=dashed, color="#AAAAAA", label="JIT / eager", fontsize=8];
+    torchtpu -> collectives [label="torch.distributed", fontsize=8];
+    vllmtpu -> tpuv7rt [style=dashed, color="#AAAAAA", label="SG2260 path", fontsize=8];
+    tpumlir -> tpumlir1690 [style=dashed, color="#AAAAAA"];
+    tpumlir1690 -> bmodel [label="bm1690 codegen", fontsize=8];
+    bmodel -> tpuv7rt [label="load + execute (TPUv7)", fontsize=8];
+    collectives -> tpuv7rt [style=dashed, color="#AAAAAA"];
+    tpuv7rt -> tpu1690 [style=dashed, color="#283593", label="tpuv7-driver", fontsize=8];
+    collectives -> sglink [style=dashed, color="#283593", label="C2C", fontsize=8];
+}

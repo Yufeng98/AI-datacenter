@@ -1,0 +1,117 @@
+digraph tsingmicro_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    labelloc="t";
+    fontname="Helvetica-Bold";
+    fontsize=14;
+    label="Tsingmicro TX81 (清微智能) — Reconfigurable Dataflow RPU\nMicroarchitecture reconstructed from the vendor's open-source Triton backend.\nProcess node, memory technology/bandwidth, TDP, clock, PCIe gen and all C2C link figures: NOT DISCLOSED.";
+
+    // ===================== TX81 DEVICE =====================
+    subgraph cluster_device {
+        label="TX81 Device — 16 tiles in a 4 × 4 2-D mesh";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        // --------- one representative tile ---------
+        subgraph cluster_tile {
+            label="Tile (× 16) — RISC-V control + command-driven engines";
+            style="rounded,filled";
+            fillcolor="#EBF3FB";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            kcore [label="kcore — scalar control core\nRISC-V RV64IMFDC / lp64d\nT-Head XuanTie 900 (no RVV)\nBuilds + dispatches command\ndescriptors via RcsExecute()", fillcolor="#BBDEFB"];
+
+            neural [label="Neural Engine  (I_NEUR)\nGEMM + conv + depthwise\n+ BACKWARD conv (op_type=2)\nFused bias / axis-scale / ReLU\nSPM-resident psum accumulate\nStructured sparsity: en_sparse\n(pattern + ratio not disclosed)\nPE array dims: not disclosed", fillcolor="#BBDEFB"];
+
+            vecunits [label="Vector / Layout / Reduction\nelementwise, transcendental,\nimg2col, transpose, NCHW↔NHWC,\npad, concat, gather_scatter, LUT,\nreduce_*, cumsum, argmax, sort", fillcolor="#BBDEFB"];
+
+            dma [label="RDMA / WDMA  (I_RDMA)\nDDR→SPM  /  SPM→DDR\nAsynchronous; 1-D, 4-D and\ngeneral strided rank ≤ 8\nONLY path between DDR and SPM", fillcolor="#BBDEFB"];
+
+            dte [label="DTE — Direct Transfer Engine\nTile ↔ tile block transfer\nHardware FSM flow-control\nmonitors (direct_dte_send_async,\ndirect_fsm_monitor_receive)", fillcolor="#BBDEFB"];
+
+            spm [label="SPM — scratchpad SRAM\n3 MiB per tile\n(3,014,656 B visible to a kernel;\n64 KiB system-reserved)\nSOFTWARE-MANAGED — no HW cache\nCompiler liveness allocator\nBase 0x30400000\nBandwidth: not disclosed", fillcolor="#90CAF9"];
+        }
+
+        noc [label="2-D Mesh NoC  (4 × 4)\nTwo mechanisms:\n(1) DTE async block transfer\n(2) GLOBALLY ADDRESSABLE PEER SPM\n    get_tile_spm_addr_base(tile,x,y)\n    → distributed shared address space\nRegisters @ 0x6A0000 (\"Kuiper\")\nLink width / BW / latency: not disclosed", fillcolor="#C5CAE9"];
+
+        ddr [label="Device Memory — \"DDR\"\n64 GB per TX81\n(vendor FlagGems descriptor;\nshipping config unverified)\nTechnology: NOT DISCLOSED\nBandwidth: NOT DISCLOSED", fillcolor="#B3E5FC"];
+
+        pcie [label="Host Interface — PCIe\nConfirmed via BDF handling\n(txGetDeviceByPCIBusId)\nDMA-buf supported\nGeneration / lanes: not disclosed", fillcolor="#B3E5FC"];
+
+        c2c [label="Scale-up: SWITCHLESS C2C Fabric\nCompiler address hierarchy:\n(chip_x, chip_y, die, tile)\nremote_load / remote_store / remote_buffer\ndistribute_barrier → __BarrierSubgroup()\nMesh / Torus topologies claimed\nBW, SerDes, radix, latency, medium:\nALL NOT DISCLOSED", fillcolor="#FFCCBC"];
+    }
+
+    // ===================== SYSTEMS =====================
+    subgraph cluster_systems {
+        label="Systems — published figures are SYSTEM-LEVEL ONLY";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        module [label="TX81 RPU Compute Module\n512 TFLOPS FP16  (vendor claim)\nChips per module: not disclosed\n(4 is derived arithmetic only)", fillcolor="#C8E6C9"];
+
+        node1032 [label="REX1032 Server Node\n4 PFLOPS  (vendor claim)\n2 TB memory, max 4 TB\nDeepSeek-R1 671B full-precision,\nsingle node, stable 128K context\nRack U / PSU / cooling: not disclosed\nSTATUS: SHIPPING", fillcolor="#C8E6C9"];
+
+        rex81 [label="REX81 Supernode\n4,096 TX81 chips\n> 500 PFLOPS  (千万亿 = 10^15,\nPFLOPS — NOT exaflops)\nRacks / torus dims / cabling:\nnot disclosed\nSTATUS: ANNOUNCED ONLY", fillcolor="#FFF9C4"];
+    }
+
+    // ===================== UNDISCLOSED PHYSICALS =====================
+    subgraph cluster_gaps {
+        label="Not Disclosed — record as gaps, never estimate";
+        style="rounded,dashed";
+        color="#B71C1C";
+        fontcolor="#B71C1C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        gaps [label="Process node · Foundry · Die size · Transistor count\nDies per package (remote_die_id present but unused)\nMemory technology · Memory bandwidth\nPer-chip TFLOPS · INT8 / FP8 / FP4 / TF32 / sparse peak\nClock frequency · Chip TDP · Card power · Form factor\nPCIe generation and lane width\nC2C link BW / SerDes / lanes / radix / hop latency / medium\nNoC link width, bandwidth, hop latency\nSparsity pattern and ratio · PE array dimensions\nCGRA reconfiguration mechanism (config memory,\ncontext switch, partial reconfiguration)\nTape-out / sampling / volume-production dates\nNO ISSCC / ISCA / Hot Chips / MICRO / JSSC paper exists", fillcolor="#FFEBEE", fontsize=9];
+    }
+
+    // ===================== EDGES =====================
+
+    // tile internals
+    kcore -> neural [label="I_NEUR descriptor", fontsize=8];
+    kcore -> vecunits [label="engine cmd", fontsize=8];
+    kcore -> dma [label="I_RDMA descriptor", fontsize=8];
+    kcore -> dte [label="__Send", fontsize=8];
+
+    neural -> spm [dir=both, label="all operands\n+ psum in SPM", fontsize=8];
+    vecunits -> spm [dir=both];
+    dma -> spm [label="RDMA fill", fontsize=8];
+    dte -> spm [dir=both, label="peer SPM", fontsize=8];
+
+    // memory path
+    dma -> ddr [dir=both, label="ONLY DDR↔SPM path\n(explicit, async)", fontsize=8];
+
+    // interconnect
+    dte -> noc [label="tile → tile", fontsize=8];
+    spm -> noc [style=dashed, label="peer SPM\nload/store + sync flags", fontsize=8];
+    noc -> c2c [style=dashed, label="remote_load /\nremote_store", fontsize=8];
+    ddr -> pcie [style=dashed, label="host DMA", fontsize=8];
+
+    // device -> systems
+    ddr -> module [style=dashed, color="#2E7D32", label="TX81 chip", fontsize=8, ltail=cluster_device];
+    module -> node1032 [label="8 modules/node\n(DERIVED)", fontsize=8, style=dashed];
+    node1032 -> rex81 [label="128 nodes\n(DERIVED)", fontsize=8, style=dashed];
+    c2c -> rex81 [style=dashed, color="#E64A19", label="switchless\nmesh/torus", fontsize=8];
+}

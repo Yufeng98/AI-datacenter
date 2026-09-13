@@ -1,0 +1,132 @@
+digraph sambanova_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pcu [label="PCU: Pattern Compute Unit\n1040 per SN40L (638 BF16 TFLOPS)\nMulti-stage reconfigurable SIMD pipeline\nSN50: 1.6 BF16 / 3.2 FP8 PFLOPS (extrapolated)\n(TSMC 5nm SN40L → TSMC N3 SN50)", fillcolor="#D6E4F0"];
+        pcu_note [label="No runtime scheduler\nNo warp/thread model\nStatically assigned per PEF", fillcolor="#EEF5FB", style="rounded,filled,dashed"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        fabric [label="3D Switching Fabric\nScalar net (word-level)\nVector net (multi-word tensor)\nControl net (bit-level predicate)\nAll routes statically compiled", fillcolor="#E4DEFF"];
+        agcu [label="AGCU (Address Gen + Coalescing)\nOff-chip memory interface\nSparse / irregular access\nP2P inter-RDU DMA\nHost control-plane", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== ON-CHIP MEMORY =====================
+    subgraph cluster_onchip {
+        label="On-chip Memory";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pmu [label="PMU: Pattern Memory Unit\n1040 per SN40L socket\n520 MiB total SRAM (SN40L)\n432 MiB total SRAM (SN50, extrapolated)\nHundreds of TB/s aggregate BW\nSoftware-managed (compiler-placed)\nDecode era: hottest local working set", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory (Three-Tier)";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hbm [label="Tier 2: Co-packaged HBM\nSN40L: 64 GiB (~1 TB/s)\nSN50: 64 GiB @ 1.8 TB/s (extrapolated)\nSoftware-managed caching tier\n(compiler stages weights: DDR→HBM→SRAM)\nDecode era: model weights + KV cache", fillcolor="#FFF3CD"];
+        ddr [label="Tier 3: Directly-Attached DDR\nSN40L: up to 1.5 TiB DDR4/5\nSN50: up to 2 TiB DDR5 (extrapolated)\nNOT host CPU DDR — on accelerator\nModel weight reservoir\nDecode era: prompt cache + multi-model", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== PACKAGE =====================
+    subgraph cluster_package {
+        label="Package / Host Interface";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pkg [label="SN40L: Dual-die + HBM + DDR DIMMs\nSN50: Dual-chiplet (TSMC N3)\n~102B transistors (SN40L)\nPCIe to host CPU", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== SCALE-UP =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        sn40l_net [label="SN40L: RDU-Connect (P2P)\n16 RDUs / SambaRack\n10.2 BF16 PFLOPS aggregate\nInfiniBand for rack-to-rack", fillcolor="#F8D7DA"];
+        sn50_net [label="SN50: Switched Fabric\nMulti-TB/s (2.2 TB/s bidir = extrapolated)\n16 RDUs demonstrated (SambaRack SN50, 2026-07)\n256 RDUs = vendor claim only\n4x network BW vs SN40L\n10T+ params / 10M+ context (vendor claim)\n20 kW per SambaRack", fillcolor="#F8D7DA"];
+    }
+
+    // ============ SYSTEM CONTEXT: DISAGGREGATED PREFILL/DECODE ============
+    // Announced 2026-04-08 (SambaNova + Intel "Blueprint for Heterogeneous
+    // Inference"); demonstrated 2026-07-08 with an H200 prefill rack.
+    subgraph cluster_disagg {
+        label="System Context: Disaggregated Inference (announced 2026-04-08, Intel blueprint)";
+        style="rounded,dashed";
+        color="#00897B";
+        fontcolor="#00897B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        prefill [label="Prefill: GPUs\n(demo 2026-07-08: 1 NVIDIA H200 rack, 4 GPUs)\nPrompt ingestion → KV cache", fillcolor="#CDEDE9"];
+        decode [label="Decode: SN50 RDUs\n\"Dedicated inference fabric\"\n1 SambaRack SN50 = 16 RDUs\nTP16 ~800 t/s | TP8+DP8 ~400 t/s\n(vendor-reported, MiniMax M2.7)", fillcolor="#CDEDE9"];
+        xeon [label="Agentic tools: Intel Xeon 6\nHost + \"action CPU\"\nTask coordination, tool/API execution", fillcolor="#CDEDE9"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute ↔ Fabric ↔ PMU
+    pcu -> fabric [label="produce/consume", fontsize=8, color="#283593"];
+    fabric -> pmu [color="#283593"];
+    pmu -> fabric [color="#283593"];
+    fabric -> pcu [color="#283593"];
+    pcu -> pcu_note [style=dashed, color="#AAAAAA", arrowhead=none];
+
+    // AGCU ↔ Off-chip
+    agcu -> hbm [label="stream", fontsize=8, color="#D4A017"];
+    hbm -> ddr [label="stage", fontsize=8, color="#D4A017", style=dashed];
+    agcu -> pmu [label="DMA", fontsize=8, color="#34A853"];
+
+    // Package
+    pkg -> pcu [style=dashed, color="#757575"];
+    pkg -> hbm [style=dashed, color="#757575"];
+    pkg -> ddr [style=dashed, color="#757575"];
+
+    // Interconnect
+    agcu -> sn40l_net [style=dashed, color="#EA4335", label="P2P"];
+    agcu -> sn50_net [style=dashed, color="#EA4335", label="fabric"];
+
+    // Disaggregated system context
+    prefill -> decode [label="KV cache handoff", fontsize=8, color="#00897B"];
+    decode -> xeon [label="tokens", fontsize=8, color="#00897B"];
+    xeon -> prefill [label="next turn / tool result", fontsize=8, color="#00897B", style=dashed];
+    sn50_net -> decode [style=dashed, color="#00897B", arrowhead=none, label="rack", fontsize=8];
+}

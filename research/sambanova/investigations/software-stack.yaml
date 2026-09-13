@@ -1,0 +1,357 @@
+chip: sambanova
+investigation: software-stack
+as_of: "2026-04-05"
+last_updated: "2026-08-08"   # see update_2026_08_08 block at end of file
+confidence: high
+# NOTE 2026-08-08: the three official_docs sources below all return HTTP 404.
+# The SambaFlow documentation tree was withdrawn (~mid-2026). The SambaFlow
+# material in this file is retained as SN40L-era history and re-attributed to
+# the SN40L Hot Chips paper / arXiv 2405.07518.
+sources:
+  - url: https://docs.sambanova.ai/developer/latest/porting-overview.html
+    title: Model Conversion Overview
+    type: official_docs
+    status: "HTTP 404 as of 2026-08-08 (withdrawn)"
+  - url: https://docs.sambanova.ai/developer/latest/compiler-o1.html
+    title: Compiler Optimization Modes
+    type: official_docs
+    status: "HTTP 404 as of 2026-08-08 (withdrawn)"
+  - url: https://docs.sambanova.ai/api-reference/
+    title: SambaFlow API Reference
+    type: official_docs
+    status: "HTTP 404 as of 2026-08-08 (withdrawn)"
+  - url: https://sambanova.ai/hubfs/23945802/SambaNova_Accelerated-Computing-with-a-Reconfigurable-Dataflow-Architecture_Whitepaper_English-1.pdf
+    title: Accelerated Computing with a Reconfigurable Dataflow Architecture
+    type: whitepaper
+  - url: https://arxiv.org/html/2405.07518v1
+    title: "SambaNova SN40L: Scaling the AI Memory Wall"
+    type: architecture_paper
+
+stack_name: SambaFlow
+stack_philosophy: AOT whole-graph spatial compiler; zero runtime scheduler overhead
+
+layers:
+  framework_integration:
+    primary: PyTorch
+    secondary: TensorFlow
+    entry_point: samba.from_torch_model()
+    tensor_type: SambaTensor (wraps torch.Tensor)
+    parameter_type: SambaParameter (wraps nn.Parameter)
+    compatibility: most PyTorch nn.Module code unchanged
+    training_api: samba.session.run() replaces loss.backward() + optimizer.step()
+    huggingface: supported (GPT-2, GPT-J, Llama, BERT, etc.)
+
+  compiler:
+    name: SambaFlow Dataflow Compiler
+    compilation_mode: AOT (ahead-of-time)
+    input: annotated PyTorch computation graph
+    output: PEF (Program Execution File)
+    key_transforms:
+      - operator_fusion (sections)
+      - meta_pipelining
+      - multi_section_support
+      - parallelism_mapping (data/tensor/pipeline)
+      - pcu_assignment
+      - pmu_data_placement
+      - switching_fabric_routing
+      - agcu_configuration
+    fusion_modes:
+      o0:
+        description: one section per operator
+        use: debugging / correctness verification
+      o1:
+        description: maximum operator fusion
+        use: production
+    parallelism:
+      - data_parallel
+      - tensor_parallel
+      - pipeline_parallel
+      - nested_combinations
+    speedup_from_fusion: 2x-13x vs unfused baseline
+
+  pef:
+    full_name: Program Execution File
+    description: Binary encoding of entire model-to-hardware spatial mapping
+    contents:
+      - PCU pipeline configurations
+      - PMU data layouts and placement
+      - switching fabric routes
+      - AGCU memory access descriptors
+    reuse: compiled once; used for all subsequent runs of same model
+
+  runtime:
+    name: SambaNova Runtime
+    api: samba.session
+    key_methods:
+      compile: samba.session.compile(model, inputs, name, output_file, compile_op_mode)
+      load: samba.session.load(pef_path)
+      run: samba.session.run(inputs, section_types)
+    execution_model: synchronous from host; fully pipelined on RDU
+    multi_rdu: collectives compiled into PEF; no separate comm library (unlike NCCL)
+
+  memory_management:
+    model: fully_compiler_driven
+    programmer_control: none_below_host_DRAM
+    no_explicit_allocation: true
+    tiers_managed_by_compiler:
+      - PMU SRAM (static placement per PEF)
+      - HBM (static caching policy)
+      - DDR (model weight placement)
+
+sections:
+  concept: fundamental execution unit; fused subgraph
+  execution: complete section runs before returning to memory
+  pipelining: meta-pipelining pre-stages next section in HBM while current executes
+
+unsupported_patterns:
+  - dynamic control flow over tensor values
+  - in-place operations conflicting with tracing
+  - BatchNorm (use LayerNorm instead)
+  - variable-length sequences without padding
+
+composition_of_experts:
+  name: Samba-CoE
+  experts: 150
+  params_per_expert: 7B
+  total_params: ~1T
+  memory_strategy: weights_in_ddr_cached_to_hbm_computed_in_sram
+  unique_to_rdu: DDR tier enables storing 2+ TiB of expert weights locally
+
+# =====================================================================
+# Investigation update appended 2026-08-08 (scan window 2026-04-05 →
+# 2026-08-08). Everything above describes the SN40L-era SambaFlow SDK and
+# is retained as history. Its documentation sources are now HTTP 404;
+# see update_2026_08_08.facts[0]. Where the two disagree, the block below
+# wins.
+# =====================================================================
+update_2026_08_08:
+  as_of: "2026-08-08"
+  change_class: major
+  scan_window: "2026-04-05 to 2026-08-08"
+
+  sources:
+    - id: sambanova-docs-root
+      url: https://docs.sambanova.ai/
+      title: "SambaNova documentation root (SambaCloud + SambaStack)"
+      type: official_docs
+      fetched: "2026-08-08"
+    - id: sambanova-docs-index-2026-08
+      url: https://docs.sambanova.ai/docs/llms.txt
+      title: "SambaNova documentation index (174 entries)"
+      type: official_docs
+      fetched: "2026-08-08"
+    - id: sambastack-release-notes
+      url: https://docs.sambanova.ai/docs/en/release-notes/sambastack.md
+      title: "SambaStack release notes"
+      type: official_docs
+      fetched: "2026-08-08"
+    - id: direct-http-check-2026-08-08
+      url: "curl -L on the five SambaFlow doc URLs previously cited by chips/sambanova/summary.md"
+      title: "Direct HTTP status verification"
+      type: direct_verification
+      fetched: "2026-08-08"
+    - id: sambastack-tools-repo
+      url: https://github.com/sambanova/sambastack-tools
+      title: "sambanova/sambastack-tools"
+      type: open_source_repo
+      fetched: "2026-08-08"
+    - id: sambastack-tools-readme
+      url: https://raw.githubusercontent.com/sambanova/sambastack-tools/main/README.md
+      title: "sambastack-tools README (verbatim component descriptions)"
+      type: open_source_repo
+      fetched: "2026-08-08"
+    - id: sambanova-github-org
+      url: https://api.github.com/orgs/sambanova/repos?sort=pushed
+      title: "SambaNova GitHub org listing"
+      type: api_query
+      fetched: "2026-08-08"
+    - id: sn50-raise-post-2026-07-08
+      url: https://sambanova.ai/blog/sn50-runs-fastest-minimax-speeds-in-the-world
+      title: "SN50 Runs Fastest MiniMax Speeds in the World"
+      type: vendor_blog
+      date: "2026-07-08"
+    - id: sn50-semianalysis-post-2026-07-30
+      url: https://sambanova.ai/blog/semianalysis-benchmarks-sambarack-sn50-with-fast-inference-on-minimax-m2.7
+      title: "SemiAnalysis Benchmarks SambaRack SN50 with Fast Inference on MiniMax M2.7"
+      type: vendor_blog
+      date: "2026-07-30"
+    - id: intel-blueprint-2026-04-08
+      url: https://sambanova.ai/press/sambanova-announces-collaboration-with-intel-on-ai-solution
+      title: "SambaNova and Intel Announce Blueprint for Heterogeneous Inference"
+      type: press_release
+      date: "2026-04-08"
+    - id: hotchips-38-advance-program
+      url: https://hotchips.org/advance-program/
+      title: "Hot Chips 38 advance program"
+      type: conference_program
+      fetched: "2026-08-08"
+
+  facts:
+
+    - group: sambaflow_documentation_withdrawn
+      confidence: high
+      sources: [direct-http-check-2026-08-08, sambanova-docs-index-2026-08, sambanova-docs-root]
+      supersedes: "top-level sources[] entries 1-3 of this file, which are now dead links"
+      data:
+        status: withdrawn_as_of_mid_2026
+        dead_urls_http_404:
+          - https://docs.sambanova.ai/developer/latest/
+          - https://docs.sambanova.ai/developer/latest/porting-overview.html
+          - https://docs.sambanova.ai/developer/latest/compiler-o1.html
+          - https://docs.sambanova.ai/api-reference/
+          - https://docs.sambanova.ai/resources/latest/glossary.html
+        verification_method: direct_http_request_not_inference
+        docs_index_entry_count: 174
+        docs_index_contains_sambaflow: false
+        docs_index_contains_compiler_docs: false
+        docs_index_contains_pef_authoring: false
+        docs_index_contains_samba_session_api: false
+        currently_documented_products: [SambaCloud, "SambaStack v2.0.2"]
+        reattribution: >-
+          The SambaFlow material in this file is re-attributed to the SN40L
+          Hot Chips paper and arXiv 2405.07518, and re-dated as describing
+          the SN40L-era SambaFlow SDK rather than the current product.
+      explicitly_unknown: >-
+        Whether the SambaFlow compiler itself changed. Documentation
+        withdrawal is not evidence of a compiler change, deprecation, or
+        rewrite. No source supports claiming it did.
+
+    - group: pef_survives_as_deployment_artifact
+      confidence: high
+      sources: [sambastack-release-notes, sambastack-tools-readme]
+      data:
+        artifact: PEF (Program Execution File)
+        unchanged: true
+        new_surface: "Helm charts + Kubernetes CRDs, not a Python SDK"
+        pef_kubernetes_crd: true
+        sibling_crds: [Model, ModelProfile, ModelDeployment, ModelBundle]
+        sambawiz_generates: ["PEF settings", "Kubernetes manifests"]
+
+    - group: sambastack_version_history
+      confidence: high
+      sources: [sambastack-release-notes]
+      data:
+        releases:
+          - {version: v0.4.8,  date: "2026-03-10"}
+          - {version: v0.5.14, date: "2026-04-01"}
+          - {version: v0.5.17, date: "2026-04-08"}
+          - {version: v1.0.57, date: "2026-04-30"}
+          - {version: v1.1.1,  date: "2026-05-27"}
+          - {version: v1.2.0,  date: "2026-07-07"}
+          - {version: v2.0.2,  date: "2026-08-05", breaking: true}
+        v2_0_2_changes:
+          crd_model: "four CRDs (Model / ModelProfile / ModelDeployment / ModelBundle) replace BundleTemplate / Bundle / BundleDeployment"
+          old_format_supported_until: "2026-09-30"
+          kubernetes: "RKE2 1.30 -> 1.35"
+          helm_split: "models moved to standalone sambastack-models chart"
+          helm_install_order: [sambastack-base, sambastack, sambastack-models]
+          structured_output: "enforced for constrained-decoding models"
+        reference_architecture:
+          gateway: LiteLLM
+          observability: [Prometheus, Grafana, OpenSearch, Fluent Bit]
+        onprem_hardware_reference: SN40L-16
+        sn50_rack_documentation_published: false
+
+    - group: vllm_reported_serving_path
+      confidence: low
+      status: reported_only_depth_unverified
+      sources: [sn50-raise-post-2026-07-08, sn50-semianalysis-post-2026-07-30, sambanova-github-org, sambastack-release-notes, sambanova-docs-index-2026-08, intel-blueprint-2026-04-08]
+      data:
+        vendor_quotes:
+          - date: "2026-07-08"
+            text: "This demonstration was built and measured on vLLM."
+          - date: "2026-07-30"
+            text: "SN50 is deployed using vLLM appearing with ~800 tokens/second at the fastest interactivity"
+        negative_checks:
+          public_sambanova_vllm_plugin: false
+          vllm_repo_in_sambanova_github_org: false
+          vllm_in_sambastack_v2_0_2_docs: false
+          vllm_in_sambastack_release_notes_sept2025_to_aug2026: false
+          vllm_in_intel_blueprint_press_release: false
+        defensible_statement: >-
+          SambaNova reports serving SN50 through vLLM in its 2026 benchmark
+          demonstrations; the integration is not open-source and is not
+          referenced in the shipping SambaStack product documentation, so
+          its depth is unverified.
+        do_not_write: "the serving stack has shifted to vLLM"
+
+    - group: parallelism_is_deployment_time_choice
+      confidence: high
+      sources: [sn50-semianalysis-post-2026-07-30, sambanova-docs-index-2026-08]
+      qualifies:
+        - "No kernel authoring required or possible"
+        - "Multi-RDU collectives compiled into the PEF; no separate communication library"
+        - "no manual model sharding needed"
+      data:
+        rack_size_rdus: 16
+        operator_selectable_strategies:
+          - {mapping: TP16, reported_tokens_per_sec: 800, framing: fastest interactivity}
+          - {mapping: "TP8 + DP8", reported_tokens_per_sec: 400, framing: more concurrent users}
+        sambastack_page: "High-throughput vs. high-interactivity deployment configuration"
+        revised_wording: >-
+          The compiler maps the chosen parallelism strategy; the strategy
+          itself is a deployment-time choice, selected per PEF bundle.
+
+    - group: sambastack_tools_open_source
+      confidence: high
+      sources: [sambastack-tools-repo, sambastack-tools-readme, sambanova-github-org, sambastack-release-notes]
+      data:
+        repo: sambanova/sambastack-tools
+        language: TypeScript
+        created_at: "2026-01-15T17:22:22Z"
+        new_in_scan_window: false     # pre-dates the 2026-04-05 baseline
+        new_to_this_survey: true
+        pushed_at: "2026-08-07"
+        stars: 2
+        archived: false
+        components:
+          sambaeval: >-
+            a local workbench for evaluating LLMs against CSV datasets across
+            multiple models and providers; heuristic and LLM-as-judge scoring,
+            per-row token usage and latency metrics, and pluggable Python
+            output generators for tool use or agentic workflows
+          sambawiz: >-
+            a GUI wizard that accelerates the creation and deployment of model
+            bundles on SambaStack; selecting models, configuring PEF settings,
+            generating Kubernetes manifests, and deploying bundles to your
+            cluster
+        sambawiz_releases:
+          - {version: v2.0.0, date: "2026-07-31", note: "V3 bundle support"}
+          - {version: v2.1.0, date: "2026-08-06", note: "vision + ASR/TTS playground"}
+          - {version: v2.1.1, date: "2026-08-07"}
+        sambawiz_is_supported_path: >-
+          SambaStack release notes instruct operators to pull the matching
+          SambaWiz version with each release.
+      other_org_repos_pushed_in_window:
+        - {name: sambanova-inference-api-spec, created: "2026-07-21"}
+        - {name: sambanova-plugin-cc, created: "2026-03-31"}
+      absent_from_org: [SambaFlow, model-zoo, vLLM]
+
+    - group: sambacloud_features_added
+      confidence: high
+      sources: [sambanova-docs-index-2026-08]
+      data:
+        - {date: "2026-05-05", feature: "MiniMax M2.7 launched on SambaCloud"}
+        - {date: "2026-06-10", feature: "Gemma 4 31B"}
+        - {date: "2026-07-01", feature: "Anthropic Messages API compatibility"}
+        - {date: "2026-07-16", feature: "Prompt caching"}
+      documented_surface: [OpenAI compatibility, Anthropic compatibility, prompt caching, responses, vision, audio, video, Integrations, API Reference]
+
+    - group: pending_disclosure
+      confidence: high
+      sources: [hotchips-38-advance-program]
+      data:
+        conference: Hot Chips 38
+        talk_date: "2026-08-25"
+        session: "AI 2"
+        title: "Dataflow at Scale: the SN50 RDU"
+        speaker: Raghu Prabhakar (SambaNova)
+        status: "disclosure scheduled, Hot Chips 38, Aug 2026 - content not yet public"
+        usable_as_source: false
+        may_resolve: "whether the SambaFlow compiler / AOT PEF model changed for SN50"
+        action: "re-scan early September 2026"
+
+  open_items:
+    - Whether any replacement SambaFlow / compiler documentation is republished
+    - Whether a SambaNova vLLM plugin is open-sourced, or vLLM appears in SambaStack docs/release notes
+    - Whether SambaStack gains SN50 rack documentation (SN40L-16 only today)

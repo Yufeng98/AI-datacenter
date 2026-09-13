@@ -1,0 +1,113 @@
+digraph qualcomm_cloud_ai_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== AI CORE =====================
+    subgraph cluster_aicore {
+        label="Hexagon AI Core (×16 per SoC)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        tensor [label="Tensor Unit (HMX)\n8192 INT8 ops/cycle\n4096 FP16 ops/cycle\n125+ instructions", fillcolor="#283593", fontcolor="white"];
+        vector [label="Vector Unit (HVX)\n512 INT8 ops/cycle\n256 FP16 ops/cycle\n700+ instructions", fillcolor="#283593", fontcolor="white"];
+        scalar [label="Scalar Processor (Q6)\n4-way VLIW\n6 hardware threads\nDispatch control", fillcolor="#283593", fontcolor="white"];
+        scalar -> tensor [color="white", label="instructions", fontcolor="white"];
+        scalar -> vector [color="white"];
+    }
+
+    // ===================== SRAM =====================
+    subgraph cluster_sram {
+        label="On-Chip SRAM";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        sram [label="144 MB / SoC\n(576 MB Ultra card)\nWeights + KV-cache + activations", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== NOC =====================
+    subgraph cluster_noc {
+        label="Network on Chip (3 NoCs)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        compute_noc [label="Compute NoC\n186 GB/s\nMulticast + sync", fillcolor="#D4EDDA"];
+        mem_noc [label="Memory NoC\nAI cores ↔ DRAM", fillcolor="#D4EDDA"];
+        cfg_noc [label="Config NoC\nBoot + hw config", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== DRAM =====================
+    subgraph cluster_dram {
+        label="External Memory";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        lpddr [label="LPDDR4X\nStandard: 32 GB, 136 GB/s\nUltra: 128 GB, 548 GB/s\n4 channels × 64-bit", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host Interface";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pcie [label="PCIe Gen4\nStd: x8 | Ultra: x16\nMQ DMA", fillcolor="#E0E0E0"];
+    }
+
+    // ============ DRAGONFLY ROADMAP (announced 2026-06-24) ============
+    subgraph cluster_dragonfly {
+        label="Qualcomm Dragonfly roadmap (announced 2026-06-24; specs largely not disclosed)";
+        style="rounded,dashed";
+        color="#F9A825";
+        fontcolor="#8D6E00";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        ai200_mem [label="AI200 — LPDDR5x (no HBM)\n768 GB/card (Oct 2025 figure)\n160 kW rack, DLC\nPeak FLOPS not disclosed", fillcolor="#FFF3CD"];
+        hbc1 [label="AI250 — HBC Gen 1\nNear-memory compute\nCLAIM (unaudited): 133 TB/s per card\nCLAIM: 18x effective BW vs AI200\nSampling expected mid-2027", fillcolor="#FFE082"];
+        hbc2 [label="AI300 — HBC Gen 2\n3D-stacked: DRAM over XPU logic (TSVs)\nCLAIM (unaudited): 54x effective BW vs AI200\nCLAIM: 4-8x perf/W vs GPU architectures\nSampling expected 2028", fillcolor="#FFCA28"];
+        fabric [label="Scale-up: UALink + ESUN\nScale-out: Ethernet 800G / 1.6T\ncopper + optical, up to 20 km campus\nPer-chip BW not disclosed", fillcolor="#FFF3CD"];
+        c1000 [label="Dragonfly C1000 CPU\n250+ Oryon cores, chiplet, >5 GHz\n>2 TB/s PCIe Gen 7 + CXL\nAvailability 2028", fillcolor="#FFF3CD"];
+
+        ai200_mem -> hbc1 [label="HBC Gen 1", fontsize=8, style=dashed];
+        hbc1 -> hbc2 [label="HBC Gen 2", fontsize=8, style=dashed];
+        hbc1 -> fabric [style=dashed];
+        hbc2 -> fabric [style=dashed];
+        c1000 -> fabric [style=dashed, label="head node", fontsize=8];
+    }
+
+    // ===================== EDGES =====================
+    tensor -> sram [style=dashed];
+    vector -> sram [style=dashed];
+    tensor -> compute_noc;
+    vector -> compute_noc;
+    compute_noc -> sram;
+    compute_noc -> pcie [style=dashed];
+    mem_noc -> lpddr;
+    lpddr -> sram [label="load", fontsize=8];
+    pcie -> compute_noc;
+
+    // Roadmap linkage: LPDDR-not-HBM lineage continues into near-memory compute
+    lpddr -> ai200_mem [style=dotted, color="#F9A825", label="successor line", fontsize=8, fontcolor="#8D6E00"];
+}

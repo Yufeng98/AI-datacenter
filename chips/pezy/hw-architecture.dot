@@ -1,0 +1,107 @@
+digraph pezy_hw_architecture {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.55;
+    nodesep=0.35;
+
+    // ===================== HOST SYSTEM =====================
+    subgraph cluster_host {
+        label="Host System (ZettaScaler 4.0)";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        epyc [label="AMD EPYC 9555P\n(Zen 5, 64 cores, 1.5 GHz)\nHost CPU + OS\nPCIe Gen5 root complex", fillcolor="#D6E4F0"];
+        ib_nic [label="InfiniBand 400 Gb/s NDR NIC\nInter-node scale-out\nMPI collective transport", fillcolor="#D6E4F0"];
+        cooling [label="ZettaScaler Liquid Immersion\nFluorine-type inert liquid\nNon-toxic / non-combustible\nCompact silent supercomputer", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== SC4s CHIP =====================
+    subgraph cluster_sc4s {
+        label="PEZY-SC4s Die (TSMC 5nm, 556 mm², ~600W, 4x per ZettaScaler4.0 node)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        // Management
+        riscv [label="RISC-V Management\nQuad Rocket Core @ 1.5 GHz\nOn-chip Linux OS\nPE init + PCIe endpoint\n(host-independent — new in SC4s)", fillcolor="#283593", fontcolor="white"];
+
+        // PE Array
+        subgraph cluster_pe_array {
+            label="PE Array: 2,048 MIMD PEs";
+            style="rounded,dashed";
+            color="#90CAF9";
+            fontcolor="#90CAF9";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            subgraph cluster_state {
+                label="State (2,048 PEs + 64 MB L3)";
+                style="rounded,dashed";
+                color="#BBDEFB";
+                fontcolor="#1565C0";
+                fontsize=10;
+                penwidth=1;
+
+                subgraph cluster_pref {
+                    label="Prefecture (~256 PEs each; 8 prefectures/state)";
+                    style="rounded,dashed";
+                    color="#E3F2FD";
+                    fontcolor="#1565C0";
+                    fontsize=9;
+                    penwidth=1;
+
+                    city [label="City (16 PEs)\n32 KB L2 I-cache\n64 KB L2 D-cache", fillcolor="#BBDEFB"];
+                    village [label="Village (4 PEs)\nShared 24 KB scratchpad", fillcolor="#BBDEFB"];
+                    pe [label="PE × 2,048 total\n8-thread SMT\n4-wide FP64 (256-bit)\nFP32/FP16/BF16/INT8\nL1: 4KB I + 4KB D + 24KB scratchpad", fillcolor="#90CAF9"];
+                }
+                l3 [label="64 MB Shared L3 Cache\n(per state = 2,048 PEs)\nMajor HBM traffic reduction", fillcolor="#BBDEFB"];
+            }
+        }
+
+        // HBM3
+        hbm3 [label="HBM3 Memory\n4 stacks × 24 GB = 96 GB\n4 × 800 GB/s = 3.2 TB/s\n1,024-bit bus @ 8 GT/s/stack", fillcolor="#283593", fontcolor="white"];
+
+        // PCIe interface
+        pcie [label="PCIe Gen 5 × 16\n128 GB/s bidir\nHost I/O interface", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Host → chip
+    epyc -> pcie [label="PCIe Gen5"];
+    epyc -> ib_nic [style=dashed];
+    cooling -> epyc [style=dashed, label="thermal"];
+
+    // PCIe → SC4s
+    pcie -> riscv [label="control"];
+    pcie -> pe [label="data / kernel binary", style=dashed];
+
+    // RISC-V → PE Array
+    riscv -> pe [label="PE init / management"];
+    riscv -> l3 [style=dashed];
+
+    // PE hierarchy
+    pe -> village [label="4 PEs", style=dashed];
+    village -> city [label="4 villages"];
+    city -> l3 [label="cache miss"];
+    l3 -> hbm3 [label="LLC miss\n→ HBM3"];
+
+    // HBM3 → compute
+    hbm3 -> pe [label="weights + activations\n@ 3.2 TB/s", color="#283593", fontcolor="#283593"];
+
+    // InfiniBand
+    ib_nic -> epyc [label="MPI / RDMA", style=dashed];
+}

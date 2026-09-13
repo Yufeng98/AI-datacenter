@@ -1,0 +1,134 @@
+digraph google_tpu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        jax [label="JAX\njax.numpy, jit/grad/vmap\nshard_map, jax.Array", fillcolor="#D6E4F0"];
+        pytorch_xla [label="PyTorch/XLA\ntorch_xla backend\ntorch.compile → StableHLO", fillcolor="#D6E4F0"];
+        keras [label="Keras 3\nJAX backend\njax.jit dispatch", fillcolor="#D6E4F0"];
+        flax [label="Flax / NNX\nNeural net modules\nOptax + Orbax + Grain", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        jaxpr [label="jaxpr\nJAX functional IR\nabstract value tracing", fillcolor="#E4DEFF"];
+        stablehlo [label="StableHLO\nMLIR opset (~100 ops)\nversioned portability layer", fillcolor="#E4DEFF"];
+        shardy [label="Shardy\nMLIR SPMD partitioner\nauto collective insertion\n(replaced GSPMD Mar 2026)", fillcolor="#E4DEFF"];
+        xla [label="XLA Compiler\nHLO SSA graph\nfusion / layout / mem sched\nDot tiling for MXU", fillcolor="#E4DEFF"];
+        llo [label="LLO\nLow Level Operations\nTPU-specific IR\nVLIW instruction packing", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pallas [label="Pallas\nJAX kernel DSL\ngrid/BlockSpec/MemorySpace\npallas_call", fillcolor="#FFF3CD"];
+        mosaic [label="Mosaic\nTPU kernel compiler\nMXU tiling + VPU scheduling\nDMA double-buffer pipeline", fillcolor="#FFF3CD"];
+        tokamax [label="Tokamax\nProd Pallas kernel library\nFlashAttention, MoE, RoPE\ngeneration-aware dispatch", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        libtpu [label="libtpu.so\nMonolithic runtime\nXLA compiler + TPU driver\n+ ICI runtime bundled", fillcolor="#F8D7DA"];
+        cache [label="Compilation Cache\nOn-disk binary cache\ncontent-hash keyed\n30–120s amortized", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ici_runtime [label="ICI Runtime (in libtpu)\nAllReduce / AllGather\nAllToAll / ReduceScatter\n3D/2D torus ring impl", fillcolor="#FFE0CC"];
+        multislice [label="Multislice / Titanium IPU\nDCN inter-pod AllReduce\nRDMA offload\nup to 147,456 chips", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Google TPU Hardware (v4 / v5 / v6e Trillium / v7 Ironwood)";
+        style="rounded,filled";
+        color="#1B5E20";
+        fontcolor="white";
+        fillcolor="#1B5E20";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        tensorcore [label="TensorCore\nMXU 128×128 (v4/v5) / 256×256 (v6e/v7)\nVPU (element-wise) + ScalarCore\nv7: 2 TensorCores/chip, FP8 support", fillcolor="#2E7D32", fontcolor="white"];
+        mem [label="Memory Hierarchy\nVMEM ~16–32 MB/TensorCore (compiler-managed)\nCMEM scalar SRAM\nHBM3e 192 GB / 7.4 TB/s (v7 Ironwood)\nNo L1/L2 cache — explicit VMEM only", fillcolor="#2E7D32", fontcolor="white"];
+        ici_hw [label="ICI + SparseCore\nICI 3D torus 1.2 TB/s/chip (v7, 9,216 chips)\n4×4×4 copper+optical cube\nOCS reconfigurable topology (v4)\nSparseCore: 4/chip (v7) embed table accel", fillcolor="#2E7D32", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework → Compiler
+    jax -> jaxpr [label="jit tracing", fontsize=8];
+    pytorch_xla -> stablehlo [label="lower", fontsize=8];
+    keras -> jax [style=dashed, color="#AAAAAA"];
+    flax -> jax [style=dashed, color="#AAAAAA"];
+    jaxpr -> stablehlo [label="lower", fontsize=8];
+    stablehlo -> shardy [label="shard propagate", fontsize=8];
+    shardy -> xla [label="collective insertion", fontsize=8];
+    stablehlo -> xla [style=dashed, color="#AAAAAA"];
+    xla -> llo [label="TPU backend", fontsize=8];
+
+    // Kernel Library
+    pallas -> mosaic [label="compile kernel", fontsize=8];
+    mosaic -> llo [label="emit LLO", fontsize=8];
+    tokamax -> pallas [style=dashed, color="#AAAAAA", label="uses", fontsize=8];
+    xla -> pallas [style=dashed, color="#AAAAAA", label="custom_call embed", fontsize=8];
+
+    // Compiler → Runtime
+    llo -> libtpu [label="VLIW binary", fontsize=8];
+    libtpu -> cache [style=dashed, color="#AAAAAA"];
+
+    // Communication
+    ici_runtime -> libtpu [style=dashed, color="#AAAAAA", label="bundled in", fontsize=8];
+    shardy -> ici_runtime [style=dashed, color="#AAAAAA", label="collective ops", fontsize=8];
+    multislice -> ici_runtime [style=dashed, color="#AAAAAA", label="inter-pod", fontsize=8];
+
+    // Runtime → Hardware
+    libtpu -> tensorcore [label="PCIe DMA + cmd queue", fontsize=8, color="#283593"];
+    libtpu -> mem [style=dashed, color="#283593", label="HBM alloc/DMA", fontsize=8];
+
+    // Hardware internal
+    tensorcore -> mem [color="#1B5E20"];
+    mem -> ici_hw [style=dashed, color="#1B5E20"];
+    ici_runtime -> ici_hw [style=dashed, color="#1B5E20", label="ring AllReduce", fontsize=8];
+}

@@ -1,0 +1,143 @@
+digraph furiosa_hw_architecture {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.4;
+
+    // Title node
+    title [label="FuriosaAI NPU Hardware Architecture\nWarboy (Samsung 14nm, 2021)  |  RNGD (TSMC 5nm, January 2026)  |  Gen 3 (2nm + Broadcom, announced 2026-05-27)\nas_of 2026-08-08",
+           shape=plaintext, fontname="Helvetica-Bold", fontsize=14, fillcolor="white"];
+
+    // ===================== WARBOY =====================
+    subgraph cluster_warboy {
+        label="Warboy — Gen 1 (Samsung 14nm, 180 mm², 5B transistors)";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        wb_compute [label="PE Array\n2.0 GHz | 64 TOPS INT8\nFP16 / INT8 precision\nCompiler-scheduled execution\n(no caches, no dynamic scheduler)",
+                    fillcolor="#D6E4F0"];
+        wb_sram [label="On-chip SRAM: 32 MB\nActivation buffers + weight tiles\nSW-managed (compiler-allocated)\nNo hardware cache",
+                 fillcolor="#D6E4F0"];
+        wb_mem [label="LPDDR4X: 16 GB @ 66 GB/s\n(vision NPU — modest model sizes)",
+                fillcolor="#D6E4F0"];
+        wb_host [label="PCIe Gen4 x8\n~50W TDP\nSemiFive ASIC platform",
+                 fillcolor="#D6E4F0"];
+
+        wb_compute -> wb_sram [label="compiler-scheduled R/W"];
+        wb_sram -> wb_mem [label="DMA"];
+        wb_mem -> wb_host [style=dashed];
+    }
+
+    // ===================== RNGD =====================
+    subgraph cluster_rngd {
+        label="RNGD — Gen 2 (TSMC 5nm, 40B transistors, mass prod. January 2026)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="#1A237E";
+        fillcolor="#F0F4FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        subgraph cluster_tcp {
+            label="Tensor Contraction Processor (TCP)";
+            style="rounded,dashed";
+            color="#7B61FF";
+            fontcolor="#7B61FF";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            pe0 [label="PE 0\n64 slices\n(INT8/INT4/FP8)", fillcolor="#E4DEFF"];
+            pe1 [label="PE 1\n64 slices", fillcolor="#E4DEFF"];
+            pe2 [label="PE 2\n64 slices", fillcolor="#E4DEFF"];
+            pe3 [label="PE 3\n64 slices", fillcolor="#E4DEFF"];
+            pe4 [label="PE 4\n64 slices", fillcolor="#E4DEFF"];
+            pe5 [label="PE 5\n64 slices", fillcolor="#E4DEFF"];
+            pe6 [label="PE 6\n64 slices", fillcolor="#E4DEFF"];
+            pe7 [label="PE 7\n64 slices", fillcolor="#E4DEFF"];
+
+            tcp_note [label="TCP Architecture:\n512 TFLOPS FP8 (64 TFLOPS FP8 × 8 PEs) @ 1.0 GHz\n256 TFLOPS BF16 | 512 TOPS INT8 | 1,024 TOPS INT4\n(dtype figures other than FP8: developer docs, unconfirmed)\nTensor contraction = generalized matmul\nSame hardware for GEMM + Attention + Conv\nCompiler maps tensor dims to PE/slice axes",
+                      shape=note, fillcolor="#E8E0FF", fontsize=9];
+        }
+
+        subgraph cluster_partition {
+            label="Hardware Partitioning (Multi-Tenancy)";
+            style="rounded,dashed";
+            color="#34A853";
+            fontcolor="#34A853";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            partition [label="2 / 4 / 8 hardware-isolated vNPUs (SR-IOV)\nHBM3 per vNPU: 48 / 24 / 12 / 6 GB\nEach partition: dedicated PE slices + HBM3 BW\nKubernetes-native NPU scheduling; sold as 1/2/4/8-card\nSKUs by Samsung SDS NPUaaS (2026-07-20)",
+                       fillcolor="#D4EDDA"];
+        }
+
+        rngd_sram [label="On-chip SRAM: 256 MB @ 384 TB/s\nSW-managed (compiler-allocated)\nNo hardware caches",
+                   fillcolor="#FFF3CD"];
+        rngd_hbm [label="HBM3: 48 GB (2 stacks, CoWoS-S, 6.0 Gbps) @ 1.5 TB/s\n(23× Warboy memory bandwidth)\nSK hynix HBM3; 32K context window supported\n96 GB combined across 2 cards (tensor-parallel)",
+                  fillcolor="#FFF3CD"];
+        rngd_host [label="PCIe Gen5 x16 (card-to-card P2P)\n180W TDP (product page) / 150W (developer docs)\nNXT RNGD Server: up to 8 cards, 3 kW class\n3.75× tokens/watt vs H100 rack\nGPT-OSS 120B: 5.8 ms TPOT (2 cards)",
+                   fillcolor="#FFF3CD"];
+    }
+
+    // ===================== EDGES (RNGD internal) =====================
+    pe0 -> rngd_sram [style=dashed, color="#7B61FF"];
+    pe7 -> rngd_sram [style=dashed, color="#7B61FF"];
+    tcp_note -> pe0 [style=invis];
+    rngd_sram -> rngd_hbm [label="weight streaming\n@ 1.5 TB/s"];
+    rngd_hbm -> rngd_host [style=dashed];
+    partition -> pe0 [style=dashed, color="#34A853", label="slice allocation"];
+
+
+    // ===================== GEN 3 (ANNOUNCED ONLY) =====================
+    subgraph cluster_gen3 {
+        label="Gen 3 — ANNOUNCED 2026-05-27 (Broadcom co-development) — NO SILICON";
+        style="rounded,dashed";
+        color="#B26A00";
+        fontcolor="#B26A00";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        g3_compute [label="Compute: FuriosaAI TCP + Broadcom XPU\nTechnology and IP Platform\n2nm compute die (TSMC, per Korean wire)\nPeak throughput at every dtype: NOT DISCLOSED",
+                    fillcolor="#FFE8CC"];
+        g3_mem [label="HBM4 / HBM4E\nCapacity, stack count, bandwidth:\nNOT DISCLOSED",
+                fillcolor="#FFE8CC"];
+        g3_pkg [label="Multi-die chiplet system-in-package\nBroadcom advanced packaging\nDie count / die sizes: NOT DISCLOSED\nTDP: NOT DISCLOSED",
+                fillcolor="#FFE8CC"];
+        g3_fabric [label="FIRST SCALE-UP FABRIC IN THE ROADMAP\nBroadcom Ethernet scale-up + fabric switches\nAll-to-all-capable topology for MoE expert routing\nLink BW and scale-up domain size: NOT DISCLOSED",
+                   fillcolor="#FFD9A0"];
+        g3_status [label="STATUS: announced partnership / roadmap item.\nNo tape-out, no silicon, no shipping.\nSampling targeted H1 2028 (Korean wire, 2026-05-28).\nNo product name or codename disclosed.\nAggregator figures (432 GB / 12 memory sites /\n3.5D XDSiP) are NOT vendor-disclosed — excluded.",
+                    shape=note, fillcolor="#FFF0DB", fontsize=9];
+
+        g3_compute -> g3_mem [style=dashed, color="#B26A00"];
+        g3_compute -> g3_pkg [style=dashed, color="#B26A00"];
+        g3_pkg -> g3_fabric [style=dashed, color="#B26A00"];
+        g3_status -> g3_compute [style=invis];
+    }
+
+    rngd_host -> g3_compute [style=dotted, color="#B26A00", label="roadmap\n(announced only)"];
+
+    // ===================== GENERATION COMPARISON =====================
+    subgraph cluster_compare {
+        label="Generation Comparison";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+        compare [label="              Warboy (2021)    RNGD (2026)       Gen 3 (announced)\nProcess        Samsung 14nm     TSMC 5nm          2nm (TSMC)\nTransistors    5B               40B               not disclosed\nPeak           64 TOPS INT8     512 TFLOPS FP8    not disclosed\nOn-chip SRAM   32 MB            256 MB @384 TB/s  not disclosed\nMemory type    LPDDR4X          HBM3 48 GB        HBM4/4E (cap. n.d.)\nMemory BW      66 GB/s          1.5 TB/s  (23×)   not disclosed\nTDP            ~50W             180W              not disclosed\nHost IF        PCIe Gen4 x8     PCIe Gen5 x16     not disclosed\nScale-up       none             none (PCIe only)  Broadcom Ethernet\nPackaging      monolithic       mono + 2 HBM3     multi-die chiplet\nTarget         CNN/Vision       LLM/Multimodal    Agentic / MoE",
+               shape=note, fillcolor="#F8D7DA", fontsize=9, fontname="Courier"];
+    }
+}

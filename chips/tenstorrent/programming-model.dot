@@ -1,0 +1,184 @@
+digraph tenstorrent_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.compile (TT-XLA)\ntorch.export → StableHLO", fillcolor="#D6E4F0"];
+        jax [label="JAX\njax.jit / jax.vmap\nPJRT TT-XLA plugin", fillcolor="#D6E4F0"];
+        onnx [label="ONNX / TensorFlow\nTT-Forge-FE\nONNX → TT-MLIR", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ttforge [label="TT-Forge\nEnd-to-end MLIR compiler\nGPT-120B, Llama 70B, SDXL", fillcolor="#E4DEFF"];
+        ttmlir [label="TT-MLIR\nTTIR → TTNN → TTMetal dialects\nFusion + sharding passes", fillcolor="#E4DEFF"];
+        ttxla [label="TT-XLA\nPJRT bridge\nStableHLO → TT-MLIR", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ttnn [label="TT-NN\nttnn.matmul / linear / attention\n800+ model variants in CI\nMeshDevice + CCL collectives\nDevice 2.0 API migration in progress\n(norm + reduction done; CNN ops in flight)", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ttllk [label="TT-LLK\nHeader-only Unpack/Math/Pack\nllk_unpack_A, llk_math_eltwise\nllk_sfpu_exp / tanh / custom\nBackends: Wormhole B0, Blackhole A0, Quasar (bring-up)", fillcolor="#FFF3CD"];
+        flashattn [label="FlashAttention\nSRAM-resident attention\n32×32 tile pipeline", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        metalium [label="TT-Metalium\nDevice / Program / CircularBuffer\nFast Dispatch (ARC core)\nSPMD kernel model", fillcolor="#F8D7DA"];
+        metal2 [label="Metal 2.0 / Device 2.0 API\n(rearchitecture in progress since 2025-11)\nKernel scratchpad; NOC-distinctness check\nDataflowBuffer (DFB) replaces CircularBuffer\nmulti-config layer support", fillcolor="#F8D7DA", style="rounded,filled,dashed"];
+        nocapi [label="NoC API\nnoc_async_read/write\nnoc_async_read_barrier\ncb_push_back / cb_wait_front", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ttumd [label="TT-UMD\nUser-mode driver (C++)\nPCIe BAR + MMIO", fillcolor="#E0E0E0"];
+        ttkmd [label="TT-KMD\nLinux kernel module\n/dev/tenstorrent/%d\nPCIe + IRQ", fillcolor="#E0E0E0"];
+        firmware [label="TT-Firmware\nDMC + SMC controllers\nZephyr RTOS (Blackhole)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ccl [label="TT-NN CCL\nAllReduce, AllGather\nReduceScatter, AllToAll\nover Ethernet", fillcolor="#FFE0CC"];
+        tttopology [label="TT-Topology\nEthernet routing tables\nmesh / linear / torus", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        babyrisc [label="Baby RISC-V ISA\n5 cores per Tensix\nBRISC/NCRISC/TRISC0-2\n(fully public TT-ISA-docs)", fillcolor="#EFEBE9"];
+        matrixisa [label="Matrix Unit ISA\nMVMUL, GMPOOL, ELWMUL\n32×32 tile ops\nBF16/FP8/INT8", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Tenstorrent Hardware (Tensix RISC + SFPU)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        tensix [label="Tensix Core Array\n5 Baby RISC-V + FPU (32×32 tile) + SFPU (32-lane)\n1.5 MB L1 SRAM scratchpad per core\nWormhole: 80 cores | Blackhole: 120 cores shipping (140 full die) + 16 Big RISC-V", fillcolor="#283593", fontcolor="white"];
+        noc [label="Dual NoC 2D Torus\nNoC 0 (east/south) + NoC 1 (west/north)\n32 bytes/cycle per link; no hardware cache\nAll data movement is EXPLICIT software-controlled", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory\nOn-chip SRAM: 180 MB shipping card / 210 MB full die — software scratchpad\nGDDR6: 28 GB @ 448 GB/s (p100a) | 32 GB @ 512 GB/s (p150a/b)\nGalaxy: 6.2 GB SRAM @ 2.9 PB/s | 1 TB GDDR6 @ 16 TB/s\nNo HBM; no hardware cache hierarchy", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Ethernet Scale-up + Scale-out\nWormhole: 16 × 100 GbE = 1.6 Tbps\nBlackhole: 10 × 400 GbE = 4 Tbps\nGalaxy Blackhole (GA 2026-04-28): 32 ASICs, 23 PFLOPS Block FP8\nfabric 32 TB/s | scale-out 56 × 800 GbE = 11.2 TB/s (vendor, bidir)\nCommodity Ethernet switches; no proprietary fabric", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> ttxla;
+    jax -> ttxla;
+    onnx -> ttforge;
+    ttxla -> ttmlir;
+    ttforge -> ttmlir;
+
+    // Compiler -> Op Library
+    ttmlir -> ttnn;
+
+    // Op Library -> Kernel
+    ttnn -> ttllk;
+    ttnn -> flashattn;
+
+    // Op Library -> Runtime (direct dispatch)
+    ttnn -> metalium [style=dashed, color="#AAAAAA"];
+
+    // Kernel -> Runtime
+    ttllk -> metalium;
+    flashattn -> metalium;
+
+    // Runtime chain
+    metalium -> metal2 [style=dashed, label="migrating", fontsize=8];
+    metal2 -> nocapi [style=dashed];
+    metalium -> nocapi;
+    nocapi -> ttumd;
+    ttumd -> ttkmd;
+    ttkmd -> firmware;
+
+    // ISA chain
+    babyrisc -> matrixisa [style=dashed];
+    babyrisc -> tensix;
+    matrixisa -> tensix;
+
+    // Communication
+    ccl -> ttnn [style=dashed, color="#AAAAAA"];
+    ccl -> interconnect [style=dashed, color="#283593"];
+    tttopology -> interconnect;
+
+    // Hardware internal
+    tensix -> noc [color="#283593"];
+    noc -> mem [color="#283593"];
+    noc -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    firmware -> tensix [style=dashed, color="#283593"];
+    ttkmd -> tensix [style=dashed, color="#283593"];
+}

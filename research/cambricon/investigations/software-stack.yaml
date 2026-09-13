@@ -1,0 +1,325 @@
+resource: Cambricon NeuWare SDK Software Stack
+url: https://developer.cambricon.com/
+chip: cambricon
+as_of: 2026-04-05
+last_updated: 2026-08-08   # see update_2026_08_08 at the end of this file
+investigation_report: software-stack.md
+
+layer_mappings:
+  - layer: Framework Integration
+    components:
+      - name: torch_mlu
+        url: https://github.com/Cambricon/torch_mlu
+        role: Official PyTorch extension; registers MLU device backend; dispatches ATen ops to CNNL/BANGC OPS; versioned as {torch_mlu_ver}+torch{pytorch_ver}
+        entry_points:
+          - torch.device("mlu")
+          - tensor.to("mlu")
+          - model.mlu()
+          - torch.distributed with CNCL backend
+          - torch.compile integration
+        confidence: confirmed
+      - name: vllm-mlu
+        url: https://github.com/Cambricon/vllm-mlu
+        role: vLLM fork for MLU; supports Chunk Prefill, Prefix Caching, Speculative Decoding, Graph Mode; requires SDK 25.08, MLU370+
+        confidence: confirmed
+      - name: PaddlePaddle custom device plugin
+        url: https://github.com/PaddlePaddle/PaddleCustomDevice
+        role: libpaddle-custom-mlu.so with 264+ custom operators for Cambricon MLU
+        confidence: confirmed
+      - name: CATCH (legacy)
+        url: https://github.com/Cambricon/catch
+        role: Earlier PyTorch integration layer for MLU; superseded by torch_mlu
+        confidence: confirmed
+
+  - layer: Compiler / IR
+    components:
+      - name: BANG C + CNCC compiler
+        url: https://www.cambricon.com/docs/bangc/developer_guide_html/
+        role: BANG C is the CUDA-analog kernel language; CNCC compiles .mlu source to MLISA assembly; CNAS assembles to .cnbin/.cnfatbin
+        entry_points:
+          - __mlu_global__ (kernel qualifier)
+          - __nram__ / __wram__ / __mlu_shared__ (memory qualifiers)
+          - __mlu_builtin_* (compute intrinsics)
+          - __sync_cluster() / __sync_all() (barriers)
+          - cncc command (compiler driver)
+          - cnas command (assembler)
+        confidence: confirmed
+      - name: MagicMind
+        url: https://github.com/Cambricon/magicmind_cloud
+        role: MLIR-based inference compiler; converts TF/PyTorch/ONNX/Caffe to optimized MLU binary; graph fusion + quantization + layout optimization
+        confidence: confirmed
+      - name: triton-linalg
+        url: https://github.com/Cambricon/triton-linalg
+        role: Converts Triton MLIR dialect to Linalg dialect for Cambricon backend; frontend complete, backend under development
+        confidence: confirmed
+
+  - layer: Op Library
+    components:
+      - name: CNNL (Cambricon Neuware Neural Network Library)
+        url: https://www.cambricon.com/docs/sdk_1.15.0/cntoolkit_3.7.2/
+        role: Primary op library (cuDNN+cuBLAS analog); GEMM, Conv, BN, LayerNorm, Attention, Pooling, RNN; C API
+        entry_points:
+          - cnnlConvolutionForward
+          - cnnlMatMul
+          - cnnlBatchNormForward
+          - cnnlTransformerAttention
+        confidence: confirmed
+      - name: CNNL_Extra
+        role: Extended operator library for ML ops beyond core CNNL; dependency of torch_mlu
+        confidence: confirmed
+      - name: CNML (legacy)
+        url: https://developer.cambricon.com/uploads/20220901/522e59edfe8c344303b95660bdffad54.pdf
+        role: Predecessor graph-based op library (v7.10.2 April 2021); superseded by CNNL; referenced in MXNet integration
+        confidence: confirmed
+
+  - layer: Kernel Library
+    components:
+      - name: mlu-ops / BANGC OPS
+        url: https://github.com/Cambricon/mlu-ops
+        role: Open-source BANG C kernel implementations; hundreds of ML ops; CNNL integration helpers; used by torch_mlu for non-CNNL ops
+        confidence: confirmed
+      - name: BANGPy
+        role: Python-level kernel programming API (Triton analog); graph/kernel/operator-level optimization; part of NeuWare SDK
+        confidence: confirmed
+      - name: CNCV (Cambricon Computer Vision Library)
+        role: Accelerated image decode, resize, color convert, normalize on MLU; vision preprocessing for inference pipelines
+        confidence: confirmed
+
+  - layer: Runtime
+    components:
+      - name: CNRT (Cambricon Neuware Runtime)
+        url: https://www.cambricon.com/docs/cnrt/user_guide_html/index.html
+        role: Primary user-facing runtime API (libcudart.so analog); device mgmt, memory alloc, queue create, kernel launch
+        entry_points:
+          - cnrtGetDeviceCount / cnrtSetDevice
+          - cnrtMalloc / cnrtFree / cnrtMemcpy
+          - cnrtQueueCreate / cnrtQueueSync
+          - cnrtNotifierCreate / cnrtPlaceNotifier
+          - cnrtInvokeKernel (with cnrtDim3_t, kernel fn, params, queue)
+        confidence: confirmed
+      - name: CNDrv (Cambricon Driver API)
+        url: https://crates.io/crates/cndrv
+        role: Low-level driver API (libcuda.so analog); explicit context management, module loading, fine-grained memory
+        confidence: confirmed
+      - name: CNToolkit bundle
+        url: https://www.cambricon.com/docs/sdk_1.15.0/cntoolkit_3.7.2/cntoolkit_install_3.7.2/index.html
+        role: Packaging bundle containing CNCC, CNAS, CNRT, CNDrv, CNNL, CNCL; versioned SDK distribution
+        confidence: confirmed
+
+  - layer: Driver / Firmware
+    components:
+      - name: cambricon-mlu kernel driver
+        url: https://gitee.com/jimpirrou/cambricon-mlu-driver
+        role: Linux kernel module; PCIe BAR mapping, IOCTL dispatch, DMA engine, interrupt handling
+        confidence: confirmed
+      - name: cambricon-k8s-device-plugin
+        url: https://github.com/Cambricon/cambricon-k8s-device-plugin
+        role: Kubernetes DaemonSet auto-reporting MLU count and health to scheduler
+        confidence: confirmed
+      - name: mlu-exporter
+        url: https://github.com/Cambricon/mlu-exporter
+        role: Prometheus metrics exporter for MLU device monitoring (temperature, utilization, memory)
+        confidence: confirmed
+
+  - layer: Communication
+    components:
+      - name: CNCL (Cambricon Collective Communication Library)
+        role: NCCL analog; AllReduce/AllGather/ReduceScatter/Broadcast over MLU-Link; torch.distributed backend
+        confidence: confirmed
+      - name: Gloo (for heterogeneous)
+        role: Cross-vendor communication in KAITIAN framework; bridges MLU-MLU CNCL with non-MLU accelerators
+        confidence: confirmed
+
+  - layer: Assembler / ISA
+    components:
+      - name: MLISA (Machine Learning ISA)
+        role: Native MLU ISA; 64-bit instructions; scalar/vector/matrix/control categories; 64 GPRs; assembled from BANG C via CNCC+CNAS
+        confidence: confirmed
+      - name: CNAS (Cambricon Neuware Assembler)
+        role: Assembles MLISA text to .cncode/.cnbin/.cnfatbin binary formats
+        confidence: confirmed
+      - name: .cnfatbin (fat binary)
+        role: Multi-generation binary bundle (analog to NVIDIA fatbinary); contains .cnbin for multiple MLU hardware generations
+        confidence: inferred
+      - name: Cambricon ISA (original ISCA 2016)
+        url: https://ieeexplore.ieee.org/document/7551409/
+        role: Published ISA specification; 43 instruction types; scalar/vector/matrix/control; load-store architecture
+        confidence: confirmed
+
+key_abstractions:
+  - name: BANG C Kernel
+    description: >
+      Function qualified with __mlu_global__ that executes on MLU Cores. Launched via cnrtInvokeKernel with
+      a cnrtDim3_t specifying X×Y×Z Core task dimensions. The programmer explicitly manages NRAM/WRAM
+      allocation using __nram__/__wram__ qualifiers. There is no automatic scratchpad management —
+      all data movement between GDRAM and on-chip memory is programmer-controlled via DMA built-ins.
+    layer: Compiler/IR / Runtime
+    hardware_mapping: Each kernel invocation maps to N MLU Cores executing in parallel
+
+  - name: Queue
+    description: >
+      CNRT's ordered asynchronous execution context (CUDA Stream analog). Kernels, memcpies, and notifier
+      placements enqueued on a Queue execute in submission order. Independent Queues may run concurrently.
+      cnrtQueueSync() blocks host until all enqueued work completes.
+    layer: Runtime
+    hardware_mapping: MLU hardware command queue / DMA channel
+
+  - name: Notifier
+    description: >
+      Lightweight event for cross-Queue synchronization (CUDA Event analog). A Notifier is placed in a Queue
+      via cnrtPlaceNotifier() and waited on in another Queue or the host via cnrtWaitNotifier(). Used for
+      producer-consumer pipelining between DMA and compute Queues.
+    layer: Runtime
+    hardware_mapping: Hardware fence / timestamp in command queue
+
+  - name: CNNL Handle
+    description: >
+      Opaque context object required by all CNNL API calls; encapsulates stream/queue association and
+      device state (cuDNN handle analog). Created once per device context, reused across operator calls.
+    layer: Op Library
+    hardware_mapping: Device context + associated Queue for async op dispatch
+
+  - name: MagicMind Engine
+    description: >
+      Compiled inference graph produced by MagicMind compiler from a framework model. Contains fused,
+      quantized, layout-optimized MLU binaries for one or more graph segments. Analogous to a TensorRT
+      engine file. Loaded at inference time via MagicMind runtime API.
+    layer: Compiler/IR
+    hardware_mapping: Compiled MLISA binaries for MLU, bundled with calibration metadata
+
+sdk_component_versions:
+  # Historical baseline as of 2026-04-05; superseded — see sdk_component_versions_2026_08_08
+  cntoolkit: "3.7.2"
+  cnrt: "6.0.0"
+  cnml: "7.10.2 (legacy)"
+  bang_c_guide: "2.15.0 (online) / 2.4.1 (PDF)"
+  sdk_bundle: "sdk_1.15.0"
+  vllm_mlu_requirement: "SDK 25.08, MLU370+"
+
+sdk_component_versions_2026_08_08:
+  cntoolkit: ">= 4.1.0"
+  cnnl: ">= 1.28.0"
+  mlu_driver: ">= 6.0.3"
+  torch_mlu: "1.24.1 (referenced by torch_mlu_ops v1.3.2)"
+  torch_mlu_ops: "1.3.2 (released 2026-02-04)"
+  cnnl_referenced_by_torch_mlu_ops: "1.28.3"
+  sdk_bundle: not disclosed
+  vllm_mlu_requirement: "SDK 25.08, MLU370以上的设备 (unchanged)"
+  note: >
+    Requirement floor taken from the actively maintained mlu-ops master README. CNToolkit 3.8.4 is an
+    intermediate version whose doc tree is search-indexed but whose release notes return HTTP 401;
+    recording 3.8.4 as current would understate the toolchain. The SDK bundle number matching
+    CNToolkit 4.1.0 is not public — do not invent one.
+  confidence: confirmed
+  sources:
+    - https://raw.githubusercontent.com/Cambricon/mlu-ops/master/README.md
+    - https://api.github.com/repos/Cambricon/mlu-ops/releases
+    - https://dev.modelhub.org.cn/Chranos/enginex-mlu370-vllm/src/tag/v0.0.6/torch_mlu_ops-v1.3.2
+    - https://sdk.cambricon.com/static/independent/CNToolkit/3.8.4/releasenote/
+
+# ---------------------------------------------------------------------------
+# Investigation update — 2026-08-08
+# ---------------------------------------------------------------------------
+update_2026_08_08:
+  as_of: 2026-08-08
+  change_class: major
+  investigation_report: software-stack.md (section "Investigation Update — 2026-08-08")
+
+  new_facts:
+    - layer: Framework Integration
+      group: vllm-mlu day-0 DeepSeek-V4 enablement (2026-04-24)
+      confidence: confirmed
+      facts:
+        - changelog_entry: "[2026.04.24] vllm_mlu day0支持DeepSeek-V4 (the only entry in the README changelog)"
+        - models: DeepSeek-V4-flash (285B) and DeepSeek-V4-pro (1.6T)
+        - hybrid_parallelism: five-dimensional TP / PP / SP / DP / EP
+        - overlap: communication-computation overlap
+        - quantization: low-precision quantization (formats not enumerated)
+        - serving_topology: PD-separated deployment (prefill/decode disaggregation)
+        - fused_ops: Torch-MLU-Ops accelerates the DeepSeek-V4 Compressor and mHC modules
+        - hand_written_kernels: BANG C kernels for sparse/compressed attention and GroupGemm
+        - board_options_listed: MLU370-S4 / MLU370-X4 / MLU370-X8
+      corroboration: >
+        The 2026 half-year filing independently corroborates PD separation (预填充与解码分离) and
+        DeepSeek Day-0 adaptation generically, but never names Torch-MLU-Ops or vllm-mlu.
+      sources:
+        - https://developer.cambricon.com/index/article/details.html?id=12
+        - https://raw.githubusercontent.com/Cambricon/vllm-mlu/master/README.md
+        - https://static.cninfo.com.cn/finalpage/2026-08-08/1225464969.PDF
+
+    - layer: Framework Integration
+      group: vllm-mlu feature list and hardware requirement (verified UNCHANGED)
+      confidence: confirmed
+      facts:
+        - features: Chunk Prefill, Prefix Caching, Speculative Decoding, Graph Mode, Sleep Mode
+        - hardware_requirement: "MLU370以上的设备 (MLU370 and above) — unchanged"
+        - upstream_doc_pr: "vllm-project/vllm #25942 '[Doc] Add Cambricon MLU support' merged 2025-09-30; pre-dates the repo baseline; distinct from PR #10315"
+      note: >
+        Sleep Mode is the only feature addition; an earlier scan wrongly called the existing feature
+        list and MLU370+ requirement stale.
+      sources:
+        - https://raw.githubusercontent.com/Cambricon/vllm-mlu/master/README.md
+        - https://app.semanticdiff.com/gh/vllm-project/vllm/pull/25942/overview
+
+    - layer: Op Library
+      group: Torch-MLU-Ops (torch_mlu_ops) — new to this survey, NOT new in this window
+      confidence: confirmed
+      facts:
+        - role: Cambricon self-developed high-performance fused operator library for PyTorch; sits alongside CNNL and mlu-ops
+        - version: 1.3.2, released 2026-02-04 (BEFORE the 2026-04-05 repo baseline)
+        - dependencies: Torch-MLU v1.24.1, CNNL v1.28.3
+        - known_consumers: vLLM, TGI, Stable Diffusion WebUI
+        - distribution: licensed SDK bundle; no Cambricon-owned public source repository found
+      caveat: >
+        Must not be framed as a component the stack "picked up" in the April-August 2026 window.
+        It is new to the repo only.
+      sources:
+        - https://dev.modelhub.org.cn/Chranos/enginex-mlu370-vllm/src/tag/v0.0.6/torch_mlu_ops-v1.3.2
+        - https://baike.baidu.com/item/Torch-MLU-Ops/67674918
+        - https://github.com/huismiling/torch-mlu-ops
+        - https://developer.cambricon.com/index/article/details.html?id=12
+
+    - layer: Compiler / IR
+      group: triton-linalg status revision
+      confidence: confirmed
+      facts:
+        - last_public_push: 2025-02-07
+        - revised_status: >
+            Frontend conversion complete; backend compilation to MLISA has no public commits since
+            Feb 2025 — stalled in public or moved into the licensed SDK, not visibly in flight.
+        - countervailing_evidence: >
+            Cambricon's 2026 half-year report states the company 持续跟进 Triton 社区版本更新
+            (continues to track Triton community releases), so internal Triton work is ongoing.
+      sources:
+        - https://api.github.com/orgs/Cambricon/repos?sort=pushed&direction=desc
+        - https://static.cninfo.com.cn/finalpage/2026-08-08/1225464969.PDF
+
+    - layer: Kernel Library
+      group: open-source activity picture (GitHub API, retrieved 2026-08-08)
+      confidence: confirmed
+      facts:
+        - mlu-ops: pushed 2026-08-07 (actively maintained)
+        - cambricon-k8s-device-plugin: pushed 2026-08-07
+        - mlu-exporter: pushed 2026-08-07
+        - mmcv: pushed 2026-07-27
+        - mlu-ops-proto: pushed 2026-07-07
+        - vllm-mlu: pushed 2026-05-11
+        - torch_mlu: pushed 2025-03-15 (quiet in public)
+        - triton-linalg: pushed 2025-02-07 (quiet in public)
+        - mlu-ops_last_release: "v1.8.1 published 2026-01-06 (NOT 2025-01-06); note says future releases will not be published on that page"
+        - gitee_torch_mlu: "branch r1.22_pt2.4.0 (PyTorch 2.4.0), 2025-era EOL dates"
+        - active_development_home: >
+            The licensed SDK bundle — NOT Gitee. torch_mlu_ops v1.3.2 references Torch-MLU v1.24.1
+            while the Gitee mirror is still on the r1.22 line, so the "consolidated onto Gitee"
+            inference is unsupported.
+      sources:
+        - https://api.github.com/orgs/Cambricon/repos?sort=pushed&direction=desc
+        - https://api.github.com/repos/Cambricon/mlu-ops/releases
+        - https://gitee.com/cambricon/torch_mlu
+
+  negative_results:
+    confidence: confirmed
+    facts:
+      - no Cambricon submission in MLPerf Inference v6.0 (2026-04) or any prior MLPerf round
+      - no new named compiler, runtime or communication component beyond Torch-MLU-Ops
+      - no discontinuation or deprecation announcement for any NeuWare component

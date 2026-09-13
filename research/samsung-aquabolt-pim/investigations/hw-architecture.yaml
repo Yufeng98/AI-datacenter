@@ -1,0 +1,340 @@
+chip: samsung-aquabolt-pim
+investigation: hw-architecture
+date: "2026-04-05"
+confidence: high
+sources:
+  - url: "https://www.hc33.hotchips.org/assets/program/conference/day1/20210813_HC33_Aquabolt-XL_PIM_Jin_Kim_slide.pdf"
+    type: conference_slides
+    title: "Aquabolt-XL HC33 Official Samsung Slides"
+  - url: "https://ieeexplore.ieee.org/document/9567191/"
+    type: peer_reviewed_paper
+    title: "Aquabolt-XL IEEE HC33"
+  - url: "https://thememoryguy.com/samsungs-aquabolt-xl-processor-in-memory-part-1/"
+    type: expert_blog
+    title: "Samsung Aquabolt-XL PIM — The Memory Guy"
+
+architecture:
+  paradigm: "Processing-in-Memory (PIM) in HBM2 stack"
+  product_name: "Aquabolt-XL / HBM-PIM"
+  memory_base: "HBM2 (HBM2 Aquabolt)"
+  drop_in_compatible: true
+  jedec_hbm2_compatible: true
+  announced: "ISSCC 2021"
+  hotchips: "HC33 2021"
+
+die_stack:
+  total_dies: 8
+  standard_dram_dies: 4
+  pim_dram_dies: 4
+  logic_die: 1
+  note: "Bottom 4 dies replaced with PIM-DRAM; top 4 remain standard"
+
+pim_dram_die:
+  banks_per_die: 16
+  pseudo_channels_per_die: 16
+  processors_per_die: 32
+  processor_per_pseudo_channel: 1
+
+processor_unit:
+  fp16_multipliers: 2
+  fp16_adders: 2
+  register_files: 3
+  execution_model: "SIMD (all processors execute same instruction)"
+  instruction_type: "RISC 32-bit"
+  numeric_formats: ["FP16"]
+
+full_stack_specs:
+  total_processors: 128
+  peak_flops_fp16_TFLOPS: 1.2
+  internal_bandwidth_TB_per_s: 4.92
+  external_io_bandwidth_TB_per_s: 1.23
+  capacity_GB: 16
+
+performance_validation:
+  fpga_platform:
+    host: "Xilinx Alveo U280"
+    application: "RNN-T speech recognition"
+    speedup: "2.49x"
+    energy_reduction_pct: 62
+  gpu_platform:
+    host: "AMD MI60 (inferred)"
+    speedup: ">2x"
+    energy_reduction_pct: 70
+
+limitations:
+  - "SIMD only — no per-processor independent control flow"
+  - "FP16 only — no INT8, BF16, FP32"
+  - "Local data only — PIM operates on data in own pseudo-channel"
+  - "No hardware cache"
+  - "1.2 TFLOPS — memory-bound GEMV only, not compute-bound replacement"
+
+process:
+  node: "Samsung 20nm class"
+  packaging: "HBM2 3D TSV stack"
+
+# =====================================================================
+# UPDATE 2026-08-08 — Samsung LPDDR5X-PIM (generation 2, non-HBM base)
+# The blocks above describe Aquabolt-XL HBM2-PIM (2021) and are unchanged.
+# =====================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  generation: "LPDDR5X-PIM (LP5X-PIM)"
+  scope: "New Samsung PIM generation on an LPDDR5X base; not a change to Aquabolt-XL"
+  overall_confidence: high
+  overall_confidence_basis: >
+    Vendor primary source (Samsung-authored arXiv note) read in full, page by page.
+    Secondary corroboration for productization status from three independent outlets.
+    Architectural depth is limited only by Samsung's own explicit deferral of detail.
+
+  sources:
+    - id: arxiv_2606_00636
+      url: "https://arxiv.org/abs/2606.00636"
+      pdf: "https://arxiv.org/pdf/2606.00636"
+      type: vendor_primary_paper
+      title: "LP5X-PIM Sim: A High-Fidelity HW/SW Integrated Simulator for LPDDR5X-PIM"
+      authors: ["SangHoon Cha", "Jaewan Choi", "Byeongho Kim", "Yoonah Paik", "Sukhan Lee", "Kyomin Sohn"]
+      affiliation: "Samsung Electronics, South Korea (stated in paper)"
+      venue: "arXiv cs.AR, v1"
+      date: "2026-05-30"
+    - id: hotchips_2026
+      url: "https://www.hotchips.org/"
+      type: conference_program
+      title: "Hot Chips 2026 program"
+      note: "Conference 23-25 Aug 2026, Stanford. Talk NOT yet delivered as of 2026-08-08."
+    - id: samsung_fms2026
+      url: "https://news.samsungsemiconductor.com/global/samsung-unveils-next-gen-3d-memory-vision-at-fms-2026-charting-the-future-of-ai-infrastructure/"
+      type: vendor_newsroom
+      date: "2026-08-04"
+    - id: storagereview_fms2026
+      url: "https://www.storagereview.com/news/samsung-outlines-3d-memory-roadmap-for-ai-infrastructure-at-fms-2026"
+      type: trade_press
+      date: "2026-08-04"
+    - id: sammobile_fms2026
+      url: "https://www.sammobile.com/news/samsung-znand-o-lpddr5x-pim-pm1763-memory-chips-ssd-ai-data-centers/"
+      type: trade_press
+      date: "2026-08-04"
+    - id: etnews_20260723
+      url: "https://en.etnews.com/20260723200002"
+      type: trade_press
+      date: "2026-07-23"
+      reliability: low
+    - id: sedaily_20260805
+      url: "https://en.sedaily.com/finance/2026/08/05/samsung-sk-push-pim-and-cxl-as-us-china-japan-challenge-hbm"
+      type: trade_press
+      date: "2026-08-05"
+      reliability: low
+      known_error: "Misdates the Hot Chips talk to September 2026; hotchips.org says 23-25 Aug 2026"
+    - id: winbuzzer_20260218
+      url: "https://www.winbuzzer.com/2026/02/18/samsung-lpddr5x-pim-hbm4-memory-ai-computing-xcxwbn/"
+      type: aggregator
+      date: "2026-02-18"
+      reliability: low
+      use: "Establishes only that LPDDR5X-PIM was publicly named before the repo's 2026-04-05 baseline"
+
+  dating:
+    confidence: high
+    sources: [arxiv_2606_00636, winbuzzer_20260218]
+    first_public_mention: "2026-02-18 (aggregator) — predates the repo's 2026-04-05 baseline"
+    architecture_lineage_reference: "B. Kim et al., IEEE Micro 44(3):40-48, 2024 (cited by the arXiv note)"
+    new_in_window: "Substantive disclosure only: arXiv 2026-05-30, FMS 2026-08-04/06, Hot Chips 2026-08-25"
+    framing_note: >
+      This is a program the survey missed, now substantively disclosed. It is NOT a
+      newly-resurfaced or newly-announced product.
+
+  organization:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    pim_block_placement: "1-to-1 mapping with a corresponding DRAM bank"
+    quote: >
+      Each PIM block is deployed in a 1-to-1 mapping with a corresponding DRAM bank,
+      allowing direct data transfer through internal compute units and specialized PIM registers.
+    named_registers:
+      - name: IRF
+        expansion: "instruction register file"
+        note: "Holds 'IRF code' synthesized by PIM Device Code Gen"
+      - name: SRF
+        expansion: "Source Register File"
+    operating_modes:
+      - name: "Single-Bank (SB)"
+        role: "Standard DRAM operations"
+      - name: "Multi-Bank (MB)"
+        role: "Parallel PIM execution across multiple banks"
+    mode_transition_owner: "PIM Control component of the runtime (software-managed)"
+    contrast_with_aquabolt_xl: >
+      Aquabolt-XL placed 1 processor per pseudo-channel at a bank boundary.
+      LPDDR5X-PIM places 1 PIM block per bank. Different granularity, different memory base.
+
+  numeric_formats:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    note: "Real change vs. the FP16-only Aquabolt-XL entry"
+    integer_combinations: ["W8A8", "W4A4", "W8A16", "W4A8", "W4A16"]
+    floating_point_combinations: ["W8A8(FP)", "W8A16(FP)"]
+    notation: "W<weight-bits>A<activation-bits>"
+
+  memory_system:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    base: "LPDDR5X-9600"
+    jedec_standard: "JESD209-5C (2022)"
+    jedec_compliance: "strict"
+    channels_in_all_experiments: 4
+    internal_bandwidth: "not disclosed"
+    external_bandwidth: "not disclosed"
+    capacity: "not disclosed"
+    on_chip_sram: "none described; PIM registers (IRF, SRF) only"
+
+  not_disclosed:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    vendor_statement: >
+      Further technical details regarding the specific architecture and circuit design
+      of the LPDDR5X-PIM will be disclosed in future publications.
+    fields:
+      - mac_lanes_per_pim_block
+      - peak_tflops
+      - peak_tops
+      - internal_vs_external_bandwidth
+      - device_capacity
+      - process_node
+      - package_form_factor
+      - die_area
+      - power_tdp
+    instruction: "Do not estimate any of these. Write 'not disclosed'."
+
+  performance:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    evidence_class: "vendor cycle-accurate simulation — NOT measured silicon"
+    simulator: "LP5X-PIM Sim"
+    baseline: "non-PIM sequential weight read, four DRAM channels (self-defined by Samsung)"
+    workload: "GEMV"
+    results:
+      - condition: "baseline weight-tile dimension 4096; larger tile shapes (W8A8, W4A4, W8A8 FP)"
+        speedup: "6.0x-6.2x"
+      - condition: "baseline weight-tile dimension 4096; smaller tile shapes (W8A16, W4A16, W8A16 FP)"
+        speedup: "5.7x-5.8x"
+      - condition: "150 ns static memory-fence latency modeled, dim 4096"
+        speedup: ">5.0x for most configurations; low of 4.1x for W4A16"
+      - condition: "Reshape column-partitioning software optimization, small matrices (W < 2048)"
+        speedup: "up to an additional 1.65x"
+    fence_latency_note: >
+      150 ns is described in the paper as 'a representative value for high-performance
+      mobile application processors' — the paper's only application-domain hint.
+    third_party_reproduction: none
+    silicon_measurement: none
+
+  simulator:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    name: "LP5X-PIM Sim"
+    kind: "cycle-accurate HW/SW integrated simulator"
+    built_on: ["DRAMSim3", "Ramulator"]
+    open_source: "not confirmed"
+    repo_url: null
+    conflation_warning: >
+      Do NOT conflate with Samsung's earlier PIMSimulator
+      (https://github.com/SAITPublic/PIMSimulator, 2023), which the paper cites separately
+      and which IS public. LP5X-PIM Sim has no stated release and no repo link.
+
+  disclosure_schedule:
+    confidence: high
+    sources: [hotchips_2026]
+    conference: "Hot Chips 2026 (Hot Chips 38)"
+    dates: "2026-08-23 to 2026-08-25"
+    venue: "Memorial Auditorium, Stanford"
+    session: "Memory session, chair Jae W. Lee"
+    slot: "Tuesday 2026-08-25, 09:30-10:30"
+    title: "Samsung LPDDR5X-PIM: World's First LPDDR based Processing in Memory (PIM) Solution for AI Inference"
+    presenter: "Karam Hwang (Samsung)"
+    status: "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public as of 2026-08-08"
+    instruction: "Never cite this talk title as the source of a spec."
+    date_warning: >
+      Seoul Economic Daily (2026-08-05) misdates this to 'the 23rd of next month'
+      (September 2026). Independently reproduced. Trust hotchips.org.
+
+  productization_status:
+    confidence: high
+    sources: [samsung_fms2026, storagereview_fms2026, sammobile_fms2026]
+    correct_verb: "announced / showcased"
+    event: "FMS 2026 (Future of Memory and Storage), 2026-08-04 to 2026-08-06"
+    samsung_framing: "the industry's first LPDDR memory with processing-in-memory technology"
+    shown_alongside: ["HBM4E", "HBM5", "zHBM", "zNAND-O", "V10 BV-NAND", "PM1763"]
+    production_date: "not disclosed"
+    availability: "not disclosed"
+    named_customers: none
+    sampling: "no evidence"
+    shipping: "no evidence"
+    deployment: "no evidence"
+    trade_press_claims:
+      confidence: low
+      sources: [etnews_20260723, sedaily_20260805]
+      claims:
+        - source: etnews_20260723
+          text: "moved well beyond the research stage; aimed at near-term on-device AI deployment; possible pairing with Samsung GAIA 4nm NPU"
+          status: "unconfirmed by Samsung; no customer named"
+        - source: sedaily_20260805
+          text: "entered a full-fledged sales phase to attract Big Tech customers"
+          status: "unconfirmed by Samsung; no customer named"
+
+  target_market:
+    confidence: medium
+    sources: [etnews_20260723, arxiv_2606_00636, samsung_fms2026, sammobile_fms2026]
+    do_not_state_exclusively: true
+    positions:
+      - source: etnews_20260723
+        framing: "smartphones and laptops (on-device AI)"
+      - source: arxiv_2606_00636
+        framing: "only hint — 150 ns is 'a representative value for high-performance mobile application processors'"
+      - source: samsung_fms2026
+        framing: "charting the future of AI infrastructure"
+      - source: sammobile_fms2026
+        framing: "AI data centers and edge AI devices"
+    settled_statement: >
+      Primarily an on-device/edge AI inference play, with Samsung also marketing it under
+      an AI-infrastructure banner. Relevance to this datacenter survey is as the successor
+      of Samsung's PIM program and as a contrast case to Aquabolt-XL's GPU/FPGA-attached
+      HBM2 targeting — not as a confirmed datacenter part.
+
+  hbm_pim_successor:
+    confidence: medium
+    sources: [hotchips_2026, samsung_fms2026]
+    verdict: "not confirmed either way"
+    basis: "absence of evidence, NOT a verified negative"
+    checked:
+      - "Hot Chips 2026 program — no Samsung HBM-PIM talk"
+      - "FMS 2026 coverage — no HBM-PIM"
+      - "Samsung PIM technology page — no HBM-PIM content (page appears retired/restructured)"
+    adjacent_talk:
+      title: "HBM Base Die: How will HBM evolve in the future by utilizing the logic process?"
+      presenter: "Sangwook Han (Samsung)"
+      date: "2026-08-23"
+      venue: "Hot Chips 2026 Tutorial 1"
+      note: "Covers logic-process base dies; NOT described as PIM. Future talk — content not public."
+    search_limitation: >
+      The verification pass had an exhausted WebSearch budget and relied on direct WebFetch
+      of primary sources. An HBM-PIM announcement never searched for cannot be exhaustively
+      ruled out.
+
+  deliberately_omitted_unverified:
+    reason: "Could not be independently verified; news.samsung.com timed out on repeated attempts"
+    fields:
+      - "Samsung HBM4 commercial shipping announcement date (2026-02-12)"
+      - "HBM4 11.7 Gbps rated / up to 13 Gbps"
+      - "HBM4 4nm logic base die"
+      - "HBM4 1c DRAM"
+      - "HBM4E samples May 2026"
+      - "ISSCC 2026 '36GB 3.3TB/s HBM4' paper title"
+    note: >
+      The only aggregator that loaded garbles the data rate as '11.7 GB/s' (unit error)
+      and says HBM4 'commenced mass production' rather than 'shipped'. Do not publish.
+
+  repo_hygiene:
+    confidence: low
+    url: "https://semiconductor.samsung.com/us/technologies/memory/pim/"
+    cited_at: "research/samsung-aquabolt-pim/search-results.md (row 10)"
+    observation: >
+      Independent fetch returned only generic Samsung Semiconductor navigation with no
+      HBM-PIM/Aquabolt-XL content, consistent with the page having been retired or
+      restructured. Verify manually before treating as a dead link.

@@ -1,0 +1,154 @@
+digraph esperanto_et_soc1_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.55;
+    nodesep=0.35;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.onnx.export()\n(AOT via ONNX; no eager backend)", fillcolor="#D6E4F0"];
+        onnx_fe [label="TensorFlow / Keras\n(via tf2onnx → ONNX)", fillcolor="#D6E4F0"];
+        onnx_rt [label="ONNXRuntime Custom EP\nET-SoC-1 Execution Provider\nStandard C/C++/Python API\nTransparent hardware dispatch", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        primo [label="Primo AI/ML SDK\n(Umbrella SDK: compile, profile, deploy)", fillcolor="#E4DEFF"];
+        glow [label="Meta Glow Compiler (open source)\nONNX → Graph IR\nOp fusion, quantization\nGraph partitioning across 1,088 cores", fillcolor="#E4DEFF"];
+        llvm_rv [label="LLVM RISC-V Backend\n+ ET-Minion Vector/Tensor Intrinsics\nGlow → LLVM IR → RV64GCV binaries\n1,088 per-core ELF outputs", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library / HPC SDK";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hpc_sdk [label="General Purpose HPC SDK (May 2023)\nC/C++ on 1,088 ET-Minion cores\nOpenMP thread parallelism\nRISC-V vector intrinsics\nTranscendental math library", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        rt_native [label="Native RISC-V Runtime\nET-Minion core init + SRAM alloc\nPCIe DMA: host↔LPDDR4x↔on-chip SRAM\nStatic partition assignment\n(no dynamic scheduling)", fillcolor="#F8D7DA"];
+        linux_maxion [label="Linux on ET-Maxion (4 OoO cores)\nOS, resource mgmt, ET-Minion loader\nStandalone server mode OR PCIe accelerator", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        driver [label="PCIe Linux Kernel Module\nBAR mapping, DMA, IRQ\n(No separate firmware RM —\nET-Maxion Linux handles all management)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        comm [label="Shared On-chip SRAM (intra-chip)\nHost PCIe mediated (Glacier Point v2 multi-chip)\n(No dedicated chip-to-chip fabric)\n(No NCCL — multi-chip via Glow compiler partitioning)", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        isa [label="RISC-V RV64GCV (open standard ISA)\nFull GCC/LLVM toolchain; gdb; valgrind\n+ Esperanto Custom Vector/Tensor Extensions\n(32K-op tensor instr; transcendental ops)\nNo PTX equivalent needed — RISC-V IS the virtual ISA", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Esperanto ET-SoC-1 Hardware (TSMC 7nm, 570mm², 24B transistors, <20W)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        compute [label="1,088 ET-Minion In-Order RISC-V Cores\n+ Per-Core Vector/Tensor Unit\n(32K MACs/tensor instruction, 512 cycles)\n(Transcendental unit: exp/log/sin/cos/tanh)\n+ 4 ET-Maxion OoO Cores (Linux)\n100-200 INT8 TOPS | <20W | ~5-10 TOPS/W", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\n>160 MB on-chip SRAM (SW-managed, no caches)\nLPDDR4x up to 32 GB (~137 GB/s)\neMMC Flash (model persistence)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Packaging / Scale-up\nPCIe Gen4 x8 host interface\nGlacier Point v2: 6 chips, 192 GB LPDDR4x\n6,558 cores | ~822 GB/s | ~600-1200 TOPS", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> glow [label="ONNX export"];
+    onnx_fe -> glow [style=dashed, label="tf2onnx"];
+    onnx_rt -> glow [label="compile path"];
+    pytorch -> primo [style=dashed, color="#AAAAAA"];
+    primo -> glow;
+
+    // Compiler chain
+    glow -> llvm_rv [label="lower to LLVM IR"];
+
+    // HPC SDK parallel path
+    hpc_sdk -> isa [style=dashed, label="C/C++ → RISC-V"];
+
+    // Compiler -> Runtime
+    llvm_rv -> rt_native [label="1,088 RISC-V ELFs"];
+
+    // Runtime chain
+    rt_native -> linux_maxion;
+    linux_maxion -> driver;
+    driver -> compute [label="PCIe dispatch\n+ ET-Minion load"];
+
+    // Memory
+    driver -> mem [label="SRAM init\n+ DRAM DMA", style=dashed];
+    mem -> compute [label="stream weights\n+ activations"];
+    compute -> mem [label="write results", style=dashed];
+
+    // Communication
+    rt_native -> comm [label="multi-chip", style=dashed];
+    comm -> interconnect [label="physical fabric"];
+
+    // ISA (informational)
+    llvm_rv -> isa [style=dashed, label="emits", color="#795548", fontcolor="#795548", fontsize=8];
+
+    // Hardware internal
+    compute -> interconnect [color="#283593", style=dashed];
+    mem -> interconnect [color="#283593", style=dashed];
+}

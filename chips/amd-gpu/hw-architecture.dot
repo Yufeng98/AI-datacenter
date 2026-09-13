@@ -1,0 +1,188 @@
+digraph amd_gpu_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.5;
+    nodesep=0.4;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        cu [label="Compute Unit (CU)\n4x SIMD16 Vector Pipelines\n1 Matrix Core (MFMA)\nWavefront Scheduler, SALU\nVGPR (128KB) + SGPR (12.5KB) + AGPR", fillcolor="#FFCDD2"];
+        mfma [label="Matrix Core (MFMA)\nCDNA3: FP64/FP32/FP16/BF16/FP8/INT8\nCDNA4: +FP6/FP4 (OCP MX)\nMI350: 20 PFLOPS FP4\nCDNA 5 / MI455X: 40.26 PFLOPS MXFP4", fillcolor="#FFCDD2"];
+        cu_count [label="Shader Block Count\nMI300X: 304 CUs (8 XCDs x 38)\nMI350X: 256 CUs (8 XCDs x 32)\nCDNA4: 2x throughput/CU\nMI455X: 256 WGPs (8 XCDs x 32 of 34)", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        wavefront [label="Wavefront Execution\nCDNA1-CDNA4: 64-thread waves\n4 cycles across 4x SIMD16\nRound-robin scheduler\nCDNA 5: native Wave32\n(4 dual-issue SIMD32 per WGP)", fillcolor="#FFE0B2"];
+        dualissue [label="Dual-Issue\nVector + Scalar/Branch\nsimultaneously (CDNA3+)\nMFMA overlaps with VALU", fillcolor="#FFE0B2"];
+        xcd [label="XCD (Accelerator Complex Die)\n38 CUs + 4MB L2 (CDNA3)\n32 CUs + L2 (CDNA4)\n8 XCDs per package", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP MEMORY =====================
+    subgraph cluster_onchip {
+        label="On-chip Memory";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        lds [label="LDS (Local Data Share)\n64 KB/CU, 32 banks (CDNA3/4)\n320 KB/WGP (CDNA 5)\nProgrammer-managed\n__shared__ scratchpad", fillcolor="#BBDEFB"];
+        l1 [label="L1 Caches\nVector: 32 KB/CU (CDNA3/4)\nScalar: 16 KB/CU\nInstruction: 64 KB/XCD\n128 KB/WGP (CDNA 5)", fillcolor="#BBDEFB"];
+        l2 [label="L2 Cache\n4 MB per XCD\n32 MB total (MI300X)\nCoherence point", fillcolor="#BBDEFB"];
+        infcache [label="Infinity Cache\n256 MB (4x 64MB on IODs)\nPackage-wide LLC\nBefore HBM access\n(CDNA3/CDNA4 only)", fillcolor="#BBDEFB"];
+        l2_cdna5 [label="CDNA 5 Global L2\n192 MB = 2x 96 MB on FCDs\n27 TB/s per FCD = 54 TB/s\nReplaces per-XCD L2 +\nInfinity Cache tier", fillcolor="#90CAF9"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory (HBM)";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hbm [label="HBM3 / HBM3e / HBM4\nMI300X: 192 GB, 5.3 TB/s\nMI325X: 288 GB, 6.0 TB/s\nMI350X: 288 GB, ~8 TB/s\nMI455X: 432 GB HBM4, 23.3 TB/s", fillcolor="#C8E6C9"];
+        memctrl [label="Memory Controllers\n8 stacks, 8192-bit bus (CDNA3/4)\nOn IODs (TSMC N6)\nCoWoS interposer\nCDNA 5: 12 stacks x 2048-bit,\n192 channels, CoWoS-L", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== HOST INTERFACE / PACKAGE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pcie [label="Host Attach\nPCIe Gen 5.0 x16, 128 GB/s (CDNA3/4)\nCDNA 5: 256 GB/s bidir\n16-lane Infinity Fabric to EPYC", fillcolor="#E1BEE7"];
+        iod [label="IOD (I/O Die)\n4 IODs (MI300X), 2 (MI350)\n64 MB Infinity Cache each\nPCIe, IF, mem controllers", fillcolor="#E1BEE7"];
+        fcd [label="FCD (Fabric-and-Cache Die)\nCDNA 5 only: 2 per package\nTSMC N3, 96 MB L2 each\nCarries fabric + global L2", fillcolor="#D1A7E0"];
+        pkg [label="Package\nMI300X: 8 XCD + 4 IOD + 8 HBM3\nSoIC 3D + CoWoS interposer\n146B transistors, 750W TBP\nMI455X: 8 XCD (N2) + 2 IOD + 2 FCD (N3)\n+ 12 HBM4, CoWoS-L\ntransistors / TBP: not disclosed", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        xgmi [label="Infinity Fabric / XGMI\n7 links per MI300X GPU\n128 GB/s bidir per link\n~48 GB/s practical unidir\n(CDNA3 / CDNA4)", fillcolor="#B2DFDB"];
+        mesh [label="8-GPU Full Mesh\nEvery GPU direct to every peer\n896 GB/s aggregate per GPU\nOAM baseboard topology", fillcolor="#B2DFDB"];
+        ualoe [label="UALink-over-Ethernet (UALoE)\nCDNA 5 scale-up (replaces mesh)\n36 x 400 Gb/s per GPU\n3.6 TB/s bidir per GPU\n72-GPU domain, 260 TB/s per rack\nSwitched (AMD + Broadcom)", fillcolor="#80CBC4"];
+    }
+
+    // ===================== SCALE-OUT INTERCONNECT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pollara [label="Pensando Pollara 400\n400 Gbps Ethernet\nUEC-ready AI NIC\n3rd-gen P4 engine", fillcolor="#CFD8DC"];
+        gpudirect [label="GPU-Direct RDMA\nPeerDirect interface\nNIC direct to GPU HBM\nHMM unified address", fillcolor="#CFD8DC"];
+        ib [label="InfiniBand / RoCEv2\nNDR/HDR IB or 400GbE\nUCX transport layer\nFat-tree / dragonfly", fillcolor="#CFD8DC"];
+        vulcano [label="Pensando 'Vulcano' NIC\nCDNA 5 / Helios scale-out\n43 TB/s per 72-GPU rack\nper-GPU rate not confirmed", fillcolor="#B0BEC5"];
+    }
+
+    // ===================== CDNA 5 / MI455X / HELIOS (2026) =====================
+    subgraph cluster_cdna5 {
+        label="CDNA 5: Instinct MI455X / Helios (launched 2026-07-23)";
+        style="rounded,dashed";
+        color="#B8860B";
+        fontcolor="#B8860B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2.0;
+
+        mi455_compute [label="MI455X Compute (CDNA 5)\n256 WGPs = 8 XCDs x 32 (of 34)\n2 shader engines/XCD x 16 WGPs\n4 dual-issue Wave32 SIMD32/WGP\n4 matrix units/WGP, 2.4 GHz\nTSMC N2 compute chiplets", fillcolor="#FFF9C4"];
+        mi455_perf [label="MI455X Peak Performance\nMXFP4: 40.26 PFLOPS (confirmed)\nFP32: 315 TFLOPS (confirmed)\nMXFP6/FP8: 20.13 PFLOPS*\nFP16/BF16: 5.03 PFLOPS*\n(*not independently confirmed)", fillcolor="#FFF9C4"];
+        mi455_isa [label="CDNA 5 New ISA Features\nE5M3 scale format\n4-bit Tensor LUT instruction\nTensor Data Movers\ngfx target: NOT DISCLOSED", fillcolor="#FFF9C4"];
+        mi455_mem [label="MI455X Memory\n432 GB HBM4, 23.3 TB/s\n12 stacks x 2048-bit, 192 ch\n192 MB global L2 on 2 FCDs\n(54 TB/s aggregate)", fillcolor="#FFF9C4"];
+        mi455_platform [label="Helios Rack (in production,\nshipping from Q3 2026)\n72x MI455X + 18x EPYC 'Venice'\n2.9 EFLOPS MXFP4, 31 TB HBM4\n~1.7 PB/s aggregate HBM BW\nrack power: not disclosed", fillcolor="#FFF9C4"];
+        mi430x [label="MI430X (CDNA 5, HPC/sovereign)\nup to 288 TFLOPS FP64\n432 GB HBM4\nannounced; H1 2027", fillcolor="#FFF9C4"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute -> Data Path
+    cu -> wavefront [label="executes"];
+    mfma -> wavefront [style=dashed];
+
+    // Data Path -> On-chip Memory
+    wavefront -> lds [label="shared mem\naccesses"];
+    wavefront -> l1 [label="register\nspill / load"];
+    xcd -> l2 [label="per-XCD\ncoherence"];
+
+    // On-chip -> Off-chip Memory
+    l1 -> l2 [label="L1 miss"];
+    l2 -> infcache [label="L2 miss\n(CDNA3/4)"];
+    l1 -> l2_cdna5 [style=dashed, color="#1565C0", label="CDNA 5:\nL1 miss"];
+    infcache -> hbm [label="cache miss"];
+    l2_cdna5 -> hbm [style=dashed, color="#1565C0", label="L2 miss"];
+    hbm -> memctrl;
+
+    // Off-chip -> Host Interface
+    memctrl -> pcie [style=dashed, label="host\nDMA"];
+    memctrl -> iod [label="on IOD"];
+    l2_cdna5 -> fcd [style=dashed, color="#6A1B9A", label="resides on"];
+
+    // Host Interface -> Scale-up
+    iod -> xgmi [label="fabric\ncontroller"];
+    fcd -> ualoe [style=dashed, color="#00695C", label="CDNA 5\nfabric"];
+
+    // Scale-up internal
+    xgmi -> mesh [label="full\nmesh"];
+    mesh -> ualoe [style=dashed, color="#00695C", label="CDNA 5 replaces\n8-GPU mesh"];
+
+    // Scale-up -> Scale-out
+    mesh -> pollara [label="inter-node", style=dashed];
+    pollara -> gpudirect;
+    pollara -> ib;
+    ualoe -> vulcano [style=dashed, label="inter-rack"];
+
+    // Cross-references
+    gpudirect -> hbm [style=dashed, label="RDMA\nto HBM", color="#37474F"];
+
+    // CDNA 5 connections (generation progression)
+    mfma -> mi455_compute [style=dashed, color="#B8860B", label="next gen\n(CDNA 5)"];
+    mi455_compute -> mi455_perf [color="#B8860B"];
+    mi455_compute -> mi455_isa [color="#B8860B"];
+    mi455_compute -> mi455_mem [color="#B8860B"];
+    mi455_perf -> mi455_platform [color="#B8860B"];
+    mi455_mem -> mi455_platform [color="#B8860B"];
+    mi455_compute -> mi430x [style=dashed, color="#B8860B", label="HPC SKU"];
+    hbm -> mi455_mem [style=dashed, color="#B8860B", label="HBM4\n23.3 TB/s"];
+    ualoe -> mi455_platform [style=dashed, color="#B8860B", label="72-GPU\ndomain"];
+}

@@ -1,0 +1,99 @@
+chip: untether-ai
+device_class: "At-Memory Compute (Canada)"
+hq: Toronto, Ontario, Canada (former)
+as_of: 2026-08-08
+
+status: dead
+status_detail: >
+  Untether AI Corporation filed an assignment in bankruptcy 2025-10-15 under Canada's Bankruptcy and
+  Insolvency Act (Ontario Estate No. 31-3285414; trustee PricewaterhouseCoopers Inc., LIT). Liquidation,
+  not restructuring. Zero employees at date of bankruptcy. All products and the imAIgine SDK were
+  discontinued June 2025 with no successor and were never open-sourced.
+bankruptcy_date: 2025-10-15
+bankruptcy_estate_no: "31-3285414"
+bankruptcy_trustee: "PricewaterhouseCoopers Inc., LIT (Goodmans LLP independent counsel)"
+assets_cad_m: 25.0          # statement of affairs, almost entirely cash
+unsecured_claims_cad_m: 128.63
+unsecured_creditors: 71
+fy2024_loss_cad_m: 68.38
+employees_at_bankruptcy: 0
+staff_terminated_pre_bankruptcy: 52
+trustee_stated_causes:
+  - failure to raise additional funding
+  - competitive pressure
+  - "a late pivot to generative AI markets resulting in lost opportunities"
+
+amd_transaction:
+  date: 2025-06
+  # CORRECTION: this was NOT an acqui-hire of the team, nor any asset/IP purchase.
+  nature: exclusive right to negotiate new employment with certain Untether employees
+  paid_to_untether_usd_m: 25
+  ip_acquired: none
+  products_acquired: none
+  silicon_acquired: none
+  use_of_proceeds: secured debt repaid in full, June 2025
+  corroboration: National Bank of Canada patent security interest released, USPTO recorded 2025-06-17
+
+ip_status:
+  owner: Untether AI Corporation (bankrupt estate)
+  us_patents_approx: 34
+  uspto_reassignment_recorded: false   # as of 2026-08-08
+  prosecution_continued: US12591633B2 "Computational memory" granted 2026-03-31
+  trustee_carrying_value_cad: 1
+  monetization: trustee "considering options and alternatives"; non-binding LOI from pre-bankruptcy TD Securities process; no sale publicly confirmed
+  last_trustee_filing: 2025-10-31
+
+sdk_open_sourced: false   # github.com/untetherai holds only third-party forks; last activity May 2025
+website_live: false       # untether.ai TLS handshake failure as of 2026-08-08
+
+sources:
+  - https://www.pwc.com/ca/en/car/untether/assets/untether-004_311025.pdf   # PRIMARY: trustee's report, 2025-10-30
+  - https://www.pwc.com/ca/en/services/insolvency-assignments/untetherai.html
+  - https://www.pwc.com/ca/en/services/insolvency-assignments/untetherai/trustees-reports.html
+  - https://patents.google.com/patent/US11614947B2/en   # assignee unchanged; NBC security interest released 2025-06-17
+  - https://patents.google.com/patent/US12591633B2/en   # granted 2026-03-31, still Untether AI Corporation
+  - https://betakit.com/untether-ai-files-for-bankruptcy-following-amd-acquihire/
+
+# All parts below were discontinued 2025-06 and are unavailable.
+# Peak/efficiency figures are vendor-claimed unless attributed to MLPerf.
+products_discontinued: 2025-06
+
+chips:
+  runAI200:
+    process: TSMC 16nm
+    sram_mb: 200
+    banks: 511
+    pe_per_bank: 512
+    peak_tops: 502
+    efficiency_tops_per_w: 8
+    released: 2020
+
+  speedAI240:
+    process: TSMC 7nm
+    sram_mb: 238
+    banks: 729
+    riscv_cores: 1456
+    riscv_freq_ghz: 1.35
+    pe_per_bank: 512
+    peak_fp8_pflops: 2.0
+    peak_bf16_pflops: 1.0
+    efficiency_tflops_per_w: 30
+    sram_bw_pbs: 1.0
+    scratchpad_mb: 4
+    lpddr5_max_gb: 32
+    tdp_w: 75
+    form_factor: PCIe low-profile
+    datatypes: [INT4, INT8, FP8, BF16]
+    released: 2024
+
+architecture_principle: at-memory-compute
+memory_hierarchy:
+  L1_in_bank_sram_mb: 238
+  L1_bw_pbs: 1.0
+  L2_scratchpad_mb: 4
+  L3_lpddr5_max_gb: 32
+
+mlperf:
+  resnet50_server_qps: 309752
+  power_w: 986
+  vs_competitor_efficiency: "3x"

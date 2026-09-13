@@ -1,0 +1,125 @@
+digraph kunlunxin_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.4;
+
+    // ===================== CHIP PACKAGE =====================
+    subgraph cluster_package {
+        label="Kunlunxin XPU Die (P800 / XPU-P)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=13;
+        penwidth=2;
+
+        // Clusters
+        subgraph cluster_cluster {
+            label="Compute Clusters (× N)";
+            style="rounded,filled";
+            fillcolor="#283593";
+            fontcolor="white";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            color="#3F51B5";
+
+            sdnn [label="SDNN\nSpatial DNN Accelerator\nSystolic MAC Array\nGEMM / Conv / Deconv\nElementwise", fillcolor="#3949AB", fontcolor="white"];
+            xvme [label="XVME\nVector Math Engine\nSIMD Unit\nActivations / Norm\nReduction / Elementwise", fillcolor="#3949AB", fontcolor="white"];
+            lsram [label="Cluster SRAM\nLocal Scratchpad\nSW-managed\nHigh BW (hundreds TB/s agg.)", fillcolor="#5C6BC0", fontcolor="white"];
+        }
+
+        // Shared resources
+        shared_sram [label="Shared SRAM\nChip-level\nCross-cluster buffer", fillcolor="#283593", fontcolor="white"];
+        dispatch [label="Dispatch / Control\nSPMD Scheduler\nOp Sequencer", fillcolor="#283593", fontcolor="white"];
+        pcie_ctrl [label="PCIe Controller\nGen4 x16\nHost Interface", fillcolor="#283593", fontcolor="white"];
+        xlink_ctrl [label="XLINK Controller\n200 GB/s per port\nChip-to-chip (P800)\nXPU-Link supernode protocol", fillcolor="#283593", fontcolor="white"];
+        hbm_ctrl [label="HBM3 Controller\n(P800) 96 GB\n~1.6 TB/s", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-Chip Memory";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hbm3 [label="HBM3 (P800)\n96 GB\n~1.6 TB/s", fillcolor="#FFF3CD"];
+        gddr6 [label="GDDR6 (R200/R300)\n32 GB\n512 GB/s", fillcolor="#FFF3CD"];
+        hbm2 [label="HBM2 (Gen 1)\n16 GB\n512 GB/s\n(I-Cube 2.5D)", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== SCALE-UP FABRIC =====================
+    subgraph cluster_scaleup {
+        label="Scale-up ladder (as of 2026-08-08)";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        xlink [label="XLINK Fabric\n200 GB/s bidi per pair\n8 cards / server (conventional)", fillcolor="#FFE0CC"];
+        supernode64 [label="Kunlun Super Node (cabinet)\n32 / 64 cards\nlaunched April 2025\nclaimed 8x inter-card BW vs 8-card server", fillcolor="#FFE0CC"];
+        tianchi256 [label="Tianchi 256 (天池256)\n256 P800 cards / cabinet\nlit up Apr 2026; stated on sale Jun 2026\nvolume shipping not independently confirmed", fillcolor="#FFE0CC"];
+        tianchi512 [label="Tianchi 512\n512 cards; H2 2026 target\nNOT shipped\ntrillion-parameter training (vendor claim)", fillcolor="#FFF3E6", style="rounded,filled,dashed"];
+        xpulink [label="XPU-Link protocol\nBaidu self-developed\nprogrammable switching\ncopper cabling + liquid-cooling CDU\n77% claimed BW efficiency (vendor)", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host Server";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        host_cpu [label="Host CPU\nPCIe Gen4 x16 root\nXRE driver / XPU kernel module", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Within cluster
+    sdnn -> lsram [color="#5C6BC0", label="read/write", fontsize=8];
+    xvme -> lsram [color="#5C6BC0", label="read/write", fontsize=8];
+    sdnn -> xvme [color="#3F51B5", label="activation chain", fontsize=8];
+
+    // Cluster → shared
+    lsram -> shared_sram [color="#283593", label="DMA", fontsize=8];
+    shared_sram -> dispatch [color="#283593"];
+    dispatch -> sdnn [color="#283593", label="dispatch ops", fontsize=8];
+
+    // Cluster ↔ HBM
+    hbm_ctrl -> lsram [color="#283593", label="DMA load/store", fontsize=8];
+    hbm_ctrl -> hbm3 [color="#D4A017"];
+
+    // Off-chip variants (dashed to indicate model-dependent)
+    hbm_ctrl -> gddr6 [style=dashed, color="#AAAAAA", label="R200/R300", fontsize=8];
+    hbm_ctrl -> hbm2 [style=dashed, color="#AAAAAA", label="Gen1", fontsize=8];
+
+    // Scale-up
+    xlink_ctrl -> xlink [color="#FF6D01"];
+    xlink_ctrl -> xlink_ctrl [style=dashed, label="peer XPU", color="#FF6D01", fontsize=8];
+    xlink -> supernode64 [color="#FF6D01", label="scale up", fontsize=8];
+    supernode64 -> tianchi256 [color="#FF6D01", label="scale up", fontsize=8];
+    tianchi256 -> tianchi512 [style=dashed, color="#FF6D01", label="planned H2 2026", fontsize=8];
+    xpulink -> supernode64 [style=dashed, color="#FF6D01", label="fabric protocol", fontsize=8];
+    xpulink -> tianchi256 [style=dashed, color="#FF6D01"];
+
+    // Host interface
+    pcie_ctrl -> host_cpu [color="#34A853", label="PCIe Gen4", fontsize=8];
+
+    // Internal chip connections
+    dispatch -> pcie_ctrl [style=dashed, color="#888888"];
+    dispatch -> xlink_ctrl [style=dashed, color="#888888"];
+    dispatch -> hbm_ctrl [style=dashed, color="#888888"];
+}

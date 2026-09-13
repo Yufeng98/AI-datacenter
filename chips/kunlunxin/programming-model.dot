@@ -1,0 +1,114 @@
+digraph kunlunxin_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        paddle [label="PaddlePaddle\npaddle.device.set_device('xpu')\nStatic + Dynamic Graph\nAMP, DataParallel, DDP\n51+ verified models", fillcolor="#D6E4F0"];
+        pytorch [label="PyTorch\ntorch_xpu plugin\nATen custom device backend\n(inference; training partial)", fillcolor="#D6E4F0", style="rounded,filled,dashed"];
+        vllm [label="vLLM-Kunlun (plugin, not a fork)\nbaidu/vLLM-Kunlun — stock vLLM + platform plugin\nregistered via Python entry points (RFC: Hardware Pluggable)\nPagedAttention + continuous batching\n20+ models: Qwen 2/2.5/3/3.5, Llama, DeepSeek-V3.2,\nGLM, Gemma4, Kimi-K2, Qwen-VL / InternVL\nv0.11.0 stable (2026-03-13); P800 only, no M100", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        xtcl [label="XTCL\nXPU Tensor Compilation Library\nTVM-based AOT/JIT\nONNX + PaddlePaddle IR input\nOp fusion, layout transform, XPU tiling", fillcolor="#E4DEFF"];
+        xtdk_compiler [label="XTDK Compiler\nLLVM/Clang XPU backend\n.xpu C/C++ → XPU object code\nSIMD vectorization + SW pipelining", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        xdnn [label="XDNN\nXPU DNN Operator Library\nGEMM, Conv, Attention (fused)\nLayerNorm, RMSNorm, GELU, SiLU\nReduction, Embedding, Pooling", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        xre [label="XRE v5.x\nXPU Runtime Environment\nxpu_malloc / xpu_free\nStreams, Events, Multi-device (8×)\nHost↔Device transfer", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="XPU Linux Kernel Module\nioctl interface\nUbuntu 18/20/22 + CentOS 7/8\nKernel-version-pinned", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Kunlunxin XPU Hardware (R200/R300/P800)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        compute [label="Compute Cluster\nSDNN: Systolic MAC array (GEMM/Conv)\nXVME: SIMD Vector Engine (Act/Norm/Reduce)\nMultiple clusters per die; SPMD dispatch\nP800: 345 TFLOPS FP16 | R200/R300: 128 TFLOPS", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nCluster SRAM (SW-managed scratchpad)\nP800: HBM3 96 GB ~1.6 TB/s\nR200/R300: GDDR6 32 GB 512 GB/s\nGen1: HBM2 16 GB 512 GB/s", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Scale-up Interconnect\nP800: XLINK 200 GB/s chip-to-chip\n8 cards / server → 32/64-card cabinet (Apr 2025)\n→ Tianchi 256 (on sale Jun 2026) → Tianchi 512 (H2 2026 target)\nXPU-Link protocol, programmable switching\nScale-out: Ethernet / InfiniBand", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework → Compiler
+    paddle -> xtcl;
+    pytorch -> xtcl [style=dashed, color="#AAAAAA"];
+    vllm -> xdnn [style=dashed, color="#AAAAAA", label="direct XDNN calls", fontsize=8];
+
+    // Compiler chain
+    xtcl -> xdnn [label="dispatch ops", fontsize=8];
+    xtcl -> xtdk_compiler [label="kernel codegen", fontsize=8];
+
+    // Op Library → Runtime
+    xdnn -> xre;
+    xtdk_compiler -> xre [style=dashed, color="#AAAAAA"];
+
+    // Runtime → Driver
+    xre -> kmod;
+
+    // Driver → Hardware
+    kmod -> compute [style=dashed, color="#283593"];
+
+    // Hardware internal
+    compute -> mem [color="#283593", label="load/store", fontsize=8];
+    mem -> interconnect [style=dashed, color="#283593"];
+}

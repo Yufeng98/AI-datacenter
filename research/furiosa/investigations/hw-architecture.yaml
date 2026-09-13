@@ -1,0 +1,332 @@
+chip: furiosa
+as_of: "2026-04-05"
+source: hw-architecture.md
+
+generations:
+  warboy:
+    label: "Gen 1 — Warboy"
+    process: "Samsung 14nm LPP"
+    die_area_mm2: 180
+    transistors_B: 5
+    clock_ghz: 2.0
+    peak_int8_tops: 64
+    peak_fp16_tflops: null
+    architecture: "PE array (vision/CNN-first)"
+    on_chip_sram_mb: 32
+    off_chip_memory: "16 GB LPDDR4X"
+    memory_bw_gbs: 66
+    host_interface: "PCIe Gen4 x8"
+    tdp_w: 50
+    production: "2021"
+    target_workload: "CNN inference (ResNet, YOLO, EfficientDet)"
+    designed_via: "SemiFive ASIC platform (SK Telecom subsidiary)"
+
+  rngd:
+    label: "Gen 2 — RNGD (Renegade)"
+    process: "TSMC 5nm N5"
+    die_area_mm2: null  # not disclosed; ~600+ estimated
+    transistors_B: 40
+    clock_ghz: 1.0
+    peak_int8_tops: 512
+    peak_int4_tops: 1024
+    peak_fp8_tops: 512
+    architecture: "Tensor Contraction Processor (TCP)"
+    compute_units:
+      pes: 8
+      slices_per_pe: 64
+      total_slices: 512
+    on_chip_sram_mb: null  # not disclosed
+    off_chip_memory: "2× HBM3"
+    memory_capacity_gb: 24
+    memory_bw_tbs: 1.5
+    host_interface: "PCIe Gen5 x16"
+    tdp_w: 180
+    production: "January 2026"
+    target_workload: "LLM / Multimodal / Vision inference"
+    multi_tenancy:
+      partitions: [2, 4, 8]
+      isolation: "hardware-enforced"
+    presented_at: "Hot Chips 2024, MICRO 2025"
+
+compute_architecture:
+  warboy:
+    type: PE_array_systolic_style
+    compiler_managed: true
+    caches: false
+    sram_model: SW-managed
+  rngd:
+    type: Tensor_Contraction_Processor
+    key_insight: "tensor contraction = generalization of matmul; handles attention, GEMM, conv natively"
+    pe_grid: "8 PEs × 64 slices"
+    compiler_managed: true
+    caches: false
+    sram_model: SW-managed
+    multi_tenant_partitioning: true
+
+memory_hierarchy:
+  warboy:
+    on_chip: "32 MB SRAM"
+    off_chip: "16 GB LPDDR4X @ 66 GB/s"
+    model: SW-managed
+  rngd:
+    on_chip: "not disclosed (compiler-managed SRAM)"
+    off_chip: "24 GB HBM3 @ 1.5 TB/s (2× HBM3 modules)"
+    model: SW-managed
+
+host_interface:
+  warboy: "PCIe Gen4 x8"
+  rngd: "PCIe Gen5 x16"
+
+power:
+  warboy_tdp_w: 50
+  rngd_tdp_w: 180
+
+scale_up:
+  rngd: "not disclosed — multi-card via PCIe; NXT RNGD server uses 4 cards"
+
+corporate:
+  founded: 2017
+  hq: Seoul, South Korea
+  meta_acquisition_offer_usd_m: 800
+  meta_offer_rejected: true
+  rejection_reason: "Disagreement over post-acquisition strategy and organizational structure"
+  series_c_raised_usd_m: 125
+  series_c_date: "July 2025"
+  series_d_target_usd_m: 500
+  series_d_advisers: ["Morgan Stanley", "Mirae Asset Securities"]
+  estimated_valuation_usd_b: 2.3
+  ipo_target: "2027"
+  rngd_monthly_production: "~1,000 units (Jan 2026); 2,000–3,000/month target end of 2026"
+
+benchmarks:
+  lg_ai_research_exaone_35_32b:
+    cards: 4  # NXT RNGD server
+    batch_size: 1
+    context_4k_toks_per_sec: 60
+    context_32k_toks_per_sec: 50
+    vs_gpu_rack_same_power: "3.75× more tokens per watt"
+  gpt_oss_120b:
+    cards: 2
+    tpot_ms: 5.8
+    source: "https://furiosa.ai/blog/serving-gpt-oss-120b-at-5-8-ms-tpot-with-two-rngd-cards-compiler-optimizations-in-practice"
+  nxt_rngd_server_vs_dgx_h100:
+    server_power_kw: 3
+    dgx_h100_power_kw: 10
+    power_advantage: "3.3× lower power"
+
+references:
+  - url: "https://furiosa.ai/rngd"
+    type: product_page
+  - url: "https://furiosa.ai/warboy"
+    type: product_page
+  - url: "https://developer.furiosa.ai/latest/en/overview/rngd.html"
+    type: documentation
+  - url: "https://chipsandcheese.com/p/furiosaais-rngd-at-hot-chips-2024-accelerating-ai-with-a-more-flexible-primitive"
+    type: technical_analysis
+  - url: "https://web.ist.utl.pt/nuno.lopes/pubs/tcp-micro25.pdf"
+    type: academic_paper
+    conference: "MICRO 2025"
+  - url: "https://www.hpcwire.com/2025/09/30/the-fast-and-the-furiosaai-korean-chip-startup-takes-aim-at-nvidia-gpus-with-tensor-contraction-architecture/"
+    type: press
+  - url: "https://furiosa.ai/warboy/specs"
+    type: specs_page
+  - url: "https://www.eenewseurope.com/en/semifive-helps-furiosaai-warboy-processor-get-to-market/"
+    type: press
+
+# ============================================================================
+# UPDATE 2026-08-08 — appended. Supersedes the corresponding baseline keys above.
+# Scan window 2026-04-10 -> 2026-08-06.
+# ============================================================================
+update_2026_08_08:
+  as_of: "2026-08-08"
+
+  # ---- Pre-existing repo errors corrected against vendor primary sources ----
+  rngd_baseline_corrections:
+    confidence: confirmed
+    sources:
+      - "https://furiosa.ai/rngd"
+      - "https://developer.furiosa.ai/latest/en/"
+    facts:
+      memory_capacity_gb:
+        was: 24
+        now: 48
+        detail: "2 HBM3 stacks via CoWoS-S at 6.0 Gbps; prior baseline wrong by 2x"
+      on_chip_sram:
+        was: "not disclosed"
+        now_mb: 256
+        now_bw_tbs: 384
+      peak_512_figure:
+        was: "512 TOPS INT8"
+        now: "512 TFLOPS FP8"
+        derivation: "64 TFLOPS FP8 per PE x 8 PEs (vendor product page)"
+      partitioning_hbm_per_vnpu_gb:
+        was: [24, 12, 6, 3]
+        now: [48, 24, 12, 6]
+      sr_iov: true
+      host_interface: "PCIe Gen5 x16 with card-to-card P2P"
+      clock_ghz: 1.0
+
+  rngd_tdp_discrepancy:
+    confidence: confirmed
+    sources:
+      - "https://furiosa.ai/rngd"
+      - "https://developer.furiosa.ai/latest/en/"
+    documented_device_w: 150      # developer documentation
+    vendor_headline_w: 180        # product page + all 2026 press releases
+    note: "Unreconciled in any public source. Survey records both; 180 W is the marketing/system-level figure."
+
+  rngd_dtype_peaks_reported_only:
+    confidence: reported_not_independently_confirmed
+    sources:
+      - "https://developer.furiosa.ai/latest/en/overview/rngd.html"
+    peak_bf16_tflops: 256
+    peak_int8_tops: 512
+    peak_int4_tops: 1024
+    note: >-
+      Only the FP8 figure (512 TFLOPS) is confirmed against a vendor primary source.
+      The prior repo baseline's 1,024 INT4 TOPS was derived from the mislabelled
+      512-as-INT8 figure and is not independently sourced.
+
+  # ---- Gen 3: announced only ----
+  gen3:
+    label: "Gen 3 — Broadcom co-development"
+    status: announced_only
+    confidence: confirmed
+    announced: "2026-05-27"
+    sources:
+      - "https://furiosa.ai/blog/furiosaai-partners-with-broadcom-to-build-next-generation-inference-platform-for-the-agentic-era"
+      - "https://www.newstheai.com/news/articleView.html?idxno=20758"
+      - "https://www.digitaltoday.co.kr/news/articleView.html?idxno=669758"
+      - "https://www.yna.co.kr/view/AKR20260528119900017"
+    product_name: null            # not disclosed
+    codename: null                # not disclosed
+    tape_out: null                # not disclosed
+    silicon_exists: false
+    shipping: false
+    process: "2nm"
+    foundry: "TSMC"
+    foundry_confidence: corroborated_korean_wire   # not in the English release
+    sampling_target: "H1 2028"
+    sampling_target_confidence: corroborated_korean_wire
+    memory_type: "HBM4 / HBM4E"
+    memory_capacity_gb: null      # not disclosed
+    memory_bw: null               # not disclosed
+    packaging: "multi-die chiplet system-in-package (Broadcom advanced packaging)"
+    compute_architecture: "FuriosaAI TCP + Broadcom XPU Technology and IP Platform"
+    peak_throughput_any_dtype: null   # not disclosed
+    tdp_w: null                   # not disclosed
+    die_count: null               # not disclosed
+    die_sizes: null               # not disclosed
+    host_interface: null          # not disclosed
+    on_chip_sram: null            # not disclosed
+    mass_production_date: null    # not disclosed
+    scale_up:
+      fabric: "Broadcom Ethernet scale-up + fabric switches"
+      topology: "all-to-all-capable (for MoE expert routing)"
+      link_bw: null               # not disclosed
+      domain_size: null           # not disclosed
+      significance: "First scale-up fabric in the FuriosaAI roadmap; Warboy and RNGD are PCIe-only"
+    broadcom_press_release_located: false
+    rejected_aggregator_claims:
+      confidence: rejected
+      source: "https://theoutpost.ai/news-story/broadcom-partners-with-furiosa-ai-on-2nm-ai-accelerator-chip-with-hbm-4e-memory-for-inference-26665/"
+      claims_not_to_record:
+        - "12 memory sites / 432 GB"
+        - "two 2nm compute chiplets plus two IO dies"
+        - "3.5D XDSiP"
+      reason: "AI-generated aggregator; self-attributes to Wccftech speculation; absent from vendor and wire coverage"
+
+  # ---- Production and deployment ----
+  production_and_deployment:
+    confidence: confirmed
+    sources:
+      - "https://furiosa.ai/blog/experience-renegade-summit-2026"
+      - "https://furiosa.ai/blog/furiosaai-partners-with-i-onx-and-velox-for-new-15-mw-ai-data-center-in-sweden"
+      - "https://furiosa.ai/blog/furiosaai-equinixs-lisbon-data-center-press-release"
+      - "https://furiosa.ai/blog/furiosaai-and-samsung-sds"
+      - "https://furiosa.ai/newsroom"
+    mass_production_declared: "2026-05-13 (RENEGADE Summit 2026), TSMC 5nm"
+    supply_chain: ["TSMC (foundry)", "SK hynix (HBM3)"]
+    nxt_rngd_server_cards:
+      original: 4
+      revised_2026_07_07: "up to 8 accelerators, 3 kW-class system"
+    sweden_2026_08_04:
+      partners: ["I/ONX HPC", "Velox"]
+      site: "Stockholm"
+      total_mw: 15
+      phase1_accelerators: 1800
+      phase1_mw: 2
+      phase1_online: "early 2027"
+      phase2_mw: 8
+      phase2_timing: "later in 2027"
+      additional_accelerators_planned: "7,000+"
+    europe_2026_07_07:
+      site: "Equinix Lisbon LS2"
+      purpose: "European enterprise evaluation"
+      announced_at: "RAISE Summit Paris"
+      european_flagship_office: "Portugal, established 2026-04-10"
+    korea_npuaas_2026_07_20:
+      provider: "Samsung SDS"
+      platform: "Samsung Cloud Platform"
+      datacenter: "Dongtan"
+      configurations: [1, 2, 4, 8]
+      vendor_quoted_specs: "512 TFLOPS FP8, 1.5 TB/s, 180 W"
+      models: ["Qwen3", "gpt-oss 120B"]
+      partnership_started: "2025-09"
+    deployment_commitments:
+      - "LG AI Research"
+      - "Samsung SDS"
+      - "LG U+"
+      - "Upstage"
+      - "MegazoneCloud"
+    daum_search_overviews:
+      confidence: low
+      date: "2026-07-31"
+      note: "Headline-level only (blog index); RNGD reported serving Kakao's Daum AI search overviews at millions-of-users scale"
+      source: "https://furiosa.ai/blog"
+
+  # ---- Benchmarks ----
+  benchmark_backend_ai_2026_08_06:
+    confidence: vendor_claim
+    sources:
+      - "https://furiosa.ai/blog/white-paper-benchmarking-rngd-on-backend-ai"
+    control: "4x NVIDIA RTX PRO 6000 Blackwell Server Edition (bare metal)"
+    workload: "Qwen3-32B FP8 via Lablup Backend.AI"
+    throughput_per_watt: "1.3x-1.5x higher at all concurrency levels"
+    peak_throughput_vs_gpu: "95% at 256-request concurrency"
+    power_draw: "30-44% lower"
+    ttft: "<1 s through concurrency 32 vs >2.9 s for the GPU control"
+    independent: false
+
+  # ---- Negative findings ----
+  negative_findings:
+    confidence: confirmed
+    mlperf_inference_v6_0:
+      furiosa_submitted: false
+      note: "Not among the 24 submitting organizations; no MLPerf results exist for RNGD"
+      source: "https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/"
+    hot_chips_38:
+      furiosa_talk: false
+      note: "No FuriosaAI talk on the HC38 program (Aug 23-25, 2026, Stanford)"
+      source: "https://hotchips.org/"
+    rngd_s_variant:
+      exists: false
+      note: >-
+        'RNGD-S' is NOT confirmed. Absent from furiosa.ai/rngd, the 2026.3.0
+        developer docs, and every 2026 press release. Current product names:
+        RNGD (PCIe card), NXT RNGD Server, Warboy / Vision NPU.
+
+  # ---- Corporate ----
+  corporate_update:
+    series_d_closed: false
+    series_d_reported_size_krw_b: 800
+    series_d_reported_size_usd_m: 600
+    series_d_reported_valuation_krw_t: 4
+    series_d_reported_valuation_usd_b: 3
+    series_d_reported_investor: "TS Investment"
+    confidence: low
+    sources:
+      - "https://www.ai-market-watch.com/news/furiosaai-nears-completion-of-800-billion-won-series-d-valuation-at-4-trillion-w-eawtpx"
+    note: >-
+      Secondary aggregation of a Korean trade report (The Bell, relayed 2026-07-21).
+      No FuriosaAI press release confirms a close. Baseline $500M target retained.

@@ -1,0 +1,211 @@
+digraph alibaba_thead_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.55;
+    nodesep=0.4;
+
+    // ===================== HANGUANG 800 COMPUTE =====================
+    subgraph cluster_hg_compute {
+        label="Hanguang 800 Compute (4-core Ring Bus)";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        cp [label="Command Processor (CP)\nOrchestrates all 4 cores\nDMA scheduling\nInstruction dispatch", fillcolor="#FFCDD2"];
+        te [label="Tensor Engine (TE) × 4\nConvolution, GEMM\nDeconv, Dilated/3D Conv\nInterpolation, ROI\n820 TOPS INT8 peak aggregate", fillcolor="#FFCDD2"];
+        pe [label="Pooling Engine (PE) × 4\nMax/Avg/Global pooling\nActivation functions\nExtensible op set", fillcolor="#FFCDD2"];
+        me [label="Memory Engine (ME) × 4\nDMA, data movement\nSparse decompression\nWeight prefetch", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== HANGUANG 800 MEMORY =====================
+    subgraph cluster_hg_mem {
+        label="Hanguang 800 On-chip Memory (SRAM-only)";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hg_sram [label="192 MB On-chip SRAM\n~48 MB per core\nWeight storage + activations\nCompiler-managed tiling\nNo HBM — SRAM-only design\nHigh BW, limited capacity", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== HANGUANG 800 HOST INTERFACE =====================
+    subgraph cluster_hg_host {
+        label="Hanguang 800 Host Interface";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hg_pcie [label="PCIe Gen4 x16\nHost DMA for model weights\nResult transfer\nNo scale-up fabric", fillcolor="#E1BEE7"];
+        hg_pkg [label="TSMC 12nm FinFET\n17B transistors\nSingle-chip (no chiplet)\nCloud server card form factor", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== ZHENWU 810E COMPUTE =====================
+    subgraph cluster_zw_compute {
+        label="Zhenwu 810E / PPU Compute (SMIC 7nm)";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        zw_ai [label="AI Compute Array (proprietary)\nTraining + Inference + Autonomous Driving\nQwen3 / DeepSeek V3 optimized\nH20-class performance\n400W TDP board", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ZHENWU 810E MEMORY =====================
+    subgraph cluster_zw_mem {
+        label="Zhenwu 810E Memory";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        zw_hbm [label="96 GB HBM2e\n3D-stacked DRAM\nHigh bandwidth for LLM KV-cache\nLimited vs H100 HBM3 (80 GB)\nor H200/B200 (141/192 GB HBM3e)", fillcolor="#BBDEFB"];
+        zw_sram [label="On-chip SRAM\n(capacity undisclosed)\nCompiler-managed\nPrimary activation buffer", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== ZHENWU 810E ICN =====================
+    subgraph cluster_zw_icn {
+        label="Zhenwu 810E Inter-Chip Network (ICN)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        icn [label="7× ICN Links\n700 GB/s aggregate BW\n(vs NVIDIA A800: 400 GB/s)\nProprietary protocol\nNear-linear multi-card scaling\n10K-card cluster proven", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== ZHENWU 810E HOST / PACKAGE =====================
+    subgraph cluster_zw_host {
+        label="Zhenwu 810E Host / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        zw_pcie [label="PCIe Host Interface\nServer/rack integration\nAlibaba Cloud DC form factor", fillcolor="#E1BEE7"];
+        zw_pkg [label="SMIC 7nm domestic foundry\n400W TDP board power\n(vs TSMC 4nm for H100)\n>RMB 10B ARR\n470K units shipped by Feb 2026\n(IPO reported by Bloomberg/Reuters Jan 2026,\nnot company-confirmed)", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== ZHENWU M890 (announced 2026-05-20) =====================
+    subgraph cluster_m890 {
+        label="Zhenwu M890 (announced 2026-05-20; process not disclosed)";
+        style="rounded,dashed";
+        color="#AD1457";
+        fontcolor="#AD1457";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        m890_ai [label="AI Compute Array (proprietary)\nIntegrated training + inference (agentic)\nNative precision FP32 down to FP4\nVendor claim: 3x Zhenwu 810E\n(no benchmark methodology disclosed)\nPeak FLOPS by dtype: not disclosed\nArray type / unit counts: not disclosed", fillcolor="#F8BBD0"];
+        m890_mem [label="144 GB 'on-chip memory'\n(Alibaba's only wording)\nMemory type: NOT vendor-confirmed\n(secondary coverage says HBM/HBM3)\nMemory bandwidth: not disclosed", fillcolor="#BBDEFB"];
+        m890_pkg [label="Process / foundry: NOT DISCLOSED\n(SMIC vs TSMC unconfirmed;\ndomestically-accessible node only)\nTDP / die size: not disclosed\nStatus: formally debuted;\nno mass-production or GA claim", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP: ICN SWITCH 1.0 + PANJIU AL128 =====================
+    subgraph cluster_supernode {
+        label="Scale-up Domain (new 2026-05-20)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        m890_icn [label="ICN links (Zhenwu M890)\n800 GB/s inter-chip aggregate\n(vs 700 GB/s on 810E)\nLink count not disclosed", fillcolor="#B2DFDB"];
+        icn_switch [label="ICN Switch 1.0 (T-Head switch ASIC)\nup to 25.6 Tbps aggregate\nCongestion-free across 64 accelerators\nLatency: hundred-nanosecond class\n(ITHome/YiCai; BigGo '<150 ns')\nNot stated in English release\nPorts / SerDes / process: not disclosed", fillcolor="#B2DFDB"];
+        al128 [label="Panjiu AL128 Supernode\n128 accelerators per rack-scale unit\n(64-card configuration also offered)\n'PB/s internal bandwidth' (vendor claim)\nAvailable via Alibaba Bailian\nName + ScaleUp/ScaleOut/DCN arch\npublished 2025-11-14 (pre-baseline);\nM890 + ICN Switch 1.0 is what is new", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== ROADMAP =====================
+    subgraph cluster_roadmap {
+        label="Disclosed Roadmap (Chinese media, absent from Alibaba English newsroom)";
+        style="rounded,dotted";
+        color="#616161";
+        fontcolor="#616161";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.2;
+
+        v900 [label="Zhenwu V900 — 3Q2027\n3x the M890 (claim)\n216 GB memory\n1,200 GB/s inter-chip BW\n'deeply iterated in-house\nparallel computing architecture'", fillcolor="#EEEEEE"];
+        j900 [label="Zhenwu J900 — 3Q2028\nNo specs disclosed", fillcolor="#EEEEEE"];
+    }
+
+    // ===================== XUANTIE C950 =====================
+    subgraph cluster_c950 {
+        label="XuanTie C950 RISC-V Server CPU (TSMC 5nm, Mar 2026)";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        c950_core [label="OoO RISC-V Core\nRVA23-compliant ISA\n3.2 GHz max frequency\nWorld-record SPEC >70 (RISC-V)\n>3× performance over C920", fillcolor="#C8E6C9"];
+        c950_ai_eng [label="Integrated AI Acceleration Engine\n(self-developed)\nNative 100B+ param LLM inference\nQwen3 + DeepSeek V3\nNo separate NPU required\nTarget: agentic AI data centers", fillcolor="#C8E6C9"];
+        c950_mem [label="Standard CPU Memory\nDDR5 channels\nL1/L2/L3 cache hierarchy\nRVV 1.0+ vector ops", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Hanguang 800 internal
+    cp -> te [label="dispatch"];
+    cp -> pe;
+    cp -> me;
+    te -> hg_sram [label="tiled access\n48 MB/core"];
+    pe -> hg_sram [style=dashed];
+    me -> hg_sram [label="DMA prefetch"];
+    hg_sram -> hg_pcie [label="output → host", style=dashed];
+    hg_pcie -> hg_pkg [style=invis];
+    hg_pcie -> me [label="weight DMA\n(host DRAM → SRAM)"];
+
+    // Zhenwu 810E internal
+    zw_ai -> zw_sram [label="activation\nbuffer"];
+    zw_ai -> zw_hbm [label="KV-cache\nweight load"];
+    zw_hbm -> zw_ai [style=dashed, label="~2 TB/s est."];
+    zw_ai -> zw_pcie [label="result transfer", style=dashed];
+    zw_pcie -> zw_pkg [style=invis];
+
+    // ICN scale-up
+    icn -> zw_ai [label="inter-chip\nAllReduce", color="#00695C"];
+    zw_ai -> icn [style=dashed, color="#00695C"];
+
+    // Zhenwu M890 internal
+    m890_ai -> m890_mem [label="weights + KV-cache\n(144 GB)"];
+    m890_mem -> m890_ai [style=dashed, label="BW not disclosed"];
+    m890_ai -> m890_pkg [style=invis];
+
+    // M890 scale-up
+    m890_ai -> m890_icn [style=dashed, color="#00695C"];
+    m890_icn -> icn_switch [label="800 GB/s\nper chip", color="#00695C"];
+    icn_switch -> al128 [label="64-accelerator\ncongestion-free domain", color="#00695C"];
+    al128 -> zw_pcie [style=invis];
+
+    // Generational succession
+    zw_ai -> m890_ai [label="succeeded by\n(2026-05-20)", style=dotted, color="#AD1457"];
+    m890_ai -> v900 [label="roadmap", style=dotted, color="#616161"];
+    v900 -> j900 [label="roadmap", style=dotted, color="#616161"];
+
+    // C950 internal
+    c950_core -> c950_ai_eng [label="integrated\nAI path"];
+    c950_ai_eng -> c950_mem [label="SRAM\nactivations"];
+    c950_core -> c950_mem [style=dashed];
+}

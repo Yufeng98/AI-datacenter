@@ -1,0 +1,260 @@
+chip: mthreads
+resource: software-stack
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+status: completed
+device_class: "GPU (China, 摩尔线程)"
+
+sdk_name: MUSA (Meta-computing Unified System Architecture)
+sdk_version_current: "5.1.0"   # was 4.0.1 at the 2026-04-05 baseline; see update_2026_08_08
+sdk_version_baseline: "4.0.1"
+github_org: "https://github.com/MooreThreads"
+
+layers:
+  framework_integration:
+    - name: torch_musa
+      type: PyTorch backend
+      cuda_analog: torch.cuda / CUDA backend
+      repo: "https://github.com/MooreThreads/torch_musa"
+      open_source: true
+      operators_supported: 470+
+      features: [MUSAGraph, TorchInductor, triton_musa, FP8, LLM fusion modules]
+
+    - name: vllm-musa
+      type: LLM inference serving
+      cuda_analog: vLLM
+      repo: "https://github.com/MooreThreads/vllm-musa"
+      open_source: true
+      pypi: vllm-musa
+      models: [LLaMA, Qwen, Baichuan]
+
+    - name: llama.cpp MUSA backend
+      type: GGML inference
+      repo: "https://github.com/ggml-org/llama.cpp"
+      pr: 8383
+      merged: true
+
+  compiler_ir:
+    - name: MCC
+      full_name: MUSA C Compiler
+      cuda_analog: nvcc
+      function: "Compiles MUSA C++ kernels (<<<>>> launch syntax) to MUSA ISA binary"
+      included_in_sdk: true
+
+    - name: Musify / CUDA ON MUSA
+      type: source translator
+      cuda_analog: none (unique)
+      function: "Automated CUDA→MUSA source substitution; cuBLAS/cuDNN/NCCL shims"
+
+    - name: tilelang_musa
+      type: kernel DSL
+      cuda_analog: Triton / CUTLASS templates
+      repo: "https://github.com/MooreThreads/tilelang_musa"
+      function: "Tile-level kernel authoring; compiles to MUSA C via MCC"
+
+    - name: "TorchInductor + triton_musa"
+      type: "torch.compile backend"
+      cuda_analog: "TorchInductor + Triton"
+      function: "Enables torch.compile() on MTT GPUs"
+
+  op_library:
+    - name: muDNN
+      cuda_analog: cuDNN
+      ops: [Conv2D, SDPA/Attention, Normalization, Pooling, Activation]
+      precisions: [FP32, BF16, FP16, INT8]
+
+    - name: muBLAS
+      cuda_analog: cuBLAS
+      ops: [GEMM, BLAS L1-L3, batch matmul]
+      precisions: [FP32, BF16, FP16, INT8]
+
+    - name: MATE
+      full_name: MUSA AI Tensor Engine
+      type: high-level LLM inference primitives
+      python_bindings: mthreads-ml-py
+      used_by: vllm-musa
+
+  kernel_library:
+    - name: muThrust
+      cuda_analog: Thrust
+      ops: [Reduce, Scan, Sort, parallel primitives]
+
+    - name: muFFT
+      cuda_analog: cuFFT
+      ops: [FFT operations]
+
+    - name: tilelang_musa
+      cuda_analog: "CUTLASS / Triton"
+      type: manual kernel authoring framework
+
+  runtime:
+    - name: "MUSA Runtime (musart / libmusa.so)"
+      cuda_analog: "CUDA Runtime (cudart)"
+      apis: [musaMalloc, musaFree, musaMemcpyAsync, musaStreamCreate, musaEventCreate]
+      launch_syntax: "<<<grid, block, shmem, stream>>>"
+
+    - name: MUSA Driver API
+      cuda_analog: CUDA Driver API
+      function: "Context management, module loading, fine-grained memory control"
+
+    - name: torchada
+      type: "CUDA→MUSA compatibility shim"
+      used_by: vllm-musa
+
+  driver_firmware:
+    - name: MUSA Kernel Driver (.ko)
+      function: "PCIe BAR, IOCTL, DMA, interrupts"
+      os_support: ["Ubuntu (Intel x86)", "Kylin (Hygon x86)"]
+
+    - name: Kubernetes Device Plugin
+      function: "GPU resource advertising, health monitoring, multi-tenancy"
+
+  communication:
+    - name: MCCL
+      full_name: MUSA Collective Communication Library
+      cuda_analog: NCCL
+      ops: [AllReduce, AllGather, ReduceScatter, Broadcast]
+      intra_node: MTLink 1.0 hardware fabric
+      inter_node: "Ethernet / RoCE"
+      tested_scale: 10000 GPUs
+
+  isa:
+    - name: MUSA ISA
+      type: proprietary SIMT
+      public: false
+      precisions_chunxiao: [FP32, TF32, BF16, FP16, INT8]
+      precisions_flower_harbor: [FP64, FP32, BF16, FP16, FP8, FP4, MTFP6, MTFP4, INT8]
+      note: "No public virtual ISA equivalent; not analogous to NVIDIA PTX"
+
+cuda_compatibility:
+  source_translation: Musify (automated)
+  runtime_parity: "Full API parity (musaMalloc = cudaMalloc pattern)"
+  library_shims: [muBLAS→cuBLAS, muDNN→cuDNN, MCCL→NCCL, muThrust→Thrust]
+  extension_parity: "MUSAExtension = CUDAExtension"
+
+ecosystem_status:
+  llm_training: "3B-param LLM trained on MTT S4000 cluster (confirmed 2024)"
+  llm_inference: "LLaMA/Qwen/Baichuan via vllm-musa"
+  max_cluster_scale: 10000 GPUs
+  maturity: "Growing; significantly less mature than CUDA"
+
+# ============================================================================
+# UPDATE 2026-08-08 — MUSA SDK 5.x line, torch_musa 2.9.x, new OSS, AI4Science
+# Appended, not merged. Corrections to the baseline above are itemized first.
+# ============================================================================
+update_2026_08_08:
+  as_of: "2026-08-08"
+
+  corrections_2026_08_08:
+    - claim: 'MUSA SDK current version is 4.0.1'
+      corrected_to: 'MUSA SDK 5.1.0 (torch_musa v2.9.1 requires >= 5.1.0)'
+      confidence: high
+      sources: ["https://api.github.com/repos/MooreThreads/torch_musa/releases"]
+    - claim: 'the 5.x SDK requirement covers both torch_musa v2.9.0 and v2.9.1'
+      corrected_to: 'v2.9.0 requires MUSA SDK >= 4.3.2; only v2.9.1 requires >= 5.1.0'
+      confidence: high
+      sources: ["https://api.github.com/repos/MooreThreads/torch_musa/releases"]
+    - claim: 'TF32 opt-in variable is TORCH_ALLOW_TF32_MUBLAS'
+      corrected_to: 'TORCH_ALLOW_TF32_MUBLAS_OVERRIDE=1'
+      confidence: high
+      sources: ["https://api.github.com/repos/MooreThreads/torch_musa/releases"]
+    - claim: 'mutlass is a newly created component'
+      corrected_to: 'mutlass repo was created 2024-09-29; only its promotion to a torch_musa third-party dependency (v2.9.1) is new'
+      confidence: high
+      sources: ["https://api.github.com/repos/MooreThreads/mutlass"]
+    - claim: 'the HPC porting burst was nine repos over two weeks (2026-07-27 to 2026-08-07)'
+      corrected_to: 'sixteen ports over ~two months, beginning 2026-06-11; cp2k/magma/amgx were created 2026-07-30, not 07-27; CV-CUDA_musa was omitted'
+      confidence: high
+      sources: ["https://api.github.com/orgs/MooreThreads/repos?sort=created&direction=desc&per_page=100"]
+    - claim: 'TensorFlow support exists only via CUDA ON MUSA compatibility'
+      corrected_to: 'tensorflow_musa_extension is a dedicated repo created 2026-02-05'
+      confidence: high
+      sources: ["https://api.github.com/orgs/MooreThreads/repos?sort=created&direction=desc&per_page=100"]
+
+  torch_musa_releases:
+    confidence: high
+    sources: ["https://api.github.com/repos/MooreThreads/torch_musa/releases"]
+    releases:
+      - version: "2.9.1"
+        published: "2026-06-29"
+        requires_musa_sdk: ">= 5.1.0"
+        features:
+          - "Integrates MUSA SDK 5.1.0 components"
+          - "Full CUDA-aligned operator coverage across dense, quantized, sparse, sparsecsr and nested tensor types"
+          - "mutlass promoted to a torch_musa third-party repository for high-performance matmul kernels"
+      - version: "2.9.0"
+        published: "2026-03-17"
+        tracks_pytorch: "2.9"
+        requires_musa_sdk: ">= 4.3.2"
+        features:
+          - "Context Parallel (Ulysses) in FSDP2"
+          - "Sparse tensor operators"
+          - "torch.compile 'reduce-overhead' mode"
+          - "GEMM kernels FP32 by default; TF32 opt-in via TORCH_ALLOW_TF32_MUBLAS_OVERRIDE=1"
+        known_issues:
+          - "torch.compile kernel performance regressed versus v2.7.0"
+
+  new_open_source:
+    confidence: high
+    note: "creation dates verified via the GitHub API"
+    sources:
+      - "https://api.github.com/orgs/MooreThreads/repos?sort=created&direction=desc&per_page=100"
+    repos:
+      - {name: mutlass, created: "2024-09-29", layer: kernel_library, note: "NOT new; newly promoted to a torch_musa third-party dependency in v2.9.1"}
+      - {name: paddle_musa, created: "2025-09-10", layer: framework_integration}
+      - {name: mate, created: "2025-12-10", layer: op_library, note: "MUSA AI Tensor Engine, now its own repo"}
+      - {name: torchada, created: "2026-01-04", layer: runtime, note: "CUDA-compat adapter promoted to its own repo"}
+      - {name: mthreads-ml-py, created: "2026-01-04", layer: driver_management, note: "nvidia-ml-py analog"}
+      - {name: tvm_musa, created: "2026-01-09", layer: compiler_ir}
+      - {name: tilelang_musa, created: "2026-01-12", layer: compiler_kernel}
+      - {name: tensorflow_musa_extension, created: "2026-02-05", layer: framework_integration}
+      - {name: tvm-ffi, created: "2026-03-24", layer: compiler_ir}
+      - {name: MTClaw, created: "2026-05-18", layer: tooling, note: "local tool-routing proxy for openclaw/opencode/hermes"}
+      - {name: TileOPs, created: "2026-05-29", layer: kernel_library, note: "TileLang-based LLM operator library"}
+      - {name: ompi-musa, created: "2026-07-21", layer: communication, note: "Open MPI port"}
+      - {name: onnxruntime-musa, created: "2026-07-27", layer: framework_integration}
+
+  hpc_ai4science_port_wave:
+    window: "2026-06-11 to 2026-08-07"
+    count: 16
+    confidence: high
+    sources:
+      - "https://api.github.com/orgs/MooreThreads/repos?sort=created&direction=desc&per_page=100"
+    significance: >-
+      Spans quantum chemistry, molecular dynamics, cryo-EM, CFD, dense and
+      sparse linear algebra and performance-portability layers. Directly
+      consistent with the PingHu (Gen 4 / PH100 / MTT S5000) generation adding
+      vendor-confirmed full-precision FP8 to FP64 support; a strategy shift
+      beyond LLM training.
+    ports:
+      - {name: SpFFT-MUSA, created: "2026-06-11", domain: sparse_fft}
+      - {name: flann-musa, created: "2026-06-11", domain: approximate_nearest_neighbor}
+      - {name: eigen-musa, created: "2026-06-11", domain: dense_linear_algebra}
+      - {name: kokkos-musa, created: "2026-06-12", domain: performance_portability}
+      - {name: ompi-musa, created: "2026-07-21", domain: mpi}
+      - {name: relion-musa, created: "2026-07-27", domain: cryo_em}
+      - {name: fused-ssim-musa, created: "2026-07-27", domain: image_metrics}
+      - {name: onnxruntime-musa, created: "2026-07-27", domain: inference_runtime}
+      - {name: cp2k-musa, created: "2026-07-30", domain: quantum_chemistry}
+      - {name: magma-musa, created: "2026-07-30", domain: dense_linear_algebra_gpu}
+      - {name: amgx-musa, created: "2026-07-30", domain: algebraic_multigrid}
+      - {name: lammps-musa, created: "2026-08-07", domain: molecular_dynamics}
+      - {name: su2-musa, created: "2026-08-07", domain: cfd}
+      - {name: deepmd-kit-musa, created: "2026-08-07", domain: ml_interatomic_potentials}
+      - {name: mahout-musa, created: "2026-08-07", domain: distributed_linear_algebra}
+      - {name: CV-CUDA_musa, created: "2026-08-07", domain: cv_preprocessing}
+
+  isa_update:
+    precisions_pinghu_ph100: [FP64, FP32, TF32, BF16, FP16, FP8, INT8]
+    note: >-
+      Vendor wording is "full-precision compute support from FP8 to FP64"; the
+      individual intermediate formats are inferred from that range plus the
+      Chunxiao baseline, not itemized by the vendor. FP4 / MTFP6 / MTFP4 belong
+      to Huagang (Gen 5), not PingHu.
+    confidence: medium-high
+    sources: ["https://en.mthreads.com/product/S5000"]
+
+  open_items:
+    - "MUSA SDK 5.x release notes not retrieved directly; the 5.1.0 requirement is known only via torch_musa release notes"
+    - "vllm-musa / SGLang status against SDK 5.x not verified"
+    - "No MLPerf submission; no Hot Chips 2026 or ISCA 2026 Moore Threads paper found"

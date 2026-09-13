@@ -1,0 +1,188 @@
+// *as_of: 2026-08-08*
+// chip: stream-computing
+digraph stream_computing_pm {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    labelloc="t";
+    label="Stream Computing NeuralScale programming model — STCRP V1.12.1\nMLIR/IREE graph compiler (MLTC) over a CUDA-shaped kernel/runtime layer (SHC · stcc · HPE) — entire stack closed source";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        torch [label="PyTorch (primary)\ntorch.compile(backend=mltc_backend)\ntorch.export → ExportedProgram\nDim(...) dynamic shapes", fillcolor="#D6E4F0"];
+        onnx [label="ONNX — OnnxToStc()\n156 ops · opset 19\ncustom ops in domain mltc.custom", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow — TfToStc()\n106 ops (TF1 GraphDef .pb)", fillcolor="#D6E4F0"];
+        paddle [label="PaddlePaddle — Paddle-STCNNE\nSTCPaddleModelZoo (~20 models, open)\nTensorTurbo-era artifact", fillcolor="#D6E4F0"];
+        hf [label="HuggingFace LLMs\nvia STC_LLM (bin / safetensors)", fillcolor="#D6E4F0"];
+        absent [label="ABSENT: no vLLM fork, no SGLang,\nno Triton kernel language,\nno ONNX Runtime EP", fillcolor="#F5F5F5", style="rounded,filled,dashed"];
+    }
+
+    // ===================== GRAPH COMPILER =====================
+    subgraph cluster_compiler {
+        label="Graph Compiler — MLTC 1.6.1 (MLIR, proprietary)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        torchmlir [label="Torch-dialect import\nfrom_torch(OutputType.TORCH)\n141 Aten*Op entries\n→ torch-mlir–derived", fillcolor="#E4DEFF"];
+        stcdialect [label="stc.* graph dialect — 164 ops\nattention / attention_lm\nkv_cache_load / kv_cache_store\nmatmul vs matmul_vme\nATOMIC ops — no fusion in graph IR", fillcolor="#E4DEFF"];
+        goat [label="GOAT — operator-agnostic tiling\nLLB → MC → L1\n\"most of the code is managing the\nmulti-level storage hierarchy\"", fillcolor="#E4DEFF"];
+        partition [label="Group Partition + codegen\n--graph-partition-factor (dispatch.workgroups)\n--pipeline-partition-factor\n--high-precision → matmul_vme", fillcolor="#E4DEFF"];
+        simulator [label="Simulator() — CPU golden path\nrun_precision_analysis.py\ncpu_vs_npu.csv, cosine sim <0.95 flag", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== MODEL BINARY =====================
+    subgraph cluster_binary {
+        label="Model Binary";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        vmfb [label=".vmfb — \"STC MLTC fatbin\"\nIREE VM FlatBuffer container\n-arch=npu-v1 (also accepts npu-v2:\na flag, NOT a public chip)", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LAYER =====================
+    subgraph cluster_kernel {
+        label="Kernel Language + Compiler (CUDA-shaped)";
+        style="rounded,dashed";
+        color="#F9A825";
+        fontcolor="#F9A825";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        shc [label="SHC — Stream Computing Heterogeneous C++ (.hc)\nC++17 + kernel<<<NCORE>>>(args)\n__global__ / __device__\n__local__ → L1 · __shared__ → LLB\nCoreID / CoreNum · sync()", fillcolor="#FFE0B2"];
+        intrinsics [label="Direct ISA intrinsics + shape CSRs\nDEFINE_SHAPE / CONFIG_VE_CSR\nmemul_mm(...) → MME\nmov_m(...) → MTE\nlower level than Triton or CUDA C", fillcolor="#FFE0B2"];
+        stcc [label="stcc — host + device in one invocation\n(nvcc-shaped; --rtlib=compiler-rt)\ndevice target: RV32 + RVV v0.8 + OP-VE\nClang/LLVM downstream (not stated)", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== LLM SERVING =====================
+    subgraph cluster_llm {
+        label="LLM Serving — STC_LLM 1.3.2 (proprietary, NOT a vLLM fork)";
+        style="rounded,dashed";
+        color="#00838F";
+        fontcolor="#00838F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        llmserver [label="OpenAI-compatible server\n/v1/chat/completions · /v1/completions\nSSE streaming · usage.cached_tokens\nreasoning-parser · tool-call-parser\nPrometheus stc_llm:* metrics", fillcolor="#B2EBF2"];
+        llmdnn [label="stc_llm_dnn (default backend)\nhand-written kernels rendered as .cpp\ninto engine_dir, then built\n(vendor: currently faster)", fillcolor="#B2EBF2"];
+        llmfeat [label="dynamic batching (max_tasks 256)\nKV-cache segmentation (256 tok/segment)\nprefix caching · DMA weight preload\nquant: fp16 / w8a8 / w8a16", fillcolor="#B2EBF2"];
+        quant [label="SNQ (stcnq) — ONNX PTQ\nSNC (stcnc) — on Intel Neural Compressor\nSmoothQuant α sweep, C-Eval calibration", fillcolor="#B2EBF2"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime — HPE (Heterogeneous Programming Engine)";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hpert [label="hpert (host) — CUDA runtime clone\nstcMalloc / stcFree / stcMemcpy\nstcConfigureCall / stcLaunchKernel\nstcRegisterFatBinary / stcDeviceSynchronize\nstream management", fillcolor="#F8D7DA"];
+        npurt [label="npurt (device)\non-device printf, memcpy helpers", fillcolor="#F8D7DA"];
+        stcie [label="STC_IE 1.6.1 — inference engine\nExecutor(vmfb, device_ids, n)\ndict-in / dict-out run()", fillcolor="#F8D7DA"];
+        stcml [label="STCML (libstcml.so) — NVML analogue\ndevice enum, power, temp alerts\nget/set frequency (east/west domains)\nfirmware versions, board status", fillcolor="#F8D7DA"];
+        tools [label="Tools: stc-smi (nvidia-smi) · stc-topo\nstc-gdb (cuda-gdb) · stc-prof (nsys)\nstc-vprof (Nsight) · stcpti (CUPTI)\np2p_perf · NPU-Viewer", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware / Orchestration";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        kmod [label="stc.ko (built by stc-dkms)\nudev: /dev/stc0, /dev/stc0c0…c3, /dev/stc0ctrl\ncluster = allocation / isolation unit\nno SR-IOV; KVM passthrough supported", fillcolor="#E0E0E0"];
+        fw [label="Firmware (2 signed images)\nNPU-ctrl (SoC init) + MCU (card power)\nin-band upgrade: stc-smi -u (.sdux)", fillcolor="#E0E0E0"];
+        k8s [label="stc-k8s-device-plugin (Go DaemonSet)\nnpu-exporter (Prometheus, port 9836)\nDocker: hpe-host + hpe-simple split\nno public registry images", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="NeuralScale P920 Hardware — software-managed, non-coherent";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        hwcore [label="32 NeuralScale cores (NPCs) in 4 clusters\nRISC-V RV32G scalar + VME / MME / MTE\nRVV v0.8 + 53 custom OP-VE instructions\nFP16 and INT8 only", fillcolor="#283593", fontcolor="white"];
+        hwmem [label="L1 1.25 MiB/core · IM 256 KB/core\nLLB 8 MiB/cluster (32 MiB total)\nLPDDR4X 16 GB @ ~108 GB/s\nall explicitly software-managed", fillcolor="#283593", fontcolor="white"];
+        hwic [label="4×4 mesh NoC (non-coherent)\nPCIe 4.0 ×16 host link\nNo scale-up fabric — PCIe P2P ≤9 GB/s\nNo collective library or hardware", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Frameworks -> compiler
+    torch -> torchmlir [label="Dynamo / export", fontsize=8];
+    onnx -> stcdialect [style=dashed, color="#AAAAAA"];
+    tf -> stcdialect [style=dashed, color="#AAAAAA"];
+    paddle -> stcdialect [style=dashed, color="#AAAAAA", label="legacy path", fontsize=8];
+    torchmlir -> stcdialect [label="lower", fontsize=8];
+    stcdialect -> goat [label="tile", fontsize=8];
+    goat -> partition;
+    stcdialect -> simulator [style=dashed, color="#AAAAAA", label="golden ref", fontsize=8];
+
+    // Compiler -> binary -> runtime
+    partition -> vmfb [label="codegen", fontsize=8];
+    vmfb -> stcie [label="load + execute", fontsize=8];
+
+    // Kernel path
+    shc -> intrinsics;
+    intrinsics -> stcc [label="compile", fontsize=8];
+    stcc -> hpert [label="single executable\n(host + device)", fontsize=8];
+
+    // LLM path
+    hf -> llmserver [style=dashed, color="#AAAAAA"];
+    llmserver -> llmdnn;
+    llmserver -> llmfeat [style=dashed, color="#AAAAAA"];
+    quant -> llmserver [label="w8a8 / w8a16 scales", fontsize=8];
+    llmdnn -> stcc [label="renders .cpp → NPU exe", fontsize=8];
+    llmserver -> vmfb [style=dashed, color="#AAAAAA", label="--compiler mltc", fontsize=8];
+
+    // Runtime chain
+    stcie -> hpert;
+    hpert -> npurt [style=dashed, color="#AAAAAA"];
+    tools -> stcml [style=dashed, color="#AAAAAA"];
+    stcml -> kmod [style=dashed, color="#AAAAAA"];
+    hpert -> kmod [label="ioctl / DMA", fontsize=8];
+    kmod -> fw [style=dashed, color="#AAAAAA"];
+    kmod -> k8s [style=dashed, color="#AAAAAA"];
+
+    // Driver -> hardware
+    kmod -> hwcore [style=dashed, color="#283593", label="launch [device, cluster, core]", fontsize=8];
+    hwcore -> hwmem [color="#283593"];
+    hwmem -> hwic [style=dashed, color="#283593"];
+}

@@ -1,0 +1,154 @@
+digraph luminous_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== STATUS BANNER =====================
+    subgraph cluster_status {
+        label="Company Status";
+        style="rounded,dashed";
+        color="#B71C1C";
+        fontcolor="#B71C1C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        status [label="Luminous Computing — DEFUNCT (verified 2026-08-08)\nFounded 2018 | ~$123M raised (Series A Mar 2022)\nMay 2023: ~50% layoffs, photonics team disbanded, operations ceased\nOct 2023: SiPh design IP LICENSED to Enosemi (Luminous retained title)\nMay 2025: AMD acquired Enosemi\nFeb 2026: Luminous patent portfolio SOLD outright to AMD (USPTO 2026-02-28)\nNo chip shipped to production; no SDK ever released", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== HOST SERVER =====================
+    subgraph cluster_host {
+        label="Host Server (Intended — Not Shipped)";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        host_cpu [label="Host CPU (x86 / Arm)\nAI inference orchestration\nModel weight management\n(process node: not public)", fillcolor="#E0E0E0"];
+        host_dram [label="System DRAM\nCapacity: not public\nClaimed: 12–25× vs competitors\nat HBM-level bandwidths\n(Gen 1 inference card claim)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMPUTE DIE =====================
+    subgraph cluster_compute {
+        label="CMOS Compute Die (Electronic — Process: not public)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        matrix_engine [label="Matrix / Matmul Engine\nAI inference compute\nMatrix-vector ops for DNN\n(details not public)\nClaimed: 3,000× TPU v3 board\n(unverified, pre-pivot)", fillcolor="#283593", fontcolor="white"];
+        activation_engine [label="Activation + Nonlinear Units\nReLU / GELU / Softmax / LayerNorm\n(electronic implementation)\n(details not public)", fillcolor="#283593", fontcolor="white"];
+        control_logic [label="Control Logic\nPhase/modulator calibration\nWDM wavelength control\nFirmware interface\n(details not public)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== PHOTONIC INTERCONNECT =====================
+    subgraph cluster_photonic {
+        label="Silicon Photonic Interconnect Layer (SOI Waveguides + WDM)";
+        style="rounded,dashed";
+        color="#0D47A1";
+        fontcolor="#0D47A1";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        wdm_mux [label="WDM Multiplexer / Demultiplexer\nMultiple λ channels per waveguide\nRing resonators or MZI-based (not public)\nAggregate BW: 10–100× electrical (claimed)\nChannel count: not public", fillcolor="#BBDEFB"];
+        eo_modulators [label="Electro-Optic Modulators\nEncode data onto optical carriers\nType: ring resonators or MZI (not public)\nData rate per channel: not public\nBias control via firmware", fillcolor="#BBDEFB"];
+        photodetectors [label="Photodetectors\nConvert optical signal back to electrical\nIntegrated with CMOS control logic\nTIA + ADC chain (not public)", fillcolor="#BBDEFB"];
+        waveguides [label="SOI Waveguide Network\nLow-loss on-chip routing (3 dB/cm typical)\nCo-packaged with CMOS compute die\n(monolithic or MCM — not disclosed)\nDesign IP licensed to Enosemi Oct 2023", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== MEMORY INTERFACE =====================
+    subgraph cluster_mem {
+        label="Memory Interface (Optical — Intended)";
+        style="rounded,dashed";
+        color="#1B5E20";
+        fontcolor="#1B5E20";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mem_link [label="Optical Memory Interface\nProcessor ↔ DRAM photonic link\n10–100× BW vs electrical (claimed)\nEliminates I/O pin count bottleneck\nCapacity / BW spec: not public", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== SCALE-UP (BOARD/BOX) =====================
+    subgraph cluster_scaleup {
+        label="Scale-up: Board / Box (Optical — Intended)";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        board_link [label="Board-to-Board Optical Links\nReplaces copper backplane\nWDM channels per fiber\n10–100× BW vs electrical (claimed)\nBW spec: not public", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== SCALE-OUT (RACK/DC) =====================
+    subgraph cluster_scaleout {
+        label="Scale-out: Rack / Datacenter (Optical Fiber — Intended)";
+        style="rounded,dashed";
+        color="#4A148C";
+        fontcolor="#4A148C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        rack_link [label="Rack-to-Rack Optical Fiber\nWDM multi-wavelength fiber\n10–100× BW vs electrical (claimed)\nDistance-independent BW\nBW spec: not public", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== IP DISPOSITION =====================
+    subgraph cluster_ip {
+        label="IP Disposition (Post Wind-down) — two channels into AMD";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        enosemi [label="Enosemi (founded May 2023)\nCOMMITTED COMMERCIAL LICENSE to Luminous\nsilicon photonics design IP (license only —\nLuminous retained title to its patents)\nSOI PIC libraries + PDK elements\nElectro-optic modulator designs", fillcolor="#CFD8DC"];
+        amd [label="AMD\nAcquired Enosemi 2025-05-28/29 (16 employees)\nBought Luminous patent portfolio outright\n(USPTO recordation 2026-02-28; no press coverage)\nCo-Packaged Optics (CPO) program\nUse in shipping silicon: not disclosed", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Host → Compute die
+    host_cpu -> matrix_engine [label="PCIe\n(host interface)", fontsize=8];
+    host_dram -> host_cpu [label="model weights", fontsize=8];
+
+    // Compute die internal
+    matrix_engine -> activation_engine [label="layer output", fontsize=8];
+    activation_engine -> matrix_engine [label="next layer\nactivation", style=dashed, fontsize=8];
+    control_logic -> eo_modulators [label="bias / phase\ncontrol", fontsize=8, color="#283593"];
+    control_logic -> wdm_mux [label="wavelength\ntuning", fontsize=8, color="#283593"];
+
+    // Photonic interconnect internal
+    eo_modulators -> waveguides [color="#0D47A1", label="modulated\noptical signal", fontsize=8, fontcolor="#0D47A1"];
+    waveguides -> wdm_mux [color="#0D47A1", label="WDM routing", fontsize=8, fontcolor="#0D47A1"];
+    wdm_mux -> photodetectors [color="#0D47A1", label="demux +\ndetect", fontsize=8, fontcolor="#0D47A1", style=dashed];
+    photodetectors -> matrix_engine [label="electrical\ndata", fontsize=8];
+
+    // Compute → Photonic (data encoding)
+    matrix_engine -> eo_modulators [label="data to\ntransmit", fontsize=8, color="#0D47A1"];
+
+    // Memory optical interface
+    matrix_engine -> mem_link [style=dashed, color="#1B5E20", label="optical mem\ninterface", fontsize=8, fontcolor="#1B5E20"];
+    mem_link -> host_dram [style=dashed, color="#1B5E20", label="10–100× BW\nvs electrical", fontsize=8, fontcolor="#1B5E20"];
+
+    // Board / box scale
+    wdm_mux -> board_link [color="#E65100", label="board-to-board\nWDM links", fontsize=8, fontcolor="#E65100"];
+
+    // Rack / datacenter scale
+    board_link -> rack_link [color="#4A148C", label="optical fiber\n(WDM)", fontsize=8, fontcolor="#4A148C"];
+
+    // IP transfer
+    waveguides -> enosemi [style=dashed, color="#37474F", label="design IP license\n(no title transfer)\nOct 2023", fontsize=8, fontcolor="#37474F"];
+    enosemi -> amd [color="#37474F", label="Enosemi acquired\nMay 2025", fontsize=8, fontcolor="#37474F"];
+    waveguides -> amd [style=dashed, color="#B71C1C", label="patent portfolio\nsold outright\nUSPTO 2026-02-28", fontsize=8, fontcolor="#B71C1C"];
+
+    // Status banner connection
+    status -> host_cpu [style=invis];
+}

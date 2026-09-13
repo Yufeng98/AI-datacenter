@@ -1,0 +1,136 @@
+chip: sk-hynix-aim
+investigation: software-stack
+date: "2026-04-05"
+confidence: medium
+note: "Stack architecture published in academic papers; production SDK not released publicly"
+
+open_source: partial
+open_source_resources:
+  - name: aim_simulator
+    url: "https://github.com/arkhadem/aim_simulator"
+    type: "Research simulator (Ramulator 2.0)"
+    status: public
+
+layers:
+  framework_integration:
+    frameworks:
+      - name: PyTorch
+        status: "not public"
+        notes: "Transparent PIM offload described in papers; production integration not released"
+      - name: TensorFlow
+        status: "not public"
+        notes: "Mentioned as secondary path"
+    approach: "Transparent operator interception and dispatch to AiMX"
+
+  aim_blas_library:
+    status: "not public"
+    purpose: "BLAS Level 2 (GEMV), embedding lookup API"
+    notes: "Described in ASPLOS 2023 tutorial; analogous to cuBLAS Level 2"
+
+  aim_runtime:
+    status: "not public"
+    purpose: "ISR dispatch, mode switching, synchronization, memory allocation"
+    reference_platform: "FPGA-based pre-silicon validation platform"
+
+  aim_isr:
+    status: "partially documented in papers"
+    purpose: "AiM Instruction Set Register — HW command abstraction"
+    notes: "Triggers all-bank MAC operations; not a full programmer ISA"
+
+  extended_dram_commands:
+    status: "partially in JEDEC extensions"
+    purpose: "New GDDR6 commands for compute mode activation"
+    backward_compatible: true
+
+hardware_specialization:
+  target_ops:
+    - GEMV
+    - embedding_lookup
+    - KV_cache_attention
+    - RNN_hidden_state
+  training_support: false
+  inference_only: true
+
+deployment:
+  mode: "Heterogeneous co-processor (with CPU or GPU)"
+  host_handles: ["QK softmax", "output projection", "compute-bound ops"]
+  aimx_handles: ["GEMV on K/V matrices", "embedding tables", "memory-bound matmul"]
+
+# ============================================================
+# Re-investigation appended 2026-08-08
+# window: 2026-04-05 -> 2026-08-08
+# verdict: no in-window software development; one pre-baseline backfill (vLLM)
+# ============================================================
+update_2026_08_08:
+  date: "2026-08-08"
+  window_start: "2026-04-05"
+  window_end: "2026-08-08"
+  in_window_software_change: false
+
+  serving_framework_vllm:
+    confidence: high
+    layer: serving_framework
+    name: vLLM
+    status: "demonstrated publicly, not released"
+    position_in_stack: >-
+      Above the AiM BLAS / high-level API layer, in the slot previously occupied
+      by PyTorch/TensorFlow alone. Serving loop runs on the host alongside the
+      GPUs; AiMX is reached through the AiM runtime as a memory-bound-GEMV
+      offload target.
+    demonstrated_system:
+      chassis: "Supermicro GPU SuperServer SYS-421GE-TNRT3"
+      gpus: "2 x NVIDIA H100"
+      aimx_cards: 4
+    vendor_claim: "stable long token generation using the vLLM framework; more concurrent requests and longer input prompts than GPU-only"
+    numeric_performance_figures: "not disclosed"
+    code_released: false
+    upstream_patch_or_plugin_name: "not disclosed"
+    events:
+      - name: "AI Infra Summit 2025"
+        post_date: "2025-10-01"
+        event_date: "~2025-09 (summit); post date is the citable one"
+      - name: "2025 OCP Global Summit"
+        post_date: "2025-10-31"
+    sources:
+      - "https://news.skhynix.com/en/ai-infra-summit-2025/"
+      - "https://news.skhynix.com/en/sk-hynix-showcases-full-stack-ai-memory-portfolio-at-2025-ocp-global-summit/"
+      - "https://www.techpowerup.com/341520/"
+
+  verified_negatives:
+    confidence: high
+    facts:
+      - id: no_public_sdk
+        statement: "No public AiM SDK or runtime release as of 2026-08-08."
+      - id: simulator_dormant
+        statement: >-
+          arkhadem/aim_simulator (Ramulator 2.0, ~70 stars, 66 commits) last commit
+          2025-07-22 ('LPDDR5 debugged and tested'); no in-window activity. Remains
+          the only public AiM software artifact.
+      - id: no_mlperf
+        statement: "No MLPerf submission using AiMX found."
+      - id: no_hot_chips_38_software_talk
+        statement: >-
+          Hot Chips 38 (Aug 23-25, 2026) lists no SK hynix AiM/AiMX item. FUTURE
+          EVENT as of 2026-08-08 - program public, no slides/abstracts/specs exist;
+          never cite as evidence of a spec.
+      - id: no_compiler_layer
+        statement: "No compiler or IR layer has appeared; AiM Runtime still issues AiM ISR sequences directly."
+    sources:
+      - "https://github.com/arkhadem/aim_simulator/commits/main"
+      - "https://www.hotchips.org/"
+      - "https://news.skhynix.com/?s=AiM"
+
+  stack_maturity:
+    confidence: high
+    assessment: "demonstration-grade, not product-grade"
+    rationale: >-
+      SK hynix's CES 2026 press release (2026-01-05) still calls AiMX an
+      'accelerator card prototype'; the SDK is unreleased and the only public
+      software artifact (aim_simulator) has been dormant since 2025-07-22.
+    rejected_claim:
+      claim: "SK hynix has already deployed its PIM-based accelerator, AiM, in real-world applications"
+      source: "https://www.trendforce.com/news/2026/03/10/news-beyond-hbm-samsung-sk-hynix-reportedly-explore-next-gen-ai-memory/"
+      verdict: REJECTED
+      reason: "single secondary source; no customer, date or volume; contradicts SK hynix's own 'prototype' wording; no corroboration found"
+    sources:
+      - "https://www.prnewswire.com/news-releases/sk-hynix-showcases-next-generation-ai-memory-innovation-at-ces-2026-302653161.html"

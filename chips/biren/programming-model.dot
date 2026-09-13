@@ -1,0 +1,194 @@
+digraph biren_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nSUPA device backend\nATen → BILA dispatch\nBCCL distributed", fillcolor="#D6E4F0"];
+        paddle [label="PaddlePaddle\nCustom device plugin\nCustom ops\nChinese AI ecosystem", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow\nXLA backend\nCustom device plugin\nTraining + Inference", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== INFERENCE SERVING / KV-CACHE (added 2026-08-08) =====================
+    subgraph cluster_serving {
+        label="Inference Serving / KV-Cache (BIRENSUPA GitHub org, 2026)";
+        style="rounded,dashed";
+        color="#0097A7";
+        fontcolor="#0097A7";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mooncake [label="Mooncake fork (BIRENSUPA)\nKV-cache disaggregation\nPrefill / decode separation\nCreated 2026-07-20, active to 2026-08-08", fillcolor="#B2EBF2"];
+        sglangfork [label="SGLang fork (BIRENSUPA)\nCreated 2026-05-06\nZERO pushes since creation\nStatic fork, NOT an active port", fillcolor="#E0F7FA", style="rounded,filled,dashed"];
+        tokenfactory [label="Token Factory (vendor claim)\nFive-level caching, 95%+ hit rate claimed\nCross-vendor heterogeneous co-inference\nwith China Telecom, ~20% throughput claimed", fillcolor="#E0F7FA", style="rounded,filled,dashed"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        brcc [label="BRCC\nSUPA C++ kernel compiler\nnvcc analog\nCUDA migration support", fillcolor="#E4DEFF"];
+        supamlir [label="SUPA MLIR Compiler\nTensorRT analog\nONNX/PyTorch/TF input\nINT8/BF16/TF32+ quant", fillcolor="#E4DEFF"];
+        cuda2supa [label="cuda2supa\nCUDA→SUPA migration\nnamespace substitution\nlibrary shims", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        bila [label="BILA (Biren DL Library)\ncuDNN + cuBLAS analog\nGEMM, Conv, Attn, Norm\nTF32+/BF16/INT8 engines", fillcolor="#D4EDDA"];
+        genlib [label="General Compute Library\nBLAS L1-L3\nReduce, Scan, Sort\nVector elementwise", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        supakernel [label="SUPA Kernel Templates\nCUTLASS analog\nGEMM/Conv templates\nL2-cache-aware tiling (300MB)", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        supart [label="SUPA Runtime (libsupa.so)\ncudart analog\nsupaMalloc/Free/MemcpyAsync\nsupaStream, supaEvent, <<<>>>", fillcolor="#F8D7DA"];
+        supadrv [label="SUPA Driver API\nExplicit context mgmt\nModule loading (.br binary)\nFine-grained memory", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="Biren Linux Driver (.ko)\nPCIe BAR + MMIO\nIOCTL dispatch\nDMA + interrupt", fillcolor="#E0E0E0"];
+        fw [label="On-GPU Firmware\nResource management\nPower control\nGSP analog", fillcolor="#E0E0E0"];
+        k8s [label="K8s Device Plugin\nbirentech.com/gpu resource\nHealth monitoring\nSVI multi-tenancy", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        bccl [label="BCCL\nBiren Collective Comms\nAllReduce/AllGather\nBLink intra-node + IB/ETH", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        bgisa [label="BGISA (Biren GPU ISA)\nProprietary SIMT ISA\nC-Warp based\nNOT public (no PTX equiv)", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Biren BR100 Hardware (GPU-like AI Accelerator, China)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        spc [label="SPC / EU (Compute)\n32 SPC per die (64 BR100 total)\n16 EU per SPC | C-Warp SIMT\nFP32/TF32+/BF16/INT8 | NO FP64\n256 TFLOPS FP32 | 2048 TOPS INT8", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nEU L1 + shared mem\n300 MB distributed L2 (hardware cache)\nHBM2e: 64GB / 2.3TB/s (BR100)\nDie-to-die: 896 GB/s CoWoS-S", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect\nBLink 1.x: 8×64GB/s=512GB/s (scale-up)\nPCIe Gen5 + CXL (host)\nIB/Ethernet via host NIC (scale-out)\nBCCL collective comms\n[roadmap: BLink 2.0 + NPO, 1,024-GPU supernode]", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> brcc [style=dashed, color="#AAAAAA"];
+    pytorch -> supamlir [style=dashed, color="#AAAAAA", label="inference", fontsize=8];
+    paddle -> brcc [style=dashed, color="#AAAAAA"];
+    tf -> supamlir;
+    cuda2supa -> brcc [label="migration", fontsize=8];
+
+    // Framework -> Op (direct)
+    pytorch -> bila [style=dashed, color="#AAAAAA", label="ATen ops", fontsize=8];
+
+    // Serving layer (2026)
+    mooncake -> pytorch [style=dashed, color="#0097A7", label="serving runtime", fontsize=8];
+    sglangfork -> pytorch [style=dotted, color="#0097A7"];
+    tokenfactory -> mooncake [style=dotted, color="#0097A7", label="cache tiers", fontsize=8];
+    mooncake -> bccl [style=dotted, color="#0097A7", label="KV transfer", fontsize=8];
+
+    // Compiler -> Op/Kernel
+    supamlir -> bila;
+    supamlir -> supakernel;
+
+    // Op -> Kernel
+    bila -> supakernel [label="custom ops", fontsize=8];
+
+    // Kernel -> Runtime
+    supakernel -> supart;
+    genlib -> supart;
+
+    // Runtime chain
+    supart -> supadrv;
+    supadrv -> kmod;
+    kmod -> fw;
+    k8s -> kmod [style=dashed];
+
+    // ISA chain
+    brcc -> bgisa [label="compile", fontsize=8];
+    bgisa -> spc;
+
+    // Communication
+    bccl -> supart [style=dashed];
+    bccl -> interconnect [style=dashed, color="#283593"];
+
+    // Hardware internal
+    spc -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    fw -> spc [style=dashed, color="#283593"];
+}

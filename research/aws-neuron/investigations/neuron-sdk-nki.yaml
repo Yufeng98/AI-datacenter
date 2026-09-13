@@ -1,0 +1,251 @@
+chip: aws-neuron
+device_class: Systolic Array Accelerator
+investigation: neuron-sdk-nki
+date: 2026-04-05
+
+layer_mappings:
+  - layer: Compiler/IR
+    components:
+      - name: Neuron Compiler (neuronx-cc)
+        description: XLA frontend → MLIR middle-end → NeuronCore ISA back-end; produces NEFF artifacts
+      - name: NKI Compiler
+        description: Open-source (Apache 2.0) MLIR-based compiler for NKI kernels; preserves developer memory placement and execution order; enters pipeline at back-end phase bypassing XLA graph passes
+      - name: NEFF (Neuron Executable File Format)
+        description: Single-file container holding NeuronISA instructions, model weights, tensor metadata, and execution graph; loaded by libnrt.so
+
+  - layer: Kernel Library
+    components:
+      - name: NKI (nki.lang)
+        description: High-level Python tile API; nl.ndarray for SBUF allocation, nl.load/store for DMA, nl.matmul for Tensor Engine dispatch; NumPy/Triton-like syntax
+      - name: NKI (nki.isa)
+        description: Low-level ISA intrinsics for direct engine addressing; tensor_tensor, activation, bn_stats opcodes; explicit SBUF/PSUM partition control and instruction-level pipelining
+      - name: nki.collectives
+        description: Multi-NeuronCore collective ops within a kernel (all_reduce, all_gather, reduce_scatter, all_to_all, collective_permute); routes to NeuronLink or EFA based on topology
+      - name: nki-samples
+        description: Official open-source kernel library on GitHub; Flash Attention, GEMM, RoPE, MoE routing reference implementations
+
+  - layer: Framework Integration
+    components:
+      - name: TorchNeuron (PrivateUse1 backend)
+        description: Native PyTorch backend planned for PyTorch >= 2.10; registers Trainium/Inferentia as a PrivateUse1 device; supports eager mode, torch.compile via TorchDynamo, FSDP, DTensor without XLA dependency
+      - name: torch-neuronx (XLA backend)
+        description: Current PyTorch integration (PyTorch <= 2.9); uses PyTorch/XLA; xm.mark_step() triggers lazy evaluation; torch_neuronx.trace() for AOT compilation; TorchDynamo openxla_eval backend
+      - name: JAX Neuron
+        description: JAX workloads trace to StableHLO; ingested by neuronx-cc XLA frontend; jax.jit compiles via Neuron XLA backend; NKI integrates via custom_call; introduced September 2024
+
+  - layer: Runtime
+    components:
+      - name: Neuron Runtime (libnrt.so)
+        description: In-process shared library at /opt/aws/neuron/lib/; NEFF loading and checksum validation; NeuronCore memory management; DMA scheduling; collective communication orchestration; no sidecar daemon
+      - name: aws-neuronx-dkms
+        description: Kernel mode driver providing PCIe / Nitro device access; co-versioned with libnrt.so
+
+key_abstractions:
+  - name: NEFF (Neuron Executable File Format)
+    description: The canonical compiled artifact produced by all Neuron compiler paths (neuronx-cc, NKI compiler). Encapsulates NeuronISA instructions, weights, and metadata. Supports offline compilation, checksum validation, and multi-NeuronCore execution scheduling.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/neuron-runtime/index.html
+
+  - name: NKI Tile Programming Model
+    description: NKI exposes the NeuronCore memory hierarchy (SBUF partitions, PSUM) directly as Python tile objects. nki.lang provides the NumPy-like tile API while nki.isa provides ISA-level intrinsics. Tiles map one-to-one to SBUF partitions (128 partitions on v2/v3), enabling software-managed data placement without a cache hierarchy.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/nki/about/index.html
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/nki/get-started/about/index.html
+
+  - name: PrivateUse1 Native Backend (TorchNeuron)
+    description: PyTorch's PrivateUse1 mechanism allows third parties to register a fully custom device that participates in the standard torch.Tensor dispatch table. TorchNeuron uses this to eliminate XLA dependency for PyTorch >= 2.10, enabling standard torch.distributed, FSDP, and DTensor APIs without Neuron-specific wrappers.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/pytorch-native-overview.html
+      - https://docs.pytorch.org/tutorials/advanced/privateuseone.html
+
+  - name: XLA → MLIR → NeuronISA Compiler Pipeline
+    description: "Three-phase compilation: XLA frontend (constant propagation, op fusion, re-materialization), MLIR middle-end (Neuron dialect, tiling, memory placement), NeuronCore back-end (ISA codegen, engine scheduling). NKI kernels enter at the back-end phase. All paths emit NEFF."
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/compiler/index.html
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/nki/about/index.html
+
+  - name: libnrt.so In-Process Runtime
+    description: The Neuron runtime is a shared library co-linked into the ML framework process rather than a separate daemon. It manages NEFF loading, SBUF/HBM memory, DMA scheduling, and collective communication. Co-versioned with the framework package to avoid compatibility skew.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/neuron-runtime/index.html
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/appnotes/neuron1x/introducing-libnrt.html
+
+framework_integrations:
+  - framework: PyTorch
+    mechanism: torch-neuronx (PyTorch/XLA, current); TorchNeuron (PrivateUse1, planned PyTorch >= 2.10)
+    entry_point: xm.mark_step() / torch_neuronx.trace() / torch.compile(backend="openxla_eval")
+    distributed_api: NxD Core (neuronx-distributed), NxD Training; standard FSDP/DTensor with TorchNeuron
+
+  - framework: JAX
+    mechanism: JAX XLA backend (StableHLO → neuronx-cc XLA frontend)
+    entry_point: jax.jit
+    distributed_api: NxD Core JAX APIs; NKI via custom_call
+
+  - framework: NKI (custom kernels)
+    mechanism: Direct NKI Compiler (MLIR); framework-agnostic
+    entry_point: nki.baremetal decorator (PyTorch), custom_call (JAX)
+    distributed_api: nki.collectives (all_reduce, all_gather, etc.)
+
+key_sources:
+  - title: About Neuron Kernel Interface (NKI)
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/nki/about/index.html
+  - title: Neuron Graph Compiler
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/compiler/index.html
+  - title: Native PyTorch for AWS Trainium
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/pytorch-native-overview.html
+  - title: NeuronX Runtime Documentation
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/neuron-runtime/index.html
+  - title: PyTorch Support on Neuron
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/frameworks/torch/index.html
+  - title: aws-neuron/nki-samples (GitHub)
+    url: https://github.com/aws-neuron/nki-samples
+  - title: Announcing AWS Neuron SDK 2.27.0
+    url: https://aws.amazon.com/about-aws/whats-new/2025/12/announcing-aws-neuron-2-27/
+
+# ---------------------------------------------------------------------------
+# Update appended 2026-08-08. Window: 2026-04-05 -> 2026-08-08.
+# All release dates are GitHub release-tag `published_at` values.
+# ---------------------------------------------------------------------------
+update_2026_08_08:
+  as_of: 2026-08-08
+  window_start: 2026-04-05
+  current_release: "2.31.0 (2026-07-07)"
+  baseline_note: >
+    The prior revision's "Neuron SDK 2.27" narrative was already stale at the 2026-04-05
+    baseline: 2.28.0 (2026-02-25) and 2.28.1 (2026-03-13) shipped before it. Only
+    2.29.0 / 2.29.1 / 2.30.0 / 2.31.0 are in-window.
+
+  fact_groups:
+    - name: Release timeline
+      confidence: confirmed
+      key_specs:
+        releases:
+          - {version: "2.29.0", date: "2026-04-09", nki: "0.3.0"}
+          - {version: "2.29.1", date: "2026-05-01", nki: null, note: "patch; readthedocs index reportedly shows 04/09/26 — GitHub tag metadata is the stronger source"}
+          - {version: "2.30.0", date: "2026-05-21", nki: "0.4.0"}
+          - {version: "2.31.0", date: "2026-07-07", nki: "0.5.0", note: "current latest as of 2026-08-08"}
+        pre_baseline:
+          - {version: "2.28.0", date: "2026-02-25"}
+          - {version: "2.28.1", date: "2026-03-13"}
+      sources:
+        - title: "aws-neuron-sdk GitHub releases (API)"
+          url: "https://api.github.com/repos/aws-neuron/aws-neuron-sdk/releases?per_page=15"
+
+    - name: NKI Beta to Stable (2.29.0)
+      confidence: confirmed
+      note: >
+        The single most consequential software-stack event in the window. The survey's
+        kernel-layer narrative previously described NKI only as a Beta tile API with an
+        open-sourced compiler.
+      key_specs:
+        nki_version: "0.3.0"
+        status_change: "Beta -> Stable"
+        nki_stdlib: "NKI Standard Library; developer-visible source for all NKI APIs; native NKI language objects (NkiTensor)"
+        cpu_simulator: "experimental; executes NKI kernels entirely on host CPU with no Trainium hardware; enabled by env var or API"
+        new_collectives: ["nki.collectives.all_to_all_v (variable-length)"]
+        new_experimental_kernels: 7   # Conv1D, Transformer TKG, comm-compute fusion
+        neuron_explorer: "profiling/debugging suite Beta -> Stable; full Device widget support; VS Code Extension Marketplace"
+        api_renames: ["SbufManager -> BufferManager", "MoE TKG boolean flags -> LNCShardingStrategy enum"]
+      sources:
+        - title: "NKI component release notes"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nki.rst"
+        - title: "Announcing AWS Neuron 2.29"
+          url: "https://aws.amazon.com/about-aws/whats-new/2026/04/announcing-neuron-2-29/"
+
+    - name: Breaking change — Trn1/Inf2 dropped from NKI and NxD Inference
+      confidence: confirmed
+      note: >
+        Precise causality matters. NKI 0.3.0 itself does not support Trn1/Inf2; therefore
+        NxD Inference no longer supports NKI kernels on those devices, and the component
+        note states NxD Inference models are supported on Trn2 and newer only. Cite the
+        component release note, NOT the 2.31.0 index card, which still lists NxD Inference
+        against Inf2/Trn1/Trn1n/Trn2/Trn3.
+      key_specs:
+        introduced_in: "2.29.0"
+        supported_hardware_nxdi: "Trn2 and newer"
+        workaround: "Trn1/Inf2 users must pin to Neuron SDK 2.28"
+      sources:
+        - title: "NxD Inference component release notes (exact wording)"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nxd-inference.rst"
+
+    - name: NKI 0.4.0 and Trn3 ISA exposure (2.30.0)
+      confidence: confirmed
+      key_specs:
+        trn3_isa: ["nki.isa.activate2 (fused preprocess + activate on Scalar Engine, Trn3-specific)", "OCP FP8 inputs to matrix-multiply", "Vector-Engine absolute-value reductions"]
+        tile_size_properties: ["sbuf_size_bytes", "sbuf_fmax_bytes"]
+        graph_compiler: ["rewritten memory-liveness analysis (compile speed)", "max computation tile size doubled to 1024", "coalesced reduce-scatter optimization"]
+        runtime: ["zero-copy host<->device transfers ON BY DEFAULT", "async event APIs", "Collectives support for Trn3 Gen2 UltraServer ring topology"]
+        nki_library: {core_kernels_added: 3, experimental_kernels_added: 19, pytorch_reference_impls: 29}
+        kubernetes: "Neuron DRA Driver — Dynamic Resource Allocation with topology-aware scheduling of Trainium devices and EFA interfaces"
+        platform: ["DLAMIs rebased on Ubuntu 24.04", "JAX-NeuronX 0.10.0"]
+      sources:
+        - title: "Announcing AWS Neuron 2.30.0"
+          url: "https://aws.amazon.com/about-aws/whats-new/2026/05/aws-announce-neuron-2-30-0/"
+        - title: "NKI component release notes"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nki.rst"
+
+    - name: Neuron Agentic Development — new SDK component
+      confidence: confirmed
+      note: >
+        Defensible claim is "first documented SDK component in 2.30.0", NOT "new subsystem"
+        and NOT a beta-to-default transition — no such transition is documented, and the
+        component release-notes file begins at 2.30.0. Whether informal NKI-authoring or
+        debug agent skills existed before 2.30 is not disclosed. This is a stack layer the
+        survey did not previously document at all.
+      key_specs:
+        first_documented_in: "2.30.0"
+        packaging: "bundled in all Neuron DLAMIs and DLCs by default"
+        skills:
+          - name: neuron-framework-autoport
+            function: "ports HuggingFace transformer models to NxD Inference end-to-end, including compilation and greedy-token-match accuracy validation"
+          - name: neuron-framework-equivalence
+            function: "numerical-equivalence validation via progressive 3-tensor R-ratio analysis and fault localization"
+        in_2_31_0: "skills refreshed for NKI 0.5.0 compatibility only"
+      sources:
+        - title: "Agentic Development component release notes (history begins at 2.30.0)"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/agentic-development.rst"
+        - title: "aws-neuron/neuron-agentic-development (GitHub)"
+          url: "https://github.com/aws-neuron/neuron-agentic-development"
+
+    - name: NKI 0.5.0 and neuronx-cc codegen redesign (2.31.0)
+      confidence: confirmed
+      note: >
+        The 14 new NKI Library kernels are EXPERIMENTAL, not general-availability library
+        kernels. The codegen redesign is the first compiler back-end rewrite recorded in
+        this survey.
+      key_specs:
+        nki_0_5_0:
+          - "tensor indirection (gather/scatter) via .indirect() — new on-chip addressing mode on compute operations"
+          - "OCP MX scale format (float8_e8m0fnu)"
+          - "composable NkiTensor view methods (slice/select/permute/rearrange) for zero-cost layout transforms"
+          - "8192-element bf16 destination output for nc_matmul"
+        compiler: "neuronx-cc redesigned code-generation backend; DEFAULT for Trn2 and Trn3; improved instruction scheduling and memory prefetch"
+        runtime: "contiguous shared scratchpad support"
+        kubernetes: "UltraServer Operator for Amazon EKS — public beta"
+        nki_library_experimental_kernels_added: 14   # deformable attention, MoE training collectives, indexed gather/scatter, DeepSeek MLA projection, ring attention
+        deprecations:
+          - "SPMD launch-grid requirement for LNC2 NKI kernels deprecated; to be removed in a future release (behavior unchanged in 0.5.0)"
+          - "neuronxcc.nki.* namespace use is now a hard compile error"
+          - "nki.jit(platform_target=...) and nki.jit(mode=...) deprecated"
+        supported_instances: [Inf1, Inf2, Trn1, Trn1n, Trn2, Trn3]
+      sources:
+        - title: "Neuron SDK 2.31.0 release notes (component card list)"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/2.31.0.rst"
+        - title: "Neuron SDK 2.31.0 release notes (rendered)"
+          url: "https://awsdocs-neuron.readthedocs-hosted.com/en/latest/release-notes/2.31.0.html"
+
+    - name: TorchNeuron / PrivateUse1 status
+      confidence: unverified
+      note: >
+        No status change found. Neither torch-neuronx nor TorchNeuron appears as an updated
+        component in the 2.31.0 release-notes index (only JAX NeuronX among frameworks) —
+        but that index explicitly notes that some components may not be updated in a given
+        release, so this is evidence of neither GA nor deprecation. Keep the survey's
+        "private beta as of Neuron SDK 2.27" wording, flagged unverified since 2.27.
+      key_specs:
+        status: "private beta as of Neuron SDK 2.27; unverified since"
+        ga_confirmed: false
+        deprecation_confirmed: false
+      sources:
+        - title: "Neuron SDK 2.31.0 release notes (no torch-neuronx / TorchNeuron entry)"
+          url: "https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/2.31.0.rst"

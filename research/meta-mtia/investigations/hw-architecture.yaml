@@ -1,0 +1,457 @@
+chip: meta-mtia
+investigation: hw-architecture
+date: "2026-04-05"
+confidence: high
+
+device_class: Inference Accelerator
+generations:
+  - name: v1
+    process: TSMC 7nm
+    die_area_mm2: 373
+    clock_mhz: 800
+    tops_int8: 102.4
+    tflops_fp16: 51.2
+    tdp_w: 25
+    dram: "64 GB LPDDR5, 176 GB/s"
+    on_chip_sram_mb: 128
+    pcie: Gen4
+    released: 2023
+  - name: v2
+    process: TSMC 5nm
+    die_area_mm2: 421
+    clock_mhz: 1350
+    tops_int8: 357
+    tops_int8_sparse: 714
+    tdp_w: 90
+    dram: "128 GB LPDDR5, 204.8 GB/s"
+    on_chip_sram_mb: 256
+    pcie: "Gen5 x8"
+    released: 2024
+  - name: 2i
+    process: TSMC 5nm
+    on_chip_sram_mb: 256
+    sram_bandwidth_tbs: 2.7
+    released: 2025
+
+pe_architecture:
+  grid: "8x8 = 64 PEs"
+  per_pe:
+    risc_v_cores: 2
+    vector_extension: true
+    local_sram_kb: 128
+    fixed_function_units:
+      - matrix_multiply_accumulate
+      - dma_data_movement
+      - nonlinear_function
+  execution_model: async_dataflow
+
+memory:
+  on_chip_sram_shared_mb: 128  # v1; 256 in v2/2i
+  dram_type: LPDDR5
+  no_hbm: true
+  rationale: cost_power_optimization_for_dlrm
+
+system:
+  chips_per_module: 2
+  modules_per_chassis: 12
+  chassis_per_rack: 3
+  total_chips_per_rack: 72
+  rack_petaflops_int8_sparse: 50
+
+workload_target: DLRM_recommendation_ranking
+
+sources:
+  - https://ai.meta.com/blog/meta-training-inference-accelerator-AI-MTIA/
+  - https://ai.meta.com/blog/next-generation-meta-training-inference-accelerator-AI-MTIA/
+  - https://aisystemcodesign.github.io/papers/MTIA-ISCA25.pdf
+
+# ============================================================================
+# MTIA 300 Update — appended 2026-08-08
+# Primary source: ISCA 2026 Industry Track paper (first silicon-level disclosure)
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: major
+  trigger: >
+    ISCA 2026 Industry Track publication of "MTIA 300: Meta's First Training Chip
+    Featuring Built-in NICs and Collective Offloading Engines" (presented 2026-06-30),
+    the first silicon-level disclosure of MTIA 300. Also corrects two pre-existing
+    repo errors and flags one unresolved conflict.
+
+  fact_groups:
+
+    - group: mtia300_physical_electrical
+      confidence: high
+      basis: meta_stated_primary_paper_table_I
+      facts:
+        name: MTIA 300
+        role: training_and_inference
+        clock_ghz: 1.9
+        supply_voltage_v: 0.85
+        tdp_w: 912
+        tdp_typical_w: 667
+        cooling: liquid
+        instances_paper_wording: "7.2B gates, 511M FLOPS"
+        instances_note: >
+          Table I literally prints "FLOPS" in the Instances row; in context this is the
+          paper's abbreviation for flip-flops (an instance count), NOT floating-point
+          throughput. Quote the paper's wording and gloss it.
+        packaging: "2.5D CoWoS"
+        compute_chiplet_mm: "25.6 x 31.4 (~804 mm2, reticle-sized)"
+        network_chiplets: 2
+        network_chiplet_mm: "25.6 x 9.3 each"
+        package_mm: "77.5 x 77.5"
+        interposer_mm: "50.3 x 51.9 (3.2x reticle)"
+        process_node: not_disclosed
+        process_node_note: >
+          The paper discloses no process node for MTIA 300. "2nm" appears only in
+          aggregators and is not published.
+      sources:
+        - title: "MTIA 300: Meta's First Training Chip Featuring Built-in NICs and Collective Offloading Engines (ISCA 2026 Industry Track)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+        - title: "ISCA 2026 program (Session 5B, Tue 2026-06-30, 12:00-12:20 EDT)"
+          url: "https://iscaconf.org/isca2026/program/"
+        - title: "IEEE CSDL proceedings entry"
+          url: "https://www.computer.org/csdl/proceedings-article/isca/2026/506500b084/2iG0QI12UeY"
+
+    - group: mtia300_compute
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        pe_grid: "12x6 = 72 PEs"
+        redundant_pe_row: "1x6 (6 PEs) for yield; one faulty PE tolerated per column; configured at boot; transparent to software; no NoC performance impact"
+        message_engines: 16
+        per_pe:
+          risc_v_vector_cores: 2
+          vector_core_width_bytes: 64
+          dot_product_engine: "two 32x64Bx32 MAC tiles"
+          dot_product_tflops_per_pe: 7.82
+          dot_product_io: "FP16/BF16 inputs, FP32 output"
+          other_units: [command_processor, memory_layout_unit, reduction_engine, simd_sfu, fabric_interface, memory_bridge]
+          local_memory_kb: 512
+          local_memory_organization: "software-managed, split into circular buffers"
+        control_core: "RISC-V quad SMP core (CPU-C)"
+        noc: "mesh with 6-PE cluster routers, L-routing (X then Y), virtual lanes for deadlock avoidance"
+        memory_crossbar: removed_vs_mtia_2i
+        peak_gemm_tflops_fp16_bf16: 560
+        peak_gemm_tflops_fp8: 1120
+        int8_gemm: removed
+        simd_engine_tops: 42.5
+        simd_engine_types: [FP8, FP16, BF16, FP32]
+        risc_v_vector_tops: "42.5 (INT8/FP16) / 21.3 (BF16/FP32)"
+        simd_width_elements_per_cycle: 128
+        simd_width_prev: 32
+        gemm_to_simd_ratio: "16:1 (MTIA 2i was 32:1)"
+        data_types: [FP8_S1E4M3, FP8_S1E5M2, FP16, BF16, TF32, FP32_accumulate]
+        unsupported_natively: [MX4_rowwise_blockwise, NVFP4_rowwise_blockwise]
+        unsupported_note: "fall back to RISC-V execution; native MX4 added in MTIA 400"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (Table I, compute architecture section)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: mtia300_memory
+      confidence: high
+      basis: meta_stated_primary_paper_table_I
+      facts:
+        hbm_type: HBM3E
+        hbm_capacity_gb: 216
+        hbm_stacks: 6
+        hbm_stack_arrangement: "each side connects to 3 twelve-high HBM3E stacks"
+        hbm_pin_rate_gbps: 8.0
+        hbm_bandwidth_tbs: 6.1
+        hbm_bandwidth_qualifier: read_OR_write
+        hbm_per_stack_gb_derived: 36
+        hbm_per_stack_note: "36 GB/stack is arithmetic (216/6), NOT a Meta-stated figure"
+        llc_total_mb: 192
+        llc_per_side_mb: 96
+        llc_banks_per_side: 48
+        llc_banks_total: 96
+        llc_bandwidth_tbs: 11.4
+        llc_bandwidth_qualifier: read_PLUS_write
+        llc_vs_2i: "lower capacity than MTIA 2i's 256 MB but 4.2x its 2.7 TB/s bandwidth"
+        pe_local_memory_kb: 512
+        pe_local_bandwidth_tbs: 1.9
+        pe_local_bandwidth_qualifier: read_PLUS_write
+        measured_bandwidth_tbs: 5.57
+        measured_bandwidth_note: "91% of 6.1 TB/s peak, BF16-add kernel; plotted against H100 2.4 TB/s peak and H200 4.8 TB/s peak"
+        unit_warning: >
+          6.1 TB/s is read-OR-write; 11.4 TB/s and 1.9 TB/s are read+write. The qualifier
+          must survive into any downstream comparison table.
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (Table I, memory section, die figure)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: mtia300_builtin_nics
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        network_chiplets: 2
+        rdma_roce_ip_blocks_per_chiplet: 6
+        per_ip_block_gbps: 800
+        per_ip_block_gbps_bytes: "100 GB/s"
+        bandwidth_per_chiplet_gbs: 600
+        total_nics: 12
+        total_bandwidth_tbs: 1.2
+        die_to_die: "112G SerDes; 8x112G per NIC (Fig. 4)"
+        ip_origin: "custom blocks based on third-party NIC IP"
+        express_doorbells: >
+          the work request itself serves as the doorbell write, avoiding an extra HBM
+          ring-buffer read costing ~800 ns per transaction
+        outstanding_work_requests: 24576
+        qps_per_ip_block: 1024
+        qp_caching: removed_to_save_area
+        active_qps_per_network_chiplet: 1100
+        packet_pipeline: simplified
+        meta_claim: >
+          to Meta's knowledge, the first accelerator with built-in NIC chiplets plus
+          general-purpose collective offloading engines
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (NIC section, Fig. 4)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: mtia300_collective_offload
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        message_engines: 16
+        placement: "PE-grid edges, next to HBM, cache and I/O"
+        per_me_control_core: "1 scalar RISC-V core (CPU-M)"
+        per_me_context_ram_kb: 256
+        per_me_completion_queues: "one large shared CQ"
+        near_memory_compute_bytes_per_cycle: 128
+        near_memory_compute_bytes_per_cycle_concurrent: 96
+        near_memory_compute_functions: [reduction, dma]
+        aggregate_reduction_throughput_tbs: 2.8
+        aggregate_vs_io: "over 2x the 1.2 TB/s I/O bandwidth"
+        area_cost: "one-third of the chip area of the compute engines"
+        collectives_accelerated: [Reduce, AllReduce, ReduceScatter]
+        driven_by: "HCCL via CPU-C dispatching WQE subgraphs"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (Message Engine section)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: mtia300_system_rack
+      confidence: high
+      basis: meta_stated_primary_paper_table_I
+      facts:
+        host_interface: "16x PCIe Gen5 (64 GB/s)"
+        host_ratio: "1 CPU with 512 GB RAM per MTIA 300 (1:1), to avoid PCIe contention"
+        host_ratio_comparison: "H100/H200 testbeds run 8 accelerators per host"
+        scale_up_nodes: 16
+        scale_up_bandwidth_gbs_per_accel: 800
+        scale_up_bandwidth_option_gbs: 1000
+        scale_up_note: "16 accelerators = 1 rack; multiple racks can combine into larger scale-up domains"
+        scale_out_bandwidth_gbs_per_accel: 200
+        scale_out_l1_domain_nodes: 4096
+        scale_out_l2: "'unlimited' in Table I; '16K nodes or more if needed' in the text"
+        chassis_compute_blade_slots: 16
+        chassis_network_blade_slots: 6
+        chassis_backplane: "pair of cable backplanes; not all network blades need be installed; compute blades mounted vertically to shrink the backplane"
+        network_blade_types:
+          scale_up: "ASIC chosen for low latency and power"
+          scale_out: "disaggregated scheduled fabric with packet spray, in-order delivery, fabric-level end-to-end credit"
+        cooling: "both blade types liquid-cooled"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (Table I, system section)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: mtia300_measured_results
+      confidence: high
+      basis: meta_stated_measured_with_caveat
+      caveat: >
+        CRITICAL: the H100 baseline in Table III is a CUSTOM 500 W-power-capped
+        configuration delivering 780 TF/s BF16 instead of 1,000 TFLOPS at 700 W.
+        Any citation of the 1.42x / 1.39x / 3.9x figures must carry this qualifier.
+      facts:
+        workload: "production DLRM, approximately 150 billion parameters, 99% in embeddings"
+        perf_tco_vs_h100_batch10240_24accel: 1.42
+        perf_tco_vs_h100_batch6144_40accel: 1.39
+        communication_vs_h100: "3.9x better"
+        embedding_operators_vs_h100: "up to 2.5x"
+        testbeds:
+          mtia300: {bf16_tflops: 560, memory_gb: 216, memory_bw_tbs: 6.1, accel_w: 912, host_w: 1500, accel_per_host: 1, scale_up: "16 @ 800 GB/s", scale_out_gbs: 200}
+          h100_custom_500w_cap: {bf16_tflops: 780, memory_gb: 96, memory_bw_tbs: 2.4, accel_w: 500, host_w: 6500, accel_per_host: 8, scale_up: "8 @ 450 GB/s", scale_out_gbs: 50, note: "down from 1000 TFLOPS at 700 W"}
+          h200: {bf16_tflops: 1000, memory_gb: 141, memory_bw_tbs: 4.8, accel_w: 700, host_w: 8850}
+        llm_inference:
+          model: DeepSeek-R1
+          serving: vLLM
+          benchmark: InferenceMax
+          configs: [TP8-TP8, DP8-EP8]
+          accelerators: 8
+          precision: "BF16 attention/KV-cache, FP8 MoE"
+          scenario: "short-prompt online; input and output lengths drawn independently and uniformly from [0.8*1024, 1024] tokens"
+          concurrency_swept: "4 to 256"
+          result: "Meta reports MTIA 300 outperforms H200 overall, specifically at concurrency over 64 where execution is decode-dominant and HBM-bandwidth-bound; loses at low concurrency due to higher small-message communication overhead vs NVLink"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (Table III, evaluation section)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: mtia300_stated_limitations
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        - "MX4 and NVFP4 with row-wise/block-wise scaling are not natively supported; fall back to RISC-V execution. Native MX4 added in MTIA 400."
+        - "Eager mode is host-bottlenecked (Python interpreter, dynamic dispatch, device-host communication) and does not scale with faster silicon."
+        - "Numerical-parity tooling for cross-platform convergence debugging exists but 'still require[s] time to mature'."
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (limitations / lessons section)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: repo_corrections
+      confidence: high
+      basis: meta_blog_2026_03_11_primary
+      facts:
+        mtia_450_mx4:
+          previously_recorded: "6x MX4 FP16/BF16 FLOPS vs MTIA 400"
+          correct: "MTIA 450 increases MX4 FLOPS by 75% over MTIA 400, and doubles HBM bandwidth"
+          explanation: "the '6x' figure is MX4 FLOPS relative to FP16/BF16 on the SAME chip, not relative to MTIA 400"
+          class: pre_existing_repo_transcription_bug
+        mtia_400_hbm_capacity:
+          previously_recorded: "288 GB HBM"
+          correct: not_disclosed
+          explanation: "Meta publishes only relative deltas for MTIA 400; 288 GB is aggregator-only. Removed."
+        mtia_500_schedule:
+          previously_recorded: "~late 2027"
+          correct: "scheduled for mass deployment in 2027"
+          explanation: "'late' was an unattributed inference"
+        cumulative_roadmap:
+          recorded: "MTIA 300 -> 500: HBM bandwidth +4.5x, FLOPS +25x"
+          verdict: correct_matches_blog
+      sources:
+        - title: "Meta blog: Four MTIA Chips in Two Years (2026-03-11)"
+          url: "https://ai.meta.com/blog/meta-mtia-scale-ai-chips-for-billions/"
+
+    - group: roadmap_400_450_500
+      confidence: high
+      basis: meta_blog_2026_03_11_primary_relative_deltas_only
+      facts:
+        mtia_400:
+          compute_chiplets: 2
+          fp8_flops_vs_300: "+400%"
+          hbm_bandwidth_vs_300: "+51%"
+          hbm_capacity: not_disclosed
+          numerics: "enhanced MX8 and MX4 (native MX4)"
+          rack_scale_up_domain_devices: 72
+          rack_note: "switched backplane; AALC / facility liquid cooling"
+          status: "finished testing in Meta's labs and on the path to deploying it; no confirmed in-datacenter deployment as of 2026-08-08"
+          paper_statement: "designed to rival GB300 GPUs"
+          derived_fp8_pflops: 5.6
+          derived_hbm_bw_tbs: 9.2
+          derived_note: "derived by applying the stated deltas to the now-confirmed MTIA 300 baselines; NOT Meta-stated"
+        mtia_450:
+          mx4_flops_vs_400: "+75%"
+          hbm_bandwidth_vs_400: "2x"
+          same_chip_mx4_vs_fp16_bf16: "6x"
+          status: "scheduled for mass deployment in early 2027"
+        mtia_500:
+          hbm_bandwidth_vs_450: "+50%"
+          hbm_capacity_vs_450: "up to +80%"
+          mx4_flops_vs_450: "+43%"
+          construction: "2x2 configuration of smaller compute chiplets plus several HBM stacks, two network chiplets, and an SoC chiplet with PCIe to host CPU and scale-out NICs"
+          status: "scheduled for mass deployment in 2027"
+        cumulative_300_to_500:
+          hbm_bandwidth: "4.5x"
+          flops: "25x"
+      sources:
+        - title: "Meta blog: Four MTIA Chips in Two Years (2026-03-11)"
+          url: "https://ai.meta.com/blog/meta-mtia-scale-ai-chips-for-billions/"
+        - title: "MTIA 300 ISCA 2026 paper (roadmap statements)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: mtia_2i_scale_ratified
+      confidence: high
+      basis: meta_stated_primary_paper
+      facts:
+        statement: "MTIA 2i (a.k.a. MTIA 200) is now deployed at a scale of hundreds of thousands of chips"
+        effect: "ratifies the repo's pre-existing 'hundreds of thousands' claim with a primary source"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+
+    - group: broadcom_partnership
+      confidence: high
+      basis: meta_newsroom_pr_primary
+      facts:
+        date: "2026-04-14"
+        scope: "chip design, advanced packaging, and networking"
+        platform: "Broadcom XPU platform"
+        networking: "Broadcom Ethernet for cluster networking"
+        commitment: "a commitment that exceeds 1GW, which is the first phase of a sustained, multi-gigawatt rollout"
+        process_node: not_stated_in_pr
+        end_date: not_stated_in_pr
+        do_not_publish: ["2nm", "through 2029"]
+        do_not_publish_reason: "aggregator-only; neither appears in the PR"
+      sources:
+        - title: "Meta newsroom: Meta partners with Broadcom to co-develop custom AI silicon (2026-04-14)"
+          url: "https://about.fb.com/news/2026/04/meta-partners-with-broadcom-to-co-develop-custom-ai-silicon/"
+
+    - group: production_timing_iris
+      confidence: medium-low
+      basis: secondary_reporting_of_internal_memo
+      facts:
+        reported_by: "Reuters, 2026-07-09, citing an internal Meta memo; carried by TechCrunch and Yahoo Finance"
+        chip_codename: "Iris"
+        manufacturing_start: "September 2026"
+        testing: "completed in roughly six weeks with no major issues"
+        capacity_plan: "about 7 GW of compute by end-2026, 14 GW the following year"
+        generation_mapping: "several secondary outlets identify Iris as MTIA 400 — NOT confirmed by any primary source"
+        retrieval_note: "reuters.com is blocked in this environment; verified via search snippets and secondary outlets only"
+      sources:
+        - title: "TechCrunch: Meta's new AI chips will begin production in September (2026-07-09)"
+          url: "https://techcrunch.com/2026/07/09/metas-new-ai-chips-will-begin-production-in-september/"
+
+    - group: pcie_host_interface_resolved
+      confidence: confirmed
+      basis: both_primary_papers_agree
+      resolved_on: "2026-08-08"
+      facts:
+        mtia_v1: "8x PCIe Gen4 (16 GB/s)"
+        mtia_v2_2i: "8x PCIe Gen5 (32 GB/s)"
+        mtia_300: "16x PCIe Gen5 (64 GB/s), 1:1 host:accelerator"
+        isca_2025_table: "Host connection: 8x PCIe Gen5 (32 GB/s) for MTIA 2i; 8x PCIe Gen4 (16 GB/s) for MTIA v1"
+        isca_2025_module_text: "each accelerator module houses two MTIA 2i chips connected via two 8x Gen5 PCIe links; a PCIe switch links six modules per server"
+        isca_2026_table_I: "MTIA 2i host connection = 8x PCIe Gen5 (32 GB/s) -- agrees with ISCA 2025"
+        prior_repo_error: "the 2026-04-05 entry 'PCIe Gen5 x16 (128 GB/s)' was wrong on both lane count and bandwidth; corrected throughout on 2026-08-08"
+        arithmetic_note: "128 GB/s corresponds to no Gen5 configuration Meta describes (Gen5 x16 is ~63 GB/s unidirectional, ~126 GB/s bidirectional)"
+      sources:
+        - title: "MTIA 300 ISCA 2026 paper (Table I)"
+          url: "https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf"
+        - title: "MTIA ISCA 2025 paper"
+          url: "https://aisystemcodesign.github.io/papers/MTIA-ISCA25.pdf"
+
+    - group: scheduled_not_yet_public
+      confidence: high
+      basis: conference_program_listing_only
+      facts:
+        event: "Hot Chips 38"
+        session: "AI 1"
+        date: "2026-08-25"
+        time: "2:15-4:15 PM"
+        talk_title: "Meta's Custom AI Silicon: From Recommendation to Dual-Mandate with GenAI"
+        speakers: [Srinagesh Loke, Cindy Chen, Jatinder Singh]
+        status: "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public"
+        caution: "the listed title does not contain 'MTIA'; MTIA coverage is a reasonable inference but unconfirmed until the talk"
+        same_session: ["Microsoft MAIA 200: A Data Center Scale AI system", "Cerebras rack-scale WSE", "NVIDIA LPU"]
+        follow_up: "re-scan after 2026-08-25"
+      sources:
+        - title: "Hot Chips 38 program"
+          url: "https://hotchips.org/program/conference/"
+
+  not_confirmed_do_not_publish:
+    - "Process node for MTIA 300 / 400 / 450 / 500 (no primary source; '2nm' is aggregator-only)"
+    - "MTIA 400 absolute HBM capacity (288 GB is aggregator-only)"
+    - "MTIA 500 absolute HBM capacity (384 GB / 512 GB are explicitly flagged by NextPlatform as author estimates)"
+    - "MTIA 300 'deployed H2 2024' (contradicts Meta's March 2026 framing and the ISCA 2026 paper)"
+    - "Broadcom partnership 'through 2029' (no end date in the PR)"
+    - "Iris = MTIA 400 as fact (aggregator-level mapping only)"
+
+  update_sources:
+    - https://aisystemcodesign.github.io/papers/MTIA300_ISCA2026.pdf
+    - https://aisystemcodesign.github.io/
+    - https://iscaconf.org/isca2026/program/
+    - https://www.computer.org/csdl/proceedings-article/isca/2026/506500b084/2iG0QI12UeY
+    - https://ai.meta.com/blog/meta-mtia-scale-ai-chips-for-billions/
+    - https://about.fb.com/news/2026/04/meta-partners-with-broadcom-to-co-develop-custom-ai-silicon/
+    - https://techcrunch.com/2026/07/09/metas-new-ai-chips-will-begin-production-in-september/
+    - https://hotchips.org/program/conference/

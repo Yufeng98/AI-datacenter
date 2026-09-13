@@ -1,0 +1,497 @@
+chip: tecorigin
+as_of: "2026-08-08"
+device_class: "Heterogeneous Many-Core Accelerator (SPA/SPE array with software-managed SPM scratchpad; China, 太初元碁)"
+investigation: software-stack
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The entire stack ships as exactly TWO packages, version-locked 1:1:
+#   TecoDriver  = kernel driver + firmware + management library + monitoring
+#   TecoToolKit = SDK (compilers, runtime, libraries, frameworks, tools)
+# TecoToolKit vN is forward-compatible with TecoDriver <= vN.
+# Current release at time of research: v3.2.0.
+# Authoritative inventory: 环境安装手册 v3.2.0 (group=software_installation).
+#
+# Architecturally this is a deliberate CUDA clone laid over a Sunway-idiom
+# machine: nearly every CUDA component has a named SDAA counterpart.
+# ─────────────────────────────────────────────────────────────────────────────
+
+packaging:
+  packages: [TecoDriver, TecoToolKit]
+  version: "3.2.0"
+  version_locking: "TecoToolKit vN is forward-compatible with TecoDriver <= vN"
+  distribution: [".deb", ".rpm", ".runfile", "Docker tarballs"]
+  mirrors:
+    - http://mirrors.tecorigin.com/
+    - http://jfrog.tecorigin.net/artifactory/
+  pypi: "NONE — torch-sdaa, torch_sdaa, tecovllm, teco-vllm, tecoops, paddle-custom-sdaa all 404"
+  huggingface: "NONE — huggingface.co/api/models?author=tecorigin returns []"
+  documentation_language: "Chinese only; no English site (www.tecorigin.com/en/technology.html -> 404)"
+  confidence: confirmed
+  sources:
+    - http://docs.tecorigin.com/release/software_installation
+
+layers:
+
+  # ── Layer 1: Frameworks ────────────────────────────────────────────────────
+  framework_integration:
+    - name: TecoPyTorch
+      module: torch_sdaa
+      version: "3.2.0"
+      base: "PyTorch 2.7.1 (a 2.4.0 line also ships)"
+      mechanism: "out-of-tree PyTorch device extension; device='sdaa'; torch.sdaa.* namespace mirroring torch.cuda"
+      features:
+        - "ProcessGroupTCCL registered as backend='tccl'; DDP across the 4 SDAA devices per card"
+        - "AMP FP16 training with weight backup and loss scaling"
+        - "INFERENCE IS FP32-ONLY (documented limitation)"
+        - "torch.sdaa.memory.SDAAPluggableAllocator (CUDA parity)"
+      open_source: "partial — gitee.com/tecorigin/teco-torch, BSD-3-Clause, 17 stars, last push 2025-03; binaries are Docker/wheel only"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/torch2.7
+        - http://docs.tecorigin.com/release/torch_2.4
+        - https://gitee.com/tecorigin/teco-torch
+
+    - name: TecoPaddle
+      module: paddle_sdaa
+      version: "3.2.0"
+      base: "PaddlePaddle 3.0.0 via the CustomDevice mechanism"
+      open_source: "YES — and critically also UPSTREAM and Tecorigin-independent"
+      repos:
+        - {url: "https://gitee.com/tecorigin/teco-paddle", license: "Apache-2.0", stars: 19}
+        - {url: "https://github.com/PaddlePaddle/PaddleCustomDevice/tree/develop/backends/sdaa", license: "Apache-2.0", note: "INDEPENDENT — ~115 kernel .cc files, sdaac_ops/*.scpp, pr_ci_sdaa.sh hardware CI, CMake links TECODNN_LIB/TBLAS_LIB/TCCL_LIB/SDPTI/SDAA_LIB/TECOCUSTOM_LIB"}
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/tecopaddle
+        - https://github.com/PaddlePaddle/PaddleCustomDevice/tree/develop/backends/sdaa
+
+    - name: Teco-vLLM
+      version: "3.2.0"
+      serving_features: [PagedAttention, Continuous Batching, Chunked Prefill, Automatic Prefix Caching, "Disaggregated Prefill (PD分离)", LoRA adapters, Tool Calling, Reasoning Outputs]
+      parallelism: [TP, PP, EP, DP, "EPLB (expert-parallel load balancer)", "SBO (single-batch overlap, shared-expert compute/comm overlap)"]
+      multi_node: "Ray"
+      quantization:
+        - "INT8 W8A16 (quantization='sdaa_wint8', ONLINE DYNAMIC ONLY — 'INT8算子的权重排布需要为私有格式')"
+        - "INT4 W4A16"
+        - "KV-Cache-INT8"
+        - GPTQ
+        - AWQ
+        - GGUF
+      hardware_tell: >-
+        Every quantization entry is WEIGHT-ONLY. There is no W8A8 path. This is consistent with a matrix
+        unit whose only input types are FP16 and S16 (see hw-architecture.yaml matrix_unit_datatypes).
+        Record as EVIDENCE, not merely as a feature list.
+      open_source: "binaries proprietary; model recipes open at https://github.com/Tecorigin/tecovllm-modelzoo (BSD-3-Clause)"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/teco_vllm
+
+    - name: Teco-Megatron-LM
+      version: "3.2.0"
+      parallelism: [Tensor, Sequence, Pipeline, Expert, "distributed optimizer"]
+      documented_recipe: "DeepSeek-R1-Distill-Llama-70B SFT at TP=4, PP=8 on 1 node x 8 cards = 32 SDAA devices — an independent cross-check on 4 SPAs per card"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/teco_megatron_lm
+
+    - name: "TecoInferenceEngine (小模型)"
+      version: "3.1.0"
+      front_end: "ONNX ONLY — PyTorch/Paddle models must be exported to ONNX first"
+      features: ["Python + C++ APIs", "TensorRT-migration path", "dynamic shapes", "async inference", "CPU fallback", "70+ models"]
+      open_source: "proprietary; plugin API is open in teco-ops"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/tecoinferenceengine
+
+    - name: "TecoInferenceEngine (大模型)"
+      note: "a separate large-model inference engine (doc id 83566)"
+      open_source: false
+      confidence: likely
+      sources:
+        - http://docs.tecorigin.com/api/api/homepage/?page_size=100
+
+    - name: vendor_claimed_additional_support
+      claimed: [SGLang, xDiT, DeepSpeed, LLaMA-Factory, Transformers, TensorFlow]
+      claimed_models: "'40+ mainstream LLMs' — Qwen, GLM, DeepSeek, MiniMax, InternLM, SD/Wan/FLUX/Open-Sora, Whisper"
+      confidence: unconfirmed
+      note: "VENDOR CLAIM — not all corroborated in the retrievable manuals."
+      sources:
+        - https://www.tecorigin.com/cn/technology.html
+        - https://www.tecorigin.com/cn/developer.html
+
+  # ── Layer 2: Graph capture ─────────────────────────────────────────────────
+  graph_capture:
+    - name: "TorchDynamo / torch.compile"
+      status: "supported, including fullgraph"
+      limitation: "dynamic, mode and options are RESERVED and NOT YET SUPPORTED — there is no dynamic-shape compiled path today"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/torch2.7
+
+    - name: ONNX
+      role: "the only front end for TecoInferenceEngine (小模型)"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/tecoinferenceengine
+
+    - name: stream_capture
+      status: "stubbed only"
+      evidence: "sdaaErrorStreamCaptureUnsupported / sdaaErrorStreamCaptureInvalidated exist in the runtime error enum; no user-facing API is documented"
+      confidence: likely
+      sources:
+        - http://docs.tecorigin.com/release/sdaart
+
+  # ── Layer 3: Graph compiler ────────────────────────────────────────────────
+  graph_compiler:
+    - name: teco_inductor
+      invocation: "torch.compile(model, backend='teco_inductor')"
+      fuses: [Pointwise, Reduction, Foreach]
+      broadcasting: true
+      falls_back: "Conv and GEMM fall back to the hand-written acceleration libraries — the compiler does not generate matrix-unit code"
+      codegen_options:
+        namespace: "torch_sdaa._inductor.config.teco.*"
+        flags: [use_simd128, higher_performance, use_table, enable_kernel_profile, debug_sync_graph]
+        accuracy_warning: "higher_performance and use_table (lookup-table transcendentals) may reduce accuracy"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/torch2.7
+
+    - name: "TVM / Relay IR"
+      role: "TecoInferenceEngine's compiler"
+      evidence: "teco-ops README: custom ops are '通过 TVM Relay IR 注册'; plugin sources must be built with g++ '因为需要兼容 TVM C++ 头文件'"
+      architecture:
+        - "Front end: ONNX parse + FP32->FP16 conversion"
+        - "Graph optimization: fusion, constant folding, CSE, data-layout insertion, fused-kernel codegen, pass pipelines"
+        - "Runtime: Engine/Context, async execution, dynamic shape"
+        - "Device"
+      open_source: "TVM is Apache-2.0 upstream; Tecorigin's backend is proprietary"
+      confidence: confirmed
+      sources:
+        - https://github.com/Tecorigin/teco-ops/blob/main/README.md
+        - https://github.com/Tecorigin/teco-ops/blob/main/doc/README_PLUGIN.md
+        - http://docs.tecorigin.com/release/tecoinferenceengine
+
+  # ── Layer 4: Kernel compiler + kernel language ─────────────────────────────
+  kernel_compiler:
+    - name: TecoCC
+      binary: tecocc
+      version: "3.2.0"
+      lineage: "demonstrably Clang/LLVM-derived"
+      lineage_evidence:
+        - "emits .bc bitcode separately for host and device"
+        - "uses clang-offload-bundler bundles (--sdaa-link)"
+        - "supports -flto link-time optimization, -O0..-O3, -g"
+      device_source_extension: ".scpp"
+      notable_flags: ["--sdaa-arch=pcx_100", "--stack-on-global", "--sdaa-device-only", "--sdaa-host-only", "--sdaa-device-lib=<.bc>"]
+      open_source: false
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/sdaac
+
+    - name: PCXAC
+      full_name: "PCX Advanced Compiler"
+      version: "1.2.0"
+      function: "compiles/links PCX virtual-ISA files to machine code; deliberately lightweight"
+      extras: "ships static and dynamic memory checkers (MemChecker)"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/pcx
+
+  kernel_language:
+    - name: SDAA C
+      full_name: "Software Defined Accelerator Architecture C"
+      version: "3.2.0 (documentation at v3.3.0, released 2026-07-23)"
+      qualifiers: ["__global__", "__device__", "__host__", "__local__", "__scoped_local__"]
+      launch: ["<<<...>>>", threadIdx, threadDim]
+      intrinsic_families:
+        thread_groups: [ThreadGroup, thread_group_set_mask, thread_group_include, thread_group_exclude, sync_threads]
+        spm_allocation: [malloc, free, get_heap_size, get_stack_size, get_local_size]
+        dma: [memcpy, memcpy_stride, memcpy_async, memcpy_wait, MemcpyHandle]
+        rma: [rma_get, rma_put, rma_async_get, rma_async_put, rma_complete, rma_wait]
+        broadcast: [broadcast, broadcast_async, memcpy_broadcast]
+        atomics: [atomic_inc, atomic_add, atomic_sub, atomic_cas]
+        matmul: [matmul, matmul_init, matmul_load_weight, matmul_compute, matmul_store, matmul_wait]
+        transpose: ["blocking + non-blocking"]
+        simd: [simd_load, simd_store, simd_loadu, simd_storeu, simd_load_widen, simd_store_narrow, simd_set, simd_stretch, "*128 128-bit forms"]
+        batched_math: [batch_gelu, batch_sigmoid, batch_tanh, sum]
+      device_restrictions: ["no exceptions", "no RTTI", "no STL", "no new", "no global ctors/dtors", "no local statics", "no file I/O", "no native C/C++ atomics"]
+      open_source: "language proprietary; REAL .scpp kernel source is open in teco-ops, Teco-AL and PaddleCustomDevice"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/sdaac
+        - http://docs.tecorigin.com/release/sdaac_beginner_guide
+        - https://github.com/Tecorigin/teco-ops
+
+  # ── Layer 5: ISA ───────────────────────────────────────────────────────────
+  isa:
+    - name: PCX
+      full_name: "Parallel Computing eXecution"
+      version: "1.0.0 (guide v1.2.0)"
+      significance: "THE BIGGEST SOFTWARE FINDING OF THIS PASS — a hardware-independent VIRTUAL ISA, structurally the PTX of this ecosystem. Completely absent from the seed."
+      purpose: "'同一版本的PCX指令集可以在太初元碁多种系列的硬件上直接编译并高效执行' — decouple software from the machine ISA"
+      usage_modes:
+        - "TecoCC auto-generates PCX (recommended)"
+        - "PCX inline-embedded in SDAA C for targeted tuning"
+        - "hand-written PCX for maximum performance"
+      features:
+        - "multi-level storage abstraction"
+        - "thread / thread-group hierarchy (%tid, %gid, %ngroup, %nthread)"
+        - "INFINITE VIRTUAL GENERAL REGISTERS"
+        - "scalar, vector and matrix instruction classes"
+        - "debug info (.hint, .section, .file, .loc)"
+        - "performance-sampling instructions"
+      directives: [".version", ".arch", ".entry", ".func", ".visible", ".extern", ".weak", ".alias", ".spm", ".global", ".const"]
+      matrix_instructions: [matmul_init, matmul_load_weight, matmul_compute, matmul_store]
+      data_movement_instructions: [mov, lda, load, store, memcpy, memcpy_broadcast, rma, broadcast]
+      compatibility_table: "currently lists ONLY T100系列"
+      roadmap_implication: "The gap between 'only T100系列' and the stated purpose of supporting '多种系列' strongly implies planned successor silicon. NO successor is named."
+      open_source: "proprietary but FULLY DOCUMENTED PUBLICLY"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/pcx
+
+    - name: machine_isa
+      status: "NOT DISCLOSED — by design"
+      note: "PCX exists precisely to hide it. No opcode listing, machine-ISA reference, or disassembly format is published."
+      confidence: confirmed
+
+  # ── Layer 6: Acceleration libraries ────────────────────────────────────────
+  acceleration_libraries:
+    public_manual: "NONE — getReleaseTree returns 404 for tecoal, tecodnn, tecoblas, tecolmk, tecocustom, tecorand. Only the install manual names them."
+    confidence: confirmed
+    components:
+      - {name: TecoDNN,    version: "3.2.0", library: libtecodnn.so,     analogue: cuDNN,  open_source: false}
+      - {name: TecoBLAS,   version: "3.2.0", library: libtecoblas.so,    analogue: cuBLAS, open_source: false}
+      - {name: TecoRAND,   version: "3.2.0", library: libtecorand.so,    analogue: cuRAND, open_source: false}
+      - {name: TecoLMK,    version: "3.2.0", library: "not disclosed",   analogue: "large-model inference kernel library", open_source: false, note: "NEW — not in the seed"}
+      - {name: TecoCUSTOM, version: "3.2.0", library: libtecodnn_ext.so, analogue: "custom-operator library", open_source: false, note: "formerly branded 'CustomDNN'"}
+      - {name: TecoAL,     version: "n/a",   library: libtecoal.so,      analogue: "unified operator library", open_source: "https://gitee.com/tecorigin/teco-al BSD-3-Clause, 31 stars, 157 forks (competition-inflated), last push 2025-03"}
+    naming_resolution:
+      issue: "The seed flagged libtecoal.so/tecoal_ext (teco-ops) vs libtecodnn.so/libtecodnn_ext.so (shipping stack) as a rename in flux."
+      resolution: "The v3.2.0 install manual lists ONLY TecoDNN / TecoBLAS / TecoCUSTOM — NOT TecoAL. TecoAL therefore looks like the OPEN-SOURCE FACE of the operator library rather than a shipped rename."
+      instruction: "Document BOTH names."
+      confidence: likely
+    sources:
+      - http://docs.tecorigin.com/release/software_installation
+      - https://github.com/Tecorigin/modelzoo/blob/main/PyTorch/contrib/Classification/ACNet-master/scripts/acnet.txt
+      - https://gitee.com/tecorigin/teco-al
+
+  # ── Layer 7: Communication ─────────────────────────────────────────────────
+  communication:
+    - name: TCCL
+      version: "3.2.0"
+      library: libtccl.so
+      analogue: NCCL
+      pytorch_integration: "ProcessGroupTCCL, backend='tccl'"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/software_installation
+        - http://docs.tecorigin.com/release/torch2.7
+
+    - name: TCCLTests
+      version: "1.1.0"
+      analogue: nccl-tests
+      open_source: false
+      confidence: confirmed
+
+    - name: third_party_networking
+      components: ["MLNX_OFED 5.9-0.5.6.0 (incl. NVIDIA SHARP 3.2.0)", "Open MPI 4.1.5rc2"]
+      status: "MANDATORY multi-node dependency, redistributed by Tecorigin from mirrors.tecorigin.com"
+      open_source: "upstream OSS, vendor-repackaged"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/software_installation
+
+  # ── Layer 8: Runtime ───────────────────────────────────────────────────────
+  runtime:
+    - name: SDAARuntime
+      version: "3.2.0"
+      library: libsdaart.so
+      analogue: "CUDA Runtime API"
+      apis:
+        device: [sdaaSetDevice, sdaaGetDeviceCount, sdaaGetDeviceProperties, sdaaDeviceProp_t, sdaaDeviceAttribute_t, sdaaDevAttrArch]
+        memory: [sdaaMalloc, sdaaFree, sdaaMemcpy]
+        streams_events: [sdaaStreamCreate, sdaaStreamSynchronize, sdaaStreamWaitEvent]
+        other: ["P2P", "full CUDA-shaped sdaaError_t enum"]
+      notable_errors: [sdaaErrorECCNotCorrectable, sdaaErrorPeerAccessUnsupported, sdaaErrorStreamCaptureUnsupported]
+      open_source: false
+      confidence: confirmed
+      note: "A manual the seed did not find."
+      sources:
+        - http://docs.tecorigin.com/release/sdaart
+
+  # ── Layer 9: Driver / firmware / management ────────────────────────────────
+  driver:
+    - name: SDAADriver
+      version: "3.2.0"
+      package: tecodriver
+      device_nodes: "/dev/tcaicardN — one node per CARD; containers pass --device=/dev/tcaicard0..3"
+      firmware: "aiflash_v<ver>_T1"
+      reported_versions: [VBIOS, MCU, PCB]
+      open_source: false
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/tecosmi
+        - https://github.com/PaddlePaddle/PaddleCustomDevice/blob/develop/backends/sdaa/README.md
+
+    - name: TCML
+      version: "1.15.0"
+      analogue: NVML
+      function: "management/monitoring LIBRARY"
+      open_source: false
+      confidence: confirmed
+
+    - name: TecoSMI
+      version: "1.15.0"
+      binary: teco-smi
+      analogue: nvidia-smi
+      subcommands: ["-L", "-q", "-d", "-l", "-lms", "--query-device", "--format=csv", stats, dmon, daemon, replay, pmon, "topo (incl. -p2p r|w)", "-r (device reset)", "-lsc/-rsc (SPE clock lock/reset)", "-lpm (low-power mode)"]
+      open_source: false
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/tecosmi
+
+    - name: TecoExporter
+      version: "1.5.1"
+      function: "Prometheus-style hardware telemetry collection service"
+      open_source: false
+      confidence: confirmed
+
+  # ── Layer 10: Debug / profile / validate ───────────────────────────────────
+  debug_profile:
+    - name: TecoGDB
+      version: "3.1.0"
+      analogue: cuda-gdb
+      base: "GNU GDB derivative for .scpp device code"
+      features: ["source-level breakpoints", "SPE focus switching (switchSPE)", "inter-SPE focus mechanism", "target tecocore core-dump loading", printException, bt, "info locals/args", "Kernel-PC / setPc"]
+      limitation: "'目前只支持调试所有SPE运行相同代码的程序'"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/tecogdb
+
+    - {name: "TecoGDB Visual", version: "1.2.0", function: "GUI debugger", open_source: false, confidence: confirmed, sources: [http://docs.tecorigin.com/release/tecogdbvisual]}
+    - {name: SDPTI, version: "1.7.0", library: libsdpti.so, analogue: CUPTI, features: ["Activity API", "Callback API", "activity buffers", "external correlation IDs"], open_source: false, confidence: confirmed, sources: [http://docs.tecorigin.com/release/sdpti]}
+    - {name: TCPX, version: "0.3.0", analogue: NVTX, function: "event/range annotation library", open_source: false, confidence: confirmed, note: "not in the seed"}
+    - {name: "TSight CLI", version: "1.12.0", analogue: Nsight, function: "host + device parallelism profiling", open_source: false, confidence: confirmed, note: "not in the seed"}
+    - {name: "TSight GUI", version: "1.9.0", analogue: Nsight, open_source: false, confidence: confirmed, sources: [http://docs.tecorigin.com/release/tsight]}
+    - {name: TCVS, version: "1.6.0", analogue: "DCGM-diag", function: "hardware/software validation and stability suite", open_source: false, confidence: confirmed, note: "not in the seed"}
+    - {name: sdaacfilt, analogue: "c++filt", function: "symbol demangler", open_source: false, confidence: confirmed}
+    - {name: tcap_dllogger, function: "structured training/inference logger", open_source: "https://gitee.com/tecorigin/tcap_dllogger Apache-2.0", confidence: confirmed}
+
+  # ── Layer 11: Custom-operator paths ────────────────────────────────────────
+  custom_op_paths:
+    - name: "SDAA Extension"
+      mechanism: "PyTorch custom-op path mirroring torch.utils.cpp_extension: write .scpp kernel -> C++ wrapper -> TORCH_LIBRARY registration -> setuptools build -> optional torch.compile and autograd support"
+      new_in_v3_2_0: "load_inline support"
+      open_source: "mechanism documented; examples open in teco-ops"
+      confidence: confirmed
+      sources:
+        - http://docs.tecorigin.com/release/torch2.7
+
+    - name: AbstractPluginOp
+      mechanism: "TecoInferenceEngine plugin base class (InferOutputShape + Enqueue) -> libteco_ops_plugin.so + libTecoInferPlugin.so"
+      open_source: "open pattern in teco-ops"
+      confidence: confirmed
+      sources:
+        - https://github.com/Tecorigin/teco-ops/blob/main/doc/README_PLUGIN.md
+
+    - name: "TVM Relay registration"
+      mechanism: "teco-ops registers custom ops through TVM Relay IR; plugin sources built with g++ for TVM header compatibility"
+      confidence: confirmed
+
+    - name: SDAAPluggableAllocator
+      mechanism: "torch.sdaa.memory.SDAAPluggableAllocator — pluggable device allocator, CUDA parity"
+      confidence: confirmed
+
+  # ── Layer 12: Cluster platform ─────────────────────────────────────────────
+  platform:
+    - name: "太初算力管理服务平台"
+      function: "multi-tenant cluster scheduler"
+      mentions: ["Jupyter / VS Code", "Megatron-DeepSpeed training", "TVM + Triton small-model serving", "FasterTransformer large-model serving", "GPFS / GlusterFS storage"]
+      confidence: unconfirmed
+      note: "VENDOR CLAIM — not corroborated by any retrievable technical manual."
+      sources:
+        - https://www.tecorigin.com/cn/technology.html
+
+# ── Precision / numerics controls (they leak hardware constraints) ───────────
+precision_controls:
+  confidence: confirmed
+  note: "The most useful indirect evidence about the matrix unit. Read alongside hw-architecture.yaml matrix_unit_datatypes."
+  variables:
+    - {name: TORCH_SDAA_CONV_USE_FP32, effect: "by default Conv '算子内部将FP32输入转FP16进行计算' — FP32 conv inputs are internally down-converted to FP16"}
+    - {name: TORCH_SDAA_CONV2D_BACKWARD_USE_FP32, effect: "same for conv2d backward"}
+    - {name: TORCH_SDAA_BF16_CLIP, effect: "clips bf16 GEMM inputs to +/-65407 (essentially the FP16 maximum) — bf16 matmul is EMULATED on the FP16 unit"}
+    - {name: TORCH_SDAA_CONV_WEIGHT_CHWN, effect: "opt-in CHWN weight layout for speed — an unusual layout implying FU data-layout preferences"}
+    - {name: TORCH_SDAA_FALLBACK_OPS, effect: "per-op CPU fallback"}
+    - {name: TORCH_SDAA_RUNTIME_AUTOFALLBACK, effect: "automatic runtime CPU fallback"}
+    - {name: TORCH_SDAA_LOG_LEVEL, effect: "logging verbosity"}
+    - {name: TORCH_DEVICE_BACKEND_AUTOLOAD, effect: "backend autoload"}
+  training_precisions: "FP32 and FP16 (AMP with weight backup + loss scaling)"
+  inference_precisions: "TecoPyTorch inference is FP32-ONLY; TecoInferenceEngine converts everything to FP16"
+  sources:
+    - http://docs.tecorigin.com/release/torch2.7
+    - http://docs.tecorigin.com/release/tecoinferenceengine
+
+# ── Openness ─────────────────────────────────────────────────────────────────
+openness:
+  confidence: confirmed
+  genuinely_open:
+    - repo: https://github.com/PaddlePaddle/PaddleCustomDevice/tree/develop/backends/sdaa
+      license: Apache-2.0
+      independence: "UPSTREAM — Tecorigin does not control this repo"
+      value: "the single most valuable independent artifact: ~115 kernel .cc files, sdaac_ops/*.scpp, pr_ci_sdaa.sh hardware CI implying a real device fleet"
+    - repo: https://github.com/Tecorigin/teco-ops
+      license: BSD-3-Clause
+      value: "layered interface/ual architecture, real .scpp kernels, SDAAC_examples (DMA/RMA/SIMD/atomics/broadcast/matmul/transpose), protobuf-driven C++ test harness, PyTorch bindings, TVM Relay plugin examples, and a cuda/ reference-implementation directory used as the ACCURACY BASELINE"
+    - repo: https://gitee.com/tecorigin/teco-al
+      license: BSD-3-Clause
+      stars: 31
+      forks: 157
+      note: "forks are WAIC-competition artifacts, not adoption"
+    - {repo: "https://gitee.com/tecorigin/teco-torch", license: BSD-3-Clause, stars: 17}
+    - {repo: "https://gitee.com/tecorigin/teco-paddle", license: Apache-2.0, stars: 19}
+    - {repo: "https://gitee.com/tecorigin/modelzoo-old", license: BSD-3-Clause, stars: 26, forks: 91}
+    - {repo: "https://gitee.com/tecorigin/teco-generative-ai", license: BSD-3-Clause}
+    - {repo: "https://gitee.com/tecorigin/tcap_dllogger", license: Apache-2.0}
+    - {repo: "https://gitee.com/tecorigin/sdcops", license: "NONE DECLARED"}
+    - {repo: "https://gitee.com/tecorigin/thirdparty_llm", license: "NONE DECLARED"}
+    - {repo: "https://github.com/Tecorigin/modelzoo", license: BSD-3-Clause}
+    - {repo: "https://github.com/Tecorigin/teco-modelzoo", license: BSD-3-Clause}
+    - {repo: "https://github.com/Tecorigin/tecovllm-modelzoo", license: BSD-3-Clause}
+
+  closed:
+    summary: "EVERY compiler, library, runtime, driver and tool binary"
+    components: [TecoCC, PCXAC, teco_inductor, TecoDNN, TecoBLAS, TecoRAND, TecoLMK, TecoCUSTOM, TCCL, SDAARuntime, SDAADriver, TCML, TecoSMI, TecoExporter, TecoGDB, SDPTI, TCPX, TSight, TCVS]
+
+  documentation:
+    manuals: "17+"
+    language: "Chinese only"
+    versioning: "per-release changelogs back to v1.0.0; embedded instructional video assets"
+    latest: "SDAA C v3.3.0, released 2026-07-23"
+    retrievability: "MACHINE-RETRIEVABLE, contrary to the seed — via an undocumented REST API returning Yjs CRDT binary (see search-results.md)"
+
+  traction:
+    github_stars: "0-4"
+    gitee_stars: "0-31"
+    caveat: >-
+      The most active GitHub repos were created 2026-04-13 for a WAIC developer competition
+      (github.com/tecorigin-waic), so recent commit velocity OVERSTATES public SDK cadence.
+      Meanwhile the DOCUMENTATION release cadence (v2.0 -> v3.2 across 2025, TecoPyTorch tracking
+      PyTorch 2.7.1, Teco-vLLM gaining PD-separation and EPLB across 2025-09 -> 2026) indicates a real,
+      actively engineered INTERNAL stack. The public-ecosystem signal and the internal-engineering
+      signal point in OPPOSITE directions; report both.
+    confidence: confirmed
+
+# ── Negative checks ──────────────────────────────────────────────────────────
+negative_checks:
+  confidence: confirmed
+  results:
+    - {check: "PyPI: torch-sdaa, torch_sdaa, tecovllm, teco-vllm, tecoops, paddle-custom-sdaa", result: "all 404"}
+    - {check: "Hugging Face: ?author=tecorigin", result: "[] — no organization"}
+    - {check: "Public manuals for TecoAL/TecoDNN/TecoBLAS/TCCL/TCVS/TecoLMK/TecoExporter/TecoCUSTOM/TecoRAND/TCML", result: "404 — named only in the install manual"}
+    - {check: "English documentation", result: "none — www.tecorigin.com/en/technology.html returns 404"}
+    - {check: "MLPerf / SPEC / third-party benchmark", result: "none found — WEAK negative, since WebSearch was unavailable"}

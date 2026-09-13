@@ -1,0 +1,155 @@
+digraph mthreads_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.3,0.15"];
+    edge [color="#555555", arrowsize=0.8, fontname="Helvetica", fontsize=9];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.4;
+
+    label="Moore Threads Hardware Architecture — MTT S4000 (Chunxiao, TSMC 12nm) with MTT S5000 (PH100 / PingHu, Gen 4) overlay [as of 2026-08-08]";
+    fontname="Helvetica-Bold";
+    fontsize=14;
+    labelloc=t;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine — Chunxiao Die";
+        style="rounded,filled";
+        fillcolor="#E8EAF6";
+        color="#3949AB";
+        fontcolor="#3949AB";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        subgraph cluster_mp {
+            label="MP (MUSA Processor) — Fundamental Compute Unit";
+            style="rounded,dashed";
+            color="#5C6BC0";
+            fontcolor="#5C6BC0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            fp32 [label="128× FP32 ALU\n(FP32/BF16/FP16)", fillcolor="#C5CAE9"];
+            int8 [label="32× INT8/INT32\n(bitwise units)", fillcolor="#C5CAE9"];
+            sfu [label="32× SFU\n(trig, exp, log)", fillcolor="#C5CAE9"];
+            fp64 [label="2× FP64 ALU\n(minimal FP64)", fillcolor="#C5CAE9"];
+            tce [label="TCE\nTensor Compute Engine\n(matrix/tensor ops)\nFP16/BF16/INT8", fillcolor="#7986CB", fontcolor="white"];
+            ldsm [label="28 KB\nLocal Shared Memory\n(programmer-managed)", fillcolor="#9FA8DA"];
+        }
+
+        die_summary [label="Chunxiao Full Die Summary\n4,096 SP total | 128 TCE Tensor Cores\n256 Texture Units | 256 ROPs\n22 billion transistors\n25 TFLOPS FP32 / 200 TFLOPS BF16\n200 TOPS INT8 | TDP: 450W", fillcolor="#3949AB", fontcolor="white"];
+
+        ph100 [label="[Gen 4 PingHu — PH100 / MTT S5000, SHIPPING 2026]\nVendor-confirmed: full-precision FP8 → FP64\n(fourth-generation MUSA platform)\nMP/SP count, TCE count, clock, die config,\nprocess node, transistors, TDP: NOT DISCLOSED\nMedia-reported only: up to 1,000 TFLOPS dense FP8", fillcolor="#5C6BC0", fontcolor="white", style="rounded,filled,dashed"];
+    }
+
+    // ===================== MEMORY HIERARCHY =====================
+    subgraph cluster_memory {
+        label="Memory Hierarchy";
+        style="rounded,filled";
+        fillcolor="#E8F5E9";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        l2 [label="L2 Cache\n4 MB (hardware-managed)\nShared by all MPs\n[small: A100=40MB, BR100=300MB]", fillcolor="#A5D6A7"];
+        gddr6 [label="GDDR6 Off-chip Memory\nS4000: 48 GB | 384-bit | 768 GB/s | 16 Gbps/pin\nS3000: 32 GB | 256-bit | ~512 GB/s\nS80: 16 GB | 256-bit | ~512 GB/s", fillcolor="#4CAF50", fontcolor="white"];
+        s5000_mem [label="[Gen 4 PingHu — MTT S5000 off-chip memory]\nMEDIA-REPORTED ONLY (no vendor spec table):\n80 GB | 1.6 TB/s\nType implied HBM; HBM generation NOT CONFIRMED\nOn-chip SRAM / L2: NOT DISCLOSED\nNB: 3.35 TB/s and 4.0 TB/s on the vendor page are\nH100-SXM and H20-class comparison baselines, NOT S5000", fillcolor="#66BB6A", fontcolor="white", style="rounded,filled,dashed"];
+        gen5_hbm [label="[Gen 5 Huagang / Huashan — 2026 Roadmap]\n8× HBM sites\nCapacity claimed to exceed NVIDIA B200\nDual chiplet packaging", fillcolor="#81C784", style="rounded,dashed"];
+    }
+
+    // ===================== HOST INTERFACE =====================
+    subgraph cluster_host {
+        label="Host Interface";
+        style="rounded,filled";
+        fillcolor="#FFF8E1";
+        color="#F57F17";
+        fontcolor="#F57F17";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        pcie [label="PCIe Gen5 x16\n~128 GB/s bidir\nFHFL dual-slot card", fillcolor="#FFE082"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect";
+        style="rounded,filled";
+        fillcolor="#FCE4EC";
+        color="#AD1457";
+        fontcolor="#AD1457";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        mtlink [label="MTLink 1.0\n(NVLink analog)\n240 GB/s aggregate per GPU\n8 GPUs per KUAE D800 / MCCX D800 server\nScales to 10,000 GPU clusters", fillcolor="#F48FB1"];
+        mtlink_s5000 [label="[Gen 4 PingHu — MTT S5000]\nMTLink, generation number NOT DISCLOSED\n784 GB/s card-to-card (MEDIA-REPORTED ONLY)\nNodes: MTT MGX (8× OAM) / MTT SGX5000 server\n(supersedes KUAE D800 naming)", fillcolor="#F8BBD0", style="rounded,filled,dashed"];
+        c256 [label="[MTT C256 Supernode — ANNOUNCED / DEMONSTRATED\nWAIC 2026, first shown 2026-07-17]\nClaimed industry-first single-layer Scale-up network\n(breaks the prevailing 64-card single-layer limit)\n128 GPUs fully interconnected per standard cabinet\n256 cards across two cabinets\nSub-microsecond card-to-card latency | 2U nodes\nPer-link + aggregate bandwidth: NOT DISCLOSED\nNot shipping; no customer deployment confirmed", fillcolor="#EC407A", fontcolor="white", style="rounded,filled,dashed"];
+    }
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+
+        scaleout [label="Ethernet / RoCE via Host NIC\nMCCL (NCCL analog) for inter-node collectives\nNo proprietary scale-out ASIC", fillcolor="#ECEFF1"];
+    }
+
+    // ===================== ARCHITECTURE ROADMAP =====================
+    subgraph cluster_roadmap {
+        label="Architecture Roadmap";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+
+        gen1 [label="Gen 1: Sudi 苏堤 (Sudijia 苏堤甲)\nTSMC 12nm | 2,048-4,096 SP\nNo Tensor Cores\nMTT S60, S1000, S2000", fillcolor="#E1BEE7"];
+        gen2 [label="Gen 2: Chunxiao 春晓\nTSMC 12nm | 4,096 SP | 128 TCE\nPCIe Gen5 | MTLink 1.0\nMTT S80, S3000, S4000", fillcolor="#BA68C8", fontcolor="white"];
+        gen3 [label="Gen 3: Quyuan 曲院\nNo datacenter part tracked here\nDie details NOT DISCLOSED", fillcolor="#E1BEE7", style="rounded,filled,dashed"];
+        gen4 [label="Gen 4: PingHu 平湖 ← CURRENTLY SHIPPING\nPH100 chip → MTT S5000\nFull precision FP8 → FP64 (vendor-confirmed)\nProcess node NOT DISCLOSED\nAccelerated mass production 2026", fillcolor="#8E24AA", fontcolor="white"];
+        gen5 [label="Gen 5: Huagang 花港 (\"Flower Harbor\")\nAnnounced 2025-12-20 at MDC 2025\nDual chiplet | 8× HBM\n+FP4/MTFP6/MTFP4\nHopper-Blackwell target\n华山 Huashan (AI) + 庐山 Lushan (graphics), 2026", fillcolor="#CE93D8"];
+    }
+
+    // ===================== EDGES =====================
+
+    // MP internals -> die summary
+    fp32 -> tce [style=invis];
+    int8 -> tce [style=invis];
+    fp64 -> tce [style=invis];
+    tce -> ldsm [style=dashed, color="#5C6BC0", label="feeds", fontsize=8];
+    ldsm -> die_summary [style=dashed, color="#3949AB"];
+
+    // Compute -> Memory
+    die_summary -> l2 [label="L1→L2 miss", color="#2E7D32"];
+    l2 -> gddr6 [label="L2→DRAM miss", color="#2E7D32"];
+    ph100 -> s5000_mem [label="Gen 4 memory tier", color="#2E7D32", style=dashed];
+    ph100 -> mtlink_s5000 [label="GPU-to-GPU", color="#AD1457", style=dashed];
+    mtlink_s5000 -> c256 [label="scale-up domain\n8 → 128/256 cards (announced)", color="#AD1457", style=dashed, fontsize=8];
+
+    // Compute -> Host
+    die_summary -> pcie [label="DMA / ioctl", style=dashed, color="#F57F17"];
+
+    // Compute -> Scale-up
+    die_summary -> mtlink [label="GPU-to-GPU", color="#AD1457"];
+    mtlink -> scaleout [label="inter-node", style=dashed, color="#37474F"];
+
+    // Roadmap sequence (West Lake naming: Sudi → Chunxiao → Quyuan → PingHu → Huagang)
+    gen1 -> gen2 [color="#6A1B9A", label="→"];
+    gen2 -> gen3 [color="#6A1B9A", label="→", style=dashed];
+    gen3 -> gen4 [color="#6A1B9A", label="→"];
+    gen4 -> gen5 [color="#6A1B9A", label="2026 →", style=dashed];
+}

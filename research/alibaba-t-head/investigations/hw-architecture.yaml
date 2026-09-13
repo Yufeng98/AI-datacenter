@@ -1,0 +1,281 @@
+chip: alibaba-t-head
+artifact: research/alibaba-t-head/investigations/hw-architecture.md
+investigated: "2026-04-05"
+status: completed
+
+products:
+  hanguang_800:
+    type: AI inference NPU
+    process: TSMC 12nm
+    transistors_B: 17
+    peak_tops_int8: 820
+    on_chip_sram_mb: 192
+    cores: 4
+    host_interface: PCIe Gen4 x16
+    resnet50_ips: 78563
+    energy_efficiency_ips_per_w: 500
+    memory_type: SRAM-only (no HBM)
+    announced: "2019-09"
+    hotchips: HC32 2020
+
+  zhenwu_810e:
+    also_known_as: PPU (Parallel Processing Unit)
+    type: AI training+inference accelerator
+    process: "7nm (domestic, likely SMIC)"
+    memory_type: HBM2e
+    memory_capacity_gb: 96
+    inter_chip_bandwidth_gbps: 700
+    icn_links: 7
+    tdp_w: 400
+    target_performance: "comparable to NVIDIA H20, some modes > A100"
+    bom_cost_vs_h20: "-40%"
+    workloads: [AI inference, AI training, autonomous driving]
+    llm_optimization: Qwen series
+    announced: "2026-01-30"
+    deployment_scale: "10K-card clusters, 400+ customers, 470K units shipped"
+
+xuantie_risc_v:
+  c910:
+    type: high-performance OoO
+    isa: RVV 0.7.1
+    pipeline_width: 3-wide
+    pipeline_stages: 12
+    process: TSMC 12nm
+    area_mm2: 0.8
+    freq_ghz: "2.0-2.5"
+    open_source: true
+    license: Apache 2.0
+
+  c920:
+    type: high-performance OoO
+    isa: RVV 1.0
+    notes: C910 with updated vector spec
+
+  c930:
+    type: server-grade
+    launched: "2025-02"
+    shipping: "2025-03"
+
+  c950:
+    type: server-grade AI agent CPU
+    process: TSMC 5nm
+    isa: RVA23
+    ai_engine: self-developed
+    max_freq_ghz: 3.2
+    llm_native: true
+    supported_models: [Qwen3, DeepSeek V3]
+    spec_score: ">70 (RISC-V world record)"
+    perf_vs_c920: ">3x"
+    launched: "2026-03-24"
+    target: agentic AI inference
+
+key_findings:
+  - "Dual product lines: Hanguang NPU (AI ASIC) + Xuantie CPU (RISC-V)"
+  - "Hanguang 800: 820 TOPS INT8, TSMC 12nm, 4-core ring bus, SRAM-only"
+  - "Zhenwu 810E: 96GB HBM2e, 700GB/s ICN, 7nm domestic, H20-class performance"
+  - "C950: TSMC 5nm, RVA23, 3.2GHz, first RISC-V with native LLM inference"
+  - "T-Head IPO speculation early 2026; >RMB 10B annualized revenue"
+  - "Fully proprietary closed stack for Zhenwu; open-source RISC-V tools for Xuantie"
+
+# ============================================================================
+# Investigation update — 2026-08-08 (window: 2026-04-05 baseline -> 2026-08-08)
+# Change class: major. Adversarially verified; refuted figures listed below.
+# ============================================================================
+update_2026_08_08:
+  investigated: "2026-08-08"
+  status: completed
+  change_class: major
+
+  zhenwu_m890:
+    announcement:
+      name: "Zhenwu M890 (真武M890)"
+      event: Alibaba Cloud Summit
+      date: "2026-05-20"
+      status_verb: "formally debuted"
+      general_availability_claimed: false
+      mass_production_claimed: false
+      availability_asserted: "Panjiu AL128 supernode available via Alibaba Bailian model service platform (the chip itself has no GA/MP claim)"
+      note: "CNBC's 2026-05-19 dateline is US time for the same event, not a separate announcement"
+      confidence: confirmed
+      sources:
+        - https://www.alibabagroup.com/en-US/document-1994119844504535040
+        - https://www.alibabacloud.com/blog/alibaba-unveils-new-ai-chip-flagship-model-and-rebuilt-cloud-stack-ai-for-agentic-era_603151
+        - https://www.yicaiglobal.com/news/alibabas-t-head-launches-ai-chip-with-triple-the-computing-performance
+        - https://www.ithome.com/0/952/644.htm
+        - https://thenextweb.com/news/alibaba-zhenwu-m890-t-head-china-ai-chip-nvidia
+
+    memory:
+      capacity_gb: 144
+      type: not disclosed
+      vendor_wording: "144 GB of on-chip memory"
+      bandwidth: not disclosed
+      confidence: confirmed (capacity); not_disclosed (type, bandwidth)
+      caveat: "TrendForce/BigGo say generically 'HBM'; digitalcitizen and Toutiao say 'HBM3' — neither is vendor-supported"
+      sources:
+        - https://www.alibabagroup.com/en-US/document-1994119844504535040
+        - https://www.theregister.com/systems/2026/05/22/alibaba-just-admitted-its-struggling-to-keep-up-with-rival-chipmakers-and-ai-shops/5244665
+
+    interconnect_per_chip:
+      inter_chip_bandwidth_gbps: 800
+      predecessor_810e_gbps: 700
+      icn_link_count: not disclosed
+      confidence: confirmed
+      sources:
+        - https://www.alibabagroup.com/en-US/document-1994119844504535040
+
+    compute:
+      data_types: "native FP32 down to FP4 (vendor wording); first FP4 claim in the Zhenwu line"
+      peak_flops_by_dtype: not disclosed
+      microarchitecture: not disclosed
+      unit_counts: not disclosed
+      clock: not disclosed
+      relative_performance_claim: "3x the Zhenwu 810E"
+      relative_performance_evidence: "vendor marketing claim; no benchmark, workload or methodology disclosed"
+      confidence: confirmed (data-type range, as vendor spec); vendor_claim (3x); not_disclosed (everything else)
+      sources:
+        - https://www.alibabagroup.com/en-US/document-1994119844504535040
+        - https://www.trendforce.com/news/2026/05/21/news-alibaba-t-head-unveils-zhenwu-m890-with-3x-performance-vs-prior-gen-new-ai-chips-planned-for-3q273q28/
+
+    process_and_package:
+      process_node: not disclosed
+      foundry: not disclosed
+      tdp_w: not disclosed
+      die_size: not disclosed
+      transistor_count: not disclosed
+      note: "The Register and The Next Web note only that the part must use a domestically-accessible node; SMIC vs TSMC unconfirmed"
+      confidence: not_disclosed
+      sources:
+        - https://www.theregister.com/systems/2026/05/22/alibaba-just-admitted-its-struggling-to-keep-up-with-rival-chipmakers-and-ai-shops/5244665
+        - https://thenextweb.com/news/alibaba-zhenwu-m890-t-head-china-ai-chip-nvidia
+
+    codename:
+      internal_codename: not disclosed
+      note: "The accelerator line is generically called PPU. 'PPU 1.5' appears in no retrieved source and is NOT recorded as the codename"
+      confidence: refuted (for 'PPU 1.5')
+      sources: []
+
+  panjiu_al128_supernode:
+    accelerators_per_unit: 128
+    alternate_configuration: 64-card
+    internal_bandwidth_claim: "petabyte-per-second (PB/s) internal bandwidth"
+    internal_bandwidth_evidence: "vendor claim; repeated independently by The Register; no per-link, topology or bisection breakdown published"
+    availability: "now available through Alibaba Bailian model service platform"
+    novelty_caveat: "The AL128 name and its ScaleUp/ScaleOut/DCN interconnect architecture were published by Alibaba Cloud on 2025-11-14, before the repo baseline. Only the M890 + ICN Switch 1.0 instantiation is new on 2026-05-20."
+    confidence: confirmed (scale, availability); vendor_claim (PB/s)
+    sources:
+      - https://www.alibabagroup.com/en-US/document-1994119844504535040
+      - https://www.theregister.com/systems/2026/05/22/alibaba-just-admitted-its-struggling-to-keep-up-with-rival-chipmakers-and-ai-shops/5244665
+      - https://www.alibabacloud.com/blog/in-depth-analysis-of-alibaba-cloud-panjiu-al128-supernode-ai-servers-and-their-interconnect-architecture_602665
+
+  icn_switch_1_0:
+    type: T-Head-developed switch ASIC
+    aggregate_bandwidth_tbps: 25.6
+    aggregate_bandwidth_qualifier: "up to"
+    congestion_free_domain_accelerators: 64
+    latency: "hundred-nanosecond class (百纳秒级)"
+    latency_confidence: secondary
+    latency_note: "ITHome and YiCai Global report hundred-nanosecond-level; BigGo reports 'under 150 ns'. No latency figure appears in Alibaba's English release. A 'sub-100 ns' figure in circulation is a mistranslation of 百纳秒级 and is REFUTED."
+    port_count: not disclosed
+    serdes_rate: not disclosed
+    process: not disclosed
+    competitive_context: "The Register notes Broadcom and NVIDIA shipped switch silicon at comparable aggregate bandwidth years earlier"
+    confidence: confirmed (bandwidth, domain size); secondary (latency); not_disclosed (implementation)
+    sources:
+      - https://www.alibabagroup.com/en-US/document-1994119844504535040
+      - https://www.theregister.com/systems/2026/05/22/alibaba-just-admitted-its-struggling-to-keep-up-with-rival-chipmakers-and-ai-shops/5244665
+      - https://www.ithome.com/0/952/644.htm
+      - https://finance.biggo.com/news/TPW3RJ4BrAZSr0oSpzYQ
+
+  roadmap:
+    disclosed_at: "Alibaba Cloud Summit, 2026-05-20 (first public T-Head accelerator roadmap)"
+    attribution: "Chinese-media-reported vendor disclosure — TrendForce sources it to Mydrivers; Sohu, Lanjinger, Toutiao and Baidu Baike report it as disclosed by T-Head at the summit. ABSENT from Alibaba's English newsroom. NOT an analyst estimate."
+    confidence: secondary (vendor-disclosed via Chinese media)
+    chips:
+      zhenwu_v900:
+        window: 3Q2027
+        relative_performance_claim: "3x the M890"
+        memory_gb: 216
+        inter_chip_bandwidth_gbps: 1200
+        architecture_note: "deeply iterated in-house parallel computing architecture"
+      zhenwu_j900:
+        window: 3Q2028
+        specs: not disclosed
+    sources:
+      - https://www.trendforce.com/news/2026/05/21/news-alibaba-t-head-unveils-zhenwu-m890-with-3x-performance-vs-prior-gen-new-ai-chips-planned-for-3q273q28/
+      - https://www.sohu.com/a/1025094643_161795
+      - https://www.lanjinger.com/t/1779252138844345240
+      - https://finance.sina.com.cn/tech/roll/2026-05-20/doc-inhyphnr7066620.shtml
+
+  deployment_base:
+    cumulative_zhenwu_series_units: 560000
+    previous_baseline_units: 470000
+    scope_note: "SERIES-cumulative, NOT M890 shipments. M890-specific volumes and per-chip pricing were not disclosed."
+    external_customers: "400+"
+    industries: "20+"
+    named_customers_confirmed: [China Telecom, FAW Group, Shanghai Pudong Development Bank]
+    named_customers_rejected: [XPeng, Sina Weibo]
+    rejection_reason: "not named in any retrieved source for this announcement"
+    confidence: confirmed
+    sources:
+      - https://www.alibabagroup.com/en-US/document-1994119844504535040
+      - https://www.theregister.com/systems/2026/05/22/alibaba-just-admitted-its-struggling-to-keep-up-with-rival-chipmakers-and-ai-shops/5244665
+      - https://www.yicaiglobal.com/news/alibabas-t-head-launches-ai-chip-with-triple-the-computing-performance
+
+  corporate_status:
+    claim: "Plans to restructure T-Head into a partly employee-owned company ahead of a possible IPO"
+    company_confirmed: false
+    framing: "Reuters headline is 'Alibaba to plan IPO for AI chipmaking unit T-Head, Bloomberg News reports' (2026-01-22) — a Bloomberg-sourced media report of plans, not a company confirmation"
+    analyst_view: "JPMorgan publicly characterised the T-Head IPO as a sentiment catalyst, not a 2026 deal"
+    as_of_2026_08_08: "no listing, no filing acceptance, no named exchange"
+    window_note: "pre-baseline news; outside the April-August 2026 window"
+    confidence: reported (media), not confirmed
+    sources:
+      - https://www.reuters.com/world/asia-pacific/alibaba-plan-ipo-ai-chipmaking-unit-t-head-bloomberg-news-reports-2026-01-22/
+      - https://chinabizinsider.com/alibabas-ai-chip-spin-off-hype-meets-reality-check-jpmorgan-calls-t-head-ipo-a-sentiment-catalyst-not-a-2026-deal/
+
+  refuted_or_withheld:
+    - claim: "ICN Switch 1.0 sub-100 ns link latency"
+      disposition: refuted
+      reason: "mistranslation of 百纳秒级 ('hundred-nanosecond class'); no source states sub-100 ns"
+    - claim: "M890 internal codename 'PPU 1.5'"
+      disposition: refuted
+      reason: "appears in no retrieved source; the line is generically called PPU"
+    - claim: "M890 uses HBM3"
+      disposition: refuted
+      reason: "Alibaba states only '144 GB of on-chip memory'; HBM3 is secondary-source only"
+    - claim: "M890 0.6 PFLOPS FP16"
+      disposition: withheld
+      reason: "traces only to Toutiao/Zhihu aggregators; omitted rather than recorded as a low-confidence spec"
+    - claim: "M890 launched / in scaled mass production"
+      disposition: refuted
+      reason: "Alibaba says 'formally debuted'; TNW's 'scaled mass production' covers the accelerator line broadly, not the M890"
+    - claim: "560,000 M890 units shipped"
+      disposition: refuted
+      reason: "the figure is cumulative Zhenwu-series shipments"
+    - claim: "V900 216 GB / 1,200 GB/s are TrendForce analyst estimates"
+      disposition: refuted
+      reason: "TrendForce cites Mydrivers; multiple Chinese outlets report them as summit disclosures by T-Head"
+    - claim: "Panjiu AL128 is a brand-new scale-up domain"
+      disposition: refuted
+      reason: "Alibaba Cloud published the AL128 supernode interconnect architecture on 2025-11-14, pre-baseline"
+    - claim: "Customers include XPeng and Sina Weibo"
+      disposition: refuted
+      reason: "not named in any retrieved source for this announcement"
+    - claim: "Alibaba confirmed the T-Head restructuring/IPO in January 2026"
+      disposition: refuted
+      reason: "Bloomberg-sourced media report of plans; no company confirmation"
+
+  not_found_in_window:
+    - "No T-Head presentation confirmed at ISCA 2026 or ISSCC 2026"
+    - "Hot Chips 38 runs 2026-08-23--25, after this investigation date; no T-Head talk confirmed on its program and no content from that conference exists yet"
+    - "No MLPerf submission found for any T-Head part"
+    - "XuanTie C950: no tape-out, sampling or availability update since the March 2026 launch"
+    - "No update to Hanguang 800"
+
+  key_findings:
+    - "Zhenwu M890 debuted 2026-05-20: 144 GB 'on-chip memory' (type not disclosed), 800 GB/s inter-chip, FP32-to-FP4 native; process node NOT disclosed; no FLOPS figure; '3x 810E' is an unmethodologised vendor claim"
+    - "First rack-scale scale-up domain recorded for T-Head: Panjiu AL128 (128 accelerators, PB/s claim) over ICN Switch 1.0 (25.6 Tbps, 64-accelerator congestion-free domain)"
+    - "AL128 is not new as a design (published 2025-11-14); the M890 + ICN Switch 1.0 instantiation is what is new"
+    - "First public T-Head accelerator roadmap: V900 3Q2027 (216 GB, 1,200 GB/s), J900 3Q2028 (no specs) — Chinese-media-reported vendor disclosure only"
+    - "560,000 cumulative Zhenwu-SERIES units, 400+ customers, 20+ industries; confirmed named customers are China Telecom, FAW Group, SPD Bank"
+    - "Status is 'debuted', not GA: only the AL128 platform is stated as available (via Bailian)"

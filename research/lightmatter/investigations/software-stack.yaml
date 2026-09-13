@@ -1,0 +1,172 @@
+chip: lightmatter
+investigation: software-stack
+as_of: "2026-08-08"  # original investigation 2026-04-05; update_2026_08_08 block appended at end
+baseline_as_of: "2026-04-05"
+confidence: medium  # Idiom is closed-source; details from product pages and press
+device_class: "Photonic Interconnect + Optics (compute product no longer marketed)"
+device_class_previous: "Photonic Compute + Interconnect"
+
+software_platform: Idiom
+
+layers:
+  framework_integration:
+    frameworks: [PyTorch, TensorFlow]
+    mechanism: "import lightmatter; graph interception at framework level"
+    user_effort: minimal  # no model rewriting required
+
+  compiler:
+    name: idCompile
+    type: graph_compiler
+    inputs: [PyTorch graph, TensorFlow graph, ONNX]
+    key_functions:
+      - "matmul/linear → PTC mapping"
+      - "nonlinear ops → DCI electronics mapping"
+      - "ABFP16 quantization (shared exponent per block)"
+      - "phase-voltage encoding for MZI weights"
+      - "multi-blade network partitioning"
+      - "analog noise compensation calibration tables"
+    open_source: false
+
+  runtime:
+    name: "Idiom Runtime"
+    functions:
+      - device_allocation
+      - execution_scheduling
+      - multi_blade_orchestration
+      - optical_phase_drift_correction
+      - data_transfer_host_dci_ptc
+    open_source: false
+
+  debugger:
+    name: idBug
+    capability: "inspect activations at electronic-photonic boundaries"
+
+  profiler:
+    name: idProfiler
+    capability: "per-layer latency: PTC compute, DAC/ADC, data transfer"
+
+precision:
+  format: ABFP16  # Adaptive Block Floating-Point 16-bit
+  description: "16-bit with shared exponent per block; optimized for analog photonic dynamic range"
+  near_fp32_accuracy: true  # demonstrated in Nature 2025 on ResNet/BERT
+
+notable_properties:
+  - "No user-visible ISA or kernel programming interface"
+  - "Phase calibration tables baked into compiled binaries"
+  - "Electronic-photonic co-scheduling in compiler"
+  - "Transparent multi-blade parallelism"
+  - "Stack is fully closed/proprietary"
+
+no_equivalent_to:
+  - CUDA C++ kernels
+  - Triton / OpenAI Triton DSL
+  - PTX / SASS ISA
+  - cuDNN / cuBLAS open primitives
+
+# =====================================================================
+# Update appended 2026-08-08.
+# Headline: NO Idiom SDK/compiler/runtime change found in the window.
+# The one new software surface is a standards-based module-management
+# plane (CMIS) introduced with the Guide optics line. No public SDK,
+# driver, API reference or open-source repo exists for Passage or Guide.
+# =====================================================================
+update_2026_08_08:
+
+  fact_groups:
+
+    - id: idiom_stack_unchanged
+      confidence: medium  # absence of a release, verified against the vendor news index
+      summary: >
+        No SDK, compiler, runtime or toolchain change was found between 2026-04-05 and
+        2026-08-08. No new Idiom release, documentation refresh, open-sourcing, framework
+        version bump or public API. All layers documented in the baseline investigation
+        (framework integration, idCompile, Idiom Runtime, idBug, idProfiler, Envise
+        device driver) stand as last documented.
+      facts:
+        idiom_release_in_window: none_found
+        idiom_documentation_change: none_found
+        open_source_components: none
+        public_api_or_sdk_for_passage_or_guide: not_released
+        user_visible_isa: none          # unchanged from baseline
+        kernel_language_equivalent: none  # no PTX / Triton / CSL analogue
+        idiom_target_device_status: >
+          Envise, Idiom's target device, is no longer listed in Lightmatter product
+          navigation as of 2026-08-08; Idiom and Envise appear only in the footer
+          trademark line. No announced end-of-life for either.
+      sources:
+        - title: "Lightmatter Products page (fetched 2026-08-08) — 'Evaluation kits are sampling today'; no Idiom or Envise entry"
+          url: "https://lightmatter.co/products/"
+        - title: "Lightmatter news index — no Idiom/SDK item anywhere in 2026"
+          url: "https://lightmatter.co/news/"
+        - title: "Idiom product page (baseline reference)"
+          url: "https://lightmatter.co/products/idiom/"
+
+    - id: cmis_module_management_plane
+      confidence: high  # vendor product page + press-release carry
+      status: new_layer
+      summary: >
+        The 2026 Passage/Guide line introduces Lightmatter's first standards-based
+        software surface: a module management/control plane rather than a compute
+        programming model. A switch or host management stack talks to Guide over stock
+        CMIS — the same interface used for pluggable optics — so no Lightmatter-specific
+        driver is required in the management plane.
+      guide_1:
+        management_interface: "CMIS-compliant telemetry"
+        control_features:
+          - active_stabilization
+          - hyper_local_thermal_tuning
+        wavelength_precision: "sub-GHz, without drift"
+        autonomous_behavior: >
+          N+M redundancy — on a laser failure the engine autonomously retunes a backup
+          laser onto the failed wavelength (firmware behavior, not host-driven)
+        vendor_framing: "software-defined, with real-time telemetry"
+      guide_dr:
+        management_interface: "CMIS 5.3"
+        control_buses: [I2C, I3C]
+        chassis_integration: "OCP MHS (Modular Hardware System)"
+        form_factor: "OCP NIC 3.0"
+      passage_l20:
+        electrical_signaling_standard: "IEEE 802.3dj"
+        note: "a link-layer standard, not a software API"
+      not_disclosed:
+        - public SDK for Passage or Guide
+        - driver or firmware image
+        - API reference
+        - open-source repository
+      sources:
+        - title: "Lightmatter Guide product page (fetched 2026-08-08)"
+          url: "https://lightmatter.co/products/guide/"
+        - title: "Electronic Design — Guide DR press-release carry (2026-05-21): CMIS 5.3, I2C/I3C, OCP MHS, OCP NIC 3.0"
+          url: "https://www.electronicdesign.com/directory/semiconductors/power-semiconductors/press-release/55379808/"
+        - title: "Passage L20 press release — IEEE 802.3dj-compliant electrical signaling"
+          url: "https://lightmatter.co/press-release/lightmatter-expands-photonic-interconnect-roadmap-with-passage-l20-unified-optical-engine-for-npo-and-obo-applications/"
+
+    - id: design_time_ecosystem
+      confidence: snippet  # named at launch; snippet-level corroboration
+      summary: >
+        EDA and design-service collaborators named at the Guide launch. These are
+        design-time tooling relationships for the VLSP photonic IC, not user-facing
+        software, and do not change the deployed stack.
+      collaborators: [Cadence, Synopsys, GUC]
+      separate_collaboration: [PHIX]   # packaging
+      sources:
+        - title: "Lightmatter Guide product page"
+          url: "https://lightmatter.co/products/guide/"
+        - title: "Photonics.com article on the Guide launch ecosystem (snippet-level)"
+          url: "https://www.photonics.com/Articles/a71892"
+
+    - id: negatives_stated_correctly
+      confidence: high
+      facts:
+        idiom_status: "no release in window — NOT 'discontinued'"
+        open_source: "none; stack remains fully closed (unchanged from baseline)"
+        mlperf: "NOT APPLICABLE — no marketed compute product exists to submit; do not record as 'no results'"
+        hot_chips_38:
+          dates: "2026-08-23/25"
+          venue: "Memorial Auditorium, Stanford, Palo Alto CA"
+          status: "HAS NOT YET OCCURRED as of 2026-08-08"
+          finding: "Lightmatter does not appear in the advance program"
+          instruction: "re-check after the conference"
+      sources:
+        - title: "Lightmatter news index (no Hot Chips or MLPerf item anywhere in 2026)"
+          url: "https://lightmatter.co/news/"

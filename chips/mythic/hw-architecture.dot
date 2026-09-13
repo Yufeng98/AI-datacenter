@@ -1,0 +1,170 @@
+digraph mythic_amp_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nTorchScript / ONNX export\nMAPP SDK dispatcher", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow\nSavedModel / TFLite export\nMAPP import", fillcolor="#D6E4F0"];
+        onnx [label="ONNX\nPrimary interchange format\nFirst-class MAPP input", fillcolor="#D6E4F0"];
+        tensorrt [label="TensorRT (optional)\nQuantization front-end\nPTQ calibrator export", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR (MAPP Toolchain — Closed)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        opt_suite [label="Mythic Optimization Suite\nINT8 / INT4 PTQ\nAnalog range calibration\n(NOR flash conductance fit)\nEquivalence checker", fillcolor="#E4DEFF"];
+        graph_compiler [label="Mythic Graph Compiler\nLayer → tile partitioning\nWeight packing (INT8 → flash addr)\n2D NoC activation routing schedule\nPer-tile RISC-V codegen\nSIMD schedule (nonlinear ops)\nCycle-accurate simulation\nOutputs: flash binary + RISC-V binaries", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        analog_ops [label="Analog Linear Ops (ACE)\nGEMM / MVM / FC layers\nConv2D (via im2col→GEMM)\nAttention projections (Q/K/V/O)\nExecuted in NOR flash domain", fillcolor="#D4EDDA"];
+        digital_ops [label="Digital Nonlinear Ops (SIMD)\nReLU / GELU / Tanh / Sigmoid\nSoftmax / LayerNorm / BatchNorm\nResidual add / Pooling\nExecuted on SIMD engine per tile", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime (MAPP Runtime — Closed)";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mapp_runtime [label="MAPP Runtime\nFlash programming (one-time per model)\nActivation transfer via PCIe 2.0\nTile execution orchestration\nADC result collection\nMulti-chip dispatch (up to 16 AMPs)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware (Closed)";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pcie_driver [label="PCIe BAR Driver\nMaps AMP registers\nHost ↔ AMP control", fillcolor="#E0E0E0"];
+        flash_fw [label="Flash Write Controller FW\nNOR flash cell programming\n(voltage ramp + verify + retry)\nModel weight → flash conductance", fillcolor="#E0E0E0"];
+        calib_fw [label="Calibration Firmware\nTemperature-drift correction\nFlash conductance level tables\nPer-chip calibration data", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== AMP TILE =====================
+    subgraph cluster_tile {
+        label="AMP Tile (×76 or ×108 per chip)";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ace [label="Mythic ACE™\n(Analog Compute Engine)\nNOR Flash MMA Array\nInput DAC: activation → voltage\nBitline: current = Σ(w_i × x_i)\nADC: current sum → digital\n250 GOPS @ 0.25 pJ/MAC\nWeights: INT8 flash charge (non-volatile)", fillcolor="#FFF3CD"];
+        riscv [label="32-bit RISC-V\n(Codasip licensed)\nTile-local execution control\nManages ACE + SIMD sequencing", fillcolor="#FFF3CD"];
+        simd [label="SIMD Vector Engine\nDigital nonlinear activations\nReLU / GELU / Softmax / Norm\nPooling / Residual add", fillcolor="#FFF3CD"];
+        tile_sram [label="64 KB SRAM\nActivation buffer\nScratchpad (SW-managed)\nIntermediate results", fillcolor="#FFF3CD"];
+        noc_router [label="NoC Router\n2D Mesh Topology\nActivation routing\nTile-to-tile connectivity", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Mythic AMP Chip Hardware (M1076 / M1108 — 40nm eFlash)";
+        style="rounded,filled";
+        color="#1B5E20";
+        fontcolor="white";
+        fillcolor="#1B5E20";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        chip_top [label="AMP Chip\nM1076: 76 compute tiles, 25 TOPS, 3 W\nM1108: 108 compute tiles, 35 TOPS, 4 W\n40nm embedded NOR flash (eFlash)\n19×19 mm² BGA (M1108)", fillcolor="#2E7D32", fontcolor="white"];
+        control_tiles [label="Control Tiles (4/chip)\nPCIe 2.0 host interface\nGlobal scheduling + DMA\nFlash write orchestration", fillcolor="#2E7D32", fontcolor="white"];
+        noc_mesh [label="2D Mesh NoC\nConnects all tiles\nActivation routing\nCompiler-scheduled dataflow", fillcolor="#2E7D32", fontcolor="white"];
+        flash_store [label="NOR Flash Weight Storage\n~80–100 M params per chip (in flash cells)\nNon-volatile (persists across power cycles)\nNo DRAM BW consumed during inference\nINT8 conductance levels per cell", fillcolor="#2E7D32", fontcolor="white"];
+    }
+
+    // ===================== HOST + FORM FACTORS =====================
+    subgraph cluster_host {
+        label="Host / Form Factors";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        host_cpu [label="Host CPU\n(x86 Linux / ARM Jetson)\nMAPP Runtime + Compiler\nModel weight source", fillcolor="#FFE0CC"];
+        pcie_card [label="PCIe Card (up to 16× M1076)\n~400 TOPS @ 75 W\nM.2 A+E-key / M-key\nPCIe expansion card", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework → Compiler
+    pytorch -> opt_suite;
+    tf -> opt_suite;
+    onnx -> opt_suite;
+    tensorrt -> opt_suite [style=dashed, label="optional PTQ", fontsize=8];
+    opt_suite -> graph_compiler [label="quantized graph", fontsize=8];
+
+    // Compiler → Runtime
+    graph_compiler -> mapp_runtime [label="flash binary +\nRISC-V programs", fontsize=8];
+    graph_compiler -> analog_ops [style=dashed, color="#AAAAAA", label="assigns to ACE", fontsize=8];
+    graph_compiler -> digital_ops [style=dashed, color="#AAAAAA", label="assigns to SIMD", fontsize=8];
+
+    // Op dispatch
+    analog_ops -> ace [label="compiled MAC ops", fontsize=8];
+    digital_ops -> simd [label="compiled SIMD ops", fontsize=8];
+
+    // Runtime → Driver
+    mapp_runtime -> pcie_driver [label="PCIe transactions", fontsize=8];
+    mapp_runtime -> flash_fw [label="flash program cmd", fontsize=8];
+    mapp_runtime -> calib_fw [style=dashed, label="calibration load", fontsize=8];
+
+    // Driver → Hardware
+    pcie_driver -> control_tiles [label="PCIe 2.0 BAR", fontsize=8];
+    flash_fw -> flash_store [label="INT8 conductance\nwrite (one-time)", fontsize=8, color="#1B5E20"];
+    calib_fw -> flash_store [style=dashed, label="drift correction", fontsize=8];
+
+    // Tile internal
+    ace -> riscv [style=dashed, color="#D4A017", label="ADC result", fontsize=8];
+    riscv -> simd [label="dispatch nonlinear", fontsize=8, color="#D4A017"];
+    simd -> tile_sram [label="activation result", fontsize=8, color="#D4A017"];
+    tile_sram -> noc_router [label="next-tile activation", fontsize=8, color="#D4A017"];
+    noc_router -> ace [color="#D4A017", label="routed activation\n(DAC input)", fontsize=8];
+
+    // Hardware internal
+    control_tiles -> noc_mesh [color="#1B5E20"];
+    noc_mesh -> chip_top [color="#1B5E20", style=dashed];
+    flash_store -> ace [color="#1B5E20", label="conductance = weight\n(no DRAM load)", fontsize=8];
+
+    // Host → Card
+    host_cpu -> pcie_card [label="PCIe 2.0 (~4 GB/s)\nactivations + control", fontsize=8, color="#FF6D01"];
+    pcie_card -> control_tiles [color="#FF6D01", label="up to 16 AMPs", fontsize=8];
+
+    // Result return
+    control_tiles -> host_cpu [style=dashed, color="#FF6D01", label="inference result\n(ADC→digital)", fontsize=8];
+}

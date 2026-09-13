@@ -1,0 +1,462 @@
+chip: muxi
+resource: hw-architecture
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+device_class: "GPU (China, 沐曦)"
+status: completed
+
+company:
+  name_en: "MetaX Integrated Circuits (Shanghai) Co., Ltd."
+  name_zh: "沐曦集成电路（上海）股份有限公司"
+  founded: "2020-09-14"
+  hq: "Shanghai, China"
+  founder: "Chen Weiliang (陈维良) — 14-year AMD career; co-CTOs Peng Li & Yang Jian (also ex-AMD)"
+  ipo: "Shanghai STAR Market, 2025-12-17; +692% debut; RMB 4.2B (~USD 594M) raised; market cap >RMB 332B (~USD 47B)"
+
+products:
+  - name: MXN100
+    brand: "曦思 Xisi N100"
+    series: MXN
+    use_case: "AI Inference + Video Transcoding"
+    process: "7nm"
+    int8_tops: 160
+    fp16_tflops: 80
+    memory_type: HBM2E
+    memory_gb: null
+    memory_bw_tbps: null
+    status: mass_production_2023
+
+  - name: MXC500
+    brand: "曦云 Xiyun C500"
+    series: MXC
+    use_case: "AI Training + General Compute"
+    process: "7nm"
+    fp32_tflops: 15
+    int8_tops: 160
+    fp16_tflops: 80
+    fp8_tflops: null
+    memory_type: HBM2E
+    memory_gb: 64  # from benchmark reports
+    memory_bw_tbps: null  # not officially disclosed
+    host_interface: PCIe
+    compat: "CUDA-compatible via MXMACA 2.0"
+    status: ga_2024
+    deployment: ">10,000 GPUs in 9 clusters across China (end-2024)"
+
+  - name: MXC550
+    brand: "曦云 Xiyun C550"
+    series: MXC
+    use_case: "AI Training + Datacenter Cluster"
+    process: "7nm"
+    form_factor: OAM
+    memory_type: null  # not officially disclosed
+    memory_gb: null
+    interconnect: MetaXLink
+    server_config: "8 OAM per server; C550 Shanghai Cube: 128 cards in 47U cabinet"
+    status: production_2025
+
+  - name: MXC600
+    brand: "曦云 Xiyun C600"
+    series: MXC
+    use_case: "AI Training + General Compute (Hopper-class)"
+    process: "Domestic foundry (undisclosed)"
+    fp8_tflops: 1000
+    memory_type: HBM3e
+    memory_gb: 144
+    memory_bw_tbps: 3.6
+    precision: ["FP32", "FP16", "BF16", "FP8", "INT8", "INT4"]
+    fp8_efficiency_tflops_per_watt: 2.5
+    supply_chain: "Fully domestic (design + mfg + pkg + test)"
+    target_competitor: "NVIDIA Hopper H20+"
+    status: "small_batch Q4 2025; mass production TBD"
+    announced: "2025-07"
+
+compute_arch:
+  paradigm: SIMT
+  isa: "Proprietary (MetaX ISA, not publicly documented)"
+  warp_model: "Warp-based SIMT with hardware divergence (warp width not disclosed)"
+  kernel_syntax: "<<<grid, block, shmem, stream>>> (CUDA-compatible via MXMACA)"
+  tensor_units: "FP16/BF16/INT8 (C500); adds FP8 (C600)"
+  full_function_gpu: true  # compute + video + graphics pipeline in MXG series
+
+interconnect:
+  name: MetaXLink
+  abbreviation: MX
+  topology: "Ring / full-mesh per server; 3D Mesh at supernode"
+  gpus_per_server: 8
+  supernode_cards: 64  # 8 servers × 8 GPUs
+  numa: "All 8 GPUs in NUMA node 0 via MetaXLink"
+  scale_out: "Standard Ethernet / RoCE via host NIC; MXCCL collective library"
+  switch_chip: null  # not disclosed
+
+generations:
+  - gen: 1
+    product: MXN100
+    process: "7nm"
+    highlight: "First mass-produced MetaX; inference + video; HBM2E; 160 TOPS INT8"
+  - gen: 2
+    product: MXC500
+    process: "7nm (TSMC)"
+    highlight: "Full training; 15 TFLOPS FP32; HBM2E; MXMACA 2.0; 10K cluster proven"
+  - gen: "2.5"
+    product: MXC550
+    process: "7nm"
+    highlight: "OAM form; MetaXLink fabric; Shanghai Cube 128 cards/47U"
+  - gen: 3
+    product: MXC600
+    process: "Domestic"
+    highlight: "FP8 1000 TFLOPS; HBM3e 144 GB 3.6 TB/s; first fully domestic supply chain"
+  - gen: "3+"
+    product: "MXC700 (rumored)"
+    process: TBD
+    highlight: "Targeting full H100-class parity"
+
+export_control_note: >
+  MXC500 used TSMC 7nm (permitted tier at time of design).
+  MXC600 pivots to fully domestic supply chain, bypassing TSMC dependency
+  under US export control restrictions. Process node undisclosed but
+  presumed SMIC N+2 or equivalent domestic node.
+
+# =====================================================================
+# Investigation update — 2026-08-08
+# Scan window 2026-04-05 → 2026-08-08.
+# Verification verdict on the raw scan: PARTIALLY_CONFIRMED (one claim refuted).
+# Facts below are the post-verification, authoritative set.
+# =====================================================================
+
+update_2026_08_08:
+  as_of: "2026-08-08"
+  window: "2026-04-05 .. 2026-08-08"
+  verification_verdict: PARTIALLY_CONFIRMED
+
+  sources:
+    metax-newsroom-waic2026:
+      url: "https://www.metax-tech.com/en/ndetail/12629.html"
+      tier: primary_vendor
+    metax-newsroom-h3:
+      url: "https://www.metax-tech.com/ndetail/12632.html"
+      tier: primary_vendor
+      date: "2026-08-03"
+    metax-newsroom-index:
+      url: "https://www.metax-tech.com/en/news.html?cid=15"
+      tier: primary_vendor
+    metax-product-catalog:
+      url: "https://www.metax-tech.com/en/goods/prod.html?cid=3"
+      tier: primary_vendor
+    metax-n300-product:
+      url: "https://www.metax-tech.com/en/goods/prod.html?cid=106&id=66"
+      tier: primary_vendor
+    metax-n300-server:
+      url: "https://www.metax-tech.com/en/goods/prod.html?cid=110&id=69"
+      tier: primary_vendor
+    metax-c550-supernode:
+      url: "https://www.metax-tech.com/en/goods/prod.html?cid=112&id=55"
+      tier: primary_vendor
+    ithome-waic2026:
+      url: "https://www.ithome.com/0/978/460.htm"
+      tier: independent_press
+    sina-waic2026:
+      url: "https://finance.sina.com.cn/tech/shenji/2026-07-20/doc-iniimuyk4915570.shtml"
+      tier: independent_press
+      date: "2026-07-20"
+    sina-c600-volume:
+      url: "https://finance.sina.com.cn/wm/2026-07-08/doc-inihceis8322692.shtml"
+      tier: independent_press
+      date: "2026-07-08"
+    tencent-news-fy2025-call:
+      url: "https://news.qq.com/rain/a/20260408A066PB00"
+      tier: independent_press
+      date: "2026-04-08"
+    trendforce-cn:
+      url: "https://www.trendforce.cn/industry-news/semiconductors/20260709-6285.html"
+      tier: independent_press
+      date: "2026-07-09"
+    eastmoney-financials:
+      url: "https://finance.eastmoney.com/a/202604293724854763"
+      tier: independent_press
+    pedaily:
+      url: "https://news.pedaily.cn/20260728/135041.shtml"
+      tier: independent_press
+      date: "2026-07-28"
+    zol-product-listing:
+      url: "https://ai.zol.com.cn/1212/12124334.html"
+      tier: aggregator
+
+  # ---------------- New: 曦景 S600 supernode ----------------
+  s_series_supernode:
+    name_zh: "曦景"
+    name_en: "Xijing"
+    kind: "rack-scale system (not a chip)"
+    first_product: S600
+    announced: "WAIC 2026, Shanghai, 2026-07-17..2026-07-20"
+    announcement_date_precision_note: >
+      Use the July 17-20 window. MetaX's own newsroom item covers the whole WAIC window
+      and the earliest press coverage found is July 17-18; a single-day date is more
+      precision than the sources support.
+    facts:
+      cards_per_cabinet: 64
+      cards_per_cabinet_zh: "单机柜64卡高密度部署"
+      intra_cabinet_fabric: "in-cabinet full interconnect (reduces data-exchange latency)"
+      cabling: "zero-cable direct-connect (0线缆直连) between compute nodes and switch nodes"
+      parallelism: ["EP (expert-parallel)", "TP (tensor-parallel)", "other multi-dimensional strategies"]
+      workloads: ["training", "inference"]
+      scale_out: "cabinet-to-cabinet expansion to 万卡级 (10,000+ card) clusters"
+    confidence: confirmed
+    sources: [metax-newsroom-waic2026, ithome-waic2026, sina-waic2026]
+    not_disclosed:
+      - per-link bandwidth
+      - aggregate / bisection bandwidth
+      - GPU SKU populating the cabinet
+      - total supernode FLOPS
+      - memory per cabinet
+      - power and cooling envelope
+      - switch silicon
+    status: "announced only — no sampling, shipping, pricing, customer or benchmark evidence"
+    correction_to_prior_claim: >
+      S600 does NOT supersede the C550 3D Mesh Supernode. MetaX's C550 3D Mesh Supernode
+      remains a listed product specified as up to 64 cards across up to 8 servers in a full
+      cabinet with electrical (memory-semantic) interconnect. S600 is an additional,
+      higher-integration supernode line alongside it. Keep both.
+    dropped_claim: >
+      "Combines Scale-up and Scale-out into one fusion architecture" was NOT found in MetaX's
+      own WAIC newsroom item or in the ITHome/Sina coverage. Dropped as unverified.
+
+  # ---------------- 曦索 X-series (AI4S) ----------------
+  x_series:
+    name_zh: "曦索"
+    name_en: "Xisuo"
+    positioning: "scientific intelligence (AI4S) GPGPU"
+    not_a_new_family_note: >
+      The X-series is NOT new as of WAIC 2026. It launched 2026-01-27 at the 智算申城 forum
+      in Shanghai with the X206 — before this survey's 2026-04-05 baseline. The repo missing
+      the X-series is a pre-baseline gap, not April-August 2026 news. X300 is the 2nd generation.
+    products:
+      - name: X206
+        launched: "2026-01-27"
+        venue: "智算申城 forum, Shanghai"
+        server_sku_listed: true
+        specs: not_disclosed
+        confidence: confirmed
+        sources: [metax-product-catalog]
+        classification: pre_baseline_gap
+      - name: X301
+        family: "X300 series"
+        announced: "WAIC 2026 (2026-07-17..2026-07-20)"
+        status: "announced only"
+        confidence: confirmed
+        sources: [metax-newsroom-waic2026, metax-product-catalog]
+      - name: X302
+        family: "X300 series"
+        announced: "WAIC 2026 (2026-07-17..2026-07-20)"
+        server_sku_listed: true
+        status: "announced only"
+        confidence: confirmed
+        sources: [metax-newsroom-waic2026, metax-product-catalog]
+    x300_vendor_stated_attributes:
+      architecture: "fully self-developed GPGPU"
+      supply_chain: "fully domestic"
+      numerics: "全精度混合算力 (full-precision mixed compute) — FP64-class numerics alongside low-precision AI datatypes"
+      memory: "large-capacity high-bandwidth memory (type, capacity, bandwidth all undisclosed)"
+      interconnect: ["MetaXLink", "MLoE (multi-card high-speed interconnect)"]
+      software: MXMACA
+      target_workloads:
+        - numerical weather prediction
+        - oceanography
+        - computational fluid dynamics
+        - molecular dynamics
+        - materials science
+        - life sciences
+      confidence: confirmed
+      sources: [metax-newsroom-waic2026, ithome-waic2026]
+    not_disclosed:
+      - FP64 rate
+      - any FLOPS / TOPS figure
+      - memory type / capacity / bandwidth
+      - TDP
+      - process node
+      - form factor
+      - die configuration
+    survey_significance: >
+      The C-series lineage documents no FP64 path (C500 gen: FP32/BF16/FP16/INT8; C600 adds
+      FP8/INT4). The X-series is the first MetaX family positioned for double-precision
+      numerical simulation, mirrored on the software side by the AI4S GitHub repo cluster
+      (FluidDynamics, LifeScience, MedicalImage, AI4S-Framework) appearing Jul-Aug 2026.
+
+  # ---------------- MXC600 status change ----------------
+  mxc600_status_change:
+    supersedes: "small_batch Q4 2025; mass production TBD"
+    new_status: "large-scale shipment (大规模出货) during 2026"
+    disclosed_by: "孙国梁 Sun Guoliang, Chief Product Officer / SVP"
+    disclosed_on: "2026-07-08"
+    evidence_class: company_statement_reported_by_financial_press
+    evidence_caveat: >
+      This is an executive statement, NOT an audited shipment disclosure. Label it as such.
+    order_book: "some orders already booked into 2027 and beyond; supply framed as constrained"
+    positioning: "MetaX's core product for 2026"
+    derived_hardware: ["曦云 C600 cards", "曦思 N300"]
+    confidence: confirmed_as_company_statement
+    sources: [sina-c600-volume, trendforce-cn]
+    related_audited_figures:
+      gpu_boards_shipped_2025: 33649
+      gpu_boards_shipped_2025_yoy_pct: 147.31
+      cumulative_gpu_sales_units_end_2025: ">55,000"
+      clusters_end_2025: "10+ intelligent-computing clusters"
+      corroboration_note: >
+        These audited numbers predate C600 volume and do NOT corroborate C600 specifically.
+      confidence: confirmed
+      sources: [eastmoney-financials, pedaily]
+
+  # ---------------- MXC700 — MATERIAL CORRECTION ----------------
+  mxc700_correction:
+    prior_repo_state: "MXC700 (rumored) | TBD | H100-parity target"
+    corrected_classification: >
+      Company-disclosed as in design-verification / performance-optimization.
+      No specs released, no announced launch date. Not a rumor.
+    disclosed_by: "陈维良 Chen Weiliang, chairman"
+    disclosed_on: "2026-04-08"
+    venue: "FY2025 results call"
+    disclosed_facts:
+      core_chip_design: "largely complete"
+      functional_verification: "largely complete"
+      current_phase: "deeper performance optimization"
+      project_initiated: "2025-04"
+      market_positioning: "extends beyond C600's 信创 (state-sector) base into internet-sector customers"
+    confidence: confirmed_company_disclosure
+    sources: [tencent-news-fy2025-call]
+    unverified_claims:
+      - claim: "H100-parity performance target"
+        confidence: low
+        note: "aggregator write-ups only; keep flagged as unverified"
+      - claim: "mass production late 2027"
+        confidence: low
+        note: "aggregator write-ups only; keep flagged as unverified"
+
+  # ---------------- Product catalog ----------------
+  product_catalog:
+    confidence: confirmed
+    sources: [metax-product-catalog]
+    c_series: [C500, C550, C500X, C588, C600]
+    n_series: [N100, N260, N300]
+    x_series: [X206, X301, X302]
+    g_series: [G100]
+    servers: [N260, N300, C500, C550, C588, C600, X206, X302]
+    workstations: [N260]
+    supernodes:
+      - name: "C500 Shanghai Cube"
+        detail: "liquid-cooled full cabinet; 128 C550 cards / 47U"
+        confidence: confirmed
+      - name: "C500X Optical Interconnect Supernode"
+        detail: "hybrid optical/electrical"
+        topology_secondary_reporting: "DragonFly, 16→64 GPUs, up to 8 machines"
+        topology_confidence: medium
+        topology_note: "no vendor spec sheet; treat scale/topology numbers as medium confidence"
+        confidence: confirmed_existence
+      - name: "C550 3D Mesh Supernode"
+        detail: "up to 64 cards / up to 8 servers; full cabinet; electrical (memory-semantic) 3D Mesh"
+        status: "current listed product — NOT superseded by S600"
+        confidence: confirmed
+        sources: [metax-c550-supernode, metax-product-catalog]
+      - name: "曦景 S600"
+        detail: "see s_series_supernode above"
+        confidence: confirmed
+    pre_baseline_gaps:
+      - product: C588
+        launched: "2025-09-23"
+        venue: "MetaX 曦果发布会, alongside C600"
+        note: "pre-baseline repo miss, NOT April-August 2026 news"
+        specs: not_disclosed
+        confidence: confirmed
+      - product: C500X
+        note: "optical-interconnect material traces to WAIC 2025; pre-baseline repo miss"
+        confidence: confirmed
+      - product: X206
+        launched: "2026-01-27"
+        note: "pre-baseline repo miss"
+        confidence: confirmed
+      - product: N260
+        note: "listed product with server + workstation SKUs; previously unrecorded"
+        confidence: confirmed
+    freshness_warning: >
+      Do not present C588, C500X, X206 or N260 as April-August 2026 news. Mixing pre-baseline
+      catalog gaps into the update inflates the apparent freshness of this window.
+
+  # ---------------- 曦思 N300 ----------------
+  mxn300:
+    brand: "曦思 Xisi N300"
+    series: MXN
+    generation: "C600-generation inference derivative"
+    confirmed_facts:
+      form_factor: "FHFL dual-slot PCIe card"
+      max_board_power_w: 500
+      architecture: "proprietary GPGPU"
+      process: "domestic advanced process (node not stated by MetaX)"
+      scale_up: "MetaXLink high-speed interconnect across 4 cards"
+      software: MXMACA
+      confidence: confirmed
+      sources: [metax-n300-product]
+    server:
+      max_gpus_per_chassis: 16
+      topology: "PCIe-Switch full interconnect"
+      alternate_topologies: ["Common topology", "8-GPU configurations"]
+      hybrid_note: >
+        The 4-card MetaXLink grouping means the 16-GPU chassis is a hybrid — MetaXLink islands
+        of 4 bridged by PCIe switching, not a flat PCIe-only fabric.
+      confidence: confirmed
+      sources: [metax-n300-server]
+    not_disclosed:
+      - memory type / capacity / bandwidth
+      - INT8 / FP8 TOPS
+      - announcement date
+      - process node
+    rejected_figures:
+      - value: "48 GB memory"
+        verdict: NOT_CONFIRMED
+        reason: "appears only in low-quality aggregator listings; MetaX's own page states no memory capacity"
+      - value: "14nm process"
+        verdict: NOT_CONFIRMED
+        reason: >
+          same aggregator tier as the 48 GB figure; inconsistent with N300 being a
+          C600-generation derivative. Likely wrong. Do not carry forward.
+
+  # ---------------- MLoE ----------------
+  mloe_interconnect:
+    name: MLoE
+    context: "named alongside MetaXLink for the X300 series"
+    confidence: confirmed_name_only
+    sources: [metax-newsroom-waic2026]
+    not_disclosed: ["mechanism", "bandwidth", "topology", "radix", "whether it is optical or electrical"]
+
+  # ---------------- Financials ----------------
+  financials:
+    confidence: confirmed
+    sources: [eastmoney-financials, tencent-news-fy2025-call]
+    fy2025:
+      revenue_rmb: 1.644e9
+      revenue_yoy_pct: 121.26
+      net_loss_rmb: 789e6
+      net_loss_narrowed_pct: 43.97
+      prior_year_net_loss_rmb: 1.409e9
+    q1_2026:
+      revenue_rmb: 562e6
+      revenue_yoy_pct: 75.37
+      net_loss_rmb: 98.84e6
+      prior_year_q1_net_loss_rmb: 233e6
+    guidance: "company targets break-even in 2026"
+
+  # ---------------- Ecosystem ----------------
+  ecosystem:
+    - event: "MiniMax H3 Day-0 adaptation"
+      date: "2026-08-03"
+      detail: >
+        曦云 C-series GPUs completed Day-0 adaptation of MiniMax's newly open-sourced
+        multimodal model H3 via MXMACA. Moore Threads announced Day-0 adaptation of the
+        same model on the same day with the MTT S5000.
+      confidence: confirmed
+      sources: [metax-newsroom-h3]
+      note: "upgraded from the raw scan's 'medium confidence, single aggregator source'"
+
+  evidence_quality_note: >
+    The raw scan's source list was 7-of-10 search-engine query URLs (lite.duckduckgo.com
+    query strings, which are not sources) plus an aggregator (sohu); only two entries were
+    primary. All facts recorded above have been re-grounded on MetaX's own newsroom and
+    product pages plus named Chinese tech/financial press.

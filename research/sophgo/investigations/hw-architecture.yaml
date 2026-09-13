@@ -1,0 +1,331 @@
+chip: sophgo
+as_of: "2026-08-08"
+device_class: "RISC-V + TPU Hybrid (China, 算能)"
+investigation: hw-architecture
+
+# ── Compute Engine ──────────────────────────────────────────────────────────
+compute_engine:
+
+  # ─── Added 2026-08-08: BM1690 / SG2260 "TPUv7" datacenter generation ───────
+  tpu_bm1690:
+    canonical_name: BM1690
+    silicon_name: SG2260          # tpu-mlir sets "Chip Arch": "sg2260"
+    software_generation: TPUv7    # tpuv7-driver / tpuv7-runtime, /lib/firmware/tpuv7/
+    variants:
+      - name: BM1690E
+        difference: "L2 SRAM 16 MB (0x1000000) instead of 128 MB; RISC-V kernel-module variant; board SC11E FP300"
+    type: Multi-core statically scheduled SIMD tensor processor
+    role: "Datacenter / large-model part; supersedes BM1684X as flagship"
+
+    microarchitecture:
+      tpu_cores_per_chip: 8
+      npu_lanes_per_core: 64
+      eu_vector_width_bits: 512     # EU_BYTES = 64
+      lmem_per_lane_kb: 256
+      lmem_banks: 16
+      lmem_per_core_mb: 16
+      lmem_per_chip_mb: 128
+      modeled_tiu_dma_clock_mhz: 1000
+      native_fp8: true              # E5M2 confirmed by regression bmodel artifact
+      on_die_riscv_core: "Present — long-tail-operator fallback path"
+      sort_topk_units: "Dedicated hardware units for billion-scale vector search"
+      confidence: confirmed
+      caveat: >-
+        These values are read out of Sophgo's own compiler backend and profiler machine model,
+        NOT a datasheet. Peak TOPS must not be back-derived from them.
+      sources:
+        - https://github.com/sophgo/tpu-mlir/blob/master/include/tpu_mlir/Backend/BM168x/BM1690.h
+        - https://github.com/sophgo/tpu-mlir/blob/master/python/profile_helper/bm1690_defs.py
+        - https://github.com/sophgo/tpu-mlir   # test/TDB/bmodel/resnet50_v2_bm1690_f8e5m2.bmodel, ..._f16_core8.bmodel
+
+    peak_performance_per_chip:
+      note: >-
+        Sophgo publishes NO per-chip peak figures. The values below are the vendor's SC11 FP300
+        CARD claims divided by two, because the card carries two BM1690 chips.
+      peak_int8_fp8_tops: "~200"
+      peak_fp16_bf16_tflops: "~100"
+      peak_tf32_tflops: "~50"
+      peak_fp32_tflops: "~12.5"
+      power_w: "~150"
+      precisions: [INT4, INT8, FP8, NF4, TF32, FP16, BF16, FP32]
+      confidence: derived from vendor claim
+      sources:
+        - https://xh.21csp.com.cn/cxcp_2024/202409/2056.html
+        - https://github.com/sophgo/mcu/blob/master/SC11FP300/common.h   # SOC_NUM 2
+
+    process_node: "not disclosed"
+    foundry: "not disclosed"
+    process_confidence: not_disclosed
+    process_note: >-
+      No retrievable source states a node or foundry for BM1690/SG2260. Sophgo was added to the
+      US BIS Entity List effective 2025-01-16, making foundry supply materially uncertain.
+    process_sources:
+      - https://www.federalregister.gov/documents/2025/01/16/2025-00480/additions-to-the-entity-list
+
+  tpu_bm1684x:
+    type: SIMD tensor processor (high data-width)
+    generation: 4th-gen
+    peak_int8_tops: 32
+    peak_int8_winograd_tops: 35.2
+    peak_fp16_tflops: 16
+    peak_fp32_tflops: 2
+    precisions: [INT4, INT8, FP16, BF16, FP32]
+    process_node: "12nm (Samsung)"
+    arm_cpu: "Octa-core Cortex-A53 @ 2.3 GHz (SoC management)"
+    confidence: confirmed
+    sources:
+      - https://www.sophon.ai/product/introduce/bm1684x.html
+      - https://ieeexplore.ieee.org/document/10764438/
+
+  tpu_bm1688:
+    type: Edge TPU SoC
+    peak_int8_tops: 16
+    peak_int4_tops: 32
+    peak_fp16_tflops: 4
+    peak_fp32_tflops: 0.5
+    precisions: [INT4, INT8, FP16, BF16, FP32]
+    process_node: "12nm"
+    arm_cpu: "Octa-core Cortex-A53 @ 1.6 GHz"
+    video_decode: "16x 1080p30 H.264/H.265"
+    video_encode: "10x 1080p30 H.264/H.265"
+    confidence: confirmed
+    sources:
+      - https://aimorelogy.com/en/products/sophgo/bm1688/
+
+  risc_v_sg2042:
+    type: RISC-V server CPU
+    cores: 64
+    organization: "16 clusters × 4 cores (T-Head C920 OoO)"
+    l1d_per_core_kb: 64
+    l1i_per_core_kb: 64
+    l2_per_cluster_mb: 1
+    l3_cache_mb: 64
+    frequency_ghz: 2.0
+    process_node: "TSMC 6nm"
+    tdp_w: 120
+    ai_tops: null
+    confidence: confirmed
+    sources:
+      - https://milkv.io/docs/pioneer/getting-started/processor
+
+  # ─── Added 2026-08-08 ───
+  risc_v_sg2044:
+    type: RISC-V server CPU (second generation)
+    predecessor: SG2042
+    cores: 64
+    vector_extension: "RVV 1.0 (new vs SG2042)"
+    memory_subsystem: "Improved vs SG2042; controller count/type not disclosed"
+    linux_support: "Platform support merged into mainline Linux 6.16"
+    server_skus: [SRA3-40 (compute), SRB3-40 (storage), SRM3-40 (converged)]
+    frequency_ghz: null       # not disclosed
+    process_node: "not disclosed"
+    l3_cache_mb: null         # not disclosed
+    tdp_w: null               # not disclosed
+    confidence: reported      # raw scan only; not re-verified in the adversarial pass
+    sources:
+      - https://arxiv.org/abs/2508.13840
+
+  risc_v_sg2380:
+    type: RISC-V SoC with integrated AI
+    performance_cores: 12
+    efficiency_cores: 4
+    core_ip: "SiFive P670 (licensed)"
+    perf_frequency_ghz: 2.5
+    eff_frequency_ghz: 1.6
+    ai_tops: 20
+    max_ram_gb: 96
+    memory_bits: 192
+    pcie: "x16"
+    ethernet_gbps: 25
+    confidence: confirmed
+    sources:
+      - https://www.cnx-software.com/2023/10/21/sophgo-sg2380-16-core-sifive-p670-risc-v-processor-20-tops-ai-accelerator/
+      - https://www.phoronix.com/news/SG2380-RISC-V-SoC-Upgrade
+
+# ── Memory ────────────────────────────────────────────────────────────────────
+on_chip_memory:
+  # ─── Added 2026-08-08 ───
+  bm1690:
+    tiers:
+      lmem:
+        type: "SW-managed SRAM scratchpad, per TPU core"
+        per_lane_kb: 256
+        banks: 16
+        per_core_mb: 16
+        per_chip_mb: 128        # 8 cores
+      l2_sram:
+        type: "Chip-shared on-die SRAM (new tier vs BM1684X)"
+        capacity_mb: 128        # L2_SRAM_SIZE = 0x8000000
+        capacity_mb_bm1690e: 16 # L2_SRAM_SIZE = 0x1000000
+        modeled_max_bw_gbps: 128
+        bw_caveat: >-
+          128 GB/s is the compiler's modeled L2 bandwidth, LOWER than the derived aggregate DRAM
+          bandwidth (~546 GB/s), so it likely models a specific access class rather than peak L2
+          throughput. Do not cite as peak on-chip bandwidth.
+    compiler_managed: true
+    hardware_cache: false
+    significance: "First Sophgo TPU with an explicit intermediate SRAM tier between DRAM and per-core scratchpad"
+    confidence: confirmed      # from compiler machine model
+    sources:
+      - https://github.com/sophgo/tpu-mlir/blob/master/include/tpu_mlir/Backend/BM168x/BM1690.h
+      - https://github.com/sophgo/tpu-mlir/blob/master/python/profile_helper/bm1690_defs.py
+
+  bm1684x:
+    type: "SW-managed SRAM scratchpad (local SRAM)"
+    capacity: "Not publicly disclosed"
+    compiler_managed: true
+    hardware_cache: false
+    confidence: inferred
+
+off_chip_memory:
+  # ─── Added 2026-08-08 ───
+  bm1690:
+    per_chip:
+      type: "Low-power DRAM — exact type NOT CONFIRMED"
+      type_note: >-
+        LPDDR5X is asserted only by Baidu Baike (user-editable) and downstream copies. Sophgo's own
+        filing says only 低功耗内存技术 (low-power memory technology). Consistent with the 8533 MT/s
+        modeled DDR clock but stated on no retrievable Sophgo datasheet. Do not print unhedged.
+      type_confidence: not_disclosed
+      capacity_gb: "~128"
+      capacity_derivation: "vllm-tpu share-mem-start=0x1e0000000 (7.5 GiB) + share-mem-size=0x1e20000000 (~120.6 GiB)"
+      capacity_confidence: confirmed
+      bandwidth_gbps: "~546"
+      bandwidth_derivation: "8533 MT/s DDR clock; 68.264 GB/s per core x 8 cores"
+      bandwidth_confidence: derived
+    per_sc11_fp300_card:
+      chips: 2
+      capacity_gb: 256
+      bandwidth_tbps: 1.1       # ">1.1 TB/s"
+      confidence: vendor_claim
+    sources:
+      - https://github.com/sophgo/vllm-tpu
+      - https://github.com/sophgo/tpu-mlir/blob/master/python/profile_helper/bm1690_defs.py
+      - https://xh.21csp.com.cn/cxcp_2024/202409/2056.html
+      - https://baike.baidu.com/item/SC11%20FP300/67686300   # weak: user-editable; only LPDDR5X source
+
+  bm1684x:
+    type: LPDDR4X
+    capacity_gb: 16
+    bandwidth_gbps: 68
+    confidence: confirmed
+
+# ── Interconnect ──────────────────────────────────────────────────────────────
+host_interface:
+  bm1684x: "PCIe Gen3/4 x16"
+  # Corrected 2026-08-08: the BM1684X PCIe cards are multi-chip; no "SC7 FP300" exists.
+  bm1684x_cards:
+    cards:
+      - {name: SC7PRO,    chinese: 八芯卡, chips: 8}
+      - {name: SC7FP150,  chinese: 六芯卡, chips: 6}
+      - {name: SC7HP75,   chinese: 三芯卡, chips: 3}
+      - {name: SC7HP75_1, chinese: 单芯卡, chips: 1}
+    note: >-
+      Multi-chip cards throughout. Per-card TOPS and memory are the per-chip 32 TOPS / 16 GB times
+      the chip count. No card named "SC7 FP300" exists — that was a repo error corrected 2026-08-08.
+    confidence: confirmed
+    sources:
+      - https://github.com/sophgo/mcu/blob/master/BoardType.md
+  bm1690_cards:
+    cards:
+      - name: SC11 FP300
+        chips: 2                # #define SOC_NUM 2; driver emits sc11_config.ini + sc11_config_chip2.ini
+        whole_card_tdp_w: 300   # 整卡功耗 300W
+        host_interface: "PCIe — generation and width not disclosed"
+      - name: SC11E FP300
+        chips: 2                # BM1690E
+        host_interface: "not disclosed"
+      - name: BM1690EVB
+        chips: 1
+        form_factor: "Evaluation board"
+    confidence: confirmed
+    sources:
+      - https://github.com/sophgo/mcu/blob/master/BoardType.md      # 0xB2 = BM1690/BM1690EVB, 0xB3 = BM1690/SC11
+      - https://github.com/sophgo/mcu/blob/master/SC11FP300/common.h
+      - https://github.com/sophgo/vllm-tpu
+
+scale_up:
+  bm1684x:
+    fabric: "PCIe peer-to-peer (no proprietary high-speed fabric)"
+    bw: "PCIe limited"
+    confidence: confirmed
+  # ─── Added 2026-08-08: supersedes the repo's "Sophgo has no scale-up fabric" claim ───
+  bm1690:
+    fabric: "SG-Link — proprietary multi-chip AND multi-card high-speed interconnect"
+    per_link_bw: "not disclosed"
+    lane_count: "not disclosed"
+    topology: "not disclosed (torch-tpu documents a C2C topology but publishes no spec)"
+    confirmed_scale_up_domain: "8 SC11 FP300 cards = 16 BM1690 chips = up to 2 TB card memory in one 4U chassis"
+    beyond_chassis: "~1000-card clusters over commodity Ethernet switches (board-level network expansion ports)"
+    collective_support: "torch-tpu ships a full torch.distributed backend over this fabric"
+    confidence: confirmed        # existence + scale-up domain
+    bw_confidence: not_disclosed
+    sources:
+      - https://xh.21csp.com.cn/cxcp_2024/202409/2056.html
+      - https://github.com/sophgo/torch-tpu
+  bm1690_supernode:
+    claim: "128 x BM1690 超节点 server, 16 chips per layer x 8 layers, shown at WAIC Shanghai late July 2025"
+    reported_memory: "up to 8 TB (media-reported)"
+    status: announced_demonstration
+    confidence: unverified
+    contradiction: >-
+      8 TB / 128 chips = 64 GB per chip, against ~128 GB per chip established from Sophgo's own
+      software (16 TB expected). Either the memory configuration differs, the figure is a reporting
+      error, or the layer count was conflated. This is NOT the SG-Link scale-up domain (16 chips).
+    not_disclosed: [product name, interconnect specification, availability date]
+    sources:
+      - https://finance.sina.com.cn/tech/2025-07-28/doc-infhywrc0366459.shtml
+      - https://www.x-techcon.com/article/23851.html
+
+scale_out:
+  fabric: "Standard Ethernet (1/10/25 GbE on server products)"
+  confidence: confirmed
+  # ─── Added 2026-08-08 ───
+  bm1690:
+    fabric: "Board-level Ethernet expansion ports on SC11 FP300; commodity switches"
+    max_scale: "~1000 cards (千卡集群)"
+    port_count: "not disclosed"
+    per_port_rate: "not disclosed"
+    note: "Ethernet, not SG-Link, is the scale-out path. No proprietary scale-out fabric announced."
+    confidence: vendor_claim
+    sources:
+      - https://xh.21csp.com.cn/cxcp_2024/202409/2056.html
+
+# ── Deployment / supply-chain status (added 2026-08-08) ───────────────────────
+status_bm1690:
+  verb: "announced and lab-certified; NOT confirmed deployed at scale"
+  timeline:
+    - date: "2024-09"
+      event: "SC11 FP300 launched at the 2024 China Computing Power Conference (中国算力大会); top innovation award at the 2024 Beijing Security Expo"
+      confidence: vendor_pr
+    - date: "2025-01-16"
+      event: "Sophgo added to the US BIS Entity List (Federal Register 2025-00480), tranche tied to a TSMC die found in a Huawei processor"
+      confidence: confirmed
+      source: https://www.federalregister.gov/documents/2025/01/16/2025-00480/additions-to-the-entity-list
+    - date: "2025-06-30"
+      event: "SC11 FP300 passed DeepSeek-R1 (671B) adaptation verification at China Telecommunication Technology Labs (CTTL, under CAICT/MIIT)"
+      confidence: confirmed
+      source: https://www.scmp.com/tech/tech-trends/article/3316363/chinese-chipmaker-sophgo-adapts-compute-card-deepseek-beijings-self-reliance-push
+    - date: "2025-07"
+      event: "128 x BM1690 supernode shown at WAIC Shanghai"
+      confidence: reported
+    - date: "2026-01-06"
+      event: "CSRC filing update consistent with a STAR Market (科创板) listing process, per Chinese reporting"
+      confidence: reported
+      caveat: "Filing itself not retrievable; circulating valuation unverified. Treat as 'filing reported, outcome not confirmed'."
+    - date: "2026-08-08"
+      event: "Sophgo's public catalog API returns 38 SKUs, none of them SC11 FP300, BM1690, or any SC7 card; the SC11 FP300 product URL remains search-indexed"
+      confidence: confirmed
+      interpretation: "Consistent with restricted-channel sales"
+      source: https://www.sophgo.com/basic-api/business/product/getProductList
+  not_found: [shipment volumes, revenue, named datacenter deployment, MLPerf or any third-party benchmark, Hot Chips/ISCA/ISSCC 2026 presentation, BM1690 successor announcement]
+
+# ── Open items (added 2026-08-08) ─────────────────────────────────────────────
+open_items:
+  - "SG-Link per-link bandwidth, lane count, signaling and topology — not disclosed"
+  - "BM1690 process node and foundry — not disclosed; materially uncertain given Entity List status"
+  - "BM1690 off-chip DRAM type — LPDDR5X unconfirmed (Baidu Baike only)"
+  - "Per-chip peak TOPS/TFLOPS — no primary per-chip figure exists; only derivable by halving vendor card claims"
+  - "WAIC supernode 8 TB memory figure — unresolved contradiction with ~128 GB/chip"
+  - "tpu-mlir carries backends for SGTPUV8, SG2380 and BM1684X2 — undocumented parts, warrant separate investigation"
+  - "STAR Market listing — filing reported, outcome not confirmed"

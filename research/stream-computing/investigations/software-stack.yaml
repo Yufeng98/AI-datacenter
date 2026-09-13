@@ -1,0 +1,451 @@
+chip: stream-computing
+as_of: "2026-08-08"
+device_class: "Programmable NPU — RISC-V scalar core + custom vector/matrix ISA extension (NeuralScale; China, 希姆计算)"
+investigation: software-stack
+
+summary:
+  headline: "A deliberate CUDA clone at the low level (SHC / <<< >>> / stcc / stcMalloc / stc-smi / stc-gdb / stcpti) under an MLIR + IREE + torch-mlir-derived graph compiler (MLTC) and a proprietary LLM serving framework (STC_LLM). The entire product stack is closed source."
+  delivery_vehicle: "STCRP — Stream Computing System Reference Platform; current public release V1.12.1; no public SDK repos, packages from vendor technical support (.deb/.rpm + Python wheels)"
+  open_source_product_stack: false
+  confidence: confirmed
+  sources:
+    - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP产品简介
+    - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP_Release_Notes
+
+release:
+  name: "STCRP V1.12.1"
+  components:
+    HPE: 1.9.7
+    stc-dkms: 1.9.6
+    stc-kernel-common: 1.9.6
+    hpert: 1.4.3
+    hpert-dev: 1.4.3
+    stcc: 1.9.6
+    stc-smi: 1.8.5
+    stc-prof: 1.2.12
+    stc-gdb: 1.8.3
+    stc-vprof: 1.8.0
+    hpe-example: 1.9.1
+    HPE-Python: 1.4.1
+    MLTC: 1.6.1
+    SNQ: 1.0.0
+    STC_LLM: 1.3.2
+    STC_LLM_DNN: 1.3.1
+    STC_IE: 1.6.1
+    SNC: 1.0.1
+  os_support: ["Ubuntu 22.04", "Ubuntu 25.04", "Kylin V10 (银河麒麟)"]
+  python: "3.10 (required for MLTC)"
+  firmware_compat: "MCU 10.0.14 / NPU-ctrl 10.3.7"
+  confidence: confirmed
+  sources:
+    - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP_Release_Notes
+
+layers:
+
+  framework_integration:
+    - name: PyTorch
+      routes:
+        - "torch.compile(model, backend=mltc_backend) from mltc.mltc.frontend.torch_frontend"
+        - "from_torch(nn.Module | ExportedProgram, ...) -> .vmfb"
+      dynamic_shapes: "torch.export with Dim(...) on parallel/reduce axes; import_symbolic_shape_expressions"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP使用指南/MLTC使用指南
+        - https://docs.streamcomputing.com/AI加速卡/开发者资源/Python_API
+
+    - name: ONNX
+      frontend: "OnnxToStc().run(...)"
+      ops_supported: 156
+      custom_op_domain: "mltc.custom"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://docs.streamcomputing.com/AI加速卡/开发者资源/MLTC算子支持说明
+
+    - name: TensorFlow
+      frontend: "TfToStc().run(...)"
+      ops_supported: 106
+      format: "TF1 GraphDef .pb"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://docs.streamcomputing.com/AI加速卡/开发者资源/MLTC算子支持说明
+
+    - name: PaddlePaddle
+      backend: "Paddle-STCNNE"
+      model_zoo: https://github.com/Stream-Computing/STCPaddleModelZoo
+      models: "~20 (ResNet/DenseNet/VGG/EfficientNet/ShuffleNet/SE-ResNet/DBNet) with CPU-vs-NPU accuracy deltas"
+      certification: "Baidu Level-I compatibility (vendor claim)"
+      era: "TensorTurbo (requires TensorTurbo >=1.10 + STC_DDK) — legacy stack"
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://raw.githubusercontent.com/Stream-Computing/STCPaddleModelZoo/master/Paddle-STCNNE.md
+
+    - name: HuggingFace / LLMs
+      via: STC_LLM
+      loads: "HF bin / safetensors directly"
+      open_source: false
+      confidence: confirmed
+
+    - name: absent_integrations
+      not_present: ["vLLM fork", "SGLang", "Triton (OpenAI) kernel language", "TVM (in the current stack)", "ONNX Runtime EP"]
+      confidence: confirmed
+      note: "Absence verified across all 22 SDK doc pages."
+
+  graph_capture:
+    pytorch: "TorchDynamo custom backend + torch.export -> ExportedProgram -> Torch-dialect MLIR"
+    torch_mlir_evidence: "from_torch signature (output_type=OutputType.TORCH, backend_legal_ops, extra_library_file_name, experimental_support_mutation, import_symbolic_shape_expressions) is byte-for-byte torch-mlir's fx.export_and_import; supported-op list uses torch-mlir C++ class names (141 Aten*Op entries, e.g. AtenConvolutionOp, AtenNativeLayerNormOp, AtenBmmOp, ConvertAtenMaxPool2dOp)"
+    tf_onnx: "Dedicated importers producing the same STC graph-level MLIR; shapes/dtypes on the command line (-i name:1x3x224x224)"
+    confidence: confirmed
+    provenance_confidence: likely
+    provenance_note: "torch-mlir derivation is near-certain from public artifacts, but the vendor never states the upstream project or revision — not disclosed."
+    sources:
+      - https://docs.streamcomputing.com/AI加速卡/开发者资源/Python_API
+      - https://docs.streamcomputing.com/AI加速卡/开发者资源/MLTC算子支持说明
+
+  graph_compiler:
+    name: "MLTC — Multi-Level Tensor Compiler"
+    version: 1.6.1
+    base: "MLIR (proprietary)"
+    open_source: false
+    design_principles:
+      - "Multi-level IR with progressive lowering; each step handles one concern"
+      - "GOAT — operator-agnostic tiling system over LLB -> MC -> L1; vendor rationale: 'most of the code is managing the multi-level storage hierarchy and the data movement between levels'"
+      - "Optimisations are independent, individually switchable passes"
+      - "Trunk after graph optimisation is operator-agnostic"
+      - "Graph-level ops are atomic — deliberately no fused operators in the graph IR"
+    stages: ["Graph Optimizations", "Group Partition", "GOAT tiling", "codegen"]
+    dialect: "stc.* — 164 ops"
+    notable_ops:
+      - "stc.attention, stc.attention_lm, stc.attention_mask_add"
+      - "stc.kv_cache_load, stc.kv_cache_store"
+      - "stc.matmul vs stc.matmul_vme (VME-based high-precision matmul)"
+      - "stc.quantize, stc.dequantize, stc.im2col, stc.col2im"
+      - "collectives: stc.device_broadcast, stc.device_split, stc.device_concat, stc.device_allconcat, stc.device_reduce_{sum,mean,max,min}, stc.device_sync"
+    output_artifact: ".vmfb (STC MLTC fatbin)"
+    arch_flags: ["npu-v1 (default)", "npu-v2 (accepted by the compiler; NOT a public chip)"]
+    iree_lineage_evidence: ".vmfb is IREE's VM FlatBuffer container; --graph-partition-factor=N documented as splitting into N dispatch.workgroups (IREE Flow-dialect terminology)"
+    notable_flags:
+      - "--high-precision (matmul -> matmul_vme; Newton iteration for transcendentals)"
+      - "--bisection-reduce, --bisection-matmul"
+      - "--enable-merge-attention (matmul -> matmul_batchinner, default on), --attention-shrink-factor"
+      - "--graph-partition-factor"
+      - "--pipeline-partition-factor / --pipeline-partition-file (pipeline parallelism)"
+      - "--manual-partition-file, --static-subkernel-file=<json>"
+      - "--dump-ir-before-all / --dump-ir-after-all"
+    custom_operators: "ONNX node in domain mltc.custom + shape-inference script (MLTC_CUSTOM_OPS_PATH) + compute implementation .h/.py (MLTC_PLUGINS_PATH)"
+    cpu_reference: "Simulator().run('model.mlir', '-i in.bin -o out.bin --dump-each-op-result --dump-dir=...')"
+    precision_debug: "run_npu_data_analysis.py + run_precision_analysis.py -> cpu_vs_npu.csv (nan/inf, errors/total, cosine similarity flagged <0.95, first divergent index, scatter/histogram plots); defaults --atol 0.005 --rtol 0.2"
+    perf_analysis: "run_perf_analysis.py -> per-core CSV: mcu_cycle, vme_cycle, mme_cycle, vec_cycle, syn_cycle, mte_total_cycle, instruction counts, per-pair parallel cycles, mte_{pld,icmov,l12llb,llb2l1}_{cycle,byte}, l1_conflict_cycle, im_conflict_cycle, dcache_miss_cnt, icache_miss_cnt"
+    confidence: confirmed
+    upstream_provenance: "not disclosed (IREE + torch-mlir derivation is near-certain from artifacts, never stated by the vendor)"
+    sources:
+      - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP使用指南/MLTC使用指南
+      - https://docs.streamcomputing.com/AI加速卡/开发者资源/Python_API
+      - https://docs.streamcomputing.com/AI加速卡/开发者资源/MLTC算子支持说明
+
+  kernel_compiler:
+    name: stcc
+    full_name: "Stream Computing Heterogeneous C++ Compiler"
+    behaviour: "Compiles host and device code in one invocation into a single executable (nvcc-shaped)"
+    device_target: "RV32 + RVV v0.8 + OP-VE custom extension; device runtime under /usr/local/hpe/riscv32npu/"
+    llvm_evidence: ["--rtlib=compiler-rt is a Clang driver flag", "stc-vprof integrates a Clangd language server for .hc files", "public riscv-stc/llvm-project fork with matrix-extension support"]
+    llvm_derivation: "likely — the vendor never states it, and no LLVM version is disclosed"
+    open_source: false
+    confidence: confirmed
+    derivation_confidence: likely
+    sources:
+      - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP使用指南/HPE使用指南
+      - https://github.com/riscv-stc/llvm-project
+
+  kernel_language:
+    name: "SHC — Stream Computing Heterogeneous C++"
+    file_extension: ".hc"
+    base: "C++17 (fully compatible)"
+    cuda_shaped_syntax: ["<<< >>> kernel launch", "__global__", "__device__"]
+    memory_space_qualifiers:
+      __local__: "L1 Buffer (per-NPC)"
+      __shared__: "LLB (per-cluster)"
+      plain_device_pointer: "DDR"
+      IM_BUFFER_START: "Intermediate Buffer"
+    builtins: [CoreID, CoreNum, "sync()"]
+    headers: ["<hpe.h>", "<npurt.h>", "<asm_macro.h>"]
+    isa_intrinsics: "Programmer writes custom instructions by name and configures shape CSRs explicitly: DEFINE_SHAPE, CONFIG_VE_CSR, CONFIG_VE_BC_CSR, memul_mm, mov_m"
+    abstraction_level: "Lower than Triton or CUDA C — the kernel author manages L1/IM/LLB placement and shape CSRs by hand"
+    python_binding: "HPE-Python (wheel hpe_python-1.4.1-cp310-...)"
+    absent: ["Triton", "TVM TensorIR", "auto-scheduler", "any tensor DSL"]
+    open_source: false
+    confidence: confirmed
+    sources:
+      - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP使用指南/HPE使用指南
+      - https://docs.streamcomputing.com/AI加速卡/希姆计算术语表
+
+  inference_api:
+    - name: mltc (Python package)
+      symbols: [TfToStc, OnnxToStc, from_torch, optimize, Compiler, Executor, Simulator]
+      confidence: confirmed
+    - name: STC_IE
+      version: 1.6.1
+      function: "Packaged inference engine wrapping compiled .vmfb models"
+      executor_api: "stc_ie.stc_runtime.executor.Executor(vmfb, device_ids, n); get_inputs()/get_outputs(); dict-in/dict-out run()"
+      confidence: confirmed
+    - name: STC_DDK (legacy)
+      function: "AI Convertor + AI Executor — the TensorTurbo-era equivalent"
+      confidence: confirmed
+
+  runtime:
+    name: "HPE — Heterogeneous Programming Engine"
+    host_library: "hpert — device management, memory management, execution control, stream management"
+    device_library: "npurt — on-device printf, memcpy helpers"
+    cuda_clone_api: [stcMalloc, stcMallocHigh, stcFree, stcMemcpy, stcMemcpyHostToDevice, stcMemcpyDeviceToHost, stcConfigureCall, stcLaunchKernel, stcModuleLoadData, stcRegisterFatBinary, stcUnregisterFatBinary, stcDeviceSynchronize, stcRuntimeGetVersion]
+    profiling_api: "stcpti — CUPTI analogue; MME/MTE/VME-granularity cycle counts"
+    management_api:
+      name: "STCML (libstcml.so, <stcml.h>) — NVML analogue"
+      functions: [stcmlInit, stcmlShutdown, stcmlDeviceGetCount, GetHandleByIndex, GetHandleByPciBusId, GetName, GetUuid, GetSerial, GetPower, GetFrequency, SetFrequency, GetVoltage, SetVoltage, "temperature get/set-alert/set-shutdown", EnableMonitor, GetBoardStatus, StartBoard, "firmware-version getters", stcmlErrorString]
+      error_codes: "14, STCML_SUCCESS … STCML_ERROR_OTHER"
+    resource_model: "card = device; device holds 4 NPC Clusters; cluster holds NPCs; kernels addressed as [device x, cluster y, core z]; the CLUSTER is the allocation/isolation unit (/dev/stc0c0…c3, stc-smi -q -c N, container --device per cluster)"
+    open_source: false
+    confidence: confirmed
+    sources:
+      - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP使用指南/HPE使用指南
+      - https://docs.streamcomputing.com/AI加速卡/开发者资源/C++_API
+
+  tooling:
+    - name: stc-smi
+      analogue: nvidia-smi
+      function: "Summary table; --query-npu=...--format=csv; per-cluster view; DVFS set; reset; thermal monitor; firmware upgrade"
+      confidence: confirmed
+    - name: stc-topo
+      analogue: "nvidia-smi topo -m"
+      function: "Matrix with GPU0…GPU7 row labels; classes LOC/PIX/PXB/PHB/SYS + CPU and NUMA affinity"
+      confidence: confirmed
+    - name: stc-gdb
+      analogue: cuda-gdb
+      function: "GDB-compatible; simultaneous host+device debug; source- and instruction-level device stepping; attach; 'stc focus [device D cluster C core N]', 'stc info'"
+      confidence: confirmed
+    - name: stc-prof
+      analogue: nsys
+      function: "record / dump (Chrome-tracing JSON, Perfetto) / summary / detail --sub-module=DEFAULT,VME,MTE,MME,PAL,MCU,MEMORY,MEMORY-COL; VME-CU vs VME-VEC cycles; sysDMA DDR<->LLB bytes and bandwidth; L1/IM bank-collision counters"
+      confidence: confirmed
+    - name: stc-vprof
+      analogue: nsight
+      function: "Java/JDK-11 GUI; local + remote (SSH) projects; timeline; .hc editor with Clangd; per-NPC parallelism bar charts; CSV export"
+      confidence: confirmed
+    - name: stc-hpaa
+      function: "Half-Precision Accuracy Analysis (TensorTurbo era)"
+      confidence: confirmed
+    - name: NPU-Viewer
+      function: "Standalone hardware qualification — PCIe bandwidth, DDR bandwidth, TOPS, stress test"
+      confidence: confirmed
+    - name: p2p_perf
+      analogue: p2pBandwidthLatencyTest
+      function: "Card-to-card DDR/LLB transfer benchmark (tarball named p2p_perf_rdma)"
+      confidence: confirmed
+    - name: stcqual
+      function: "Factory qualification suite"
+      confidence: confirmed
+
+  driver:
+    - name: stc-dkms
+      builds: "stc.ko via DKMS -> /lib/modules/$(uname -r)/updates/dkms/stc.ko"
+      confidence: confirmed
+    - name: stc-kernel-common
+      provides: "udev rules /lib/udev/rules.d/70-stc.drv.rules"
+      confidence: confirmed
+    - name: device_nodes
+      nodes: ["/dev/stc0", "/dev/stc0c0 … /dev/stc0c3", "/dev/stc0ctrl"]
+      lspci_driver: stc
+      confidence: confirmed
+    - name: firmware
+      images: ["NPU-ctrl firmware (SoC bring-up)", "MCU firmware (card power)"]
+      signed: true
+      upgrade: "in-band via stc-smi -u / --mcu-upgrade with .sdux files (root)"
+      confidence: confirmed
+    - name: virtualisation
+      sr_iov: false
+      kvm_passthrough: "supported (firmware V1.3.3+); host + KVM simultaneously (V1.3.4+)"
+      confidence: confirmed
+    - name: install_layout
+      path: "/usr/local/hpe/{bin,lib,include,conf,example,java,libexec,riscv32npu,share}"
+      packaging: "repo packages (hpe-repo-ubuntu2204-1-9-local_1.9.7_amd64.deb, Kylin RPM) with GPG keys; hpe-host (driver) vs hpe-simple (userspace) split for containers"
+      confidence: confirmed
+
+  driver_sources:
+    - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP安装指南
+    - https://docs.streamcomputing.com/AI加速卡/固件使用手册/Firmware_Release_Notes
+
+  communication:
+    collective_library: null
+    absence_note: "No NCCL/RCCL/HCCL/CNCL analogue anywhere in the SDK — verified across all 22 SDK doc pages."
+    compiler_collectives: [stc.device_broadcast, stc.device_split, stc.device_concat, stc.device_allconcat, stc.device_reduce_sum, stc.device_reduce_mean, stc.device_reduce_max, stc.device_reduce_min, stc.device_sync]
+    pipeline_parallelism: "--pipeline-partition-factor / --pipeline-partition-file"
+    tensor_parallelism: "STC_LLM pre-splits weights at conversion time: convert_weight -n <NPU count>; weights converted for 4 NPUs cannot be used on 2 NPUs"
+    transport: "PCIe peer-to-peer — measured ~9 GB/s (LLB destination), <1 GB/s (DDR destination)"
+    confidence: confirmed
+    sources:
+      - https://docs.streamcomputing.com/AI加速卡/开发者资源/MLTC算子支持说明
+      - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP使用指南/STC_LLM使用指南
+      - https://docs.streamcomputing.com/AI加速卡/硬件性能测试手册/p2p_perf使用指南
+
+  llm_serving:
+    name: STC_LLM
+    version: 1.3.2
+    is_vllm_fork: false
+    backends:
+      - name: stc_llm_dnn
+        default: true
+        mechanism: "Hand-written-kernel path; mechanically a C++ code generator rendering model source into engine_dir (default .cache/stc_llm) as .cpp, built into an NPU executable (render_cpp controls regeneration)"
+        vendor_claim: "'currently shows better inference performance'"
+        weight_conversion: "python -m stc_llm_dnn.tools.convert_weight -m <HF id> -p <src> -o <dst> -n <npus>"
+      - name: mltc
+        mechanism: "Compiles the model through MLTC to .vmfb (--mltc_weight_dir, --mltc_ht_file)"
+      - name: IE
+        mechanism: "via STC_IE"
+    servers: ["stc_llm.entrypoints.openai.api_server_new (DNN path)", "stc_llm.entrypoints.openai.api_server (MLTC path)"]
+    api: "OpenAI-compatible /v1/chat/completions and /v1/completions; SSE streaming; usage with cached_tokens; works with the stock openai Python client and curl"
+    features:
+      - "dynamic batching (max_tasks, default 256, one stream per task)"
+      - "KV-cache segmentation (slot_number_per_segment, default 256 tokens)"
+      - "prefix caching (--enable_prefix_caching)"
+      - "DMA weight preload (dma_preload, default on — overlaps weight copies with matrix compute)"
+      - "host-side offload of embedding (embed_on_host) and logits (output_on_host)"
+      - "sampling: temperature/top_p/top_k/logprobs/top_logprobs; response_format: json_object"
+      - "--reasoning-parser (Qwen3, DeepSeek-R1)"
+      - "--enable-auto-tool-choice + --tool-call-parser (Qwen3)"
+    quantisation_at_serve_time:
+      quant_type: [fp16, w8a8, w8a16]
+      compress_factor: [128, 64, 32, 16, 8, 1, -1]
+      compress_factor_note: "-1 = per-channel; applies to w8a16"
+    observability: "Native Prometheus metrics in the stc_llm: namespace (avg_prompt_throughput_toks_per_s, avg_generation_throughput_toks_per_s, time_to_inference_count, first_token_time, task_duration, task_decoder_latency, avg_generation_latency, num_requests_running/swapped/waiting, prompt_tokens_total, generation_tokens_total) with a documented Grafana dashboard flow"
+    open_source: false
+    confidence: confirmed
+    sources:
+      - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP使用指南/STC_LLM使用指南
+
+  quantisation_tooling:
+    - name: SNQ
+      cli: stcnq
+      function: "PTQ for small / ONNX models; emits an ONNX quantised model"
+      open_source: false
+      confidence: confirmed
+    - name: SNC
+      cli: stcnc
+      full_name: "Stream Computing Neural Compressor"
+      built_on: "Intel Neural Compressor"
+      function: "PyTorch LLM quantisation; SmoothQuant with an alpha sweep (alpha_list 0.1…0.9) calibrated on C-Eval; emits per-alpha activation-scale .npy sets (act_scale_qkv_w.npy, act_scale_mlp_up_gate_w.npy, …); CPU-only quantisation supported"
+      open_source: false
+      confidence: confirmed
+
+  quantisation_tooling_sources:
+    - https://docs.streamcomputing.com/AI加速卡/推理软件使用手册/STCRP使用指南/STC_LLM使用指南
+
+  deployment_orchestration:
+    - name: stc-k8s-device-plugin
+      language: Go
+      artifacts: [main.go, Dockerfile, stc-device-plugin.yaml]
+      function: "Kubernetes DaemonSet device plugin; auto-registers NPUs, tracks health, auto-enrols new nodes"
+      k8s_versions: ["1.18 (recommended)", "1.22", "1.23", "1.24"]
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://docs.streamcomputing.com/AI加速卡/算力服务解决方案/k8s-device-plugin使用指南
+    - name: npu-exporter
+      language: Python
+      port: 9836
+      unit: systemd
+      metrics: [npu_temp, npu_util, power_draw, power_total, memory_used, memory_total, cluster_count, cluster_util, cluster_memory_used, cluster_memory_total, npu_info, cluster_info]
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://docs.streamcomputing.com/AI加速卡/算力服务解决方案/npu-exporter使用指南
+    - name: docker
+      split: "driver (hpe-host) on the host; userspace (hpe-simple + MLTC + tools) in the container"
+      device_flags: "--device /dev/stc0 --device /dev/stc0c0…c3 --device /dev/stc0ctrl"
+      reference_image_size: "~10.7 GB"
+      public_registry_images: "none"
+      confidence: confirmed
+    - name: cloud_platforms
+      products: ["希姆云平台 — multi-cluster / multi-tenant scheduling, quotas, image registry, audit", "大模型平台 — model deployment, API gateway, model repository"]
+      confidence: unconfirmed
+      note: "Product docs are image-only pages with no extractable specification text — effectively not disclosed."
+      sources:
+        - https://docs.streamcomputing.com/智算云平台/希姆云平台使用手册/希姆云平台介绍
+
+# ── Historical stack (do not mix with the current one) ───────────────────────
+historical_stack:
+  name: TensorTurbo
+  era: "2021–2023"
+  compiler_base: "TVM"
+  backend: LLVM
+  operator_library: stcDNN
+  deployment_kit: "STC_DDK (AI Convertor + AI Executor)"
+  runtime: "HPE 1.5.x"
+  pipeline: "Model Zoo -> Inference API -> Graph Compiler (Model Parser -> customized NPU backend: optimisation + codegen) + stcDNN Lib + LLVM -> loadable files -> HPE (user-space HAL + kernel-mode driver) -> NPU"
+  framework_apis: ["TensorFlow", "PyTorch", "MXNet", "Keras (C++ and Python inference APIs)"]
+  migration_finding: "The company migrated TVM -> MLIR/IREE (TensorTurbo -> MLTC). Pre-2024 and third-party sources describe TensorTurbo; mixing the two produces a wrong stack diagram. STCPaddleModelZoo is a surviving TensorTurbo-era artifact."
+  confidence: confirmed
+  sources:
+    - https://carrv.github.io/2021/papers/CARRV2021_paper_67_Zhan.pdf
+    - https://github.com/bytedance/xpu-perf/blob/main/projects/infer_perf/general_perf/backends/STC/README.md
+
+# ── Open source accounting ───────────────────────────────────────────────────
+open_source:
+  product_stack_closed:
+    components: [HPE, hpert, npurt, stc-dkms, stc.ko, stc-kernel-common, stcc, SHC, STCML, stcpti, stc-smi, stc-gdb, stc-prof, stc-vprof, stc-topo, MLTC, STC_IE, STC_LLM, STC_LLM_DNN, SNQ, SNC, NPU-Viewer, p2p_perf, stcqual, stc-k8s-device-plugin, npu-exporter, "NPU-ctrl firmware", "MCU firmware"]
+    license_terms: "not published"
+    distribution: "vendor technical support contact"
+    github_org_streamcomputing: "empty account"
+    confidence: confirmed
+
+  open_artifacts:
+    - repo: https://github.com/riscv-stc/riscv-matrix-spec
+      license: CC-BY-4.0
+      stars: 27
+      last_activity: "Dec 2024"
+      note: "Open RISC-V matrix extension proposal; v0.5 announced Nov 2024. NOT implemented by the P920."
+    - repo: https://github.com/riscv-stc/riscv-matrix-project
+      license: "BSD-3 (org default)"
+      stars: 39
+      last_activity: "Mar 2024"
+    - repo: https://github.com/riscv-stc/llvm-project
+      license: "Apache-2.0 with LLVM exception"
+      last_activity: "Oct 2024"
+      note: "LLVM fork with matrix-extension support"
+    - repo: https://github.com/riscv-stc/riscv-isa-sim
+      license: BSD-3
+      last_activity: "Feb 2025"
+      note: "Spike fork, matrix-extension ISS"
+    - repo: https://github.com/riscv-stc/riscv-dnn
+      license: BSD-3
+      last_activity: "Mar 2025"
+      note: "Newest activity in the org"
+    - repo: https://github.com/riscv-stc/riscv-pvp-matrix
+      license: BSD-3
+      last_activity: "Mar 2024"
+    - repo: "riscv-stc: riscv-opcodes, riscv-test-env, riscv-openocd-matrix"
+      license: "upstream licenses"
+      last_activity: "2024"
+    - repo: "riscv-stc: chipyard, riscv-boom (SonicBOOM), rocket-chip, barstools, berkeley-hardfloat, testchipip, cva6-wrapper, riscv-sodor"
+      license: "upstream (BSD / Apache)"
+      last_activity: "2022 – Sep 2024"
+    - repo: https://github.com/Stream-Computing/STCPaddleModelZoo
+      license: "unstated"
+      note: "PaddlePaddle model zoo, TensorTurbo era"
+    - repo: https://github.com/bytedance/xpu-perf/blob/main/projects/infer_perf/general_perf/backends/STC/README.md
+      license: "Apache-2.0, (c) 2023 Stream Computing Inc."
+      note: "Reproducible ByteMLPerf backend + results, hosted in ByteDance's repo"
+
+  open_artifacts_confidence: confirmed
+  open_artifacts_caveat: "None of the open repos are the shipping toolchain; the riscv-stc org has been quiet since March 2025. Code-driven investigation of the actual compiler/runtime is impossible — the stack must be documented from vendor manuals."
+  open_artifacts_sources:
+    - https://github.com/orgs/riscv-stc/repositories
+
+# ── Explicit not-disclosed register ──────────────────────────────────────────
+not_disclosed:
+  - "Source code, license terms and redistribution rights for the entire product stack"
+  - "MLTC's upstream provenance (IREE + torch-mlir derivation near-certain from artifacts; never stated, no revisions given)"
+  - "Whether stcc is a Clang/LLVM downstream, and of which LLVM version"
+  - "Specifications behind 智算云平台 / 大模型平台 / AI 一体机 — docs are image-only pages"
+  - "Any official public container registry images"

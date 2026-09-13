@@ -1,0 +1,164 @@
+digraph microsoft_maia_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    // ===================== MAIA 100 =====================
+    subgraph cluster_maia100 {
+        label="Maia 100 (TSMC 5nm, ~820mm², ~105B transistors, 500-700W)";
+        style="rounded,filled";
+        fillcolor="#E8EAF6";
+        color="#3949AB";
+        fontcolor="#3949AB";
+        fontname="Helvetica-Bold";
+        fontsize=13;
+        penwidth=2;
+
+        subgraph cluster_compute100 {
+            label="Compute Engines";
+            style="rounded,dashed";
+            color="#5C6BC0";
+            fontcolor="#5C6BC0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            tensor100 [label="Tensor Unit (16xRx16)\nMX6: 3 POPS\nMX9: 1.5 POPS\nBF16: 0.8 POPS\nOCP MX format native", fillcolor="#C5CAE9"];
+            vec100 [label="Vector Processor\nLoosely coupled superscalar\nCustom ISA (not public)\nFP32 / BF16", fillcolor="#C5CAE9"];
+            dma100 [label="DMA Engine\nTensor sharding schemes\nHardware semaphores\nAsync double-buffering", fillcolor="#C5CAE9"];
+        }
+
+        subgraph cluster_mem100 {
+            label="On-chip Memory";
+            style="rounded,dashed";
+            color="#7986CB";
+            fontcolor="#7986CB";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            sram100 [label="~500 MB On-chip SRAM\nL1 + L2 scratchpads\nSoftware-managed\n(no hardware cache)", fillcolor="#C5CAE9"];
+        }
+
+        subgraph cluster_hbm100 {
+            label="Off-chip Memory";
+            style="rounded,dashed";
+            color="#9FA8DA";
+            fontcolor="#9FA8DA";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            hbm100 [label="4x HBM2e (CoWoS-S)\n64 GB capacity\n1.8 TB/s bandwidth\n(deliberate cost choice)", fillcolor="#C5CAE9"];
+        }
+
+        subgraph cluster_net100 {
+            label="Scale-up / Scale-out Network";
+            style="rounded,dashed";
+            color="#3949AB";
+            fontcolor="#3949AB";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            nic100 [label="Custom RoCE-like NIC\n12x 400GbE → 600 GB/s\nAllGather/ScatterReduce: 4800 Gbps\nAllToAll: 1200 Gbps\nAES-GCM encryption", fillcolor="#C5CAE9"];
+        }
+    }
+
+    // ===================== MAIA 200 =====================
+    subgraph cluster_maia200 {
+        label="Maia 200 (TSMC 3nm, >140B transistors, 750W)";
+        style="rounded,filled";
+        fillcolor="#E8F5E9";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=13;
+        penwidth=2;
+
+        subgraph cluster_tile {
+            label="Tile (smallest autonomous compute unit)";
+            style="rounded,dashed";
+            color="#388E3C";
+            fontcolor="#388E3C";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            ttu [label="Tile Tensor Unit (TTU)\nFP4: >10 PFLOPS total\nFP8: >5 PFLOPS total\nNative FP4/FP8 tensor cores", fillcolor="#C8E6C9"];
+            tvp [label="Tile Vector Processor (TVP)\nHighly programmable SIMD\nActivations, Norm, Gate\nFP8 / BF16", fillcolor="#C8E6C9"];
+            tsram [label="Tile SRAM (TSRAM)\n~10-20x HBM bandwidth\nHot compute buffer\nActivations + outputs", fillcolor="#C8E6C9"];
+            dma_tile [label="Tile DMA\nTSRAM <-> CSRAM\nAsync data movement", fillcolor="#C8E6C9"];
+        }
+
+        subgraph cluster_cluster {
+            label="Cluster (multiple tiles + shared resources)";
+            style="rounded,dashed";
+            color="#43A047";
+            fontcolor="#43A047";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            csram [label="Cluster SRAM (CSRAM)\nShared across tiles\nKV-cache staging\nSecond-tier locality", fillcolor="#C8E6C9"];
+            dma_cluster [label="Cluster DMA\nCSRAM <-> HBM3e\nStages HBM traffic", fillcolor="#C8E6C9"];
+        }
+
+        subgraph cluster_hbm200 {
+            label="Off-chip Memory";
+            style="rounded,dashed";
+            color="#66BB6A";
+            fontcolor="#66BB6A";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            hbm200 [label="HBM3e (SK Hynix)\n216 GB capacity\n7 TB/s bandwidth", fillcolor="#C8E6C9"];
+        }
+
+        subgraph cluster_nic200 {
+            label="Scale-up Interconnect";
+            style="rounded,dashed";
+            color="#2E7D32";
+            fontcolor="#2E7D32";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            nic200 [label="On-die Integrated NIC\n2.8 TB/s bidirectional\n2-tier scale-up topology\n6,144 accelerator clusters", fillcolor="#C8E6C9"];
+        }
+    }
+
+    // ===================== SYSTEM =====================
+    subgraph cluster_system {
+        label="Ares Rack System (Maia 100)";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+        rack [label="Ares Rack\n32 Maia 100 chips (8 servers)\n~40 kW, liquid cooling\nArista+Cisco ToR (3 SKUs)\nAzure dynamic power mgmt", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== EDGES: Maia 100 =====================
+    tensor100 -> sram100 [label="read/write", color="#5C6BC0"];
+    vec100 -> sram100 [label="read/write", color="#5C6BC0"];
+    dma100 -> sram100 [label="fill/drain", color="#5C6BC0"];
+    dma100 -> hbm100 [label="DMA load/store", color="#9FA8DA"];
+    tensor100 -> vec100 [label="output\npipeline", style=dashed, color="#5C6BC0"];
+
+    // Maia 100 -> rack
+    hbm100 -> rack [style=dashed, color="#E65100", label="32 chips\nper rack"];
+    nic100 -> rack [style=dashed, color="#E65100", label="12x400GbE"];
+
+    // ===================== EDGES: Maia 200 =====================
+    ttu -> tsram [label="output", color="#388E3C"];
+    tvp -> tsram [label="output", color="#388E3C"];
+    dma_tile -> tsram [label="fill", color="#388E3C"];
+    dma_tile -> csram [label="stage up", color="#43A047"];
+    ttu -> tvp [label="pipeline", style=dashed, color="#388E3C"];
+
+    csram -> dma_cluster [color="#43A047"];
+    dma_cluster -> hbm200 [label="DMA\nload/store", color="#66BB6A"];
+
+    nic200 -> csram [style=dashed, color="#2E7D32", label="collective\ncomms"];
+}

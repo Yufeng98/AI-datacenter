@@ -1,0 +1,305 @@
+resource: hip-rocm
+url: https://github.com/ROCm/HIP
+type: github_repo
+as_of: "2026-04-05"
+commit_sha: 7ddf4f9fea867d9241d2465c6baf93eceb8694d8
+doc_version: "7.2.0"
+chip: amd-gpu
+device_class: GPU
+
+layer_mappings:
+  - layer: Runtime
+    component: HIP Runtime API (libamdhip64.so)
+    confidence: confirmed
+    sources:
+      - include/hip/hip_runtime_api.h
+      - docs/understand/programming_model.rst
+      - docs/how-to/hip_runtime_api.rst
+  - layer: Runtime
+    component: CLR / rocclr (ROCm Compute Language Runtime)
+    confidence: confirmed
+    sources:
+      - docs/understand/amd_clr.rst
+      - docs/how-to/hip_runtime_api.rst
+  - layer: Runtime
+    component: ROCr / HSA Runtime (libhsa-runtime64.so)
+    confidence: confirmed
+    sources:
+      - docs/understand/programming_model.rst
+      - docs/how-to/debugging.rst
+      - docs/doxygen/Doxyfile
+  - layer: Driver
+    component: KFD (Kernel Fusion Driver / amdgpu Linux driver)
+    confidence: confirmed
+    sources:
+      - docs/how-to/debugging.rst
+      - docs/install/build.rst
+  - layer: Compiler/IR
+    component: hipcc compiler driver wrapper
+    confidence: confirmed
+    sources:
+      - docs/understand/compilers.rst
+  - layer: Compiler/IR
+    component: amdclang++ (LLVM-based offload compiler)
+    confidence: confirmed
+    sources:
+      - docs/understand/compilers.rst
+  - layer: Compiler/IR
+    component: AMDGPU IR (LLVM AMDGPU target IR)
+    confidence: confirmed
+    sources:
+      - docs/understand/compilers.rst
+  - layer: ISA
+    component: GFX ISA (gfx90a CDNA2 / gfx942 CDNA3 / gfx1100 RDNA3)
+    confidence: confirmed
+    sources:
+      - docs/understand/compilers.rst
+      - docs/understand/hardware_implementation.rst
+  - layer: Framework Integration
+    component: HIP C++ kernel language (__global__, __device__, triple-chevron syntax)
+    confidence: confirmed
+    sources:
+      - docs/understand/programming_model.rst
+      - include/hip/hip_runtime.h
+  - layer: Framework Integration
+    component: HIPRTC (runtime compilation API)
+    confidence: confirmed
+    sources:
+      - docs/understand/compilers.rst
+      - include/hip/hiprtc.h
+
+framework_integrations:
+  - framework: PyTorch / ROCm
+    integration_point: PyTorch ROCm uses HIP runtime via C++ extension; hipBLAS/rocBLAS for GEMM; hipFFT for FFT; MIOpen for DNN primitives
+  - framework: TensorFlow / ROCm
+    integration_point: TF ROCm backend calls HIP runtime for kernel launches and memory management
+  - framework: OpenCL
+    integration_point: CLR provides an OpenCL runtime sharing rocclr virtual device layer with HIP
+  - framework: MPI (RCCL)
+    integration_point: RCCL (ROCm Communication Collectives Library) uses HIP streams and peer memory for GPU-direct collectives over XGMI/PCIe
+
+key_abstractions:
+  - name: hipStream_t
+    description: FIFO command queue mapping to an AQL hardware ring buffer; all async operations (kernels, memcpy, events) are enqueued here
+  - name: AQL Dispatch Packet
+    description: 64-byte Architected Queuing Language packet written directly to GPU-visible ring buffer specifying grid dims, kernel object pointer, kernarg address, and completion signal
+  - name: Wavefront (warp)
+    description: Fundamental SIMD execution unit; 64 threads on CDNA architectures (32 on RDNA) executing the same instruction in lockstep across SIMD-16 pipelines
+  - name: Compute Unit (CU)
+    description: Basic execution block containing sequencer, 4x SIMD-16 pipelines, VGPR/SGPR register files, MFMA matrix cores, LDS scratchpad, vL1D cache, and memory units
+  - name: LDS (Local Data Share)
+    description: Per-CU on-chip SRAM (64 KiB on CDNA, 32 banks); programmer-visible as __shared__; ~100x HBM bandwidth, used for intra-workgroup data sharing
+  - name: MFMA Unit
+    description: Matrix Fused Multiply-Add hardware accelerator on CDNA GPUs; executes v_mfma_* ISA instructions using VGPRs and AGPRs as matrix tile registers
+  - name: GFX IP Version
+    description: Virtual hardware target identifier (e.g., gfx942 for MI300X) decoupling HIP/LLVM IR from physical GPU; controls ISA features, warp size, and MFMA capabilities
+  - name: hipGraph_t / hipGraphExec_t
+    description: DAG of GPU operations (kernels, memcpy, events) recorded once and replayed with a single launch call, eliminating per-kernel driver overhead critical for AI inference
+  - name: KFD (Kernel Fusion Driver)
+    description: Linux kernel module managing GPU process address spaces, AQL queue creation, doorbell MMIO mappings, and HMM page-fault (XNACK) handling
+
+hardware_dispatch_path:
+  - step: 1
+    action: "Application calls hipLaunchKernelGGL / triple-chevron"
+    layer: HIP Runtime API
+  - step: 2
+    action: "HIP constructs 64-byte AQL Dispatch Packet (grid dims, kernel object, kernarg address, completion signal)"
+    layer: HIP Runtime / CLR
+  - step: 3
+    action: "ROCr writes AQL packet to hardware ring buffer; rings doorbell MMIO register"
+    layer: ROCr / HSA Runtime
+  - step: 4
+    action: "GPU Command Processor Fetcher (CPF) fetches packet; CPC decodes and forwards to ACE"
+    layer: GPU Hardware - Command Processor
+  - step: 5
+    action: "ACE breaks dispatch into workgroups; SPI (Shader Processor Input) schedules workgroups onto CUs"
+    layer: GPU Hardware - ACE / SPI
+  - step: 6
+    action: "CU executes wavefronts: SQ arbitrates instructions to VALU / MFMA / VMEM / LDS / SALU pipelines"
+    layer: GPU Hardware - Compute Unit
+  - step: 7
+    action: "On completion, hardware decrements HSA completion signal; ROCr notifies HIP runtime"
+    layer: ROCr / HSA Runtime
+
+memory_hierarchy:
+  - level: VGPR/SGPR register file
+    size_per_cu: "256-512 KiB (VGPR) + 12.5 KiB (SGPR)"
+    scope: per-thread / per-warp
+    hip_keyword: automatic variables
+    latency: 1 cycle
+  - level: LDS (Local Data Share)
+    size_per_cu: "64 KiB (CDNA) / 64 KiB (RDNA)"
+    scope: per-workgroup
+    hip_keyword: __shared__
+    latency: ~5 cycles
+  - level: vL1D cache
+    size_per_cu: "16 KiB"
+    scope: per-CU
+    hip_keyword: transparent (global/local loads)
+    latency: ~15 cycles
+  - level: L2 cache
+    size_total: varies (32 channels, 256B interleave)
+    scope: per-GPU (coherence point)
+    hip_keyword: transparent
+    latency: ~100 cycles
+  - level: HBM
+    size: GB-scale (e.g., 192 GB on MI300X)
+    scope: per-device
+    hip_keyword: hipMalloc / __global__
+    latency: ~200-500 cycles
+
+# =====================================================================
+# Software-stack update — appended 2026-08-08
+# ROCm 7.14.0 / Primus / ROCm.AI + Hyperloom / MLPerf 2026.
+# This chip has no separate software-stack.yaml; hip-rocm is the
+# software-stack record, so the update lands here.
+# =====================================================================
+update_2026_08_08:
+  date: "2026-08-08"
+
+  rocm_7_14_0:
+    confidence: high
+    version: "7.14.0"
+    release_date: "2026-07-16"
+    blog_date: "2026-07-15"
+    sources:
+      - url: "https://github.com/ROCm/ROCm/releases/tag/rocm-7.14.0"
+        type: release_tag
+      - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/rocm-7.14-blog/README.html"
+        type: official_blog
+      - url: "https://rocm.docs.amd.com/en/latest/about/release-notes.html"
+        type: official_docs
+    findings:
+      headline:
+        name: TheRock
+        description: "build and release system introducing a modular architecture; ROCm transitions to it in production"
+      layer_additions:
+        - layer: Runtime
+          component: "HIP Execution Context APIs"
+          purpose: "GPU compute-resource partitioning"
+        - layer: Runtime
+          component: "Batch memory APIs"
+          apis: [hipMemDiscardBatchAsync, hipMemPrefetchBatchAsync]
+        - layer: Runtime
+          component: "Faster HIP graph replay for async allocations"
+        - layer: Communication
+          component: "RCCL hierarchical AllGather"
+          purpose: "separates inter-node from intra-node communication"
+        - layer: Communication
+          component: "RCCL direct reduce-scatter"
+        - layer: Profiling
+          component: "ROCprofiler-SDK beta Streaming Performance Monitors + PyTorch Profiler integration"
+        - layer: Op Library
+          component: "per-matrix bias in hipBLASLt batched GEMM"
+        - layer: Runtime
+          component: "hipFile direct storage I/O"
+        - layer: Assembler / ISA
+          component: "Ryzen AI APU targets gfx1151 / gfx1153"
+        - layer: Driver / Firmware
+          component: "multi-VF partition modes for MI355X / MI350X"
+      framework_support:
+        pytorch: "2.12.0"
+        jax: "0.10.0"
+        vllm: "0.23.0"
+        tensorflow: "2.21"
+      versioning_note: "7.2.x -> 7.9.0 preview -> 7.10-7.14; ROCm 8 does not exist as of 2026-08-08"
+
+  cdna5_gfx_target_gap:
+    confidence: high
+    severity: critical
+    sources:
+      - url: "https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html"
+        type: official_docs
+      - url: "https://rocm.blogs.amd.com/ecosystems-and-partners/cdna5-helios/README.html"
+        type: official_blog
+    findings:
+      newest_instinct_targets: [gfx950, gfx942, gfx90a, gfx908]
+      gfx950_products: [MI355X, MI350X, MI350P]
+      cdna5_gfx_target: not_disclosed
+      named_in_cdna5_blog: false
+      named_in_rocm_714_blog: false
+      consequences:
+        - "No published --offload-arch value for CDNA 5"
+        - "No CDNA 5 HSACO directory in AITER's open tree (only hsa/gfx942, hsa/gfx950)"
+        - "No CDNA 5 entries in CK-Tile / AITER per-architecture tuning CSVs"
+      characterization: "hardware in production ahead of public ISA-target disclosure"
+
+  primus:
+    confidence: high
+    layer: Framework Integration
+    sources:
+      - url: "https://github.com/AMD-AIG-AIMA/Primus"
+        type: github_repo
+      - url: "https://rocm.blogs.amd.com/artificial-intelligence/mlperf-training-v6.0/README.html"
+        type: official_blog
+      - url: "https://rocm.blogs.amd.com/software-tools-optimization/primus-tuning-agent/README.html"
+        type: official_blog
+    findings:
+      name: "AMD Primus / Primus-LM"
+      purpose: "open training framework: large-scale foundation-model pretraining, post-training (SFT/LoRA), RL on AMD GPUs"
+      backends: [Megatron-LM, TorchTitan, JAX MaxText]
+      interface: "unified cluster CLI"
+      latest_release: "v26.4"
+      active_through: "2026-07-29"
+      mlperf_role: "first-ever use of AMD's Primus training framework in MLPerf Training submissions (MLPerf Training v6.0)"
+      companion_blog: "Primus Tuning Agent, 2026-07-06"
+      repo_status_before_update: absent
+
+  rocm_ai_and_hyperloom:
+    confidence: medium
+    confidence_note: "medium on existence, LOW on the numbers"
+    announced: "2026-07-23 (Advancing AI 2026)"
+    sources:
+      - url: "https://rocm.blogs.amd.com/software-tools-optimization/hyperloom/README.html"
+        type: official_blog
+      - url: "https://www.servethehome.com/amd-advancing-ai-2026-keynote-live-coverage/"
+        type: press_coverage
+    findings:
+      rocm_ai:
+        description: "AI-assisted kernel generation; coding agents (Claude, Codex, Cursor) working against AMD hardware natively"
+        public_release_or_version: not_found
+      hyperloom:
+        description: "agentic loops that profile a workload, find bottlenecks, and tune/rewrite kernels"
+        blog: "Hyperloom - Autonomous Agentic Inference Optimization for AMD GPUs (2026-07-23)"
+        public_release_or_version: not_found
+      vendor_marketing_claims_unverified:
+        inference_speedup_vs_rocm7: "3.3x"
+        hyperloom_token_rate_demo: "38%"
+        training_speedup_2_4x: not_confirmed
+
+  benchmarks:
+    mlperf_training_v6_0:
+      confidence: high
+      results_public: "2026-06-16"
+      sources:
+        - url: "https://rocm.blogs.amd.com/artificial-intelligence/mlperf-training-v6.0/README.html"
+          type: official_blog
+        - url: "https://mlcommons.org/benchmarks/training/"
+          type: benchmark_authority
+      findings:
+        first_multi_node_training_submission: true
+        submissions:
+          - "512x MI300X (64 nodes) with Oracle Cloud Infrastructure"
+          - "8-node / 64x MI325X Flux.1-schnell FP8 data-parallel"
+          - "MI350X and MI355X single-node LLM"
+        first_mxfp4_training_recipe: true
+        mxfp4_compute_density_vs_fp8: "~2x"
+        gains_vs_mlperf_5_1:
+          llama2_70b_lora_mi355x: "+19%"
+          llama2_70b_lora_mi350x: "+16%"
+          llama31_8b_pretrain_mi355x: "+13%"
+          llama31_8b_pretrain_mi350x: "+11%"
+        confirmed_partners: [Oracle Cloud Infrastructure]
+        unconfirmed_partners: [Dell, HPE, Asus, Cisco, Supermicro, MiTAC, KRAI, Vultr]
+    mlperf_inference_v6_0:
+      confidence: low
+      date: "2026-04-01"
+      sources:
+        - url: "https://rocm.blogs.amd.com/artificial-intelligence/mlperf-inference-v6.0/README.html"
+          type: official_blog
+      findings:
+        published: true
+        highlight: "AMD's first >1M tok/s aggregate multi-node result (AMD-reported)"
+        throughput_figures: unverified
+        b300_comparison_percentages: unverified
+        note: "Treat all v6.0 inference numbers as unverified AMD-reported comparisons"

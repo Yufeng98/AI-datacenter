@@ -1,0 +1,164 @@
+name: Triton
+full_name: OpenAI Triton Language and Compiler
+repo: https://github.com/triton-lang/triton
+version_investigated: "main (shallow clone, 2026-04-05)"
+current_version: "3.7.0"
+license: MIT
+
+layer_mappings:
+  - layer: Compiler / IR
+    rationale: >
+      Triton implements a full MLIR-based compilation pipeline with its own dialects
+      (Triton IR, TritonGPU IR, TritonNvidiaGPU IR) that lowers Python DSL programs
+      through LLVM IR to PTX and CUBIN. The compiler automates coalescing, shared memory
+      allocation, software pipelining, and MMA instruction selection.
+    source_paths:
+      - lib/Dialect/Triton/
+      - lib/Dialect/TritonGPU/
+      - third_party/nvidia/backend/compiler.py
+      - python/triton/compiler/
+
+  - layer: Kernel Library
+    rationale: >
+      The python/triton_kernels/ package ships production-ready Triton kernels
+      (matmul, attention variants) callable as a Python library, analogous to
+      CUTLASS in the C++ ecosystem.
+    source_paths:
+      - python/triton_kernels/
+
+framework_integrations:
+  - framework: PyTorch
+    integration_point: TorchInductor
+    description: >
+      torch.compile() with the default "inductor" backend generates Triton kernels
+      for element-wise fusions, reductions, and templated GEMM/attention operations.
+      Triton is the primary kernel codegen target for PyTorch 2.x on CUDA.
+    notes: "TorchInductor templates produce @triton.jit functions; autotuning is handled by TorchInductor's own config search."
+
+  - framework: JAX
+    integration_point: Pallas / Mosaic GPU
+    description: >
+      jax.experimental.pallas provides a grid-based tiling API that lowers to Triton IR
+      on NVIDIA GPUs. JAX's Mosaic GPU (for TPUs and H100/B200) shares the same blocked
+      programming concept but targets a different backend.
+    notes: "Pallas kernels use the same tl.* primitives and are JIT-compiled through the Triton compiler stack."
+
+key_abstractions:
+  - name: "@triton.jit / JITFunction"
+    description: >
+      Python decorator that marks a function as a Triton kernel. At call time the function
+      body is parsed as a Python AST by CodeGenerator, which emits Triton IR MLIR operations.
+      constexpr-annotated arguments are folded at compile time; runtime arguments become kernel
+      parameters. The compiled binary is cached on disk by source+option hash.
+    source: python/triton/runtime/jit.py, python/triton/compiler/code_generator.py
+
+  - name: "Tile / blocked program model (tl.program_id + tl.arange)"
+    description: >
+      Each kernel invocation computes one output tile. tl.program_id(axis) gives the CTA's
+      logical position in the launch grid; tl.arange(0, BLOCK_SIZE) generates a tile-shaped
+      index vector. All operations (load, store, dot) are performed on entire tiles rather
+      than scalar elements, lifting warp-level management to the compiler.
+    source: python/triton/language/core.py
+
+  - name: "TritonGPU IR layout encodings (NvidiaMmaEncodingAttr, BlockedEncodingAttr)"
+    description: >
+      Every tensor value in TritonGPU IR carries an encoding attribute describing how its
+      elements are distributed across warps and threads. The AccelerateMatmul MLIR pass
+      attaches NvidiaMmaEncodingAttr (MMA v2/v3/v5 depending on compute capability) to dot
+      operations. The Coalesce pass adjusts encodings to produce contiguous DRAM accesses.
+      Explicit layout conversion ops (ttg.convert_layout) move data between encodings in
+      shared memory when required.
+    source: lib/Dialect/TritonGPU/Transforms/AccelerateMatmul.cpp, lib/Dialect/TritonGPU/Transforms/Coalesce.cpp
+
+  - name: "Software pipelining (num_stages / AddPipeline pass)"
+    description: >
+      The num_stages autotuning parameter controls how many iterations of the inner reduction
+      loop are unrolled and overlapped. The AddPipeline MLIR pass inserts multi-buffered shared
+      memory allocations and cp.async / mbarrier synchronization primitives so that DRAM loads
+      for iteration N+k are in flight while Tensor Core computes iteration N, hiding memory
+      latency without programmer intervention.
+    source: lib/Dialect/TritonGPU/Transforms/Pipeliner/, third_party/nvidia/backend/compiler.py:make_ttgir()
+
+  - name: "Auto-tuning (triton.autotune / Autotuner)"
+    description: >
+      @triton.autotune wraps a kernel with a list of triton.Config objects specifying tile
+      sizes (BLOCK_SIZE_M/N/K), num_warps, num_stages, and num_ctas. On first call for a given
+      input shape the Autotuner class benchmarks every config using the driver's hardware timer,
+      selects the fastest, and caches the result so subsequent calls with the same shapes skip
+      benchmarking entirely.
+    source: python/triton/runtime/autotuner.py
+
+  - name: "Gluon (explicit-layout DSL for Blackwell)"
+    description: >
+      An experimental sub-language (python/triton/experimental/gluon/) that exposes explicit
+      shared memory handles, TMA descriptors, mbarrier primitives, and tcgen05 tensor memory
+      (tmem) operations for SM100 Blackwell GPUs. Gluon kernels enter the compiler pipeline at
+      TritonGPU IR, bypassing automatic layout inference and enabling expert-level control over
+      Blackwell's new hardware resources.
+    source: python/triton/experimental/gluon/, third_party/nvidia/lib/Dialect/NVWS/
+
+compiler_pipeline_stages:
+  - stage: ttir
+    description: "Triton IR — high-level tensor ops, loops, pointer arithmetic"
+    pass_file: third_party/nvidia/backend/compiler.py:make_ttir()
+  - stage: ttgir
+    description: "TritonGPU IR — layout-annotated IR with coalescing, MMA acceleration, pipelining, TMA"
+    pass_file: third_party/nvidia/backend/compiler.py:make_ttgir()
+  - stage: llir
+    description: "LLVM IR — shared memory allocation, NVVM intrinsics, O3 optimization"
+    pass_file: third_party/nvidia/backend/compiler.py:make_llir()
+  - stage: ptx
+    description: "PTX — nvptx64-nvidia-cuda target via LLVM NVPTX backend"
+    pass_file: third_party/nvidia/backend/compiler.py:make_ptx()
+  - stage: cubin
+    description: "CUBIN/SASS — assembled by ptxas, loaded via CUDA driver"
+    pass_file: third_party/nvidia/backend/compiler.py:make_cubin()
+
+hardware_features_exploited:
+  - feature: Tensor Cores (MMA)
+    mechanism: "AccelerateMatmul MLIR pass selects MMA v1/v2/v3/v5 by compute capability and emits NvidiaMmaEncodingAttr"
+  - feature: Shared Memory (SRAM)
+    mechanism: "AllocateSharedMemoryNV pass performs liveness-based static allocation; programmer never manages __shared__"
+  - feature: cp.async (Ampere A100)
+    mechanism: "AddPipeline pass generates multi-buffered async copies with commit/wait groups"
+  - feature: TMA / Tensor Memory Accelerator (Hopper H100)
+    mechanism: "add_tma_lowering replaces tl.load of large tiles with AsyncTMACopyGlobalToLocalOp"
+  - feature: Warp specialization (Hopper/Blackwell)
+    mechanism: "add_warp_specialize splits CTA warps into producer (load) and consumer (MMA) groups"
+  - feature: Tensor Memory / tcgen05 (Blackwell B200)
+    mechanism: "AllocateTensorMemory + LowerMMA passes manage tmem accumulator buffer and emit tcgen05.mma instructions"
+
+supported_targets:
+  - backend: CUDA (NVIDIA)
+    min_compute_capability: 8.0  # Ampere
+    notes: "Full support; Hopper SM90 and Blackwell SM100 have dedicated passes"
+  - backend: ROCm (AMD)
+    notes: "Supported via third_party/amd/ backend"
+  - backend: CPU
+    notes: "Under development"
+
+key_files:
+  - path: python/triton/runtime/jit.py
+    role: "@triton.jit decorator, kernel caching, JITFunction class"
+  - path: python/triton/compiler/code_generator.py
+    role: "Python AST to Triton IR (ast_to_ttir)"
+  - path: python/triton/compiler/compiler.py
+    role: "Main compile() function, CompiledKernel, stage dispatch"
+  - path: third_party/nvidia/backend/compiler.py
+    role: "NVIDIA backend: CUDABackend.add_stages(), make_ttir/ttgir/llir/ptx/cubin"
+  - path: lib/Dialect/TritonGPU/Transforms/AccelerateMatmul.cpp
+    role: "MLIR pass: replaces tt.dot with NvidiaMmaEncodingAttr, selects MMA version"
+  - path: lib/Dialect/TritonGPU/Transforms/Coalesce.cpp
+    role: "MLIR pass: inserts layout conversions for memory coalescing"
+  - path: lib/Dialect/TritonGPU/Transforms/Pipeliner/
+    role: "Software pipelining passes (multi-stage async copy + compute overlap)"
+  - path: python/triton/language/core.py
+    role: "Triton language primitives: program_id, arange, load, store, dot"
+  - path: python/triton/runtime/autotuner.py
+    role: "Autotuner: config search, benchmarking, result caching"
+  - path: python/triton/experimental/gluon/
+    role: "Gluon DSL for explicit-layout / Blackwell programming"
+  - path: python/triton_kernels/
+    role: "Production kernel library (matmul, attention)"
+  - path: python/tutorials/03-matrix-multiplication.py
+    role: "Reference matmul tutorial with autotuning example"

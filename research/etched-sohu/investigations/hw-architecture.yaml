@@ -1,0 +1,313 @@
+chip: etched-sohu
+investigation: hw-architecture
+as_of: 2026-08-08
+baseline_as_of: 2026-04-05  # everything not under update_2026_08_08 is the Gen 1 (Sohu, 2024) baseline
+confidence_overall: medium  # no independent benchmarks; A0 silicon back but not shipping; 2026 architecture claims are vendor-only
+
+key_findings:
+  - finding: "Hardcoded transformer pipeline — every transformer op is dedicated silicon, not a kernel on a programmable engine"
+    confidence: confirmed
+    source: etched.com announcements, TechCrunch, LessWrong deep-dive
+  - finding: "Proprietary non-GEMM attention hardware — attention computed without standard matrix-multiply engine, uses less silicon area than GEMM approach"
+    confidence: confirmed
+    source: LessWrong deep-dive, Etched marketing
+  - finding: "TSMC 4nm, reticle-limit single die (~800 mm²)"
+    confidence: confirmed
+    source: multiple sources
+  - finding: "144 GB HBM3E per chip (0.75× B200, 1.8× H100)"
+    confidence: confirmed
+    source: multiple sources
+  - finding: "Claimed 90%+ FLOPS utilization vs ~30-40% for GPU transformer inference"
+    confidence: claimed-unverified
+    source: Etched marketing
+  - finding: "8× Sohu server: 500,000+ tok/s on Llama 70B"
+    confidence: claimed-unverified
+    source: Etched marketing; no third-party validation
+  - finding: "No peak TFLOPS figure published"
+    confidence: confirmed-absence
+    source: all public sources
+  - finding: "No training support — inference only"
+    confidence: confirmed
+    source: multiple sources
+  - finding: "MoE variant exists (separate config)"
+    confidence: confirmed
+    source: Etched announcements
+  - finding: "Chip not shipped to customers as of Q1 2026"
+    confidence: confirmed
+    source: Data Center Dynamics, Bloomberg
+    superseded_by: update_2026_08_08.silicon  # still not shipping, but A0 silicon is back
+
+compute:
+  architecture: hardwired_transformer_pipeline
+  blocks:
+    - name: attention_engine
+      ops: [QKV_projection, attention_dot_product, softmax, output_projection]
+      implementation: proprietary_non_gemm_hardware
+    - name: ffn_engine
+      ops: [linear_1, activation_gelu_silu, linear_2]
+      implementation: dedicated_matrix_pipeline
+    - name: norm_block
+      ops: [layer_norm, rms_norm]
+      implementation: dedicated_hardware
+    - name: residual_add
+      ops: [element_wise_add]
+      implementation: dedicated_alu
+  flops_utilization_claimed: ">90%"
+  gpu_baseline_utilization: "~30-40%"
+  peak_tflops: not_disclosed
+
+memory:
+  offchip_type: HBM3E
+  offchip_capacity_gb: 144
+  offchip_bw_tbs: ~4-5  # estimated from HBM3E specs
+  onchip_sram: not_described
+  memory_model: hardware_managed_via_fixed_pipeline
+
+process:
+  foundry: TSMC
+  node: 4nm
+  die_size_mm2: ~800  # reticle-limit
+  die_count: 1  # single monolithic die
+  packaging: CoWoS_2.5D  # inferred for HBM3E integration
+
+interconnect:
+  scale_up_chips_per_server: 8
+  scale_up_protocol: not_disclosed
+  scale_out: not_disclosed
+  host_interface: not_disclosed  # likely PCIe
+
+status:
+  # Gen 1 baseline snapshot (2026-04-05). See update_2026_08_08.status for the current record.
+  samples_shipped: false
+  customer_deliveries: false
+  third_party_benchmarks: false
+  funding_raised_m: 620  # SUPERSEDED — see update_2026_08_08.funding
+  valuation_b: 5         # SUPERSEDED — see update_2026_08_08.funding
+  funding_date: "2026-01"  # CORRECTED — round closed 2025-12, reported 2026-01
+
+# =====================================================================
+# 2026-08-08 UPDATE — Gen 2: A0 silicon / "frontier inference cluster"
+# Prior-generation facts above are retained unchanged.
+# =====================================================================
+update_2026_08_08:
+  investigated: "2026-08-08"
+  change_class: major
+  generation_label: "Gen 2 — A0 silicon / 'frontier inference cluster' (no product name disclosed)"
+
+  naming:
+    facts:
+      - fact: "The string 'Sohu' does not appear on etched.com homepage, /progress, /progress/frontier-inference-clusters, /progress/accelerating-inference, or /join"
+        confidence: confirmed-absence
+      - fact: "Etched markets the new product only as 'frontier inference clusters' / 'frontier inference systems'"
+        confidence: confirmed
+      - fact: "No vendor or press source states that Sohu was retired, renamed, or that transformer specialization was abandoned"
+        confidence: confirmed-absence-of-evidence
+      - fact: "Repo slug etched-sohu retained; carries the note 'Sohu name no longer used in Etched marketing as of mid-2026'"
+        confidence: editorial
+    interpretation: "Marketing de-emphasis of a product name. NOT a confirmed product cancellation and NOT a confirmed architectural pivot."
+    sources:
+      - "https://www.etched.com/ (retrieved 2026-08-08)"
+      - "https://www.etched.com/progress (retrieved 2026-08-08)"
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30, retrieved 2026-08-08)"
+      - "https://www.etched.com/progress/accelerating-inference (2026-07-23, retrieved 2026-08-08)"
+      - "https://www.etched.com/join (retrieved 2026-08-08)"
+
+  silicon:
+    facts:
+      - fact: "A0 silicon came back from the foundry in H1 2026 ('Earlier this year our A0 silicon came back from TSMC N4P')"
+        confidence: confirmed  # vendor verbatim; independently corroborated that TSMC manufactured the chip
+      - fact: "Process node: TSMC N4P"
+        confidence: claimed-unverified  # vendor-sourced ONLY; no independent source names the node
+        caveat: "TechCrunch confirms TSMC manufactured the chip in early 2026 but names no node. Keep vendor attribution attached."
+      - fact: "A0 is a first tapeout revision, not production silicon"
+        confidence: confirmed  # definitional
+      - fact: "No third party has verified function, clocks, yield, or power of the A0 part"
+        confidence: confirmed-absence
+      - fact: "Die size, die count, transistor count, host interface, TDP for the A0 part"
+        value: not_disclosed
+        confidence: not-disclosed
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+      - "https://techcrunch.com/2026/06/30/nvidia-competitor-etched-hits-5b-valuation-1b-in-sales-for-ai-chip/ (retrieved 2026-08-08)"
+
+  compute_low_voltage_inference:
+    name: "Low Voltage Inference (LVI)"
+    nature: vendor_marketing_term
+    third_party_analysis: none_found  # Tom's Hardware, EE Times, SemiAnalysis, HPCwire, DCD, ServeTheHome all checked
+    facts:
+      - fact: "Math blocks run 'at under half the voltage of most AI chips'"
+        confidence: claimed-unverified
+        absolute_voltage: not_disclosed
+      - fact: "Claimed 'multiple times the FLOPs density of AI chips today'"
+        confidence: claimed-unverified
+        absolute_flops: not_disclosed
+        absolute_flops_per_mm2: not_disclosed
+      - fact: "Claim: 'trillion-parameter sparse MoEs at 80%+ Peak FLOPs without thermal throttling'"
+        confidence: claimed-unverified
+        note: "Sustained-throughput-under-thermal claim. NOT the same metric as the Gen 1 '90%+ FLOPS utilization' claim, which Etched no longer states. Do not present as a progression."
+      - fact: "Named enablers: splittable math arrays; new PDN/VRM architecture; advanced packaging; cold plates"
+        confidence: claimed-unverified
+        detail: none_disclosed
+      - fact: "TDP, perf/W, die area, clock frequency"
+        value: not_disclosed
+        confidence: not-disclosed
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30) — verbatim quotes"
+      - "https://techcrunch.com/2026/07/23/ai-chip-startup-etched-defies-skeptics-hits-10-3b-valuation-from-big-name-investors/ — paraphrase only ('a much lower voltage than any other AI chip')"
+
+  memory_cluster_scale_memory:
+    name: "Cluster Scale Memory (CSM)"
+    nature: vendor_marketing_term
+    third_party_analysis: none_found
+    facts:
+      - fact: "'HBM/SRAM hybrid design [that] solves both memory capacity and mem2mem latency'"
+        confidence: claimed-unverified
+      - fact: "Joined by 'a proprietary ultra-low-latency, high-bandwidth interconnect' creating 'a much lower-latency shared memory pool across our scale-up domain'"
+        confidence: claimed-unverified
+      - fact: "Design target: 'SRAM-level decode speeds'"
+        confidence: claimed-unverified
+      - fact: "Explicitly contrasted by Etched against SRAM-only chips, 3D DRAM, and optics"
+        confidence: confirmed  # the contrast is verbatim vendor framing
+      - fact: "HBM generation, stack count, per-chip capacity, SRAM capacity, on-package bandwidth, fabric link rate, fabric latency, coherence model"
+        value: not_disclosed
+        confidence: not-disclosed
+    supersedes: "memory.offchip_capacity_gb: 144 as the ARCHITECTURAL STORY"
+    hard_rule: "Do NOT record any per-chip memory capacity for the Gen 2 part. 144 GB HBM3E is a 2024 Sohu-only figure and must not be carried forward."
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30) — verbatim quotes"
+      - "https://techcrunch.com/2026/07/23/... — paraphrase only ('use a shared memory pool at a very, very fast, low latency')"
+
+  interconnect_scale_up:
+    facts:
+      - fact: "Scale-up domain described as 'thousand-chip scale-up domains'"
+        confidence: claimed-unverified
+        provenance: "closing hiring pitch of the 2026-07-23 /progress post ('Accelerating Inference') — NOT on /join"
+        note: "Directional vendor signal, not a spec. Do not enter a chip count in any comparison table."
+      - fact: "Product unit moved from 8-chip server to rack-scale 'frontier inference cluster'"
+        confidence: confirmed
+      - fact: "Scale-up protocol, topology, per-chip bandwidth, latency, chips per rack, rack power, scale-out fabric"
+        value: not_disclosed
+        confidence: not-disclosed
+    sources:
+      - "https://www.etched.com/progress (retrieved 2026-08-08)"
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+
+  workload_framing:
+    facts:
+      - fact: "Targets BOTH prefill and decode on the same platform"
+        confidence: confirmed  # vendor
+      - fact: "Target workloads: many-trillion-parameter sparse MoEs, long context, agentic workloads"
+        confidence: confirmed  # vendor
+      - fact: "Etched now markets 'a new category of AI hardware: frontier inference systems', co-designing 'chips, racks, software, and manufacturing methods'"
+        confidence: confirmed  # vendor
+      - fact: "MoE moved from a side variant (Gen 1) to the headline workload (Gen 2)"
+        confidence: confirmed
+      - fact: "MoE routing hardware, expert placement, all-to-all mechanism"
+        value: not_disclosed
+        confidence: not-disclosed
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+
+  funding:
+    warning: "DO NOT ADD $800M TO $620M OR TO $300M-PLUS-$620M. $800M is a CUMULATIVE total as of 2026-06-30."
+    facts:
+      - fact: "Series C: $300M at a $10.3B post-money valuation, announced 2026-07-23, led by Sequoia Capital with Andreessen Horowitz, Jane Street, Diffusion, Argo, and SK Hynix"
+        confidence: confirmed  # vendor wording and TechCrunch agree
+      - fact: "Returning backers named by TechCrunch: Peter Thiel, Andrej Karpathy, Dylan Field, Amjad Masad"
+        confidence: confirmed
+      - fact: "Cumulative total raised as of 2026-06-30: ~$800M ('four unannounced financings, including a strategic investment from VentureTech Alliance')"
+        confidence: confirmed
+      - fact: "VentureTech Alliance is TSMC's venture arm and is an Etched investor"
+        confidence: confirmed  # independently confirmed by TechCrunch
+      - fact: "Most recent prior round: $500M, closed December 2025 (reported January 2026), at a $5B post-money, led by Stripes; other backers Jane Street, Hudson River Trading, Two Sigma, Ribbit Capital"
+        confidence: confirmed
+        corrects: "repo baseline recorded this as 'Series B Jan 2026'"
+      - fact: "Correct running total raised to date: ~$1.1B (NOT $1.42B, NOT $1.72B)"
+        confidence: confirmed
+    total_raised_m_approx: 1100
+    valuation_b: 10.3
+    valuation_date: "2026-07-23"
+    sources:
+      - "https://www.etched.com/progress/accelerating-inference (2026-07-23)"
+      - "https://www.etched.com/ (retrieved 2026-08-08)"
+      - "https://techcrunch.com/2026/07/23/ai-chip-startup-etched-defies-skeptics-hits-10-3b-valuation-from-big-name-investors/"
+      - "https://techcrunch.com/2026/06/30/nvidia-competitor-etched-hits-5b-valuation-1b-in-sales-for-ai-chip/"
+
+  status:
+    as_of: "2026-08-08"
+    a0_silicon_returned: true
+    rack_scale_product_in_customer_validation: true
+    production_started: true          # "we've kicked off production"; "kicked off fabrication"
+    racks_shipped_confirmed: false    # "our first racks ship this summer" is a forward-looking statement of 2026-06-30
+    deployed_at_scale: false
+    named_customers: none
+    third_party_benchmarks: false
+    booked_orders_usd_b: 1.0
+    booked_orders_provenance: "company-originated; TechCrunch reports but does not independently verify"
+    facts:
+      - fact: "Status verb must remain 'not shipping / not deployed at scale'"
+        confidence: confirmed
+        rationale: "No independent evidence any rack shipped as of 2026-08-08; no customer named."
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+      - "https://www.etched.com/progress/accelerating-inference (2026-07-23)"
+      - "https://techcrunch.com/2026/07/23/..."
+
+  performance:
+    facts:
+      - fact: "No absolute vendor performance numbers in either 2026 post"
+        confidence: confirmed-absence
+      - fact: "Vendor language limited to 'Early customer tests show us achieving SOTA throughput, latency, and power efficiency on inference workloads'"
+        confidence: confirmed
+      - fact: "Etched promised 'more updates on our performance and roadmap this summer'; not published as of 2026-08-08"
+        confidence: confirmed
+      - fact: "No third-party benchmarks exist"
+        confidence: confirmed-absence
+      - fact: "Etched MLPerf Inference v6.0 submission"
+        value: unverified
+        confidence: unverified  # submitter list could not be retrieved; do NOT record as a confirmed absence
+      - fact: "Gen 1 figures (500,000+ tok/s Llama-70B on 8-chip server; 'replaces 160 H100s') no longer appear on etched.com and have not been restated for the A0 silicon"
+        confidence: confirmed-absence
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+      - "site checked 2026-08-08"
+
+  facilities_and_team:
+    facts:
+      - fact: "Taiwan factory opened (location, size, capacity not disclosed)"
+        confidence: claimed-unverified  # vendor only
+      - fact: "Data center, test house, and NPI prototyping lab built inside the San Jose office"
+        confidence: confirmed  # vendor; TechCrunch corroborates a 2 MW DC at the San Jose HQ
+      - fact: "New 10-Megawatt lab 'fifteen minutes from our office'; TechCrunch: ~80,000 sq ft, 10 MW, in Milpitas"
+        confidence: confirmed  # both sources agree on 10 MW
+      - fact: "In-house SMT lines"
+        confidence: claimed-unverified  # hiring copy only
+      - fact: "400+ engineers from NVIDIA, Google TPUs, Broadcom, SK Hynix, TSMC (vendor); ~400 employees (TechCrunch)"
+        confidence: confirmed
+      - fact: "Three co-founders: Gavin Uberti (CEO), Robert Wachen (President), Chris Zhu"
+        confidence: confirmed
+        corrects: "repo baseline listed only Uberti and Zhu"
+      - fact: "Mark Ross — CTO, ex-CTO of Cypress; Saptadeep Pal — VP ASIC & Architecture, co-founded Auradine, NVIDIA H100/A100/V100 architecture team, Qualcomm award for waferscale SRAM/DRAM stacking research; Brian Loiler VP Platform; Wayne Cao VP Production; David Munday VP Software; Tim Perevozchikov VP Finance"
+        confidence: confirmed
+    sources:
+      - "https://www.etched.com/progress (retrieved 2026-08-08)"
+      - "https://www.etched.com/join (retrieved 2026-08-08)"
+      - "https://www.etched.com/ (retrieved 2026-08-08)"
+      - "https://techcrunch.com/2026/07/23/..."
+
+  disclosure_watch:
+    facts:
+      - fact: "Etched is a Rhodium-level (top-tier) sponsor of Hot Chips 2026 (Aug 23-25, 2026) and has NO talk in the advance program"
+        confidence: confirmed
+        rule: "A sponsorship is not a disclosure. Do not treat it as evidence of a forthcoming architecture reveal."
+      - fact: "Hot Chips 38 runs 2026-08-23 to 2026-08-25 — in the future as of this investigation. No slides, abstracts, or specs exist."
+        confidence: confirmed
+    sources:
+      - "https://www.hotchips.org/advance-program/ (retrieved 2026-08-08)"
+
+  evidence_limitations:
+    - "WebSearch budget was exhausted during verification (200/200 calls). Independent sourcing was done via WebFetch against Bing SERPs and publisher URLs directly; DuckDuckGo returned a CAPTCHA."
+    - "Yahoo Finance article bodies were unreachable (404 on truncated URLs)."
+    - "https://en.wikipedia.org/wiki/Etched_(company) returned 404 on 2026-08-08."
+    - "Independent corroboration for this update rests mainly on two TechCrunch articles."
+    - "No third-party technical analysis of LVI or CSM exists from any outlet."

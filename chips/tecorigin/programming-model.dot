@@ -1,0 +1,186 @@
+digraph tecorigin_pm {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    labelloc="t";
+    label="Tecorigin SDAA Software Stack — a deliberate CUDA clone over a Sunway-idiom machine\nTecoToolKit + TecoDriver v3.2.0 · as_of 2026-08-08";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== FRAMEWORK =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        tecotorch [label="TecoPyTorch (torch_sdaa) v3.2.0\nPyTorch 2.7.1 (2.4.0 line also ships)\ndevice='sdaa', torch.sdaa.* mirrors torch.cuda\nAMP FP16 training · inference is FP32-ONLY", fillcolor="#D6E4F0"];
+        tecopaddle [label="TecoPaddle (paddle_sdaa) v3.2.0\nPaddlePaddle 3.0.0 CustomDevice plugin\nUPSTREAM independent backend:\nPaddleCustomDevice/backends/sdaa (Apache-2.0)\n~115 kernels + pr_ci_sdaa.sh hardware CI", fillcolor="#D6E4F0"];
+        tecovllm [label="Teco-vLLM v3.2.0\nPagedAttention · chunked prefill · prefix caching\nDisaggregated Prefill (PD分离) · LoRA · tool calling\nTP / PP / EP / DP + EPLB + SBO · Ray multi-node\nQuantization is WEIGHT-ONLY: W8A16, W4A16,\nGPTQ, AWQ, KV-INT8 — there is NO W8A8", fillcolor="#D6E4F0"];
+        tecomegatron [label="Teco-Megatron-LM v3.2.0\nTensor / Sequence / Pipeline / Expert parallelism\ndistributed optimizer\nDeepSeek-R1-Distill-Llama-70B SFT:\nTP=4 × PP=8 on 1 node × 8 cards = 32 devices", fillcolor="#D6E4F0"];
+        infereng [label="TecoInferenceEngine\n小模型 v3.1.0 (ONNX-only front end,\nTensorRT-migration path, 70+ models)\n大模型 (separate engine)", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== GRAPH CAPTURE / COMPILER =====================
+    subgraph cluster_compiler {
+        label="Graph Capture and Graph Compiler";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        dynamo [label="TorchDynamo / torch.compile\nfullgraph supported\ndynamic / mode / options are RESERVED\nand NOT supported — no dynamic-shape path", fillcolor="#E4DEFF"];
+        inductor [label="teco_inductor\nTorchInductor backend\nFuses Pointwise / Reduction / Foreach\nConv and GEMM FALL BACK to the libraries\nOptions: use_simd128, higher_performance,\nuse_table (may reduce accuracy)", fillcolor="#E4DEFF"];
+        tvm [label="TVM / Relay IR\nTecoInferenceEngine compiler\nONNX parse + FP32→FP16 → graph opt\n(fusion, const-fold, CSE, layout insertion)\n→ runtime → device", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== LIBRARIES =====================
+    subgraph cluster_libs {
+        label="Acceleration Libraries (no public manual for any of them)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        tecodnn [label="TecoDNN v3.2.0 — libtecodnn.so\n(cuDNN analogue)", fillcolor="#D4EDDA"];
+        tecoblas [label="TecoBLAS v3.2.0 — libtecoblas.so\n(cuBLAS analogue)", fillcolor="#D4EDDA"];
+        tecomisc [label="TecoRAND (cuRAND) · TecoLMK (large-model\ninference kernels) · TecoCUSTOM — libtecodnn_ext.so\nTecoAL — libtecoal.so is the OPEN-SOURCE face,\nnot a shipped rename (install manual omits it)", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LANGUAGE / COMPILER =====================
+    subgraph cluster_kernel {
+        label="Kernel Language and Kernel Compiler";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sdaac [label="SDAA C v3.2.0 (docs v3.3.0) — .scpp\n__global__ / __device__ / __local__ / __scoped_local__\n<<<...>>>, threadIdx, threadDim\nIntrinsics: thread groups, sync_threads, SPM malloc,\nDMA, RMA, broadcast, atomics, matmul, transpose, SIMD\nNo exceptions/RTTI/STL/new/statics/file-I-O", fillcolor="#FFE0B2"];
+        tecocc [label="TecoCC (tecocc) v3.2.0\nClang/LLVM-derived: .bc bitcode host+device,\nclang-offload-bundler, -flto, -O0..-O3\n--sdaa-arch=pcx_100 · --stack-on-global", fillcolor="#FFE0B2"];
+        sdaaext [label="Custom-op paths\nSDAA Extension (PyTorch, load_inline in v3.2.0)\nAbstractPluginOp (TecoInferenceEngine)\nTVM Relay registration · SDAAPluggableAllocator", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ISA =====================
+    subgraph cluster_isa {
+        label="ISA";
+        style="rounded,dashed";
+        color="#AD1457";
+        fontcolor="#AD1457";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pcx [label="PCX (Parallel Computing eXecution) v1.0.0\nHARDWARE-INDEPENDENT VIRTUAL ISA — the PTX of this ecosystem\nInfinite virtual general registers\nScalar / vector / MATRIX instruction classes\n%tid %gid %ngroup %nthread · .spm/.global/.const\nmatmul_init/load_weight/compute/store · rma · broadcast\nCompatibility table lists ONLY T100系列", fillcolor="#F8BBD0"];
+        pcxac [label="PCXAC v1.2.0\nPCX Advanced Compiler\nlightweight; ships MemChecker\n(static + dynamic)", fillcolor="#F8BBD0"];
+        machineisa [label="T1 MACHINE ISA\nNOT DISCLOSED — by design\nPCX exists precisely to hide it\nNo opcode listing, no disassembly format", fillcolor="#FCE4EC", style="rounded,filled,dashed"];
+    }
+
+    // ===================== RUNTIME / COMM =====================
+    subgraph cluster_runtime {
+        label="Runtime and Communication";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sdaart [label="SDAARuntime v3.2.0 — libsdaart.so\nCUDA-Runtime analogue\nsdaaSetDevice / GetDeviceProperties\nsdaaMalloc / Free / Memcpy\nstreams + events + P2P\nfull CUDA-shaped sdaaError_t enum", fillcolor="#F8D7DA"];
+        tccl [label="TCCL v3.2.0 — libtccl.so\nNCCL analogue\nPyTorch: ProcessGroupTCCL (backend='tccl')\nTCCLTests v1.1.0\n+ MLNX_OFED 5.9 / SHARP 3.2.0 / OpenMPI 4.1.5rc2", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware / Management (TecoDriver package)";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sdaadriver [label="SDAADriver v3.2.0 (pkg tecodriver)\n/dev/tcaicardN — one node per CARD\nFirmware aiflash_v<ver>_T1\nVBIOS / MCU / PCB versions reported", fillcolor="#E0E0E0"];
+        mgmt [label="TCML v1.15.0 (NVML analogue)\nTecoSMI v1.15.0 (nvidia-smi analogue)\nTecoExporter v1.5.1 (Prometheus telemetry)", fillcolor="#E0E0E0"];
+        tools [label="Debug / profile / validate\nTecoGDB v3.1.0 (cuda-gdb; switchSPE)\nSDPTI v1.7.0 (CUPTI) · TCPX v0.3.0 (NVTX)\nTSight v1.12.0/v1.9.0 (Nsight) · TCVS v1.6.0 (DCGM-diag)\nsdaacfilt (c++filt) · tcap_dllogger", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Tecorigin T1 Hardware — heterogeneous many-core (SPA / SPE array)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        hw_compute [label="4 SPAs × 32 SPEs = 128 SPEs per card\nEach SPA is an independent device (no shared address space)\nSPMD; FU does a 128×32×32 MMA\nMatrix dtypes: FP16→FP16/FP32, S16→S16/S32 ONLY\nPeak throughput: NOT DISCLOSED", fillcolor="#283593", fontcolor="white"];
+        hw_mem [label="3-level memory, NO DATA CACHE\nSPM ≥235 KB private per SPE (heap/stack/local)\nGlobal HBM 15296 MB per SPA / 64 GB per card\nHBM BANDWIDTH: NOT DISCLOSED\nMovement is explicit: DMA + RMA + HW broadcast", fillcolor="#283593", fontcolor="white"];
+        hw_net [label="Ring network (环网) @ 2200 MHz on chip\nSPE array behaves as an 8 × 4 grid (derived)\nHost: PCIe Gen4 ×16\nScale-up: PCIe P2P only — NO proprietary link\nScale-out: IB / RoCE", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Frameworks -> capture / compilers
+    tecotorch -> dynamo [label="torch.compile", fontsize=8];
+    dynamo -> inductor [label="graph", fontsize=8];
+    infereng -> tvm [label="ONNX", fontsize=8];
+    tecovllm -> tecotorch [style=dashed, color="#AAAAAA"];
+    tecomegatron -> tecotorch [style=dashed, color="#AAAAAA"];
+
+    // Frameworks / compilers -> libraries
+    tecotorch -> tecodnn [style=dashed, color="#AAAAAA", label="eager ops", fontsize=8];
+    tecopaddle -> tecodnn [style=dashed, color="#AAAAAA"];
+    inductor -> tecodnn [label="Conv / GEMM fallback", fontsize=8];
+    inductor -> tecoblas [label="GEMM fallback", fontsize=8];
+    tvm -> tecomisc [style=dashed, color="#AAAAAA"];
+    tecodnn -> tecomisc [style=invis];
+
+    // Libraries + custom ops -> kernel language
+    tecodnn -> sdaac [style=dashed, color="#AAAAAA", label="implemented in", fontsize=8];
+    tecoblas -> sdaac [style=dashed, color="#AAAAAA"];
+    sdaaext -> sdaac [label="user .scpp kernels", fontsize=8];
+    inductor -> tecocc [label="codegen → .scpp", fontsize=8];
+
+    // Kernel language -> compiler -> ISA
+    sdaac -> tecocc [label="tecocc", fontsize=8];
+    tecocc -> pcx [label="auto-generates PCX\n(recommended path)", fontsize=8];
+    sdaac -> pcx [style=dashed, label="inline PCX for tuning", fontsize=8];
+    pcx -> pcxac [label="assemble / link", fontsize=8];
+    pcxac -> machineisa [label="machine code", fontsize=8];
+
+    // Runtime path
+    tecotorch -> sdaart [style=dashed, color="#AAAAAA", label="device / memory / streams", fontsize=8];
+    tecovllm -> tccl [style=dashed, color="#AAAAAA", label="collectives", fontsize=8];
+    tecomegatron -> tccl [style=dashed, color="#AAAAAA"];
+    tecodnn -> sdaart [style=dashed, color="#AAAAAA"];
+    machineisa -> sdaart [label="kernel binary", fontsize=8];
+    tccl -> sdaart;
+
+    // Runtime -> driver -> hardware
+    sdaart -> sdaadriver;
+    sdaadriver -> mgmt [style=dashed];
+    sdaadriver -> tools [style=dashed];
+    sdaadriver -> hw_compute [color="#283593", label="/dev/tcaicardN", fontsize=8];
+
+    // Hardware internal
+    hw_compute -> hw_mem [color="#283593"];
+    hw_mem -> hw_net [style=dashed, color="#283593"];
+}

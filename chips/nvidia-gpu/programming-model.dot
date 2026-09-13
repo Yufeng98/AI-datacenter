@@ -1,0 +1,195 @@
+digraph nvidia_gpu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.cuda, Autograd\nCUDAGraph, CachingAlloc", fillcolor="#D6E4F0"];
+        jax [label="JAX\njax.numpy, pjit\nPallas", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow\ntf.device(GPU)\nStreamExecutor", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        torchcompile [label="torch.compile\nTorchDynamo\nTorchInductor", fillcolor="#E4DEFF"];
+        triton [label="Triton\nPython DSL\nMLIR pipeline", fillcolor="#E4DEFF"];
+        nvcc [label="nvcc / NVVM\nCUDA C++ compiler\nfatbinary gen", fillcolor="#E4DEFF"];
+        cutile [label="cuTile / CUDA Tile IR\nPython tile DSL\nMLIR tile compiler\n(Blackwell + Ampere/Ada)", fillcolor="#E4DEFF"];
+        xla [label="XLA\nHLO to LLVM\nto PTX", fillcolor="#E4DEFF"];
+        tensorrt [label="TensorRT\nGraph optimizer\nINT8/FP8 quant", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cudnn [label="cuDNN v9\nConv, Attention, Norm\nGraph API (50-op fusion)\nFP8/MXFP4 engines", fillcolor="#D4EDDA"];
+        cublas [label="cuBLAS / cublasLt\nGEMM + BLAS L1-3\nEpilogue fusion\nFP4-FP64 precision", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cutlass [label="CUTLASS / CuTe\nGEMM/Conv templates\nEVT epilogue fusion\nBlackwell tcgen05+TMEM", fillcolor="#FFF3CD"];
+        cub [label="CUB / Thrust / libcu++\nReduce, Scan, Sort\nParallel primitives\nArch-aware tuning", fillcolor="#FFF3CD"];
+        flashattn [label="FlashAttention\nIO-aware attention\nSMEM tiling", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cudart [label="CUDA Runtime API\nlibcudart.so\nStreams, Events, Graphs\nUVM, MPS/MIG", fillcolor="#F8D7DA"];
+        cudadriver [label="CUDA Driver API\nlibcuda.so\nContexts, Modules\nVMM, JIT compile", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="nvidia.ko\nOpen Kernel Module\nRM proxy + ioctl\nUser-mode doorbells", fillcolor="#E0E0E0"];
+        gsp [label="GSP Firmware\nOn-GPU RISC-V\nResource Manager\nShared-mem RPC", fillcolor="#E0E0E0"];
+        uvm [label="nvidia-uvm.ko\nPage fault handler\nManaged memory", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        nccl [label="NCCL 2.30.x\nAllReduce, AllGather\nRing/Tree/NVLS\nZero-SM collectives\nElastic buffers + TMA", fillcolor="#FFE0CC"];
+        ncclep [label="NCCL EP / nccl4py\nMoE dispatch + combine\non NCCL Device API\n(LSA + GIN)", fillcolor="#FFE0CC"];
+        gdrcopy [label="GPUDirect RDMA\nNIC-to-GPU DMA\nGIN/GDAKI", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ptx [label="PTX v9.3\nVirtual ISA\nwgmma, tcgen05\ncp.async.bulk", fillcolor="#EFEBE9"];
+        tileir [label="Tile IR\nTile-level virtual ISA\n(alongside PTX)\ntileiras / TILE-IR AS", fillcolor="#EFEBE9"];
+        sass [label="SASS\nNative microcode\nper sm_XX\nptxas assembler", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="NVIDIA GPU Hardware (Hopper / Blackwell)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        sm [label="Streaming Multiprocessors\n128 CUDA Cores + 4 Tensor Cores per SM\n4 Warp Schedulers, 64 warps/SM\n(H100: 132 SMs | B200: 296 SMs)", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nRegs (256KB/SM) | SMEM/L1 (228KB/SM)\nL2 (50-128MB) | HBM3e (192GB, 8TB/s)\nTMEM (Blackwell)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect\nNVLink 5 (1.8 TB/s/GPU) + NVSwitch\nNVL72: 72 GPUs, 130 TB/s\nConnectX-7 NDR IB 400Gb/s", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> torchcompile;
+    pytorch -> nvcc [style=dashed, color="#AAAAAA"];
+    jax -> xla;
+    tf -> xla;
+    torchcompile -> triton;
+
+    // Compiler -> Op/Kernel
+    triton -> ptx;
+    nvcc -> ptx;
+    tensorrt -> cudnn;
+    tensorrt -> cutlass;
+    xla -> cudnn;
+    xla -> cublas;
+
+    // Framework -> Op (direct dispatch)
+    pytorch -> cudnn [style=dashed, color="#AAAAAA", label="SDPA", fontsize=8];
+    pytorch -> cublas [style=dashed, color="#AAAAAA", label="matmul", fontsize=8];
+
+    // Op -> Kernel
+    cudnn -> cutlass [label="engines", fontsize=8];
+    cublas -> cutlass [label="GEMM kernels", fontsize=8];
+
+    // Kernel -> Runtime
+    cutlass -> cudart;
+    cub -> cudart;
+    flashattn -> cudart;
+
+    // Runtime chain
+    cudart -> cudadriver;
+    cudadriver -> kmod;
+    kmod -> gsp;
+    kmod -> uvm [style=dashed];
+
+    // ISA chain
+    ptx -> sass [label="ptxas", fontsize=8];
+    tileir -> sass [label="tileiras", fontsize=8];
+    cutile -> tileir;
+    triton -> tileir [style=dashed, color="#AAAAAA", label="Tile IR backend", fontsize=8];
+    sass -> sm;
+
+    // Communication
+    nccl -> cudart [style=dashed];
+    nccl -> gdrcopy;
+    ncclep -> nccl [label="device API", fontsize=8];
+    gdrcopy -> interconnect [style=dashed, color="#283593"];
+
+    // Hardware internal
+    sm -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    gsp -> sm [style=dashed, color="#283593"];
+}

@@ -1,0 +1,118 @@
+digraph samsung_aquabolt_pim_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK =====================
+    subgraph cluster_framework {
+        label="ML Framework (Host GPU/FPGA)";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="TensorFlow / PyTorch\n(unmodified user code)\nHost GPU/FPGA handles\ncompute-bound ops", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== PIM RUNTIME =====================
+    subgraph cluster_runtime {
+        label="PIM Software Stack (not public)";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pim_runtime [label="PIM Runtime\nDetects memory-bound operations\nTransparent offload to PIM\nManages synchronization", fillcolor="#F8D7DA"];
+        pim_blas [label="PIM BLAS Library\n(BLAS Level 2: GEMV)\nRNN hidden state, embedding\nMatrix-vector multiply", fillcolor="#F8D7DA"];
+        opencl [label="OpenCL Backend\nExtended HBM2 commands\nLow-level PIM control\nInstruction broadcasting", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Samsung Aquabolt-XL HBM-PIM Hardware";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        pim_dies [label="4× PIM-DRAM Dies\n32 FP16 SIMD processors/die\n= 128 total processors\n~1.2 TFLOPS FP16\n4.92 TB/s internal bandwidth", fillcolor="#283593", fontcolor="white"];
+        std_dies [label="4× Standard DRAM Dies\n(Aquabolt HBM2)\nFull 16 GB capacity", fillcolor="#283593", fontcolor="white"];
+        logic_die [label="Logic Die (base)\nJEDEC HBM2 protocol\nNo changes required\nDrop-in GPU/FPGA replacement", fillcolor="#283593", fontcolor="white"];
+        tsi [label="Through-Silicon Vias (TSV)\n+ Silicon Interposer\nDie-to-die interconnect\nStandard HBM2 packaging", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host Device (GPU/FPGA)";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        host [label="GPU (AMD MI60) / FPGA (Xilinx Alveo U280)\nHBM2 memory controller\n>2× perf, >70% energy vs baseline", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== GEN 2: LPDDR5X-PIM "PIM KERNEL" STACK =====================
+    subgraph cluster_lp5x_sw {
+        label="LPDDR5X-PIM \"PIM Kernel\" layer (not public; arXiv 2606.00636, 2026)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        lp5x_app [label="Application\n(matrix shapes + dtypes)\nNo framework binding disclosed", fillcolor="#E0F2F1"];
+
+        lp5x_mapper [label="Data Mapper (OFFLINE)\nPIM-aware placement of weights\n+ scale factors into DRAM banks\nPredefined \"PIM Tile Configuration\"\nPreloaded: no runtime rearrangement\nMappings: Vertical / Horizontal / Reshape", fillcolor="#B2DFDB"];
+
+        lp5x_codegen [label="PIM Device Code Gen\nSynthesizes IRF code +\nhardware config code from\nmatrix shape and dtype", fillcolor="#B2DFDB"];
+
+        lp5x_control [label="PIM Control\nManages SB <-> MB\nmode transitions", fillcolor="#B2DFDB"];
+
+        lp5x_gemv [label="GEMV Kernel\nPer-tile GEMV on the\nspecialized PIM ISA\nHandles pipeline flush-out", fillcolor="#B2DFDB"];
+    }
+
+    subgraph cluster_lp5x_hw {
+        label="Samsung LPDDR5X-PIM Hardware (disclosed 2026; details pending Hot Chips 2026, 25 Aug 2026)";
+        style="rounded,filled";
+        color="#00695C";
+        fontcolor="white";
+        fillcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        lp5x_dev [label="LPDDR5X-9600 device\nJEDEC JESD209-5C; 4 channels\n1 PIM block per DRAM bank (1:1)\nIRF + SRF registers\nINT W8A8/W4A4/W8A16/W4A8/W4A16\nFP W8A8(FP)/W8A16(FP)\nMAC lanes, peak, BW: not disclosed", fillcolor="#00897B", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+    pytorch -> pim_blas [label="GEMV calls", fontsize=8];
+    pim_blas -> pim_runtime;
+    pim_runtime -> opencl;
+    opencl -> logic_die [label="HBM2 commands\n+ extended PIM cmds", fontsize=8];
+    logic_die -> pim_dies [label="bank cmds", fontsize=8];
+    logic_die -> std_dies [style=dashed];
+    pim_dies -> tsi;
+    std_dies -> tsi;
+    tsi -> host [label="HBM2 bus\n(JEDEC compatible)", fontsize=8, style=dashed];
+    host -> logic_die [label="HBM2 memory\ncontroller", fontsize=8];
+
+    lp5x_app -> lp5x_mapper [label="weights\n(offline)", fontsize=8, style=dashed];
+    lp5x_app -> lp5x_codegen [label="shape + dtype\n(runtime)", fontsize=8];
+    lp5x_mapper -> lp5x_dev [label="preloaded bank\nplacement", fontsize=8, style=dashed];
+    lp5x_codegen -> lp5x_control;
+    lp5x_control -> lp5x_gemv;
+    lp5x_gemv -> lp5x_dev [label="PIM ISA / IRF code\nover JEDEC LPDDR5X", fontsize=8];
+}

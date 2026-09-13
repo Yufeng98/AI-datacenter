@@ -1,0 +1,130 @@
+chip: untether-ai
+as_of: 2026-08-08
+device_class: At-Memory Compute (Canada)
+hq: Toronto, Ontario, Canada (former)
+founded: 2018
+
+status: dead
+status_date: 2025-10-15
+status_detail: >
+  Untether AI Corporation filed an assignment in bankruptcy 2025-10-15 under Canada's Bankruptcy and
+  Insolvency Act (Ontario Estate/Court No. 31-3285414; trustee PricewaterhouseCoopers Inc., LIT; Goodmans
+  LLP independent counsel). Liquidation, not restructuring. Zero employees at the date of bankruptcy;
+  52 staff terminated beforehand. Statement of affairs: ~CAD $25.0M assets (almost entirely cash) against
+  ~CAD $128.63M owed to ~71 unsecured creditors; FY2024 loss ~CAD $68.38M. All products and the imAIgine
+  SDK were discontinued June 2025 with no successor.
+trustee_stated_causes:
+  - failure to raise additional funding
+  - competitive pressure
+  - "a late pivot to generative AI markets resulting in lost opportunities"
+products_discontinued: 2025-06
+trustee_expects_unsecured_distribution: true
+
+amd_transaction:
+  date: 2025-06
+  # CORRECTION: not an acqui-hire of the team and not an asset purchase.
+  nature: exclusive right to negotiate new employment with certain Untether employees
+  paid_to_untether_usd_m: 25
+  ip_acquired: none
+  products_acquired: none
+  silicon_acquired: none
+  use_of_proceeds: secured debt repaid in full, June 2025
+  corroboration: National Bank of Canada patent security interest released, USPTO recorded 2025-06-17
+
+ip_status:
+  owner: Untether AI Corporation (bankrupt estate)
+  us_patents_approx: 34
+  uspto_reassignment_recorded: false        # as of 2026-08-08
+  prosecution_continued: 'US12591633B2 "Computational memory" granted 2026-03-31'
+  trustee_carrying_value_cad: 1
+  monetization: trustee "considering options and alternatives"; non-binding LOI from pre-bankruptcy TD Securities process; no sale publicly confirmed
+  last_trustee_filing: 2025-10-31
+
+sdk_open_sourced: false
+website_live: false                         # untether.ai TLS handshake failure as of 2026-08-08
+
+status_sources:
+  - https://www.pwc.com/ca/en/car/untether/assets/untether-004_311025.pdf   # PRIMARY trustee's report, 2025-10-30
+  - https://www.pwc.com/ca/en/services/insolvency-assignments/untetherai.html
+  - https://www.pwc.com/ca/en/services/insolvency-assignments/untetherai/trustees-reports.html
+  - https://patents.google.com/patent/US11614947B2/en
+  - https://patents.google.com/patent/US12591633B2/en
+  - https://betakit.com/untether-ai-files-for-bankruptcy-following-amd-acquihire/
+
+generations:
+  runAI200:
+    gen: 1
+    announced: 2020
+    process_node: TSMC 16nm
+    sram_banks: 511
+    sram_per_bank_kb: 385
+    total_sram_mb: 200
+    pe_per_bank: 512
+    peak_tops_int8: 502
+    eco_mode_tops_per_watt: 8
+    form_factor: PCIe card
+
+  speedAI240:
+    gen: 2
+    codename: Boqueria
+    announced: 2022-08  # Hot Chips 2022
+    process_node: TSMC 7nm
+    sram_banks: 729
+    total_sram_mb: 238
+    riscv_cores_per_bank: 2
+    riscv_freq_ghz: 1.35
+    total_riscv_cores: 1456
+    pe_per_bank: 512
+    peak_flops_fp8: 2e15   # 2 PetaFLOPS
+    peak_flops_bf16: 1e15  # 1 PetaFLOP
+    efficiency_tflops_per_watt: 30
+    sram_bandwidth_aggregate_pbs: 1.0  # 1 PB/s
+    scratchpads: 4x1MB
+    external_dram: LPDDR5
+    external_dram_width_bits: 2x64
+    external_dram_max_gb: 32
+    tdp_watts: 75  # speedAI240 Slim
+    form_factor: PCIe low-profile
+    datatypes: [INT4, INT8, FP8, BF16]
+    sparsity: "2:1 structured + zero-detect"
+
+memory_hierarchy:
+  L1_sram_mb: 238
+  L1_bandwidth_pbs: 1.0
+  L2_scratchpad_mb: 4
+  L3_external_dram: LPDDR5 up to 32 GB
+
+mlperf:
+  resnet50_server_qps: 309752
+  resnet50_power_watts: 986
+  efficiency_vs_nvidia_gen: "~3x vs closest competitor"
+  vs_l40s_throughput_pct: 62.5
+  vs_l40s_power_pct: 43
+
+figures_provenance: vendor-claimed peaks (Untether product materials, Hot Chips 2022) except mlperf block
+
+key_innovation: >
+  Processing elements embedded directly inside SRAM banks.
+  512 PEs per bank read from their own local SRAM — no data movement
+  to/from external memory hierarchy for multiply-accumulate operations.
+  Targeted the memory wall that causes ~90% of GPU AI inference energy waste.
+
+post_mortem: >
+  Architecture assumed the working set fits in 238 MB of on-chip SRAM — true for CNN inference, false for
+  LLM weights, where the LPDDR5 fallback (<=32 GB) sits far below the ~1 PB/s in-bank bandwidth that was
+  the entire advantage. Matches the trustee's stated cause: "a late pivot to generative AI markets
+  resulting in lost opportunities." Failure was workload-market mismatch, not silicon defect.
+
+timeline:
+  - 2018: Founded, Toronto
+  - 2020: runAI200 announced
+  - 2022-08: speedAI240 (Boqueria) at Hot Chips 2022
+  - 2023: imAIgine SDK bare-metal kernel support
+  - 2024: speedAI240 Slim shipped; MLPerf submission
+  - 2025-03: imAIgine SDK v25.04 generative compiler (300+ models) — final release
+  - 2025-06: 'AMD Transaction — AMD paid US$25M for exclusive employment-negotiation rights only (no IP, products, or silicon); speedAI products and imAIgine SDK discontinued; secured debt repaid in full'
+  - 2025-06-17: 'National Bank of Canada patent security interest released (USPTO)'
+  - 2025-10-15: 'assignment in bankruptcy filed (BIA, Ontario Estate No. 31-3285414; PwC Inc. trustee); zero employees'
+  - 2025-10-31: "first meeting of creditors; trustee's preliminary report (latest public filing)"
+  - 2026-03-31: 'US12591633B2 granted — portfolio still owned and prosecuted by the estate'
+  - 2026-08-08: 'no USPTO reassignment; no IP sale publicly confirmed; untether.ai offline'

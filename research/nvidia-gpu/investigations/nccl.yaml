@@ -1,0 +1,159 @@
+resource: NCCL
+url: https://github.com/NVIDIA/nccl
+as_of: "2026-04-05"
+commit: 49839df
+license: Apache-2.0
+
+layer_mappings:
+  - layer: Communication
+    sublayer: Collective Communication Library
+    description: >
+      NCCL sits directly above the hardware transport fabric (NVLink, NVSwitch,
+      InfiniBand, PCIe) and exposes a collective operation API (AllReduce,
+      AllGather, Reduce, Broadcast, ReduceScatter, Send, Recv) consumed by
+      distributed training frameworks.
+
+framework_integrations:
+  - framework: PyTorch
+    integration_point: torch.distributed / c10d ProcessGroupNCCL
+    notes: >
+      PyTorch's default GPU backend for distributed training. ProcessGroupNCCL
+      wraps NCCL communicators and translates DDP / FSDP gradient synchronization
+      into ncclAllReduce / ncclReduceScatter calls.
+  - framework: Horovod
+    integration_point: horovod.torch / horovod.tensorflow NCCL backend
+    notes: >
+      Horovod uses NCCL for ring-allreduce when GPUs are available, providing
+      a framework-agnostic alternative to vendor-specific distributed APIs.
+  - framework: JAX
+    integration_point: jax.distributed / XLA NCCL backend
+    notes: >
+      XLA's NCCL plugin dispatches collectives from the JAX pjit / jax.lax
+      collective primitives to NCCL for NVIDIA GPU targets.
+  - framework: PaddlePaddle
+    integration_point: paddle.distributed collective ops
+    notes: >
+      PaddlePaddle's communication backend supports NCCL for GPU collective ops.
+  - framework: nccl4py
+    integration_point: Python Cython bindings (bindings/nccl4py/)
+    notes: >
+      Official Python bindings shipping in the NCCL repo since ~2025. Provides
+      both low-level Cython (zero-overhead) and high-level Pythonic APIs.
+
+key_abstractions:
+  - name: ncclComm_t (Communicator)
+    file: src/include/comm.h
+    description: >
+      Opaque handle encapsulating all state for a group of communicating ranks:
+      rank count, topology graph, channel array, transport connections, proxy
+      thread, tuner config, CUDA stream binding, and buffer registrations.
+      Created by ncclCommInitRank() / ncclCommInitRankConfig().
+
+  - name: Channel (ncclDevChannel / ncclChannel)
+    file: src/include/channel.h
+    description: >
+      A logical data-transfer lane mapped onto a physical interconnect path.
+      Multiple channels run concurrently to saturate bandwidth. Each channel
+      carries either a ring or tree topology. Channels are selected by the
+      topology graph search at communicator init time.
+
+  - name: Transport Abstraction (ncclTransport)
+    file: src/include/transport.h
+    description: >
+      Vtable-based interface with four concrete backends:
+        P2P (0)    - NVLink / PCIe direct GPU memory access via cuMem / CUDA IPC
+        SHM (1)    - CPU shared memory for same-process same-node ranks
+        NET (2)    - InfiniBand Verbs or TCP sockets for inter-node traffic
+        CollNet (3)- In-network compute (SHARP / collective offload)
+      NVLS (NVLink SHARP multicast) is a special path initialized separately.
+
+  - name: Communication Primitives (Primitives<T,RedOp,Fan,Direct,Proto>)
+    file: src/device/primitives.h
+    description: >
+      C++ template classes running inside CUDA kernels implementing low-level
+      send/receive ring/tree slots with three protocol variants:
+        ProtoSimple  - bulk data, best for large messages over NVLink
+        ProtoLL      - low-latency 8B-data + 8B-flag, best for small messages
+        ProtoLL128   - 128-byte NVLink cache-line optimized, medium messages
+      Fan templates parametrize ring/tree arity (FanSymmetric, FanAsymmetric).
+
+  - name: Topology System (ncclTopoSystem)
+    file: src/graph/topo.h, src/graph/topo.cc
+    description: >
+      Hardware topology discovered at communicator init by parsing the PCI tree
+      and querying NVML for NVLink fabric info. Node types: GPU, PCI, NVS
+      (NVSwitch), CPU (NUMA), NIC, NET, GIN. Path types encode interconnect
+      quality: PATH_LOC, PATH_NVL, PATH_NVB, PATH_C2C, PATH_PIX, PATH_PXB,
+      PATH_PXN, PATH_PHB, PATH_SYS, PATH_NET. Drives channel search and
+      algorithm / protocol selection.
+
+  - name: Proxy Thread
+    file: src/proxy.cc
+    description: >
+      Per-communicator CPU thread that drives network I/O on behalf of GPU
+      kernels. GPU enqueues work to host FIFO; proxy posts IB work requests or
+      socket sends, then writes completion flags back to GPU-accessible memory.
+      Not used for NVLink-only intra-node paths; being replaced by GIN/GDAKI
+      for modern hardware.
+
+  - name: NVLS Transport (NVLink SHARP)
+    file: src/transport/nvls.cc
+    description: >
+      CUDA 12.1+ multicast object transport. Uses cuMulticastCreate /
+      cuMulticastAddDevice to map a shared buffer across GPUs on the same
+      NVSwitch fabric. Hardware reduces writes across all GPUs simultaneously,
+      enabling single-pass AllReduce at near wire-speed without ring/tree steps.
+
+hardware_interfaces:
+  - interface: NVLink / NVSwitch (intra-node P2P)
+    transport: P2P
+    mechanism: cuMem / CUDA IPC mapped peer buffers; GPU SM direct load/store
+    bandwidth_constants_GBps_per_link:
+      SM60_Pascal: 18.0
+      SM70_Volta: 20.0
+      SM80_Ampere: 20.0
+      SM90_Hopper: 20.6
+      SM100_Blackwell: 40.1
+  - interface: NVLink SHARP (NVLS / in-switch reduce)
+    transport: NVLS
+    mechanism: cuMulticastObject mapped to NVSwitch hardware multicast
+    requires: CUDA >= 12.1, NVSwitch with multicast capability
+  - interface: Multi-Node NVLink (MNNVL)
+    transport: P2P with FABRIC handle type
+    mechanism: nvmlGpuFabricInfoV_t detection; cuMemGenericAllocationHandle FABRIC type
+    requires: GB200 NVL72 or equivalent NVSwitch fabric spanning nodes
+  - interface: InfiniBand / GPUDirect RDMA
+    transport: NET (net_ib/)
+    mechanism: libibverbs (ibvwrap); GPU buffer registered with ibv_reg_mr; optional GDRCopy
+  - interface: GPU Initiated Networking (GIN / GDAKI)
+    transport: GIN plugin + net_ib/gdaki/
+    mechanism: GPU SM posts IB work requests directly via DOCA GPUNetIO; bypasses CPU proxy
+  - interface: PCIe P2P
+    transport: P2P (fallback when no NVLink)
+    bandwidth_GBps: 12.0
+    notes: Intel x86 incurs 20% overhead (6/5 factor) due to 64B TLP conversion
+
+algorithms:
+  - name: Ring
+    use_case: Large messages, bandwidth-bound AllReduce / ReduceScatter / AllGather
+    topology: Logical ring spanning all ranks
+  - name: Tree (binary)
+    use_case: Small messages, latency-bound; reduce-scatter up then broadcast down
+    topology: Binary tree, up to NCCL_MAX_TREE_ARITY=3 children
+  - name: CollnetChain / CollnetDirect
+    use_case: In-network compute via SHARP-capable IB switches
+    topology: Chain or direct collective offload
+  - name: NVLS / NVLSTree
+    use_case: Intra-node AllReduce on NVSwitch hardware with multicast
+    topology: Multicast group (single-pass hardware reduce)
+
+protocols:
+  - name: Simple (ProtoSimple)
+    message_size: Large (>= NCCL_SIMPLE_THREAD_THRESHOLD)
+    notes: Full-bandwidth; 64B or 128B bus transfers; no inline flags
+  - name: LL (ProtoLL)
+    message_size: Small (< NCCL_LL_THREAD_THRESHOLD)
+    notes: 8B data + 8B flag per 16B slot; flag polling avoids explicit fence
+  - name: LL128 (ProtoLL128)
+    message_size: Medium; NVLink-optimized
+    notes: 128-byte cache-line packing; maximizes NVLink TLP efficiency

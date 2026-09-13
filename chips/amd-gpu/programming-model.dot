@@ -1,0 +1,188 @@
+digraph amd_gpu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch ROCm\ntorch.cuda (HIP), TunableOp\nHIP Graphs, CachingAlloc", fillcolor="#D6E4F0"];
+        jax [label="JAX ROCm\nXLA backend\nhipBLASLt + MIOpen", fillcolor="#D6E4F0"];
+        vllm [label="vLLM / SGLang\nInference serving\nAITER kernel dispatch", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        torchcompile [label="torch.compile\nTorchDynamo\nTorchInductor", fillcolor="#E4DEFF"];
+        triton [label="Triton ROCm\nPython DSL\nAMDGPU backend", fillcolor="#E4DEFF"];
+        hipcc [label="hipcc / amdclang++\nLLVM AMDGPU backend\noffload compilation", fillcolor="#E4DEFF"];
+        xla [label="XLA ROCm\nHLO to LLVM\nto AMDGPU IR", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        miopen [label="MIOpen\nConv, BN, Pooling, Attention\nFusion API (multi-op)\nhipDNN provider", fillcolor="#D4EDDA"];
+        hipblaslt [label="hipBLASLt / rocBLAS\nGEMM + BLAS L1-3\nEpilogue fusion\nFP8-FP64 precision", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        aiter [label="AITER\nAttention, MoE, GEMM\nMulti-backend dispatch\n(ASM / CK / Triton)", fillcolor="#FFF3CD"];
+        ck [label="CK / CK-Tile\nGEMM/Conv templates\nRuntime codegen\nMFMA tile primitives", fillcolor="#FFF3CD"];
+        tensile [label="Tensile / rocRoller\nGEMM code-generator\nOffline .co + JIT", fillcolor="#FFF3CD"];
+        hipcub [label="hipCUB / rocPRIM\nReduce, Scan, Sort\nParallel primitives", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hip [label="HIP Runtime API\nlibamdhip64.so\nStreams, Events, Graphs", fillcolor="#F8D7DA"];
+        rocr [label="ROCr / HSA Runtime\nlibhsa-runtime64.so\nAQL queues, Signals", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kfd [label="amdgpu + KFD\nLinux kernel module\nGPUVM, doorbell, XNACK\nHMM page-fault handling", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        rccl [label="RCCL\nAllReduce, AllGather\nRing/Tree, XGMI P2P\nRome model database", fillcolor="#FFE0CC"];
+        gdr [label="GPU-Direct RDMA\nPeerDirect interface\nNIC-to-GPU DMA", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        amdgpu_ir [label="AMDGPU IR\nLLVM virtual ISA\nTarget-agnostic\nwithin GFX family", fillcolor="#EFEBE9"];
+        gfx_isa [label="GFX ISA\ngfx942 (MI300X)\ngfx950 (MI355X/MI350X/MI350P)\nv_mfma_* instructions\nCDNA 5 target: NOT DISCLOSED", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="AMD GPU Hardware (CDNA3 / CDNA4 / CDNA 5)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        cu [label="Compute Units (CUs)\n4x SIMD16 + Matrix Core (MFMA) per CU\n64-thread wavefronts, VGPR/AGPR\n(MI300X: 304 CUs | MI350X: 256 CUs)\nCDNA 5 / MI455X: 256 WGPs,\nnative Wave32, 4 matrix units/WGP", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nLDS (64KB/CU) | L1 (32KB/CU)\nL2 (4MB/XCD, 32MB total)\nInfinity Cache (256MB) | HBM3/3e\nCDNA 5: LDS 320KB/WGP, L1 128KB/WGP,\n192MB global L2 on FCDs | HBM4 23.3 TB/s", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect\nInfinity Fabric / XGMI (896 GB/s/GPU)\n8-GPU full mesh, 7 links/GPU\nPensando Pollara 400 AI NIC\nCDNA 5: UALoE 3.6 TB/s bidir/GPU,\n72-GPU domain | Pensando 'Vulcano'", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> torchcompile;
+    pytorch -> hipcc [style=dashed, color="#AAAAAA"];
+    jax -> xla;
+    torchcompile -> triton;
+    vllm -> aiter [style=dashed, color="#AAAAAA", label="ops", fontsize=8];
+
+    // Compiler -> Op/Kernel
+    triton -> amdgpu_ir;
+    hipcc -> amdgpu_ir;
+    xla -> miopen;
+    xla -> hipblaslt;
+
+    // Framework -> Op (direct dispatch)
+    pytorch -> miopen [style=dashed, color="#AAAAAA", label="conv/BN", fontsize=8];
+    pytorch -> hipblaslt [style=dashed, color="#AAAAAA", label="GEMM", fontsize=8];
+
+    // Op -> Kernel
+    miopen -> ck [label="engines", fontsize=8];
+    hipblaslt -> tensile [label="GEMM kernels", fontsize=8];
+    hipblaslt -> ck [style=dashed, label="CK path", fontsize=8];
+
+    // AITER -> backends
+    aiter -> ck [label="CK-Tile", fontsize=8];
+    aiter -> triton [style=dashed, label="Triton\nkernels", fontsize=8];
+    aiter -> gfx_isa [style=dashed, label="HSACO\n.co blobs", fontsize=8];
+
+    // Kernel -> Runtime
+    ck -> hip;
+    tensile -> hip;
+    hipcub -> hip;
+
+    // Runtime chain
+    hip -> rocr;
+    rocr -> kfd;
+
+    // ISA chain
+    amdgpu_ir -> gfx_isa [label="llvm-mc", fontsize=8];
+    gfx_isa -> cu;
+
+    // Communication
+    rccl -> hip [style=dashed];
+    rccl -> gdr;
+    gdr -> interconnect [style=dashed, color="#283593"];
+
+    // Hardware internal
+    cu -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    kfd -> cu [style=dashed, color="#283593"];
+}

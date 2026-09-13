@@ -1,0 +1,151 @@
+resource: miopen-rocblas-hipblaslt
+url: https://github.com/ROCm/rocm-libraries
+type: github_repo
+as_of: "2026-04-05"
+commit_sha: 64653b7e
+doc_version: null
+chip: amd-gpu
+device_class: GPU
+
+layer_mappings:
+  - layer: Op Library
+    component: MIOpen
+    confidence: confirmed
+    sources:
+      - /tmp/rocm-libs-investigate/dnn-providers/miopen-provider/
+      - /tmp/rocm-libs-investigate/dnn-providers/miopen-provider/engines/plans/
+      - https://rocm.docs.amd.com/projects/MIOpen/en/latest/how-to/use-fusion-api.html
+
+  - layer: Op Library
+    component: rocBLAS
+    confidence: confirmed
+    sources:
+      - /tmp/rocm-libs-investigate/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/tensile_host.cpp
+      - https://rocm.docs.amd.com/projects/rocBLAS/en/latest/how-to/what-is-rocblas.html
+
+  - layer: Op Library
+    component: hipBLASLt
+    confidence: confirmed
+    sources:
+      - /tmp/rocm-libs-investigate/projects/hipblaslt/README.md
+      - /tmp/rocm-libs-investigate/projects/hipblaslt/library/src/amd_detail/
+      - https://rocm.docs.amd.com/projects/hipBLASLt/en/latest/what-is-hipBLASLt.html
+
+  - layer: Kernel
+    component: Composable Kernel (CK)
+    confidence: confirmed
+    sources:
+      - /tmp/rocm-libs-investigate/projects/composablekernel/include/ck/tensor_operation/gpu/device/
+      - /tmp/rocm-libs-investigate/projects/composablekernel/include/ck_tile/ops/
+      - https://rocm.docs.amd.com/en/latest/how-to/rocm-for-ai/inference-optimization/optimizing-with-composable-kernel.html
+
+  - layer: Kernel
+    component: Tensile (GEMM code-generator)
+    confidence: confirmed
+    sources:
+      - /tmp/rocm-libs-investigate/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/tensile_host.cpp
+      - /tmp/rocm-libs-investigate/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/Tensile/
+
+  - layer: Kernel
+    component: rocRoller (JIT GEMM compiler)
+    confidence: confirmed
+    sources:
+      - /tmp/rocm-libs-investigate/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/rocroller/README.md
+      - /tmp/rocm-libs-investigate/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/rocroller/
+
+  - layer: Kernel
+    component: CK-tile FMHA (Flash Attention)
+    confidence: confirmed
+    sources:
+      - /tmp/rocm-libs-investigate/projects/composablekernel/include/ck_tile/ops/fmha/pipeline/
+      - /tmp/rocm-libs-investigate/projects/composablekernel/include/ck_tile/ops/fmha/kernel/
+
+  - layer: ISA
+    component: MFMA Matrix Core Instructions (v_mfma_*)
+    confidence: confirmed
+    sources:
+      - https://deepwiki.com/ROCm/composable_kernel/6.2-hardware-specific-optimizations-and-mfma
+      - https://rocm.blogs.amd.com/artificial-intelligence/gemm_blog/README.html
+
+  - layer: Runtime
+    component: HIP Runtime
+    confidence: confirmed
+    sources:
+      - /tmp/rocm-libs-investigate/projects/hipblaslt/library/src/amd_detail/rocblaslt/src/tensile_host.cpp
+
+framework_integrations:
+  - framework: PyTorch
+    integration_point: >
+      ATen ROCm backend calls MIOpen for convolution/BN ops and hipBLASLt/rocBLAS
+      for GEMM. PyTorch TunableOp (2.2+) auto-benchmarks rocBLAS vs hipBLASLt per
+      problem shape and caches the winner. MIOpen NHWC BatchNorm enabled by default
+      on ROCm 7.0+.
+
+  - framework: JAX
+    integration_point: >
+      XLA ROCm backend uses MIOpen via the MIOpen-provider hipDNN plugin for
+      convolution primitives and hipBLASLt for GEMM/dot operations.
+      MIOpen's Fusion API is exposed to TensorFlow/XLA for operator fusion.
+
+  - framework: TensorFlow
+    integration_point: >
+      TF/XLA is a primary consumer of MIOpen's Fusion API per AMD documentation.
+      Fusion plans (conv + bias + activation) are compiled to single kernels
+      eliminating intermediate HBM writes.
+
+key_abstractions:
+  - name: miopenFusionPlan_t
+    description: >
+      MIOpen operator fusion plan — encodes a DAG of ops (conv, BN, bias, activation)
+      and compiles them into a single GPU kernel, eliminating intermediate memory traffic.
+
+  - name: hipblasLtMatmul / hipblasLtMatmulAlgoGetHeuristic
+    description: >
+      hipBLASLt's primary GEMM API supporting fused epilogues (bias, ReLU, GELU, Swish)
+      and ranked algorithm selection via heuristics keyed on problem shape and GPU target.
+
+  - name: Tensile MasterSolutionLibrary
+    description: >
+      Pre-compiled offline solution database mapping (M, N, K, dtype, arch) tuples to
+      MFMA-emitting .co kernel objects; the sole Tensile interface point in rocBLASLt.
+
+  - name: rocRoller SolutionCache + Origami
+    description: >
+      JIT kernel compilation path in hipBLASLt: Origami predicts optimal tile size,
+      rocRoller generates the kernel at runtime, SolutionCache stores it for reuse.
+
+  - name: CK-tile block_fmha_fwd_kernel
+    description: >
+      CK-tile Flash Attention forward kernel with asynchronous prefill pipeline
+      (QR/KS/VS async loading), supporting paged KV-cache, rotary embeddings,
+      causal masking, and FP8 quantized attention.
+
+  - name: DeviceGemmMultipleD (CK)
+    description: >
+      Composable Kernel's device-level GEMM template with D-tensor epilogue support;
+      dispatches to BlockGemmXdlops warp-tile which emits MFMA instructions directly.
+
+  - name: hipDNN Provider Plugin (miopen-provider / hipblaslt-provider)
+    description: >
+      New graph-based engine dispatch layer: each provider plugin registers engines
+      (e.g., MiopenConvFwdPlan, HipblasltMatmulPlan) behind a common hipDNN API,
+      analogous to cuDNN 8's backend API.
+
+data_flow_paths:
+  - name: GEMM linear layer (PyTorch → Matrix Cores)
+    steps:
+      - "PyTorch aten::mm → TunableOp selects hipBLASLt or rocBLAS"
+      - "hipblasLtMatmul() call with epilogue descriptor"
+      - "rocBLASLt backend: tensile_host.cpp queries MasterSolutionLibrary"
+      - "Tensile selects .co kernel for (M,N,K,dtype,gfx942)"
+      - "hipModuleLoadData / hipLaunchKernel dispatches MFMA kernel"
+      - "v_mfma_f32_32x32x8_bf16 executes on Matrix Cores"
+      - "Epilogue (bias/activation) applied in-kernel before HBM write"
+
+  - name: Convolution (PyTorch → MIOpen)
+    steps:
+      - "PyTorch aten::conv2d → MIOpen backend"
+      - "miopenFindConvolutionForwardAlgorithm: selects GEMM/Winograd/Direct"
+      - "If GEMM: im2col → hipBLASLt GEMM"
+      - "If Winograd/Direct: CK or MIOpen-internal kernel dispatch"
+      - "If fused: miopenFusionPlanCompile → single CK kernel for conv+BN+ReLU"

@@ -1,0 +1,152 @@
+digraph tenstorrent_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    // ===================== TENSIX CORE INTERNALS =====================
+    subgraph cluster_tensix {
+        label="Tensix Core (× 80 Wormhole / × 120 Blackhole shipping SKU, 140 full die)";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        brisc [label="BRISC\n(Data Movement 0)\nNoC 0 reads\nReader kernel", fillcolor="#BBDEFB"];
+        ncrisc [label="NCRISC\n(Data Movement 1)\nNoC 1 writes\nWriter kernel", fillcolor="#BBDEFB"];
+        trisc0 [label="TRISC0\n(Unpack)\nL1 tile → SrcA/SrcB\nFormat conversion", fillcolor="#E3F2FD"];
+        trisc1 [label="TRISC1\n(Math)\nFPU: MVMUL/GMPOOL\nSFPU: 32-lane SIMD", fillcolor="#E3F2FD"];
+        trisc2 [label="TRISC2\n(Pack)\nDst → L1 tile\nFormat conversion", fillcolor="#E3F2FD"];
+        fpu [label="Matrix Unit (FPU)\n32×32 tile matmul\nBF16/FP16/FP8/INT8\nMVMUL, GMPOOL, ELWMUL", fillcolor="#C8E6C9"];
+        sfpu [label="Vector Unit (SFPU)\n32-lane SIMD\nExp, Log, Sqrt, Tanh\nGeLU, custom ops", fillcolor="#C8E6C9"];
+        l1 [label="L1 SRAM (1.5 MB)\nSoftware scratchpad\nCircular buffers\nNo eviction policy", fillcolor="#FFF9C4"];
+    }
+
+    // ===================== NOC MESH =====================
+    subgraph cluster_noc {
+        label="Dual NoC 2D Torus";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        noc0 [label="NoC 0\nEast + South\n32 bytes/cycle\nnoc_async_read", fillcolor="#E1BEE7"];
+        noc1 [label="NoC 1\nWest + North\n32 bytes/cycle\nnoc_async_write", fillcolor="#E1BEE7"];
+        nocrouter [label="NoC Router (per tile)\nAny tile → any tile\nTorus wraparound\nNo hardware cache coherence", fillcolor="#F3E5F5"];
+    }
+
+    // ===================== ON-CHIP TILE TYPES =====================
+    subgraph cluster_tiles {
+        label="NoC Grid Tile Types (Wormhole 10×12)";
+        style="rounded,dashed";
+        color="#BF360C";
+        fontcolor="#BF360C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        tensix_tile [label="T: Tensix Tiles (80)\nCompute + L1 SRAM\n5 Baby RISC-V each", fillcolor="#FFCCBC"];
+        quasar_note [label="Quasar (next gen)\nLLK + fast-dispatch bring-up\nin tt-llk / tt-metal since 2025-08-15\nSamsung SF4X per Oct-2023 chiplet announcement\n(medium confidence)\nCore count / SRAM / memory: NOT DISCLOSED", fillcolor="#F5F5F5", style="rounded,filled,dashed"];
+        dram_tile [label="D: DRAM Tiles (6)\nGDDR6 controllers\n2 channels each", fillcolor="#FFCCBC"];
+        eth_tile [label="E: Ethernet Tiles (16)\n100 Gbps each\nScale-up interconnect", fillcolor="#FFCCBC"];
+        arc_tile [label="A: ARC Tile (1)\nManagement core\nFast Dispatch scheduler", fillcolor="#FFCCBC"];
+        pcie_tile [label="P: PCIe Tile (1)\nHost interface\nGen 4.0 x16 (WH)\nGen 5.0 (BH)", fillcolor="#FFCCBC"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory";
+        style="rounded,dashed";
+        color="#004D40";
+        fontcolor="#004D40";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        gddr6 [label="GDDR6\nWormhole: 12 GB @ 336 GB/s (6 ctrl)\nBlackhole p100a: 28 GB @ 448 GB/s\nBlackhole p150a/b: 32 GB @ 512 GB/s (24 ctrl)\nNo HBM; no CoWoS interposer", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== SCALE-UP =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        wh_eth [label="Wormhole Ethernet\n16 × 100 Gbps = 1.6 Tbps/chip\nn300: 2×WH; T3000: 8×WH 2×4 mesh", fillcolor="#FFE0B2"];
+        bh_eth [label="Blackhole Ethernet\n10 × 400 Gbps = 4 Tbps/chip\n4× QSFP-DD (800 Gbps each)\nGalaxy: 32×BH 4×8 mesh", fillcolor="#FFE0B2"];
+        galaxy [label="Galaxy Blackhole (6U) — GA 2026-04-28\n32 Blackhole ASICs | 23 PFLOPS Block FP8\n6.2 GB SRAM @ 2.9 PB/s | 1 TB GDDR6 @ 16 TB/s\nFabric: 10×400 GbE/ASIC = 32 TB/s (vendor, bidir)\nHost: 1× AMD EPYC 9004 + up to 576 GB DDR5-4800\n8–10 kW avg, 12 kW max (to 14.5 kW) | from $110,000", fillcolor="#FFCC80"];
+    }
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect";
+        style="rounded,dashed";
+        color="#558B2F";
+        fontcolor="#558B2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        eth_switch [label="Commodity Ethernet Switches\n400G / 800G standard switches\nNo proprietary switching ASIC\nGalaxy scale-out: up to 56× 800 GbE QSFP-DD\n= 11.2 TB/s vendor (5.6 TB/s each way)\nMax scale: 144 nodes / >4,000 chips (vendor)", fillcolor="#DCEDC8"];
+    }
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host Interface";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        host [label="Host CPU (external x86)\nor Blackhole Big RISC-V\n(16 cores; run Linux on-chip)\nTT-UMD / TT-KMD", fillcolor="#ECEFF1"];
+    }
+
+    // ===================== EDGES (Tensix internals) =====================
+    brisc -> noc0 [label="issues reads", fontsize=8];
+    ncrisc -> noc1 [label="issues writes", fontsize=8];
+    trisc0 -> fpu [label="Unpack: L1→SrcA/B", fontsize=8];
+    trisc1 -> fpu [label="Math: MVMUL/SFPU", fontsize=8];
+    trisc2 -> fpu [label="Pack: Dst→L1", fontsize=8];
+    fpu -> sfpu [style=dashed, label="SFPU ops", fontsize=8];
+    l1 -> trisc0 [label="tile data", fontsize=8];
+    trisc2 -> l1 [label="packed tile", fontsize=8];
+    brisc -> l1 [label="cb_push_back", fontsize=8];
+    ncrisc -> l1 [label="cb_wait_front", fontsize=8];
+
+    // NoC connections
+    noc0 -> nocrouter;
+    noc1 -> nocrouter;
+    nocrouter -> tensix_tile [label="Tensix L1"];
+    nocrouter -> dram_tile [label="GDDR6 ctrl"];
+    nocrouter -> eth_tile [label="Ethernet"];
+    nocrouter -> arc_tile [label="Dispatch"];
+
+    // Memory
+    dram_tile -> gddr6 [label="GDDR6 interface"];
+
+    // Scale-up
+    eth_tile -> wh_eth [label="Wormhole"];
+    eth_tile -> bh_eth [label="Blackhole", style=dashed];
+    bh_eth -> galaxy [label="32 ASICs / 6U node", fontsize=8];
+    wh_eth -> eth_switch;
+    galaxy -> eth_switch [label="56× 800 GbE QSFP-DD", fontsize=8];
+
+    // Host
+    pcie_tile -> host [label="PCIe 4/5 x16"];
+    host -> arc_tile [label="Fast Dispatch\ncommand queue", style=dashed];
+}

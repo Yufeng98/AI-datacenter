@@ -1,0 +1,231 @@
+digraph huawei_ascend_hw {
+    graph [
+        label="Huawei Ascend Hardware Architecture\n(Da Vinci AI Core + Memory + Interconnect + Ascend 950 Da Vinci 4.0)\nas_of: 2026-08-08"
+        labelloc="t"
+        fontname="Helvetica"
+        fontsize=14
+        rankdir=TB
+        splines=ortho
+        nodesep=0.6
+        ranksep=0.8
+        bgcolor="#f8f9fa"
+    ]
+    node [fontname="Helvetica" fontsize=10 style="filled,rounded" shape=box]
+    edge [fontname="Helvetica" fontsize=9]
+
+    // Compute Core
+    subgraph cluster_aicore {
+        label="Da Vinci AI Core (×32 on Ascend 910 / ×25 on 910B / ~×64 on 910C dual-die)"
+        style=filled
+        fillcolor="#e3f2fd"
+        color="#1565C0"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        scalar [label="Scalar Unit\n(micro-CPU: loop ctrl\nbranch, addr calc)" fillcolor="#0D47A1" fontcolor="white"]
+        cube [label="Cube Unit\n16×16×16 FP16 systolic\n4,096 MACs/cycle FP16\n8,192 MACs/cycle INT8\n(L0A × L0B → L0C)" fillcolor="#1565C0" fontcolor="white"]
+        vector [label="Vector Unit\n128-lane FP16\n256-lane INT8/cycle\nActs, Norm, Reduce\nFP32/BF16/INT4 support" fillcolor="#1976D2" fontcolor="white"]
+        mte1 [label="MTE1\n(Input DMA)\nHBM/L2→L1→L0A/L0B\nhw transpose\ndouble-buffer prefetch" fillcolor="#1E88E5" fontcolor="white"]
+        mte2 [label="MTE2\n(Output DMA)\nL0C→UB→L2→HBM\nquant/format convert\non drain" fillcolor="#1E88E5" fontcolor="white"]
+    }
+
+    // Per-core on-chip memory
+    subgraph cluster_local_mem {
+        label="Per-Core On-chip Memory"
+        style=filled
+        fillcolor="#e8f5e9"
+        color="#2E7D32"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        l0a [label="L0A Buffer\n16 KB\nCube left operand" fillcolor="#1B5E20" fontcolor="white"]
+        l0b [label="L0B Buffer\n16 KB\nCube right operand\n(weight tile)" fillcolor="#1B5E20" fontcolor="white"]
+        l0c [label="L0C Buffer\n32 KB\nCube FP32 accumulator" fillcolor="#2E7D32" fontcolor="white"]
+        l1 [label="L1 Buffer\n512 KB/core\nInput feature staging\n(fed by MTE1)" fillcolor="#388E3C" fontcolor="white"]
+        ub [label="Unified Buffer (UB)\n~256 KB/core\nVector/MTE2/Scalar\nshared scratchpad" fillcolor="#43A047" fontcolor="white"]
+    }
+
+    // Shared on-chip
+    subgraph cluster_shared_mem {
+        label="Shared On-chip Memory"
+        style=filled
+        fillcolor="#fff3e0"
+        color="#E65100"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        l2 [label="L2 SRAM\n32 MB shared\n4 TB/s NoC\n(1024-bit mesh @ 2 GHz)" fillcolor="#E65100" fontcolor="white"]
+        total_sram [label="Total SRAM (Ascend 910)\n84 MB\n(all per-core + L2)" fillcolor="#BF360C" fontcolor="white" style="dashed,rounded"]
+    }
+
+    // Off-chip memory
+    subgraph cluster_hbm {
+        label="Off-chip Memory (HBM)"
+        style=filled
+        fillcolor="#f3e5f5"
+        color="#6A1B9A"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        hbm910 [label="Ascend 910: HBM2\n32 GB / 1,228 GB/s\n(4 stacks, TSMC 7nm)" fillcolor="#4A148C" fontcolor="white"]
+        hbm910b [label="Ascend 910B: HBM2e\n64 GB / ~800 GB/s\n(SMIC N+1 limited)" fillcolor="#6A1B9A" fontcolor="white"]
+        hbm910c [label="Ascend 910C: HBM2e\n128 GB / ~1,600 GB/s\n(dual-die additive)" fillcolor="#7B1FA2" fontcolor="white"]
+    }
+
+    // Host interface / package
+    subgraph cluster_host {
+        label="Host Interface / Package"
+        style=filled
+        fillcolor="#e8eaf6"
+        color="#283593"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        pcie [label="PCIe 4.0 × 16\n~64 GB/s bidirectional" fillcolor="#283593" fontcolor="white"]
+        pkg910c [label="Ascend 910C Package\n2× SMIC N+1 NPU dies\n+ TSMC 7nm CPU companion\nOrganic substrate MCM\n~400 W TDP" fillcolor="#1A237E" fontcolor="white"]
+    }
+
+    // Scale-up
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect"
+        style=filled
+        fillcolor="#e0f2f1"
+        color="#00695C"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        hccs [label="HCCS\n(Huawei Compute Comm System)\nProprietary intra-server bus\n8 NPUs/server (Atlas 800T)\n910/910B/910C generations" fillcolor="#004D40" fontcolor="white"]
+        cm384_su [label="CloudMatrix 384 Scale-up\n56 × 400G SiPh LPO/server\n2.8 Tbps/chip\n384 chips full-mesh all-to-all\n6,912 total transceivers" fillcolor="#00695C" fontcolor="white"]
+        unifiedbus [label="UnifiedBus / 灵衢 (Lingqu) 2.0\nScale-up fabric for Ascend 950\n~2 TB/s per chip (HiLink SerDes)\ndual 400 Gbps UBoE\nopen spec; >128K-card clusters\n3 μs RTT (WAIC 2026 demo)\n(launched 2025-09-18, HC 2025)" fillcolor="#00838F" fontcolor="white"]
+    }
+
+    // Scale-out
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect"
+        style=filled
+        fillcolor="#fce4ec"
+        color="#880E4F"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        cm384_so [label="CloudMatrix 384 Scale-out\n8 × 400G SiPh LPO/server\n3,168 fibers total\nFull-mesh optical\n(12 compute + 4 switch racks)" fillcolor="#880E4F" fontcolor="white"]
+        atlas900_so [label="Atlas 900 Scale-out\n100 GE RoCE v2\n100 TB/s cluster fabric\n1024 Ascend 910 chips" fillcolor="#AD1457" fontcolor="white"]
+    }
+
+    // Ascend 950 next-gen memory cluster
+    subgraph cluster_950_mem {
+        label="Ascend 950 — In-house Memory (Da Vinci 4.0)"
+        style=filled
+        fillcolor="#fce4ec"
+        color="#b71c1c"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        hbm950pr [label="Ascend 950PR: HiBL 1.0\n128 GB / 1.6 TB/s\n(Huawei in-house, cost-opt.)\nQ1 2026" fillcolor="#b71c1c" fontcolor="white"]
+        hbm950dt [label="Ascend 950DT: HiZQ 2.0\n144 GB / 4 TB/s\n(Huawei in-house, HBM3E-class)\nQ4 2026" fillcolor="#880E4F" fontcolor="white"]
+    }
+
+    // Ascend 950 compute cluster
+    subgraph cluster_950_compute {
+        label="Ascend 950 — Da Vinci 4.0 Chip"
+        style=filled
+        fillcolor="#fff8e1"
+        color="#f57f17"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        chip950pr [label="Ascend 950PR (chip spec)\nFP8/HiF8: 1 PFLOPS\nMXFP4: 2 PFLOPS\nScale-up BW: ~2 TB/s\nPCIe 5.0 ×16\nprocess node: not disclosed" fillcolor="#e65100" fontcolor="white"]
+        chip950dt [label="Ascend 950DT (chip spec)\nFP8/HiF8: 1 PFLOPS\nMXFP4: 2 PFLOPS\nScale-up BW: ~2 TB/s\nDecode + Training\nQ4 2026 official release" fillcolor="#bf360c" fontcolor="white"]
+        atlas350 [label="Atlas 350 card (950PR)\nSHIPPING CARD — derated\n1.56 PFLOPS FP4\nup to 112 GB / 1.4 TB/s\n600 W TDP\n'2.8× H20' = vendor claim" fillcolor="#ff6f00" fontcolor="white"]
+    }
+
+    // Ascend 950 Da Vinci 4.0 core + new on-chip memory tier
+    subgraph cluster_950_core {
+        label="Ascend 950 — Da Vinci 4.0 Core / On-chip Memory (whitepaper, May–Jun 2026)"
+        style=filled
+        fillcolor="#ede7f6"
+        color="#4527A0"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        aic [label="AIC — Cube Core\n(independent core; split from\nthe 910-era 5-in-1 AI Core)\n1 Cube per AI subsystem\nFP8/MXFP8/HiF8/MXFP4" fillcolor="#4527A0" fontcolor="white"]
+        aiv [label="AIV — Vector Core\n(independent core)\n2 Vector per AI subsystem\nSIMD + SIMT hybrid" fillcolor="#5E35B1" fontcolor="white"]
+        nddma [label="NDDMA\nlightweight AIC↔AIV\non-chip data path" fillcolor="#673AB7" fontcolor="white"]
+        stars2 [label="STARS 2.0\nHW scheduler across\nAIC/AIV/CPU/DVPP/\nSDMA/UB/CCU" fillcolor="#7E57C2" fontcolor="white"]
+        l2_950 [label="Global L2 — 128 MB\nNEW TIER (absent on 910B/910C)\nspans both AI dies\n~2× per-access improvement\nper-way lock / residency policy\nbandwidth: not disclosed" fillcolor="#311B92" fontcolor="white"]
+    }
+
+    // Atlas 950 SuperPoD cluster
+    subgraph cluster_atlas950 {
+        label="Atlas 950 SuperPoD (Q4 2026)"
+        style=filled
+        fillcolor="#e8f5e9"
+        color="#1b5e20"
+        fontname="Helvetica Bold"
+        fontsize=11
+
+        atlas950 [label="Atlas 950 SuperPoD (full scale)\n8,192 × Ascend 950DT\n16 EFLOPS FP4\n64 NPUs/cabinet\nScale-up: ~2 TB/s/chip\n(announced MWC 2026)" fillcolor="#2e7d32" fontcolor="white"]
+        waic_demo [label="Atlas 950 SuperPoD — WAIC 2026 demo\n1,024 cards, 2026-07-17\n1 EFLOPS FP8 / 2 EFLOPS FP4\n256 TB unified address space\n3 μs RTT over 灵衢\nDEMONSTRATED, not shipping" fillcolor="#43a047" fontcolor="white"]
+        atlas850e [label="Atlas 850E (air-cooled)\n96 cards commercially deployed\nscales 8 → 1,024 NPUs\n(MWC 2026)" fillcolor="#66bb6a" fontcolor="#1b5e20"]
+        atlas960 [label="Atlas 960 SuperPoD\n15,488 × Ascend 960\n~32 EFLOPS (est.)\nHiF4 precision\n(roadmap Q4 2027)" fillcolor="#388e3c" fontcolor="white" style="dashed,rounded"]
+    }
+
+    // Internal data flow
+    scalar -> cube [label="control" color="#888888"]
+    scalar -> mte1 [label="DMA cmd" color="#888888"]
+    scalar -> mte2 [label="DMA cmd" color="#888888"]
+    mte1 -> l0a [label="write"]
+    mte1 -> l0b [label="write (weights)"]
+    cube -> l0a [label="read" dir=back]
+    cube -> l0b [label="read" dir=back]
+    cube -> l0c [label="write results"]
+    mte2 -> l0c [label="drain" dir=back]
+    mte2 -> ub [label="write"]
+    vector -> ub [label="read/write" dir=both]
+    mte1 -> l1 [label="DMA from L2"]
+    l1 -> l0a [label="feed"]
+    l1 -> l0b [label="feed"]
+    ub -> l2 [label="evict via MTE2"]
+    l2 -> l1 [label="fetch"]
+    l2 -> hbm910 [label="→ HBM" style=dashed color="#9C27B0"]
+    l2 -> hbm910b [label="→ HBM2e" style=dashed color="#9C27B0"]
+    l2 -> hbm910c [label="→ HBM2e" style=dashed color="#9C27B0"]
+
+    // Package
+    hbm910c -> pkg910c [style=dashed label="integrated"]
+    pkg910c -> pcie
+    hbm910 -> pcie [style=invis]
+    hbm910b -> pcie [style=invis]
+
+    // Interconnect
+    pcie -> hccs [label="intra-server"]
+    hccs -> cm384_su [label="910C cluster"]
+    cm384_su -> cm384_so [label="rack boundary"]
+    pcie -> atlas900_so [label="Atlas 900 cluster" style=dashed]
+
+    // Ascend 950 connections
+    hbm950pr -> chip950pr [label="HiBL 1.0\n1.6 TB/s" color="#b71c1c"]
+    hbm950dt -> chip950dt [label="HiZQ 2.0\n4 TB/s" color="#880E4F"]
+    chip950pr -> atlas350 [label="shipping card" style=dashed color="#e65100"]
+    chip950dt -> atlas950 [label="8,192 chips" color="#2e7d32"]
+    atlas950 -> waic_demo [label="1,024-card subset\nshown at WAIC 2026" style=dashed color="#43a047"]
+    atlas950 -> atlas850e [label="air-cooled variant" style=dashed color="#66bb6a"]
+    atlas950 -> atlas960 [label="2027 roadmap" style=dashed color="#388e3c"]
+    chip950pr -> chip950dt [label="same Da Vinci 4.0\ndiff memory config" style=dashed color="#888888" dir=none]
+
+    // Da Vinci 4.0 core internals -> chips
+    aic -> nddma [label="operands" dir=both color="#4527A0"]
+    aiv -> nddma [label="activations" dir=both color="#5E35B1"]
+    stars2 -> aic [label="dispatch" color="#7E57C2"]
+    stars2 -> aiv [label="dispatch" color="#7E57C2"]
+    aic -> l2_950 [label="128 MB global L2" dir=both color="#311B92"]
+    aiv -> l2_950 [dir=both color="#311B92"]
+    l2_950 -> chip950pr [label="on-die" style=dashed color="#311B92"]
+    l2_950 -> hbm950dt [label="→ HiZQ 2.0" style=dashed color="#880E4F"]
+
+    // 950 fabric
+    chip950pr -> unifiedbus [label="UnifiedBus 2.0" color="#00838F"]
+    chip950dt -> unifiedbus [label="UnifiedBus 2.0" color="#00838F"]
+    hccs -> unifiedbus [label="superseded for\n950 generation" style=dashed color="#00838F"]
+    unifiedbus -> atlas950 [label=">128K-card scale" color="#00838F"]
+}

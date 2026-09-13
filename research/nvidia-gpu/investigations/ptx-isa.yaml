@@ -1,0 +1,226 @@
+investigation: ptx-isa
+chip: nvidia-gpu
+date: 2026-04-05
+source_url: https://docs.nvidia.com/cuda/parallel-thread-execution/
+ptx_version_covered: "8.7–9.2"
+cuda_version_covered: "12.8–12.9+"
+
+layer_mappings:
+  - layer: Assembler / ISA
+    components:
+      - name: PTX (Parallel Thread Execution)
+        type: virtual_isa
+        format: human-readable text assembly
+        role: >
+          Architecture-independent intermediate representation. Compiler target
+          for nvcc. Forward-compatibility vehicle: PTX embedded in a fatbinary
+          can be JIT-compiled by the driver to SASS on any future GPU with
+          compute capability >= the PTX target.
+        produced_by: nvcc
+        consumed_by: ptxas (offline) or CUDA driver JIT (runtime)
+        versioned_by: compute_XX (e.g., compute_70, compute_90, compute_100)
+
+      - name: ptxas (PTX Assembler)
+        type: assembler_tool
+        role: >
+          Translates PTX to SASS (cubin). Performs register allocation,
+          instruction scheduling, constant folding, and architecture-specific
+          instruction selection. Part of CUDA Toolkit. Also invoked by the
+          CUDA driver as the JIT backend at runtime.
+        input: PTX (.ptx)
+        output: cubin (.cubin, embedded in fatbinary)
+
+      - name: SASS (Streaming Assembly)
+        type: native_isa
+        format: binary microcode (not fully publicly documented)
+        role: >
+          The actual hardware ISA executed on NVIDIA GPU SMs. Not a 1:1 mapping
+          from PTX: one PTX instruction may become multiple SASS instructions
+          or be fused/eliminated. Architecture-specific (each sm_XX has its
+          own SASS encoding).
+        versioned_by: sm_XX (e.g., sm_70, sm_90, sm_100)
+        tools_to_inspect: cuobjdump, nvdisasm
+
+      - name: fatbinary
+        type: container_format
+        role: >
+          Executable container produced by nvcc that embeds multiple cubins
+          (pre-compiled SASS for specific sm_XX targets) plus embedded PTX
+          for forward compatibility. The CUDA runtime selects the best matching
+          cubin or falls back to JIT-compiling the PTX.
+
+key_abstractions:
+  - name: PTX Virtual ISA
+    description: >
+      A stable, version-controlled virtual instruction set that represents a
+      hypothetical "generic" NVIDIA GPU. Serves as the compiler target for CUDA
+      C++ and the long-term compatibility contract: code compiled to PTX today
+      will run on future NVIDIA GPUs via driver JIT compilation. PTX is not
+      executed by hardware; it must be translated to SASS.
+    introduced: CUDA 1.0 (PTX 1.0)
+    current_version: PTX 9.2 (CUDA 12.9+)
+
+  - name: SASS Native ISA
+    description: >
+      The actual hardware instruction set for each NVIDIA SM generation.
+      SASS (Streaming ASSembly) instructions (e.g., HMMA, WGMMA, LDGSTS) map
+      directly to SM execution unit datapaths. Unlike PTX, SASS is not
+      forward-compatible: a SASS binary for sm_90 will not run on sm_80 or
+      older. NVIDIA does not fully publicly document SASS encodings, though
+      tools like nvdisasm can disassemble cubins.
+
+  - name: Compute Capability
+    description: >
+      A version number (e.g., 7.0, 9.0, 10.0) identifying the feature set of
+      a GPU SM. Determines which PTX instructions are valid (minimum sm_XX
+      requirement per instruction), which SASS encodings are used, and what
+      hardware units are present. PTX compiled for compute_X runs on any GPU
+      with compute capability >= X (forward-compat); SASS cubins require an
+      exact sm_XX match.
+    examples:
+      - sm_70: Volta (V100) — first warp-level mma.sync, independent thread scheduling
+      - sm_80: Ampere (A100) — cp.async, BF16/TF32 tensor cores, sparse MMA
+      - sm_90: Hopper (H100/H200) — wgmma, TMA, cluster CTA hierarchy
+      - sm_100: Blackwell (B200/GB100) — tcgen05, TMEM, 2-SM MMA, FP4/FP6
+
+  - name: Forward Compatibility via JIT
+    description: >
+      When a CUDA application runs on a GPU for which no pre-compiled SASS
+      cubin is embedded, the NVIDIA driver JIT-compiles the embedded PTX to
+      native SASS for the current GPU at load time. The result is cached on
+      disk. This is the primary mechanism enabling "write once, run on future
+      GPUs" compatibility without source recompilation.
+    mechanism: Driver invokes ptxas internally; result cached in ~/.nv/ComputeCache
+
+  - name: Tensor Memory (TMEM)
+    description: >
+      A new on-SM hardware buffer introduced in Blackwell (SM100) dedicated to
+      storing MMA accumulator results. Prior architectures stored MMA outputs in
+      thread registers (fragmenting register file). TMEM decouples accumulator
+      storage, enabling larger tile sizes and reduced register pressure.
+      Accessed via tcgen05.ld/st instructions; lifetime managed explicitly via
+      tcgen05.alloc/dealloc.
+    introduced: sm_100 (Blackwell), PTX 8.7
+
+  - name: Inline PTX Assembly
+    description: >
+      A CUDA extension allowing device-side PTX to be written inline within
+      CUDA C++ using asm volatile("ptx_template" : outputs : inputs : clobbers)
+      syntax. Constraint letters map C++ variables to PTX register types
+      ("r"=u32, "l"=u64, "f"=f32, "d"=f64, "h"=u16). Used by performance
+      libraries (CUTLASS, DeepSeek DeepEP) to access instructions or
+      optimization patterns not emitted by nvcc automatically.
+    docs: https://docs.nvidia.com/cuda/inline-ptx-assembly/index.html
+
+  - name: Warp Group MMA (wgmma)
+    description: >
+      PTX instruction family introduced for Hopper (sm_90) that performs
+      asynchronous matrix multiply-accumulate across a 4-warp group (128
+      threads). Results remain in registers distributed across the warp group.
+      Requires explicit wgmma.fence, wgmma.commit_group, wgmma.wait_group
+      barriers for correct sequencing. Supersedes mma.sync for H100
+      peak throughput. Largest supported tile: 64×256×16 (FP16).
+    scope: warp_group (128 threads)
+    introduced: sm_90, PTX 8.0
+
+  - name: tcgen05 Tensor Core Instructions
+    description: >
+      Fifth-generation Tensor Core instruction family for Blackwell (SM100).
+      Unlike wgmma (128-thread warp-group scope), tcgen05.mma uses single-thread
+      issue semantics. Results are written to TMEM rather than registers.
+      Supports cooperative 2-SM MMA via .cta_group::2, scaling tiles to
+      256×256×16. Achieves 2×–4× throughput vs. wgmma. Supports FP4, FP6,
+      FP8, FP16, BF16, TF32, INT8 data types.
+    scope: single_thread_issue (accumulator in TMEM)
+    introduced: sm_100, PTX 8.7
+    key_ops: [tcgen05.mma, tcgen05.mma.sp, tcgen05.mma.ws, tcgen05.ld, tcgen05.st,
+              tcgen05.alloc, tcgen05.dealloc, tcgen05.cp, tcgen05.wait, tcgen05.fence, tcgen05.shift]
+
+  - name: Asynchronous Memory Copy (cp.async / TMA)
+    description: >
+      Two-tier async copy mechanism for overlap of memory transfers with compute.
+      cp.async (Ampere+, SASS:LDGSTS): copies from global to shared memory
+      directly, bypassing registers; managed via cp.async.commit_group /
+      cp.async.wait_group barriers.
+      TMA / cp.async.bulk.tensor (Hopper+): hardware Tensor Memory Accelerator;
+      single-thread issue using a copy descriptor; supports 1D–5D tensor tiles;
+      requires only one thread per transfer; enables warp-specialized producer
+      /consumer kernel patterns.
+    introduced:
+      cp_async: sm_80 (Ampere), PTX 7.0
+      tma: sm_90 (Hopper), PTX 8.0
+
+tensor_core_evolution:
+  - generation: 1st
+    architecture: Volta
+    sm: sm_70
+    ptx_instruction: wmma.* / mma.sync
+    sass_instruction: HMMA
+    scope: 32-thread warp (8-thread quadpair sync on Volta)
+    max_tile: 16x16x16 (FP16)
+    accumulator: thread registers
+
+  - generation: 2nd
+    architecture: Turing
+    sm: sm_75
+    ptx_instruction: mma.sync
+    sass_instruction: HMMA
+    scope: 32-thread warp
+    additions: INT8, INT4, INT1; 32-thread full-warp sync
+    accumulator: thread registers
+
+  - generation: 3rd
+    architecture: Ampere
+    sm: sm_80
+    ptx_instruction: mma.sync
+    sass_instruction: HMMA / DMMA (FP64)
+    scope: 32-thread warp
+    additions: TF32, BF16, FP64 (A100), structured sparsity (2:4)
+    accumulator: thread registers
+
+  - generation: 4th
+    architecture: Hopper
+    sm: sm_90
+    ptx_instruction: wgmma.mma_async
+    sass_instruction: WGMMA
+    scope: 128-thread warp group (4 warps)
+    max_tile: 64x256x16 (FP16)
+    additions: async pipelining, FP8, larger tiles
+    accumulator: thread registers (distributed across warp group)
+
+  - generation: 5th
+    architecture: Blackwell
+    sm: sm_100
+    ptx_instruction: tcgen05.mma
+    sass_instruction: TCGEN05 (internal)
+    scope: single-thread issue; cooperative across 2 SMs
+    max_tile: 256x256x16 (2-SM)
+    additions: TMEM accumulator, FP4/FP6, 2x–4x throughput vs Gen4, CTA pair cooperation
+    accumulator: Tensor Memory (TMEM)
+
+compilation_pipeline:
+  steps:
+    - step: 1
+      tool: nvcc
+      input: CUDA C++ (.cu)
+      output: PTX (.ptx)
+      description: Front-end compilation; separates device and host code; generates PTX
+
+    - step: 2
+      tool: ptxas
+      input: PTX (.ptx)
+      output: cubin (.cubin)
+      description: Assembles PTX to SASS; performs register alloc, scheduling, instruction selection
+
+    - step: 3
+      tool: fatbinary / nvlink
+      input: cubin + PTX
+      output: fatbinary (embedded in host executable)
+      description: Packages multiple cubins (different sm_XX) plus fallback PTX
+
+    - step: 4
+      tool: CUDA driver (JIT)
+      input: embedded PTX (from fatbinary)
+      output: SASS cubin (cached)
+      description: Runtime JIT when no matching cubin found; result cached to disk
+      trigger: no matching cubin in fatbinary for current GPU

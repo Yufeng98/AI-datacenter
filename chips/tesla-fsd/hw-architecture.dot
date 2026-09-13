@@ -1,0 +1,106 @@
+digraph tesla_fsd_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== NPU BLOCK =====================
+    subgraph cluster_npu {
+        label="NPU Block (×2 HW3 / ×3 HW4)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        mac_array [label="96×96 MAC Array\n9,216 MACs\n18,432 INT8 ops/cycle\n8b×8b → 32b accum", fillcolor="#283593", fontcolor="white"];
+        npu_sram [label="32 MiB SRAM\n(weights + activations)\n256B activation + 128B weight/cycle", fillcolor="#283593", fontcolor="white"];
+        dma [label="DMA Engine\n(out-of-order memory)\nhides SRAM latency", fillcolor="#283593", fontcolor="white"];
+        npu_sram -> mac_array [label="feed", color="white", fontcolor="white"];
+        dma -> npu_sram [color="white", fontcolor="white"];
+    }
+
+    // ===================== CPU =====================
+    subgraph cluster_cpu {
+        label="CPU Cluster";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cpu_cores [label="ARM Cortex-A Cores\nHW3: 12× @ 2.6 GHz\nHW4: 20× @ 2.35 GHz\nOS + sensor management", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== GPU / ISP =====================
+    subgraph cluster_gpu {
+        label="GPU / ISP";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        gpu [label="GPU (Mali G71 MP12 / HW4 updated)\n@ 1 GHz\nCamera ISP, preprocessing", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== MEMORY =====================
+    subgraph cluster_mem {
+        label="External Memory";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        dram [label="DRAM\nHW3: 8 GB LPDDR4, 68 GB/s*\nHW4: 16 GB GDDR6, 224 GB/s*\nAI4.1 (announced): 32 GB/SoC, 64 GB/board\n* bandwidth contested, none Tesla-published", fillcolor="#F8D7DA"];
+        nvme [label="NVMe Storage (HW4)\n256 GB\nMap/model storage", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== AI5 (taped out 2026) =====================
+    subgraph cluster_ai5 {
+        label="AI5 — taped out, announced 2026-04-15 (not deployed)";
+        style="rounded,dashed";
+        color="#8E24AA";
+        fontcolor="#8E24AA";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ai5_die [label="AI5 compute die\n~half a standard reticle\nDual-sourced: TSMC (node n/d)\n+ Samsung SF2-class 2nm, Taylor TX\nNPU count / TOPS / dtypes: NOT DISCLOSED", fillcolor="#F3E5F5"];
+        ai5_cpu [label="On-die Arm CPU cores + PCIe blocks\n(Musk statement; counts not disclosed)\nFirst FSD-line part with a host interface", fillcolor="#F3E5F5"];
+        ai5_dram [label="12× discrete SK hynix DRAM packages\nGDDR6 or GDDR7 (grade unestablished)\nOrganic substrate — NOT HBM / CoWoS\nCapacity + bandwidth: NOT DISCLOSED\n(384-bit / 0.77-1.5 TB/s = single-source inference)", fillcolor="#F3E5F5"];
+        ai5_dram -> ai5_die [label="off-package DRAM", fontsize=8];
+        ai5_cpu -> ai5_die [style=dashed, fontsize=8];
+    }
+
+    // ===================== IO =====================
+    subgraph cluster_io {
+        label="IO / Sensors";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cameras [label="8× Cameras\n360° coverage\n1B pixels/sec", fillcolor="#E0E0E0"];
+        bus [label="Proprietary Camera Bus\n+ Ethernet (OTA)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== EDGES =====================
+    cameras -> bus;
+    bus -> gpu [label="raw frames"];
+    gpu -> dram [label="preprocessed", style=dashed];
+    dram -> dma [label="model load"];
+    dma -> npu_sram;
+    mac_array -> dram [label="results", style=dashed];
+    cpu_cores -> dram [style=dashed];
+    cpu_cores -> mac_array [label="schedule dispatch"];
+    nvme -> dram [style=dashed, label="model load"];
+
+    // AI5 succeeds the HW3/HW4 line but shares no disclosed internal structure
+    dram -> ai5_dram [style=dotted, constraint=false, label="successor generation\n(structure not disclosed)", fontsize=8];
+}

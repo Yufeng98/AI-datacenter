@@ -1,0 +1,435 @@
+chip: mythic
+as_of: "2026-04-05"
+last_updated: "2026-08-08"
+device_class: Analog In-Memory Compute
+company_status: active  # NOT shut down; raised $125M Dec 2025; acquired Videantis GmbH May 2026
+
+company:
+  name: Mythic AI Inc.
+  founded: 2012
+  founders: [Dave Fick, Mike Henry]
+  origin: University of Michigan (initially named Isocline)
+  hq: Austin, TX
+  hq_conflict_2026_08_08: >
+    Unresolved. Honda's 2026-02-04 newsroom release calls Mythic "a Texas, U.S.-based
+    technology company"; Mythic's own 2026-05-19 press release dateline reads
+    "Palo Alto, CA". Treat as dual-site; do not assert a single HQ.
+  status: Active (as of 2026-08-08)
+  funding_total_usd: ~290M
+  funding_rounds:
+    - round: Series A/B (pre-2021)
+      notes: Early VC funding
+    - round: Series C
+      amount_usd: 70M
+      date: "2021-05"
+      lead: BlackRock, Hewlett Packard Enterprise
+    - round: Bridge
+      amount_usd: 13M
+      date: "2023-03"
+      lead: Atreides Management, DCVC, Lux Capital
+      notes: Rescued company after 2022 cash crisis
+    - round: Series D
+      amount_usd: 125M
+      date: "2025-12"
+      lead: DCVC
+      co_investors: [NEA, SoftBank KR, Honda Motor, Lockheed Martin, Atreides, Future Ventures, S3 Ventures, Linse Capital, One Madison Group, Catapult, UDC]
+  key_milestones:
+    - date: "2020-11"
+      event: M1108 launched — industry's first analog matrix processor
+    - date: "2021-06"
+      event: M1076 launched — 76-tile smaller AMP
+    - date: "2022-11"
+      event: Near-shutdown — ran out of operating cash
+    - date: "2023-03"
+      event: $13M bridge; Dave Fick becomes CEO
+    - date: "2024-06"
+      event: Dr. Taner Ozcelik (ex-NVIDIA) named CEO
+    - date: "2025-12"
+      event: $125M raise; targets 1T+ param LLMs in datacenter; 100× energy efficiency claim vs. GPU
+    - date: "2026-02-04"
+      event: >
+        Honda newsroom announces co-development of an SoC for software-defined vehicles with
+        Mythic; Mythic's own release two days later (2026-02-06) adds that Honda R&D licenses
+        Mythic APU technology. Backfill — predates the 2026-04-05 baseline scan.
+    - date: "2026-05-19"
+      event: >
+        Acquired Videantis GmbH (Hannover, Germany), licensable digital processor-IP vendor;
+        transaction closed (Taylor Wessing notice 2026-06-02). Stated forward architecture
+        becomes analog CIM + programmable digital core. Terms not disclosed.
+
+products:
+  m1108:
+    type: Analog Matrix Processor (AMP)
+    amp_tiles: 108
+    control_tiles: 4
+    peak_tops: 35
+    typical_power_w: 4
+    weight_params_capacity: ~100M
+    process: 40nm embedded NOR flash
+    package: 19x19 mm² BGA
+    host_interface: PCIe 2.0
+    launch: "2020-11"
+    target: Edge AI inference
+  m1076:
+    type: Analog Matrix Processor (AMP)
+    amp_tiles: 76
+    control_tiles: 4
+    peak_tops: 25
+    typical_power_w: 3
+    weight_params_capacity: ~80M
+    process: 40nm embedded NOR flash
+    host_interface: PCIe 2.0
+    launch: "2021-06"
+    form_factors: [standalone, PCIe M.2 A+E-key, PCIe M.2 M-key]
+    target: Edge AI inference (scalable, power-efficient)
+  m1076_pcie_card:
+    type: Multi-chip PCIe card
+    chips_per_card: 16
+    peak_tops: ~400
+    typical_power_w: 75
+    process: 40nm embedded NOR flash
+    target: Higher-TOPS edge / entry server
+
+architecture:
+  paradigm: Analog compute-in-memory (flash-based)
+  compute_medium: Analog current summation in NOR flash cells
+  weight_storage: Embedded NOR flash (non-volatile, in-cell)
+  weight_access_bw_during_inference: 0  # weights read as analog current, no DRAM
+  nonlinear_ops: Digital (SIMD engine per tile)
+
+  amp_tile:
+    components:
+      - Mythic Analog Compute Engine (ACE™) — NOR flash MMA
+      - Input DAC (activation voltage encoding)
+      - Bitline ADC (current-sum to digital)
+      - 32-bit RISC-V nano-processor (Codasip licensed)
+      - SIMD vector engine
+      - 64 KB SRAM (activation buffer + scratchpad)
+      - NoC router (2D mesh)
+    gops_per_tile: 250
+    energy_per_mac_pj: 0.25
+    topology: 2D mesh across all tiles
+
+  memory_hierarchy:
+    - level: Flash weight store (ACE)
+      technology: Embedded NOR multi-level flash
+      capacity: ~80-100M params per chip (in flash cells)
+      bandwidth: "Not applicable — analog in-cell"
+      notes: Non-volatile; programmed once at model load; no DRAM BW consumed
+    - level: Tile SRAM
+      technology: SRAM
+      capacity_per_tile: 64 KB
+      bandwidth: High on-tile
+      notes: SW-managed scratchpad for activations
+    - level: Host DRAM
+      technology: External DRAM (host-side)
+      role: Model weight programming, host activations
+      notes: Used only once per model load to program flash
+
+  interconnect:
+    tile_to_tile:
+      type: 2D mesh NoC (on-chip)
+      purpose: Activation routing between tiles
+    chip_to_host:
+      type: PCIe 2.0
+      bw_approx: ~4 GB/s
+      purpose: Host control, activation I/O
+    multi_chip:
+      type: PCIe card (up to 16 chips)
+      purpose: Scale-up on single board
+
+process:
+  node: 40nm embedded NOR flash
+  rationale: Mature node for reliable flash; cost over density; no HBM needed
+  package_m1108: 19x19 mm² BGA
+  form_factors: [standalone_chip, PCIe_M2_AE_key, PCIe_M2_M_key, PCIe_card_16x]
+
+supported_data_types: [INT4, INT8, INT16]
+precision_notes: Analog noise limits to INT8 effectively; INT4 for aggressive quantization
+
+key_distinctions_vs_digital_cim:
+  d_matrix_corsair: Digital MAC in SRAM (volatile; 6nm); vs Mythic flash-based analog (40nm; non-volatile)
+  sk_hynix_aim: PIM in GDDR6/HBM (DRAM process); vs Mythic standalone eFlash logic chip
+  samsung_aquabolt: PIM in HBM2 (DRAM process); vs Mythic standalone eFlash logic chip
+
+analog_limitations:
+  - Weight precision limited to INT8 by analog noise floor
+  - NOR flash endurance (~100K–1M write cycles) constrains model swap frequency
+  - Temperature drift of flash charge requires calibration
+  - Nonlinear ops (ReLU, GELU, Softmax, LayerNorm) remain digital (SIMD)
+  - 40nm process density disadvantage vs. advanced-node digital accelerators
+
+applications:
+  historical_edge: [surveillance cameras, drones, robotics, machine vision, autonomous systems]
+  new_target_2026: [1T+ parameter LLMs, datacenter inference, defense, automotive]
+  new_target_2026_status: stated_intent_no_silicon_disclosed
+
+# ============================================================================
+# Corporate / roadmap update — appended 2026-08-08
+# Change class: roadmap (corporate + IP acquisition). NOT a silicon disclosure.
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: roadmap
+  silicon_disclosed: false
+  trigger: >
+    Mythic acquired Videantis GmbH (announced 2026-05-19, closed) and — as a backfill
+    missed by the 2026-04-05 baseline scan — announced a Honda joint-development /
+    APU-licensing program (Honda 2026-02-04, Mythic 2026-02-06). No new silicon,
+    product name, node, TOPS, TDP, tapeout, or sampling has been disclosed.
+
+  fact_groups:
+
+    - group: videantis_acquisition
+      confidence: high
+      basis: vendor_press_release_plus_independent_counsel_notice
+      facts:
+        target: Videantis GmbH
+        target_hq: "Hannover, Germany"
+        target_business: licensable digital processor IP
+        announced: "2026-05-19"
+        announcement_channel: "BUSINESS WIRE; dateline Palo Alto CA and Hannover Germany"
+        deal_terms: not_disclosed
+        deal_value: not_disclosed
+        headcount_acquired: not_disclosed
+        structure: wholly owned subsidiary; Videantis continues to operate
+        founders_joining: 5
+        founder_lead: "Dr. Hans-Joachim Stolberg"
+        cap_table_change: >
+          eCAPITAL (European deep-tech VC) became a Mythic shareholder as part of the
+          transaction. Equity/cap-table change, NOT a priced funding round.
+        closing_status: >
+          "successfully completed ... following the satisfaction of all regulatory
+          requirements" per Taylor Wessing (Mythic's counsel), 2026-06-02. Completed
+          acquisition, not a signed-but-pending LOI.
+      sources:
+        - title: "Mythic Acquires Videantis — full press release text"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+        - title: "BusinessWire wire copy (2026-05-19)"
+          url: "https://www.businesswire.com/news/home/20260519255958/en/Mythic-Acquires-Videantis-One-of-Europes-Leading-Digital-Processor-IP-Companies-To-Build-the-Worlds-Most-Energy-Efficient-AI-Compute-Platform"
+        - title: "Taylor Wessing advisory notice, 2026-06-02 (independent of both parties; HTTP 403 to direct fetch, read via search snippet)"
+          url: "https://www.taylorwessing.com/en/insights-and-events/news/media-centre/press-releases/2026/06/mythic-inc-acquires-videantis"
+        - title: "edge-ai-vision republication (2026-05-19)"
+          url: "https://www.edge-ai-vision.com/2026/05/mythic-acquires-videantis-to-build-the-worlds-most-energy-efficient-ai-compute-platform/"
+        - title: "pulse2 (2026-05-20) — deal value not disclosed, five founders, wholly owned subsidiary"
+          url: "https://pulse2.com/mythic-videantis-acquisition-expands-hybrid-ai-compute-platform-with-100x-energy-efficiency-goal/"
+
+    - group: v_mp6000udx_ip_block
+      confidence: high
+      basis: vendor_stated_architecture_qualitative_only
+      facts:
+        name: v-MP6000UDX
+        vendor_term: "unified processor platform"
+        microarchitecture: "VLIW + SIMD array of identical cores"
+        workload_coverage:
+          - deep learning inference
+          - classical computer vision
+          - signal and image processing
+          - video encode/decode
+        software: "claimed decade-hardened unified software stack across all four workload classes"
+        core_count: not_disclosed
+        clock: not_disclosed
+        process_node: not_disclosed
+        die_area: not_disclosed
+        throughput_tops: not_disclosed
+        data_types: not_disclosed
+        integration_with_mythic_analog: >
+          No hybrid part has been named, specified, designed, or taped out. No NoC,
+          die-to-die link, memory hierarchy, or scale-out fabric has been described
+          for a combined analog+digital Mythic device.
+      sources:
+        - title: "Mythic Acquires Videantis press release"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+        - title: "videantis technology page — confirms licensable processor platform; does not name v-MP6000UDX or an SDK"
+          url: "https://www.videantis.com/technology.html"
+        - title: "videantis.com site banner: 'videantis is now part of Mythic'"
+          url: "https://www.videantis.com/"
+
+    - group: videantis_vendor_claims_unverified
+      confidence: low
+      basis: vendor_marketing_uncorroborated
+      note: >
+        Every item below appears only in the Mythic/Videantis press release and its
+        verbatim republications. None could be corroborated by an independent source.
+        Record as vendor claims; never as specifications.
+      facts:
+        chips_shipped_claim: ">25 million chips shipped worldwide using the IP"
+        quality_claim: "zero field defects across its deployed production base"
+        automotive_penetration_claim: "deep penetration across all top 3 European automotive manufacturers"
+        semiconductor_customer_claim: "shipping inside chips from a top three global semiconductor company"
+        aeb_claim: "AEB deployed in 20 mm x 20 mm camera modules"
+        award_claim: "top 1% of companies by the European Innovation Council"
+        efficiency_claim: >
+          "100x energy efficiency advantage" / "one percent of the energy used by
+          today's state-of-the-art GPUs" — no product, node, workload, or benchmark
+        manufacturing_claim: "dual US + Europe manufacturing — no foundry, node, or site named"
+      sources:
+        - title: "Mythic Acquires Videantis press release"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+
+    - group: strategic_framing_vendor
+      confidence: high
+      basis: direct_quotation
+      facts:
+        analog_role: matrix-vector multiply / GEMM
+        digital_role: "control, attention, non-max suppression, SLAM, video codecs"
+        ceo: "Dr. Taner Ozcelik"
+        ceo_quote: >
+          "we effectively double our architectural advantage and accelerate the
+          development of the hybrid computer the world needs for the AI era."
+        stated_range_verbatim: >
+          "from single camera drones, to factory robots, to autonomous platforms,
+          all the way to data center deployments."
+        survey_reading: >
+          The acquisition rationale is an explicit acknowledgement that the analog
+          array cannot execute non-linear / control / codec work. It is a statement
+          of direction, not a disclosed architecture.
+      sources:
+        - title: "Mythic Acquires Videantis press release"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+
+    - group: honda_joint_development_backfill
+      confidence: high
+      basis: honda_primary_plus_mythic_release
+      window_note: >
+        Predates the repo's own 2026-04-05 baseline scan — this is a gap the prior
+        scan missed, NOT news from the Apr-Aug 2026 window. Only the Videantis
+        acquisition is genuinely new since baseline.
+      facts:
+        honda_announcement_date: "2026-02-04"
+        mythic_announcement_date: "2026-02-06"
+        primary_source_preference: "cite Honda's 2026-02-04 newsroom as primary"
+        scope_per_honda: >
+          Co-development of a system-on-a-chip for software-defined vehicles, citing
+          neuromorphic / analog compute-in-memory for compute performance and energy
+          efficiency. Honda's release states NO numbers and NO timeline.
+        honda_description_of_mythic: "a Texas, U.S.-based technology company"
+        scope_per_mythic: "Honda R&D licenses Mythic's Analog Processing Unit (APU) technology"
+        mythic_marketing_targets:
+          energy_efficiency: "100x (Mythic marketing only; absent from Honda's release)"
+          throughput: "100,000+ TOPS (Mythic marketing target for an automotive part that does not exist; not measured, not datacenter)"
+        timeline_per_mythic: "prototype chips for vehicle testing late 2020s / early 2030s; production after successful trials"
+        status_verb: announced_and_licensing_agreement_only
+        designed: false
+        taped_out: false
+        sampling: false
+        shipping: false
+        honda_relationship: "both a Dec-2025 investor and, from Feb 2026, a co-development partner"
+      sources:
+        - title: "Honda global newsroom, 2026-02-04 (primary)"
+          url: "https://global.honda/en/topics/2026/c_2026-02-04eng.html"
+        - title: "Mythic release, 2026-02-06"
+          url: "https://mythic.ai/whats-new/honda-and-mythic-announce-joint-development-of-100x-energy-efficient-analog-ai-chip-for-next-generation-vehicles/"
+        - title: "BusinessWire wire copy, 2026-02-06 (indexed; direct fetch timed out)"
+          url: "https://www.businesswire.com/news/home/20260206468111/en/Honda-and-Mythic-Announce-Joint-Development-of-100x-Energy-Efficient-Analog-AI-Chip-for-Next-Generation-Vehicles"
+        - title: "convergedigest — corroborates vehicle testing late 2020s, production early 2030s (403; read via search snippet)"
+          url: "https://convergedigest.com/honda-and-mythic-to-co-develop-analog-ai-soc/"
+
+    - group: product_names_newly_surfaced
+      confidence: high
+      basis: vendor_press_release_boilerplate
+      facts:
+        apu:
+          name: "Analog Processing Unit (APU)"
+          role: "current Mythic umbrella term for its analog parts; supersedes 'AMP' in 2026 copy; the technology Honda R&D licenses"
+          specs: not_disclosed
+        starlight:
+          name: "Starlight"
+          role: "analog co-processors intended for embedding inside sensors — edge, NOT datacenter"
+          specs: not_disclosed
+          launch: not_disclosed
+      sources:
+        - title: "Mythic Acquires Videantis press release (boilerplate)"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+        - title: "Mythic what's-new index"
+          url: "https://mythic.ai/whats-new/"
+
+    - group: still_not_disclosed_2026_08_08
+      confidence: high
+      basis: exhaustive_negative_search
+      facts:
+        datacenter_product_name: not_disclosed
+        process_node_any_new_part: not_disclosed
+        datacenter_tops: not_disclosed
+        datacenter_tdp: not_disclosed
+        tapeout: none_announced
+        sampling: none_announced
+        shipping_new_part: none_announced
+        deployment_at_scale: none_announced
+        merged_sdk_isa_compiler: not_disclosed
+        hybrid_memory_hierarchy: not_disclosed
+        hybrid_interconnect: not_disclosed
+        new_funding_round_after_dec_2025: none
+        only_quantitative_target_found: "automotive 100,000+ TOPS (Mythic marketing)"
+        mythic_news_index: "exactly three items Dec 2025 - 2026-08-08 ($125M Dec 17 2025; Honda Feb 6 2026; Videantis May 19 2026); nothing after 2026-05-19"
+        hot_chips_38: "Mythic does NOT appear on the Hot Chips 38 advance program (Aug 23-25 2026, Stanford)"
+      sources:
+        - title: "Mythic what's-new index"
+          url: "https://mythic.ai/whats-new/"
+        - title: "Hot Chips 2026 advance program (no Mythic entry)"
+          url: "https://hotchips.org/advance-program/"
+
+    - group: corrections_to_prior_repo_content
+      confidence: high
+      basis: absence_of_primary_source
+      facts:
+        removed_advanced_node_estimate: >
+          hw-architecture.md previously listed the next-gen part's process as
+          "Advanced node (est.)". No primary source discloses a node for any
+          forthcoming Mythic part; replaced with "not disclosed".
+        removed_pcie_gen45_roadmap: >
+          layer-table.md previously asserted "PCIe Gen4/5 for multi-card server
+          setups (2026+ roadmap)". No primary source states a host-interface
+          generation for any forthcoming part; marked not disclosed.
+        removed_next_gen_targets_advanced_node: >
+          The Analog Compute Limitations section previously stated "Next-gen chip
+          targets advanced node" — same problem, corrected.
+        pure_analog_characterization: >
+          Now labelled incomplete: Mythic's stated forward architecture is analog
+          CIM plus an acquired programmable VLIW/SIMD digital core.
+      sources:
+        - title: "Mythic Acquires Videantis press release"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+        - title: "Mythic what's-new index"
+          url: "https://mythic.ai/whats-new/"
+
+    - group: unsubstantiated_claim_still_flagged
+      confidence: unresolved
+      basis: no_retrievable_source
+      facts:
+        claim: "750x tokens/s/W on 1T-parameter models vs. NVIDIA's best"
+        origin: "internal Mythic benchmark cited around the Dec 2025 raise"
+        status_2026_08_08: >
+          Remains unsubstantiated. No retrieved source repeats or supports it.
+          Keep flagged as unverified; do not promote to a specification.
+      sources:
+        - title: "Mythic what's-new index (no substantiation found)"
+          url: "https://mythic.ai/whats-new/"
+
+  evidence_quality_caveat: >
+    Essentially all acquisition coverage (edge-ai-vision, pulse2, TMCnet, AFP feed,
+    hw.dev) is verbatim republication of the same BusinessWire release. The only
+    confirmation located that is independent of both parties is the Taylor Wessing
+    advisory notice confirming closing; that page returns HTTP 403 to direct fetch
+    and was read only via its search-result title/snippet. No trade-press independent
+    reporting, deal value, headcount, or roadmap detail was found.
+
+  dot_figure_decision: >
+    chips/mythic/hw-architecture.dot deliberately NOT modified. It depicts shipping
+    M1076/M1108 silicon. The hybrid analog+digital platform has no disclosed engine,
+    memory tier, or fabric to draw; rendering an announced intention as an
+    architecture block would misrepresent the evidence.
+
+  update_sources:
+    - https://www.videantis.com/mythic-acquires-videantis.html
+    - https://www.videantis.com/
+    - https://www.videantis.com/technology.html
+    - https://www.edge-ai-vision.com/2026/05/mythic-acquires-videantis-to-build-the-worlds-most-energy-efficient-ai-compute-platform/
+    - https://www.taylorwessing.com/en/insights-and-events/news/media-centre/press-releases/2026/06/mythic-inc-acquires-videantis
+    - https://global.honda/en/topics/2026/c_2026-02-04eng.html
+    - https://mythic.ai/whats-new/honda-and-mythic-announce-joint-development-of-100x-energy-efficient-analog-ai-chip-for-next-generation-vehicles/
+    - https://mythic.ai/whats-new/
+    - https://pulse2.com/mythic-videantis-acquisition-expands-hybrid-ai-compute-platform-with-100x-energy-efficiency-goal/
+    - https://convergedigest.com/honda-and-mythic-to-co-develop-analog-ai-soc/
+    - https://hotchips.org/advance-program/

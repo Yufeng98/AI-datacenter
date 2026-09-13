@@ -1,0 +1,130 @@
+digraph graphcore_ipu_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.6;
+    nodesep=0.4;
+
+    // ===================== TILE STRUCTURE =====================
+    subgraph cluster_tile {
+        label="IPU Tile (×1,472 per chip — MIMD)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        supervisor [label="Supervisor Thread (×1)\nPrivileged context\nLaunches exchange ops\nDispatches worker vertices", fillcolor="#283593", fontcolor="white"];
+
+        worker [label="6 Worker Threads\n(barrel/round-robin scheduled)\n1 instruction per context per cycle\nIn-order pipeline\nFP16 vector MAC (2× FP16/cycle)\nFP32 scalar FPU\n32-bit integer ALU\nClock: 1.85 GHz (Bow)", fillcolor="#283593", fontcolor="white"];
+
+        tile_sram [label="624 KB Private SRAM\nTile-exclusive (no shared access)\nDeterministic, cycle-accurate latency\nNo L1/L2 cache", fillcolor="#283593", fontcolor="white"];
+
+        supervisor -> worker [color="white", label="vertex dispatch", fontcolor="white", fontsize=8];
+        worker -> tile_sram [color="white", label="load/store", fontcolor="white", fontsize=8];
+    }
+
+    // ===================== BSP CONTROL =====================
+    subgraph cluster_bsp {
+        label="BSP Execution Controller";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        barrier [label="Global Hardware Barrier\nAll 1,472 tiles must complete\ncompute phase before exchange\nSuperstep: Compute → Barrier → Exchange", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== EXCHANGE FABRIC =====================
+    subgraph cluster_fabric {
+        label="IPU Exchange Fabric";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        fabric [label="All-to-All Non-Blocking Fabric\n11 TiB/s aggregate bandwidth\nStatically scheduled (Poplar compiler)\nMemory-to-memory DMA\nActive only during BSP exchange phase\nRace-free by BSP contract", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OFF-CHIP INTERCONNECT =====================
+    subgraph cluster_interconnect {
+        label="Off-Chip Interconnect";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ipulink [label="IPU-Link\n~64 GB/s bidir per pair\nDirect chip-to-chip\nIntra-M2000 (4 IPUs)", fillcolor="#FFE0CC"];
+        gwlink [label="GW-Link (Gateway)\nInter-rack (IPU-Gateway chip)\nLooped or Switched topology\nIPU-POD128 / POD256+", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== STREAMING MEMORY =====================
+    subgraph cluster_stream {
+        label="Streaming Memory (Off-Chip, On IPU-Machine Server)";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ddr [label="DDR4 DIMMs\nUp to 112 GB per IPU\n448 GiB per M2000 (4 IPUs)\n180 TB/s aggregate (M2000)\nExplicit DMA into tile SRAM only\nNo direct tile access during compute", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== PHYSICAL DIE =====================
+    subgraph cluster_die {
+        label="Bow IPU Die Stack (TSMC 7nm WoW, 2022)";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        active_die [label="Active Die (Top Wafer)\n823 mm² — TSMC 7nm\n59.4 billion transistors\n1,472 IPU-Core tiles + SRAM + fabric", fillcolor="#E0E0E0"];
+        power_die [label="Power Delivery Die (Bottom Wafer)\nDecoupling capacitors\nCu-Cu hybrid bond (direct bonding)\nSmooths VDD → 1.85 GHz at lower voltage\nFirst production WoW chip", fillcolor="#E0E0E0"];
+        active_die -> power_die [label="Cu-Cu bond", fontsize=8, style=dashed];
+    }
+
+    // ===================== HOST INTERFACE =====================
+    subgraph cluster_host {
+        label="Host Interface";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pcie [label="PCIe Host Interface\nTo proxy CPU\nLoad compiled binary\nStream I/O data", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== EDGES =====================
+
+    // BSP flow
+    supervisor -> barrier [label="superstep ctrl", fontsize=8, style=dashed, color="#34A853"];
+    barrier -> supervisor [style=dashed, color="#34A853", label="proceed", fontsize=8];
+
+    // Exchange flow
+    tile_sram -> fabric [label="BSP exchange phase\n(supervisor DMA)", fontsize=8, color="#7B61FF"];
+    fabric -> tile_sram [label="receive into SRAM", fontsize=8, style=dashed, color="#7B61FF"];
+
+    // Off-chip memory
+    ddr -> tile_sram [label="explicit DMA\n(exchange phase only)", fontsize=8, style=dashed, color="#EA4335"];
+
+    // Interconnect scale-out
+    fabric -> ipulink [label="multi-IPU exchange", fontsize=8, style=dashed, color="#FF6D01"];
+    ipulink -> gwlink [label="inter-rack", fontsize=8, style=dashed, color="#FF6D01"];
+
+    // Physical
+    active_die -> worker [style=dashed, color="#757575", label="silicon", fontsize=8];
+    power_die -> active_die [label="PDN", fontsize=8, color="#757575"];
+
+    // Host
+    pcie -> supervisor [label="load + launch", fontsize=8, color="#4A90D9"];
+}

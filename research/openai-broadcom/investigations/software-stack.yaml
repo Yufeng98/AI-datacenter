@@ -1,0 +1,192 @@
+chip: openai-broadcom
+product_name: "Jalapeño"      # official; unveiled 2026-06-24
+codename: unsourced           # "Project Titan" appears in no primary source
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+confidence: low
+sdk_released: false           # UNCHANGED as of 2026-08-08
+chip_shipped: false           # engineering samples in lab only; not shipped, not mass production
+silicon_status: sampling
+
+framework_integration:
+  pytorch:
+    status: inferred
+    confidence: high
+    notes: OpenAI's entire ML infrastructure uses PyTorch; custom backend via torch.compile expected
+  jax:
+    status: not_confirmed
+  tensorflow:
+    status: not_confirmed
+  onnx:
+    status: not_confirmed
+
+compiler:
+  primary: Triton
+  status: inferred_from_job_postings
+  confidence: high
+  notes: |
+    OpenAI job postings (Q1 2026) explicitly state the Compiler/Kernels team is
+    "advancing Triton and its backend" for custom silicon. Triton backend for
+    Titan ASIC is in development but not open-sourced.
+  triton_repo: https://github.com/triton-lang/triton
+  titan_backend_public: false
+  torch_compile_integration: inferred
+  mlir_based: true  # Triton uses MLIR internally
+  xla_hlo: not_confirmed
+
+op_library:
+  status: not_public
+  notes: |
+    No public op library. Systolic array GEMM is hardware-native.
+    Higher-level ops (attention, normalization) likely implemented as
+    Triton kernels targeting Titan backend.
+
+kernel_library:
+  status: not_public
+  notes: |
+    Job postings reference "writing fast, correct, and deeply optimized kernels
+    for brand-new hardware" — implies kernel authorship (Triton), not a
+    pre-built cuDNN-equivalent library.
+
+runtime:
+  inference_runtime: not_public
+  model_loading: not_public
+  weight_management: not_public
+  batching: not_public  # continuous batching inferred
+  quantization: not_public  # FP8/INT8 inferred
+  vllm_integration: not_confirmed
+  public_serving_endpoint: api.openai.com  # uses internal runtime, not public SDK
+
+driver:
+  kernel_module: not_public
+  on_chip_firmware: not_public
+  dma_engine: not_public
+  host_interface: PCIe_inferred
+
+communication:
+  protocol: Ethernet  # Broadcom stack, confirmed in announcement
+  collective_library: not_public  # Broadcom NCCL-equivalent, not named
+  rdma: not_public  # RoCE v2 inferred from Broadcom Ethernet
+  in_network_compute: inferred  # Broadcom Jericho4 supports AI collective ops
+
+isa:
+  status: not_public
+  user_facing: false  # systolic array ASIC; ISA internal only
+
+what_is_not_public:
+  - sdk
+  - triton_titan_backend
+  - kernel_library
+  - inference_runtime
+  - driver_source
+  - isa_encoding
+  - quantization_toolchain
+  - developer_documentation
+  - any_public_benchmark
+
+# =====================================================================
+# Jalapeño unveiling — software-stack facts, scan 2026-08-08, event 2026-06-24
+# The unveiling released NO SDK/compiler/runtime/driver/ISA detail.
+# =====================================================================
+jalapeno_unveiling_2026_06_24:
+
+  naming:
+    confidence: high
+    facts:
+      backend_name: "Jalapeño backend"     # replaces "Titan backend" throughout the baseline
+      prior_codename: unsourced
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+
+  end_to_end_bringup:
+    confidence: high                       # the MILESTONE is confirmed; the implementation is not disclosed
+    facts:
+      statement: >-
+        Engineering samples of the Jalapeño chip are running ML workloads in the lab at production
+        target frequency and power, including GPT-5.3-Codex-Spark.
+      model_executed: GPT-5.3-Codex-Spark
+      implies_working:                     # all inferred from the milestone, none independently disclosed
+        framework_ingest_path: inferred_high
+        compiler_backend_codegen: inferred_high
+        kernel_coverage_for_llm: inferred_high
+        runtime_weight_load_batching_streaming: inferred_high
+        driver_dma_enumeration: inferred_high
+      collectives_multi_node_evidence: none
+      implementation_detail_disclosed: none
+    sources:
+      - https://finance.yahoo.com/technology/ai/articles/openai-broadcom-unveil-llm-optimized-130000020.html
+      - https://techcrunch.com/2026/06/24/openai-unveils-its-first-custom-chip-built-by-broadcom/
+
+  unchanged_as_of_2026_08_08:
+    confidence: high
+    facts:
+      public_sdk: none
+      triton_jalapeno_backend_open_sourced: false
+      kernel_library_public: false
+      op_library_public: false
+      inference_runtime_public: false
+      driver_source_public: false
+      isa_public: false
+      quantization_toolchain_public: false
+      collective_library_named: false      # only the switch silicon (Tomahawk) was named, not the software
+      public_benchmark: none               # no MLPerf, no third-party result
+    sources:
+      - https://github.com/triton-lang/triton
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+
+  model_scope:
+    confidence: high
+    facts:
+      statement: "designed with flexibility to work with all LLMs; built for current and future LLMs across the industry"
+      interpretation: architecture_generality_only
+      implies_sdk_release: false
+      implies_open_stack: false
+      implies_third_party_sales: false     # DO NOT infer sellability from this language
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+
+  ai_assisted_design:
+    confidence: vendor_claim_unverifiable
+    facts:
+      statement: "OpenAI used its own models to accelerate parts of the design and optimization process"
+      scope: EDA_design_tooling                # not the deployed software stack
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+
+  scheduled_disclosure:
+    confidence: high                       # scheduling confirmed; content does not exist yet
+    facts:
+      conference: Hot Chips 38
+      talk: "You Can Just Build Things … Chips"
+      speakers: [Richard Ho, Ravi Narayanaswami, Chris Leary]
+      session: "AI 2"
+      when: "2026-08-25, 4:45-6:15 PM PDT"
+      relevance: "Chris Leary's compiler background makes this the likely first public description of the Jalapeño compiler/runtime path"
+      content_status: "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public"
+      follow_up_action: "re-scan after 2026-08-25"
+    sources:
+      - https://www.hotchips.org/advance-program/
+
+key_sources:
+  - url: https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+    type: official_press_release
+    date: "2026-06-24"
+    notes: Jalapeño unveiling; GPT-5.3-Codex-Spark bring-up statement; no SDK/compiler detail
+  - url: https://finance.yahoo.com/technology/ai/articles/openai-broadcom-unveil-llm-optimized-130000020.html
+    type: press_release_carry
+    notes: Full verbatim joint release text
+  - url: https://techcrunch.com/2026/06/24/openai-unveils-its-first-custom-chip-built-by-broadcom/
+    type: news
+    notes: Independent — still in testing, "early results"
+  - url: https://www.hotchips.org/advance-program/
+    type: conference_program
+    notes: Ho/Narayanaswami/Leary AI 2 talk 2026-08-25; content not yet public
+  - url: https://openai.com/careers/software-engineer-triton-compiler-san-francisco/
+    type: job_posting
+    notes: Confirms Triton compiler extension for custom silicon
+  - url: https://openai.com/index/openai-and-broadcom-announce-strategic-collaboration/
+    type: official_press_release
+    notes: Confirms Ethernet networking; "unlocking new levels of capability"
+  - url: https://github.com/triton-lang/triton
+    type: open_source
+    notes: Triton compiler; Titan backend not present as of April 2026

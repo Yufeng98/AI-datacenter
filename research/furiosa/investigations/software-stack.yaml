@@ -1,0 +1,288 @@
+chip: furiosa
+as_of: "2026-04-05"
+source: software-stack.md
+
+sdk:
+  name: furiosa-sdk
+  license: Apache 2.0
+  repo: "https://github.com/furiosa-ai/furiosa-sdk"
+  language: Python
+  install: "pip install furiosa-sdk"
+  version_warboy: "0.10.x"
+  version_rngd: "2026.1.0"
+
+layers:
+  framework_integration:
+    pytorch:
+      path: "torch.onnx.export() / torch.export() → ONNX → furiosa-compiler"
+      eager_backend: false
+      aot_only: true
+    onnx:
+      primary: true
+      note: "canonical model exchange format; furiosa-compiler accepts directly"
+    huggingface_transformers:
+      via: "furiosa-llm"
+      chips: [rngd]
+      note: "safetensors → furiosa-llm → compiled RNGD model"
+    furiosa_models:
+      repo: "furiosa-ai/furiosa-models"
+      models: [ResNet50, EfficientNetB0, YOLOv5, YOLOv8, SSD, RetinaFace]
+
+  compiler:
+    name: furiosa-compiler
+    open_source: false
+    distribution: "apt/pip (furiosa-compiler package)"
+    input: ONNX
+    output_warboy: ".enf (Engineered NPU Format)"
+    output_rngd: "RNGD binary (format not publicly named)"
+    passes:
+      - ONNX import and validation
+      - Graph optimization (const folding, dead code elim, op fusion)
+      - Quantization-aware lowering (INT8/INT4/FP8)
+      - Hardware placement (NPU vs CPU fallback)
+      - Memory planning (SRAM tiling, HBM3 allocation for RNGD)
+      - Binary generation
+    key_features:
+      - tactic selection per operator
+      - tensor contraction mapping to TCP hardware (RNGD)
+      - LLM passes: KV-cache allocation, attention fusion, RoPE fusion
+      - automatic CPU fallback for unsupported ops
+    cli_tools:
+      - "furiosa compile"
+      - "furiosa quantize"
+      - "furiosa perftest"
+      - "furiosa profile"
+
+  quantizer:
+    name: furiosa-quantizer
+    modes:
+      - INT8 dynamic/static
+      - INT4 weight-only (RNGD)
+      - FP8 per-tensor / per-channel (RNGD)
+      - GPTQ-style block quantization (RNGD, LLM)
+    usage: "furiosa.quantizer.quantize(onnx_model, calibration_dataset)"
+
+  runtime:
+    warboy:
+      name: furiosa-runtime
+      api:
+        sync: "runtime.session.create(model.enf).run([input])"
+        async: "await session.run_async([input])"
+      internals:
+        - PCIe DMA for weight loading and tensor I/O
+        - Multi-session multiplexing on single card
+    rngd:
+      name: furiosa-runtime (2026.1.0)
+      extra_features:
+        - NPU partition selection (1/2/4/8 virtual NPUs)
+        - Streaming token generation (generate / generate_async)
+        - KV-cache management (HBM3 segment allocation)
+        - Continuous batching
+
+  llm_interface:
+    name: furiosa-llm
+    chips: [rngd]
+    models_supported:
+      - "LLaMA 2/3 (7B–70B)"
+      - "Mistral 7B"
+      - "EXAONE 3.5 (32B)"
+      - "Gemma 2B/7B"
+    api_example: "LLM('meta-llama/Llama-3-8B-Instruct', devices='npu:0:*').generate(prompts, sampling_params)"
+
+  serving:
+    furiosa_serving:
+      apis:
+        - "OpenAI Chat Completions (/v1/chat/completions)"
+        - "Triton-compatible REST"
+        - "Health check + metrics"
+    tgi_integration:
+      via: "HuggingFace TGI backend plugin"
+      deployment: Docker container
+      chips: [rngd]
+
+  driver:
+    kernel_module: "furiosa-npu.ko"
+    distribution: "apt install furiosa-driver"
+    features:
+      - PCIe BAR MMIO mapping
+      - DMA channel management
+      - NPU partition management (RNGD)
+    on_chip_firmware:
+      type: minimal microcontroller
+      responsibilities:
+        - DVFS power management
+        - Thermal monitoring
+        - PCIe link management
+      note: "Does NOT manage operator scheduling — that is entirely compiler-determined"
+
+  profiler:
+    name: furiosa-profiler
+    output: "Chrome Tracing JSON (compatible with chrome://tracing and Perfetto)"
+    captures:
+      - per-operator NPU execution time
+      - memory DMA transfers
+      - CPU-NPU synchronization
+
+op_library:
+  note: "Not applicable — no separate op dispatch library like cuDNN; all fusion handled inside furiosa-compiler"
+
+kernel_library:
+  note: "Not applicable — no user-facing kernel library (no CUTLASS equivalent); compiler owns all placement"
+
+programming_model:
+  philosophy: "compiler-first, runtime-thin"
+  compilation: AOT_only
+  model_format: ONNX
+  dynamic_shapes: false
+  recompilation_required_for_shape_change: true
+
+references:
+  - url: "https://github.com/furiosa-ai/furiosa-sdk"
+    type: open_source_repo
+  - url: "https://developer.furiosa.ai/latest/"
+    type: documentation
+  - url: "https://developer.furiosa.ai/latest/en/overview/rngd.html"
+    type: documentation
+  - url: "http://developer.furiosa.ai/docs/latest/en/software/python-sdk.html"
+    type: documentation
+  - url: "http://developer.furiosa.ai/furiosa-models/latest/getting_started/"
+    type: documentation
+  - url: "https://furiosa.ai/blog/lg-ai-research-taps-furiosaai-to-achieve-2-25x-better-llm-inference-in-production-vs-gpus"
+    type: benchmark_blog
+
+# ============================================================================
+# UPDATE 2026-08-08 — appended. Supersedes the corresponding baseline keys above.
+# Scan window 2026-04-10 -> 2026-08-06.
+# ============================================================================
+update_2026_08_08:
+  as_of: "2026-08-08"
+
+  sdk_release:
+    confidence: confirmed
+    sources:
+      - "https://furiosa.ai/blog/furiosa-sdk-2026-3-a-new-kernel-framework-and-the-models-it-unlocks"
+      - "https://pypi.org/pypi/furiosa-llm/json"
+      - "https://developer.furiosa.ai/latest/en/"
+    version: "2026.3.0"
+    released: "2026-06-30"
+    breaking_changes_from: "2026.2"
+    distribution: "PyPI wheels, calendar versioning; documented at developer.furiosa.ai"
+
+  # ---- SUPERSEDES the baseline `kernel_library` key above ----
+  kernel_library:
+    supersedes: "kernel_library.note ('Not applicable — no user-facing kernel library')"
+    confidence: confirmed
+    sources:
+      - "https://furiosa.ai/blog/furiosa-sdk-2026-3-a-new-kernel-framework-and-the-models-it-unlocks"
+      - "https://pypi.org/pypi/furiosa-kernels/json"
+    name: "TCL — Tensor Contraction Language"
+    kind: "declarative Python eDSL"
+    entry_point: "@tcl.kernel-decorated function"
+    semantics: >-
+      Author states WHAT to compute; the compiler owns tiling, scheduling,
+      fusion and hardware mapping. Tensor contraction is a first-class language
+      primitive, matching the TCP hardware primitive.
+    language_level_features:
+      - padding
+      - sharding
+      - multi-chip collectives
+    package: "furiosa-kernels"
+    package_version: "2026.3.0"
+    package_uploaded: "2026-06-30T07:28:17Z"
+    package_license: "LicenseRef-Proprietary"   # NOT Apache 2.0
+    package_python: ">=3.10"
+    shipped_blocks: ["RMSNorm", "Linear", "MLP"]
+    vendor_framing: "Enablement now scales with the number of reusable blocks, not the number of models."
+    taxonomy_placement: >-
+      Same tier as Triton/Pallas (user-facing kernel-authoring layer above the
+      compiler) but at a DECLARATIVE point in that tier — no user-specified
+      schedule, unlike Triton's explicitly-tiled imperative model.
+    public_documentation_exists: false
+    public_documentation_note: "Developer Center 2026.3.0 has no TCL or furiosa-kernels section (checked via nav and docs search)"
+    general_availability:
+      value: null                 # not disclosed
+      note: "Whether TCL is GA to all customers or gated to partners could not be confirmed"
+
+  virtual_isa:
+    supersedes: "layer-table row 'No user-visible virtual ISA (no PTX equivalent)'"
+    confidence: named_only
+    sources:
+      - "https://furiosa.ai/blog/experience-renegade-summit-2026"
+    name: "FVISA (\"Furiosa Virtual ISA\")"
+    named_at: "RENEGADE Summit 2026 (blog 2026-05-13)"
+    instruction_set_disclosed: false
+    documentation_exists: false
+    user_facing_tooling: false
+    note: "Named publicly as a stack layer alongside the compiler and TCL. No technical detail disclosed."
+
+  other_2026_3_features:
+    confidence: reported_vendor_blog_not_independently_verified
+    sources:
+      - "https://furiosa.ai/blog/furiosa-sdk-2026-3-a-new-kernel-framework-and-the-models-it-unlocks"
+    fxb:
+      name: "FXB — Furiosa Executable Bundle"
+      description: "Portable compiled artifact; zero-recompilation reuse across compatible model variants"
+    multimodal_serving: "chunked prefill"
+    overlap_scheduling: "reduces NPU idle time"
+    data_parallel_routing: "scoring-based; combines prefix locality and token footprint"
+
+  model_coverage_added_2026_3:
+    confidence: confirmed
+    sources:
+      - "https://furiosa.ai/blog/furiosa-sdk-2026-3-a-new-kernel-framework-and-the-models-it-unlocks"
+      - "https://furiosa.ai/blog/furiosaai-and-samsung-sds"
+    models:
+      - "Qwen3-VL (incl. Qwen3-VL-32B)"
+      - "gpt-oss / gpt-oss-120b"
+      - "Solar-Open-100B"
+      - "Qwen3-30B-A3B (MoE)"
+      - "K-EXAONE-236B-A23B"
+    in_production: "Samsung SDS NPUaaS serves Qwen3 and gpt-oss 120B"
+
+  # ---- SUPERSEDES the baseline `sdk` key's repo/license framing ----
+  sdk_distribution_correction:
+    supersedes: "sdk.repo / sdk.license framing above"
+    confidence: confirmed
+    sources:
+      - "https://github.com/furiosa-ai/furiosa-sdk/releases"
+      - "https://pypi.org/pypi/furiosa-llm/json"
+    github_repo_status: "stale — latest release tag 0.9.2 (June 2024), Warboy-era 0.9.x line"
+    github_repo_mentions_tcl: false
+    github_repo_is_release_channel: false
+    current_channel: "PyPI wheels (2026.x calendar versions) via developer.furiosa.ai"
+    license_model: "mixed — furiosa-llm Apache 2.0; furiosa-kernels LicenseRef-Proprietary"
+    note: >-
+      The shorthand 'furiosa-sdk, Apache 2.0, GitHub' describes a legacy artifact,
+      not the current SDK, and must not be cited as evidence about the 2026 stack's openness.
+
+  research_output_icml_2026:
+    confidence: confirmed
+    sources:
+      - "https://furiosa.ai/blog/furiosaai-at-icml-2026-advancing-full-stack-software-efficiency"
+    venue: "ICML 2026, Seoul"
+    announced: "2026-08-06"
+    hardware_disclosures: false
+    papers:
+      - name: "ReJump"
+        topic: "tree-jump representation for LLM reasoning"
+        result: "up to 9.1% improvement on reasoning tasks"
+      - name: "LoSA"
+        topic: "locality-aware sparse attention for block-wise diffusion LMs"
+        result: null
+      - name: "AsyncOPD"
+        topic: "stale on-policy distillation"
+        result: "1.6x-3.8x higher training throughput"
+      - name: "EfficientRollout"
+        topic: "4-bit quantized drafting + adaptive speculative decoding"
+        result: "up to 19.6% rollout speedup; 12.7% end-to-end training improvement"
+
+  programming_model_amendment:
+    confidence: confirmed
+    compilation: AOT_only          # unchanged
+    compiler_first: true           # unchanged
+    user_kernel_authoring: true    # CHANGED — was false
+    kernel_authoring_style: declarative_edsl
+    note: >-
+      Compiler-first and AOT still hold. What changed is that a user-facing
+      kernel-authoring surface now exists (TCL), so the stack is no longer
+      'compiler-only' on the taxonomy's kernel axis.

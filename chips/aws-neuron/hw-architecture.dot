@@ -1,0 +1,155 @@
+digraph aws_neuron_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.5;
+    nodesep=0.4;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        tensor_eng [label="Tensor Engine (Systolic Array)\nv2: 128×128 BF16 (>90 BF16 TFLOPS)\nv3: 128×128 BF16 (158 cFP8 / 79 BF16 TFLOPS)\nv4: 512×128 MXFP8/MXFP4 (315 MXFP8 TFLOPS, OCP)", fillcolor="#FFCDD2"];
+        vector_eng [label="Vector Engine\nParallel reductions + activations\n~2.3 TFLOPS FP32 (v2)\nExpanded width on v3/v4", fillcolor="#FFCDD2"];
+        scalar_eng [label="Scalar Engine\nElement-wise scalar ops\n~2.9 TFLOPS FP32 (v2)\nScales on v3/v4", fillcolor="#FFCDD2"];
+        gpsimd [label="GPSIMD Engine\n8× 512-bit programmable vector procs\nGeneral-purpose C code\nDirect SRAM access\nPresent on v2/v3/v4", fillcolor="#FFCDD2"];
+        dge [label="DGE (Dynamic Grouping Engine)\nNew in NeuronCore-v3, enhanced v4\nHardware MoE token grouping\nStructured sparsity support\nFeeds Tensor Engine directly", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        dma_eng [label="DMA Engine\nHBM ↔ SBUF / PSUM transfers\nIndependent from compute engines\nDouble-buffering (prefetch overlap)\nExplicit load/store (nl.load/nl.store)", fillcolor="#FFE0B2"];
+        pipeline [label="Engine Pipeline\nAsynchronous producer-consumer:\nDMA → Tensor → PSUM → Vector\n→ Scalar → SBUF → DMA\nCompiler-scheduled instruction order", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP MEMORY =====================
+    subgraph cluster_onchip {
+        label="On-chip Memory";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sbuf [label="SBUF (State Buffer)\nv2: 24 MiB | v3: 28 MiB | v4: 32 MiB\n128 partitions (all generations)\nSoftware-managed SRAM scratchpad\nnl.ndarray maps tiles → partitions", fillcolor="#BBDEFB"];
+        psum [label="PSUM (Partial Sum Buffer)\n2 MiB SRAM (unchanged v2/v3/v4)\nDirect output of Tensor Engine\nHolds partial accumulations\nRead by Vector Engine post-processing", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory (HBM)";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hbm [label="HBM (per NeuronDevice, shared across cores)\nv2 (Trn1): 32 GiB HBM2e, 820 GB/s\nv3 (Trn2): 96 GiB HBM2e, 2.9 TB/s\nv4 (Trn3): 144 GiB HBM3e (4 stacks), 4.9 TB/s", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== HOST INTERFACE / PACKAGE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pcie [label="PCIe\nHost CPU ↔ NeuronDevice\naws-neuronx-dkms (BAR, CQ, IRQ)\nModel weights streamed at load time", fillcolor="#E1BEE7"];
+        nitro [label="AWS Nitro Integration\nDirect device passthrough\nNear-bare-metal PCIe throughput\nNitro device model enumeration", fillcolor="#E1BEE7"];
+        pkg [label="Package\nv2/v3: TSMC 7nm monolithic\nv4 (Trn3): TSMC 3nm N3P, dual-chiplet\nNeuronLink-v4 maintains chiplet coherency", fillcolor="#E1BEE7"];
+        ultraserver [label="Trn3 UltraServer (spec table)\nGen1: 64 devices / 4 servers\n  9,216 GiB HBM3e, 313.6 TB/s\n  161,088 TFLOPS MXFP8/MXFP4\n  768 vCPU, 8,192 GiB host mem\nGen2: 144 devices / 36 servers\n  20,736 GiB HBM3e, 705.6 TB/s\n  362,448 TFLOPS MXFP8/MXFP4\n  2,304 vCPU, 27,648 GiB host mem", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect (NeuronLink)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        nl_v2 [label="NeuronLink-v2 (Trainium1)\n768 GB/s bidir\n2D Torus: 16 chips/node\nRing-AllReduce efficient", fillcolor="#B2DFDB"];
+        nl_v3 [label="NeuronLink-v3 (Trainium2)\n1 TB/s bidir\n4×4 2D Torus (node) / 3D Torus (UltraServer)\n64 chips; ~6,100 copper cables", fillcolor="#B2DFDB"];
+        nl_v4 [label="NeuronLink-v4 + NeuronSwitch-v1 (Trainium3)\nAll-to-all switched fabric (O(1) hops)\n64 chips (UltraServer Gen1) / 144 (Gen2)\nAWS spec table: 2,048 GiB/s per device\n(SemiAnalysis 2.5 TB/s — unreconciled)", fillcolor="#B2DFDB"];
+        pcie_fabric [label="Trn3 PCIe Gen6 Switch Fabric\n(documented 2026-04-09; replaces\npoint-to-point NeuronLink of Trn1/Trn2)\n4× Gen6 ×8 intra-server = 256 GB/s\n5× Gen6 ×8 inter-server = 320 GB/s\n2× Gen6 ×8 inter-rack = 128 GB/s\nAddress routing: (rack, server, chip) in\nupper PCIe addr bits; BAR match at switch\nHW semaphores share the data path", fillcolor="#80CBC4"];
+    }
+
+    // ===================== SCALE-OUT INTERCONNECT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect (EFA + UltraClusters)";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        efa_v2 [label="EFAv2 (Trn1)\nUp to 1,600 Gbps / instance\nSRD (Scalable Reliable Datagram)\nInter-node AllReduce (DP gradients)", fillcolor="#CFD8DC"];
+        efa_v3 [label="EFAv3 (Trn2/Trn3)\n3.2 Tbps / trn2 instance; 12.8 Tbps / Trn2 UltraServer\nTrn3: 12,800 Gbps / UltraServer Gen1 (64 dev)\nTrn3: 28,800 Gbps / UltraServer Gen2 (144 dev)\n= 200 Gbps of EFA per Trainium3 device", fillcolor="#CFD8DC"];
+        ultracluster [label="EC2 UltraClusters\nPetabit-scale EFA networking\n~500,000 Trn2 chips (Project Rainier, 2025)\n>1,000,000 Trn2 chips per Anthropic (2026-04)\nDP gradient AllReduce at global scale", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute -> Data Path
+    tensor_eng -> pipeline [label="GEMM output\nto PSUM"];
+    vector_eng -> pipeline [style=dashed];
+    scalar_eng -> pipeline [style=dashed];
+    dge -> tensor_eng [label="grouped\ntokens"];
+
+    // Data Path -> On-chip Memory
+    dma_eng -> sbuf [label="DMA\nload/store"];
+    pipeline -> psum [label="Tensor Engine\noutput"];
+    pipeline -> sbuf [label="Vector/Scalar\nresults"];
+
+    // On-chip -> Off-chip Memory
+    sbuf -> hbm [label="DMA store\n(output)", style=dashed];
+    hbm -> dma_eng [label="DMA load\n(weights/activations)"];
+
+    // Off-chip -> Host Interface
+    hbm -> pcie [style=dashed, label="model load\n(host→HBM)"];
+    pcie -> nitro [style=dashed];
+    pkg -> pcie [style=invis]; // layout
+
+    // Host Interface -> Scale-up
+    pcie -> nl_v2 [style=invis]; // layout only
+
+    // Scale-up internal (generational)
+    nl_v2 -> nl_v3 [label="evolution", style=dashed, color="#00695C"];
+    nl_v3 -> nl_v4 [label="evolution\n(switched)", style=dashed, color="#00695C"];
+    nl_v4 -> pcie_fabric [label="carried over", color="#00695C"];
+
+    // Scale-up -> Scale-out
+    nl_v4 -> efa_v3 [label="inter-node\nboundary", style=dashed];
+    nl_v2 -> efa_v2 [label="inter-node\nboundary", style=dashed];
+    efa_v2 -> efa_v3 [label="evolution", style=dashed, color="#37474F"];
+    efa_v3 -> ultracluster [label="fleet\nscale"];
+
+    // Cross-references
+    efa_v3 -> hbm [style=dashed, label="RDMA\nto HBM", color="#37474F"];
+    pcie_fabric -> ultraserver [style=dashed, label="forms\nscale-up domain", color="#00695C"];
+}

@@ -1,0 +1,111 @@
+digraph untether_ai_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== CHIP DIE =====================
+    subgraph cluster_die {
+        label="speedAI240 Die (TSMC 7nm — Codename: Boqueria)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=13;
+        penwidth=2;
+
+        // ===================== BANK ARRAY =====================
+        subgraph cluster_banks {
+            label="At-Memory Compute — 729 SRAM Banks";
+            style="rounded,filled";
+            color="#283593";
+            fontcolor="white";
+            fillcolor="#283593";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            bank [label="Single SRAM Bank\n~327 KB SRAM\n512 Processing Elements\n2 × RISC-V @ 1.35 GHz\n(custom ISA extensions)", fillcolor="#3949AB", fontcolor="white"];
+            bankarray [label="Bank Array (× 729)\nTotal: 238 MB SRAM\n1,456 RISC-V cores\nPE arrays: 512 × 729 = 375,168 PEs\n~1 PB/s aggregate bandwidth", fillcolor="#3949AB", fontcolor="white"];
+        }
+
+        // ===================== SCRATCHPADS =====================
+        subgraph cluster_scratch {
+            label="On-Chip Scratchpads";
+            style="rounded,filled";
+            color="#283593";
+            fontcolor="white";
+            fillcolor="#283593";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            scratchpad [label="4 × 1 MB Scratchpads\nInter-bank activation staging\nLayer boundary buffering", fillcolor="#3949AB", fontcolor="white"];
+        }
+
+        // ===================== INTERCONNECT =====================
+        subgraph cluster_noc {
+            label="On-Chip Interconnect";
+            style="rounded,filled";
+            color="#283593";
+            fontcolor="white";
+            fillcolor="#283593";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            noc [label="Bank-to-Bank NoC\nRoutes activations between banks\nRow/col addressing", fillcolor="#3949AB", fontcolor="white"];
+        }
+
+        // ===================== PERFORMANCE =====================
+        subgraph cluster_perf {
+            label="Performance (speedAI240)";
+            style="rounded,filled";
+            color="#283593";
+            fontcolor="white";
+            fillcolor="#283593";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            perf [label="2 PetaFLOPS FP8\n1 PetaFLOP BF16\n30 TFLOPS/W efficiency\nINT4 / INT8 / FP8 / BF16\n2:1 structured sparsity", fillcolor="#3949AB", fontcolor="white"];
+        }
+    }
+
+    // ===================== PACKAGE / CARD =====================
+    subgraph cluster_card {
+        label="speedAI240 Slim Card";
+        style="rounded,dashed";
+        color="#607D8B";
+        fontcolor="#607D8B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        lpddr5 [label="LPDDR5 External DRAM\n2 × 64-bit ports\nUp to 32 GB\nParameter overflow storage", fillcolor="#ECEFF1"];
+        pcie [label="PCIe Interface\nHost DMA\nLow-profile form factor\n75 W TDP", fillcolor="#ECEFF1"];
+    }
+
+    // ===================== COMPARISON NOTE =====================
+    subgraph cluster_compare {
+        label="vs. GPU (Efficiency)";
+        style="rounded,dashed";
+        color="#888888";
+        fontcolor="#888888";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1;
+        compare [label="MLPerf ResNet-50:\n~3× more power-efficient\nthan nearest competitor\n60-65% H200 throughput\nat ~20% of power (vs L40s)", fillcolor="#F5F5F5"];
+    }
+
+    // ===================== EDGES =====================
+    bank -> bankarray [label="× 729", fontsize=8];
+    bankarray -> noc [color="#283593"];
+    noc -> scratchpad [color="#283593"];
+    bankarray -> perf [style=invis];
+    scratchpad -> lpddr5 [style=dashed, color="#607D8B", label="overflow", fontsize=8];
+    bankarray -> pcie [style=dashed, color="#607D8B"];
+    pcie -> compare [style=dashed, color="#AAAAAA"];
+}

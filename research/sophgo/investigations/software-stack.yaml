@@ -1,0 +1,272 @@
+chip: sophgo
+as_of: "2026-08-08"
+device_class: "RISC-V + TPU Hybrid (China, 算能)"
+investigation: software-stack
+
+# NOTE (2026-08-08): Sophgo has TWO runtime stacks, not one.
+#   - libsophon / BMRuntime  -> BM1684X, BM1688 (documented under `layers:` below)
+#   - tpuv7-runtime/-driver  -> BM1690 / SG2260 (documented under `tpuv7_stack:` at the end)
+# The `communication:` block below is superseded for the BM1690 generation; see tpuv7_stack.
+
+layers:
+
+  framework_integration:
+    - name: LLM-TPU
+      repo: https://github.com/sophgo/LLM-TPU
+      function: "Generative AI (LLM/VLM) deployment on BM1684X/BM1688"
+      models: [Qwen2, LLaMA-series, HuggingFace LLMs]
+      confidence: confirmed
+
+    - name: vllm-tpu
+      repo: https://github.com/sophgo/vllm-tpu
+      function: "vLLM v0.11.0 fork for production LLM serving; master targets SG2260/BM1690"
+      updated: "2026-08-08"
+      target_chip: SG2260
+      models: [DeepSeek-V3 (FP8), DeepSeek-R1 (FP8), Llama-3.1-70B, Qwen2-72B, LLaMA, Qwen]
+      tensor_parallel: "--tp_size 2 (across the two BM1690 chips of one SC11 FP300 card)"
+      installs: [tpuv7-driver 1.1.3, tpuv7-runtime 1.1.3, tpu-smi]
+      profiling: "bigTpuProfile --arch BM1690"
+      confidence: confirmed
+      sources:
+        - https://github.com/sophgo/vllm-tpu
+
+    - name: LLM-TPU_Lite
+      repo: https://github.com/sophgo/LLM-TPU_Lite
+      function: "Lightweight LLM inference for edge BM1688"
+      confidence: confirmed
+
+    - name: llmc-tpu
+      repo: https://github.com/sophgo/llmc-tpu
+      function: "Quantization-aware model calibration before TPU-MLIR compilation"
+      confidence: confirmed
+
+    - name: sophon-sail
+      function: "High-level Python/C++ wrapper over BMRuntime+BMCV+BMLib"
+      apis: [sail.Engine, sail.BMImage, sail.Decoder]
+      confidence: confirmed
+
+    - name: framework_models
+      supported: [ONNX, TFLite, Caffe, PyTorch-via-ONNX, TF-via-ONNX, PaddlePaddle-via-ONNX, MXNet-via-ONNX]
+      confidence: confirmed
+
+  compiler:
+    - name: TPU-MLIR
+      repo: https://github.com/sophgo/tpu-mlir
+      function: "MLIR-based full compilation pipeline: framework model → .bmodel binary"
+      dialects: [Top, TPU]
+      stages:
+        - model_transform.py → .mlir (Top dialect)
+        - model_deploy.py → .bmodel (with quantization + codegen)
+      targets: [BM1684X, BM1684, BM1688, CV186X, CV18XX]
+      quantization: [INT8, INT4]
+      open_source: true
+      confidence: confirmed
+      sources:
+        - https://github.com/sophgo/tpu-mlir
+        - https://doc.sophgo.com/sdk-docs/v23.05.01/docs_latest_release/docs/tpu-mlir/quick_start_en/html/01_introduction.html
+
+    - name: tpu_compiler (legacy)
+      repo: https://github.com/sophgo/tpu_compiler
+      function: "Earlier CVITEK AI compiler for CV18XX; superseded by TPU-MLIR"
+      confidence: confirmed
+
+  model_binary:
+    format: ".bmodel"
+    contents: [compiled tensor ops, DMA command sequences, quantized weights, topology metadata]
+    runtime: BMRuntime
+    confidence: confirmed
+
+  runtime:
+    - name: BMRuntime (BMRT)
+      library: libbmrt.so
+      package: libsophon
+      function: "Load and execute .bmodel on TPU; tensor memory management"
+      key_apis: [bmrt_load_bmodel, bmrt_launch_tensor, bmrt_memcpy_s2d, bmrt_memcpy_d2s]
+      confidence: confirmed
+      sources:
+        - https://doc.sophgo.com/sdk-docs/v23.05.01/docs_latest_release/docs/tpu-runtime/reference_en/html/bmruntime/runtime.html
+
+    - name: BMLib
+      library: libbmlib.so
+      package: libsophon
+      function: "Low-level device + memory management"
+      key_apis: [bm_dev_request, bm_malloc_device_byte, bm_memcpy_s2d, bm_handle_free]
+      confidence: confirmed
+      sources:
+        - https://doc.sophgo.com/sdk-docs/v23.05.01/docs_latest_release/docs/libsophon/reference_en/html/2_bmlib_basic_concept.html
+
+    - name: BMCV
+      library: libbmcv.so
+      package: libsophon
+      function: "Hardware-accelerated CV preprocessing via BM1684X VPP + JPU"
+      ops: [color-space-convert, resize, affine, JPEG-encode/decode, normalize, NMS, sort]
+      confidence: confirmed
+
+    - name: SOPHON-MW
+      components: [BM-OpenCV, BM-FFmpeg]
+      function: "Hardware H.264/H.265 encode/decode within standard multimedia pipelines"
+      confidence: confirmed
+
+  driver:
+    - name: libsophon (package)
+      repo: https://github.com/sophgo/libsophon
+      contents: [kernel-driver, BMLib, BMRuntime, BMCV, headers]
+      confidence: confirmed
+
+    - name: sophon.ko / bmsophon.ko
+      function: "Linux kernel driver — PCIe BAR, IOCTL, DMA, interrupt handling"
+      modes: [PCIe device (BM1684X card), SoC-native (BM1688 embedded)]
+      confidence: confirmed
+
+  communication:
+    applies_to: [BM1684X, BM1688]        # scoped 2026-08-08 — was previously stated for all of Sophgo
+    collective_library: null
+    note: "No NCCL/CNCL equivalent on the libsophon stack; inference-focused; multi-card via data parallelism over PCIe; standard TCP/RoCE for distributed apps"
+    superseded_for: [BM1690, SG2260]
+    superseded_by: "tpuv7_stack.communication (see below)"
+    confidence: confirmed
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TPUv7 STACK — BM1690 / SG2260. Added 2026-08-08.
+# ══════════════════════════════════════════════════════════════════════════════
+tpuv7_stack:
+  as_of: "2026-08-08"
+  applies_to: [BM1690, BM1690E, SG2260]
+  branding: "TPUv7"
+
+  framework_integration:
+    - name: torch-tpu
+      repo: https://github.com/sophgo/torch-tpu
+      function: "PyTorch device extension for Sophgo TPU, targeting SG2260"
+      modes: ["JIT mode (SG2260 only)", "eager mode"]
+      training_support:
+        deepspeed: [ZeRO-1, ZeRO-2, CPU offload]
+        megatron: "Megatron-DeepSpeed tensor parallelism"
+      build: firmware_core/sg2260-toolchain.cmake
+      confidence: confirmed          # existence of APIs, from Sophgo's own repo
+      maturity_confidence: unknown   # no benchmark, scaling study, or named production use found
+      significance: >-
+        Refutes three standing repo claims for this generation: "no collective communication
+        library", "no large-scale training capability", and "no proprietary scale-up interconnect".
+      sources:
+        - https://github.com/sophgo/torch-tpu
+
+    - name: vllm-tpu (SG2260 path)
+      repo: https://github.com/sophgo/vllm-tpu
+      base: "vLLM v0.11.0"
+      function: "LLM serving on SG2260; DeepSeek-V3 / DeepSeek-R1 in FP8; --tp_size 2"
+      confidence: confirmed
+      sources:
+        - https://github.com/sophgo/vllm-tpu
+
+  compiler:
+    - name: TPU-MLIR BM1690 backend
+      repo: https://github.com/sophgo/tpu-mlir
+      targets: [bm1690, bm1690e]
+      codegen: "ppl-based"
+      artifacts:
+        - libbackend_bm1690.so
+        - third_party/nntoolchain/tpuv7_sha256.txt
+        - test/TDB/bmodel/resnet50_v2_bm1690_f16_core8.bmodel   # confirms 8-core codegen
+        - test/TDB/bmodel/resnet50_v2_bm1690_f8e5m2.bmodel      # confirms native FP8 E5M2
+      openness_caveat: >-
+        Less open and less mature than the BM1684X path: the public llm_convert.py still advertises
+        only bm1684x/bm1688/cv186x, and the BM1690 MLIR dialect sits under experimental/.
+      confidence: confirmed
+      sources:
+        - https://github.com/sophgo/tpu-mlir
+
+    - name: Undocumented additional backends
+      backends: [SGTPUV8, SG2380, BM1684X2]
+      note: "Present in tpu-mlir; no corresponding chip pages in this survey. Open item."
+      confidence: confirmed
+      sources:
+        - https://github.com/sophgo/tpu-mlir
+
+  runtime:
+    - name: tpuv7-runtime
+      version: "1.1.3"
+      packaging: ".deb"
+      function: "Runtime for the BM1690/SG2260 generation; distinct from libsophon/BMRuntime"
+      confidence: confirmed
+      sources:
+        - https://github.com/sophgo/vllm-tpu
+
+    - name: tpu-smi
+      function: "Device management / telemetry tool for TPUv7 (analogous to nvidia-smi)"
+      confidence: confirmed
+
+    - name: bigTpuProfile
+      function: "Profiler for the TPUv7 generation; invoked as `bigTpuProfile --arch BM1690`"
+      confidence: confirmed
+
+  driver:
+    - name: tpuv7-driver
+      version: "1.1.3"
+      packaging: ".deb"
+      firmware_path: "/lib/firmware/tpuv7/"
+      per_chip_configs: [sc11_config.ini, sc11_config_chip2.ini]
+      note: >-
+        The two config files are one of three independent proofs that the SC11 FP300 card
+        carries two BM1690 chips.
+      confidence: confirmed
+      sources:
+        - https://github.com/sophgo/vllm-tpu
+
+  communication:
+    collective_library: "torch.distributed backend shipped in torch-tpu (python/dist_test2260/)"
+    collectives: [all_reduce, all_gather, all_gather_into_tensor, all_to_all, broadcast, reduce, gather, scatter, p2p, DDP]
+    topology_docs:
+      - docs/quick_start/assets/3_c2c_topology.png
+      - docs/developer_manual/source_zh/06_distribute.rst
+    underlying_fabric: "SG-Link (per-link BW and topology not disclosed)"
+    confidence: confirmed
+    caveat: "API existence confirmed from Sophgo's own repo; performance and production maturity NOT established"
+    sources:
+      - https://github.com/sophgo/torch-tpu
+
+# ── TPU-MLIR releases after the 2026-04-05 baseline (added 2026-08-08) ────────
+tpu_mlir_releases:
+  date_source: "https://github.com/sophgo/tpu-mlir/releases.atom"
+  date_caveat: "The rendered releases page omits the year and is easy to misread; the atom feed is authoritative."
+  confidence: confirmed
+  releases:
+    - version: "v1.27"
+      date: "2026-04-29"
+    - version: "v1.28.1"
+      date: "2026-06-16"
+      notes:
+        - "Auto-detection of LLM quantization"
+        - "batch_size support in LLM inference"
+        - "TPU Lang dump plus a Rope operator"
+        - "YOLOv26 post-process entry"
+        - "Floor activation op"
+        - "Mixed CUDA/CPU inference"
+      source: https://github.com/sophgo/tpu-mlir/releases/tag/v1.28.1
+    - version: "v1.29-beta.0"
+      date: "2026-06-23"
+      notes: ["Titled around handling A_log in Qwen3.5"]
+    - version: "v1.29"
+      date: "2026-07-01"
+      notes: ["Narrow conv2d hardware-margin fix"]
+
+# ── Repo activity check (added 2026-08-08) ───────────────────────────────────
+repo_activity_2026_08_08:
+  last_pushed:
+    sophon-tools: "2026-08-08"
+    sophon-demo: "2026-08-07"
+    LLM-TPU: "2026-08-05"
+    tpu-mlir: "2026-08-04"
+    libsophon: "2026-07-27"
+  note: >-
+    No new BM1690- or SG2044-specific public repo appeared. BM1690 support arrives inside the
+    existing repos (tpu-mlir, vllm-tpu, torch-tpu, mcu) rather than as a new project.
+  confidence: confirmed
+  sources:
+    - https://github.com/orgs/sophgo/repositories?sort=updated
+
+open_items_2026_08_08:
+  - "torch-tpu maturity: no benchmark, scaling study, or production reference for ZeRO/Megatron on SG2260"
+  - "SG-Link software interface visible (collective backend) but transport spec not disclosed"
+  - "llm_convert.py does not list bm1690; whether a non-public LLM conversion flow exists is unknown"
+  - "SGTPUV8 / SG2380 / BM1684X2 compiler backends undocumented in this survey"

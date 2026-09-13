@@ -1,0 +1,252 @@
+chip: groq-lpu
+investigation: hw-architecture
+date: "2026-04-05"
+last_updated: "2026-08-08"
+confidence: high
+
+device_class: "Deterministic TSP (Tensor Streaming Processor)"
+also_known_as: LPU
+
+generations:
+  - name: LPU v1
+    process: Samsung 14nm
+    die_size_mm: "25x29"
+    clock_mhz: 900
+    tops_int8: 750
+    tflops_fp16: 188
+    on_chip_sram_mb: 230
+    sram_bandwidth_tbs: 80
+    dram: none
+    released: 2022
+  - name: LPU v2
+    process: Samsung 4nm
+    status: production_2025
+
+compute:
+  matrix_unit: "320x320 fused dot product"
+  vector_alus: 5120
+  no_cache: true
+  no_branch_predictor: true
+  no_out_of_order: true
+
+execution_model:
+  type: compiler_scheduled_static
+  scheduling: compile_time_cycle_exact
+  deterministic: true
+  jitter: none
+
+memory:
+  type: on_chip_sram_only
+  sram_per_die_mb: 230
+  bandwidth_tbs: 80
+  dram: none
+
+multichip:
+  protocol: plesiosynchronous
+  topology: "direct mesh / dragonfly variant"
+  external_switches: false
+  groqrack_chips: 576
+  groqrack_sram_gb: ~130
+  groqrack_chip_bandwidth_tbs: 640  # SUPERSEDED 2026-08-08 -> see update_2026_08_08.groqrack_bandwidth_flag
+  appear_as: single_coherent_memory
+
+status_2026: nvidia_non_exclusive_license  # CORRECTED 2026-08-08; was "acquired_by_nvidia ($20B acquisition)" -- wrong
+
+sources:
+  - http://pkamath.com/publications/papers/tsp-isca20.pdf
+  - https://groq.com/lpu-architecture
+  - https://groq.com/blog/inside-the-lpu-deconstructing-groq-speed
+  - https://hc34.hotchips.org/assets/program/conference/day2/Machine%20Learning/HotChips34%20-%20Groq%20-%20Abts%20-%20final.pdf
+
+# =====================================================================
+# UPDATE 2026-08-08 — corrections + new facts
+# Each fact group carries its own confidence and sources.
+# =====================================================================
+update_2026_08_08:
+
+  corporate_structure:
+    confidence: confirmed
+    note: "NVIDIA did NOT acquire Groq. Corrects prior repo claim."
+    facts:
+      deal_type: non_exclusive_inference_technology_licensing_agreement
+      announced: "2025-12-24"
+      groq_independent: true
+      groqcloud_uninterrupted: true
+      acquihire: "Jonathan Ross (founder/CEO), Sunny Madra (president) and other employees joined NVIDIA to advance and scale the licensed technology"
+    sources:
+      - https://groq.com/newsroom/groq-and-nvidia-enter-non-exclusive-inference-technology-licensing-agreement-to-accelerate-ai-inference-at-global-scale
+      - https://groq.com/newsroom
+      - https://en.wikipedia.org/wiki/Groq
+
+  deal_value:
+    confidence: press_reported_not_vendor_confirmed
+    facts:
+      reported_value_usd: "~20 billion"
+      originating_report: "CNBC, 2025-12-24"
+      carried_by: [Reuters, TechCrunch, EE Times, Investors Business Daily]
+      confirmed_by_nvidia: false
+      confirmed_by_groq: false
+      sec_filing_found: false
+      reuters_note: "Groq did not disclose financial details of the deal"
+    caveat: "reuters.com and cnbc.com bodies returned 403 during the scan; cited from snippets + Wikipedia reference list. Re-verify against the CNBC original when search access permits."
+    sources:
+      - https://www.cnbc.com/2025/12/24/nvidia-buying-ai-chip-startup-groq-for-about-20-billion-biggest-deal.html
+      - https://www.reuters.com/business/nvidia-buy-ai-chip-startup-groq-about-20-billion-cnbc-reports-2025-12-24/
+      - https://www.cnbc.com/2025/12/26/nvidia-groq-deal-is-structured-to-keep-fiction-of-competition-alive.html
+
+  leadership_2026_08:
+    confidence: confirmed
+    facts:
+      ceo: "Adam Winter (groq.com/about-us: 'became CEO in 2026'; some outlets describe as interim)"
+      cfo: Matt Eng
+      coo: Alan Rice
+      cto: Sinclair Schuller
+      cpo: Rakesh Malhotra
+      chairman: "Alex Davis (named in June 2026 raise coverage)"
+      prior_ceo: "Simon Edwards became CEO at the Dec 2025 transaction; LEFT Groq April 2026 for Bloom Energy"
+      stale_source_warning: "Wikipedia's Groq infobox still lists Jonathan Ross as CEO"
+    sources:
+      - https://groq.com/about-us
+      - https://www.bloomenergy.com/team/simon-edwards/
+      - https://finsmes.com/2026/06/groq-raises-650m-in-growth-funding.html
+
+  funding_2026_06_22:
+    confidence: confirmed
+    facts:
+      amount_usd: 650000000
+      date: "2026-06-22"
+      leads: [Disruptive, Infinitum]
+      other_participants: existing_investors
+      valuation: not_disclosed
+      prior_round_valuation_reported: "~$6.9B (reported, not vendor-confirmed)"
+      data_centers: 13
+      regions: [North America, Europe, Middle East, APAC]
+      developers: ">5 million"
+      capacity_target: "toward 200 MW by end of 2027"
+      strategic_note: "Groq will fit out its footprint 'with Groq's latest inference technology, including the new LPX system from NVIDIA' -- Groq is now a BUYER of NVIDIA LPX silicon derived from its own licensed IP"
+    sources:
+      - https://groq.com/newsroom/groq-raises-usd650m-to-scale-its-ai-inference-cloud-business
+      - https://www.bloomberg.com/news/articles/2026-06-22/groq-raises-650-million-to-help-startup-pivot-after-nvidia-deal
+      - https://www.datacenterdynamics.com/en/news/groq-secures-650m-in-new-growth-capital-for-ai-cloud-expansion/
+
+  doe_partnership:
+    confidence: confirmed
+    facts:
+      date: "2025-12-18"
+      title: "Groq Partners with U.S. Department of Energy to Advance AI Inference and Next-Generation Computing Infrastructure"
+    sources:
+      - https://groq.com/newsroom
+
+  lp30_specs_corrected:
+    confidence: confirmed  # vendor-published (NVIDIA primary)
+    announced: "2026-03-16"  # GTC 2026
+    venue: "GTC 2026"
+    facts:
+      name: "NVIDIA Groq 3 LPX (LP30)"
+      vendor: NVIDIA
+      sram_per_chip_mb: 500          # CORRECTED from 512
+      sram_bandwidth_tbs: 150
+      c2c_links: 96
+      c2c_link_rate_gbps: 112
+      c2c_aggregate_bidirectional_tbs: 2.5
+      fp8_pflops_per_chip: 1.2
+      fp8_pflops_per_tray: 9.6
+      tray: "1U liquid-cooled, 8 LPUs"
+      chips_per_rack: 256
+      trays_per_rack: 32
+      rack_sram_gb: 128
+      rack_sram_aggregate_bandwidth: "40 PB/s"
+      rack_scaleup_bandwidth_tbs: 640
+      rack_ddr5_tb: 12
+    not_disclosed:
+      - process_node   # prior repo "Samsung 4nm" is UNCONFIRMED; secondary blogs only (e.g. ico-optics.org)
+      - tdp
+      - die_size
+      - clock
+      - transistor_count
+      - non_fp8_datatype_throughput
+      - whether_plesiosynchronous_fabric_is_retained
+      - ddr5_bandwidth_and_attachment_point
+    sources:
+      - https://developer.nvidia.com/blog/inside-nvidia-groq-3-lpx-the-low-latency-inference-accelerator-for-the-nvidia-vera-rubin-platform/
+      - https://www.nvidia.com/en-us/data-center/lpx/
+      - https://www.storagereview.com/news/nvidia-groq-3-lpx-everything-we-know
+
+  lp30_vendor_claims:
+    confidence: vendor_marketing_unaudited
+    facts:
+      efficiency: "up to 35x higher inference throughput per megawatt"
+      rack_compute_quoted: "315 PFLOPS AI inference compute per LPX rack"
+    anomaly: "315 PFLOPS does not reconcile with 9.6 PFLOPS FP8/tray x 32 trays = 307.2 PFLOPS. Unexplained by NVIDIA; do not present 315 PFLOPS as a dense FP8 figure without this caveat."
+    sources:
+      - https://developer.nvidia.com/blog/inside-nvidia-groq-3-lpx-the-low-latency-inference-accelerator-for-the-nvidia-vera-rubin-platform/
+
+  lp30_availability:
+    confidence: confirmed
+    facts:
+      status_verb: ANNOUNCED
+      announced: "2026-03-16 (GTC 2026)"
+      lpx_specific_ship_date: not_disclosed
+      platform_guidance: "NVIDIA states Vera Rubin-based products 'will be available from partners starting the second half of this year' (H2 2026)"
+      secondary_reporting: "StorageReview and CRN describe LPX as available in H2 2026"
+      prior_repo_claim_q3_2026: "analyst inference, not a vendor statement -- REMOVED"
+      evidence_of_sampling_or_deployment_as_of_2026_08_08: none
+    sources:
+      - https://nvidianews.nvidia.com/news/nvidia-vera-rubin-platform
+      - https://www.storagereview.com/news/nvidia-groq-3-lpx-everything-we-know
+      - https://www.crn.com/news/components-peripherals/2026/nvidia-puts-groq-lpu-vera-cpu-and-bluefield-4-dpu-into-new-data-center-racks
+
+  vera_rubin_role_corrected:
+    confidence: confirmed
+    note: "Corrects prior repo claim 'Rubin GPUs handle prefill, Groq LPUs handle token generation'. The split is WITHIN decode."
+    facts:
+      gpu_role: "throughput-bound decode work, notably full-context attention over the accumulated KV cache"
+      lpx_role: "latency-sensitive execution within decode, notably sparse MoE expert feed-forward networks"
+    sources:
+      - https://developer.nvidia.com/blog/inside-nvidia-groq-3-lpx-the-low-latency-inference-accelerator-for-the-nvidia-vera-rubin-platform/
+
+  no_dram_absolute_revised:
+    confidence: confirmed
+    facts:
+      per_die: "LP30 die still has no attached DRAM -- the all-SRAM per-chip model is intact"
+      per_rack: "LPX rack carries 12 TB of DDR5 -- the system-level 'no DRAM' absolute no longer holds"
+      ddr5_bandwidth: not_disclosed
+      ddr5_attachment_point: not_disclosed
+    sources:
+      - https://www.nvidia.com/en-us/data-center/lpx/
+
+  groqrack_bandwidth_flag:
+    confidence: unverified
+    facts:
+      legacy_repo_claim: "~640 TB/s aggregate chip-to-chip for the 576-chip GroqRack"
+      finding: "No Groq primary source retrievable. 640 TB/s is exactly NVIDIA's published rack-scale scale-up figure for the 256-LPU LPX rack -- probable conflation."
+      action: "marked unverified in chips/groq/hw-architecture.md, summary.md, layer-table.md"
+    sources:
+      - https://www.nvidia.com/en-us/data-center/lpx/
+
+  no_new_groq_silicon:
+    confidence: confirmed
+    facts:
+      window: "2026-04 to 2026-08"
+      groq_2026_publications: ["GroqCloud: Expanding to Meet Demand (2026-02-16)", "$650M raise (2026-06-22)"]
+      lpu_v3_or_next_gen_tsp_announced: false
+    sources:
+      - https://groq.com/blog
+      - https://groq.com/newsroom
+
+  scheduled_disclosure_hot_chips_38:
+    confidence: scheduled_not_yet_public
+    facts:
+      conference: "Hot Chips 38"
+      dates: "2026-08-23 to 2026-08-25"
+      venue: "Memorial Auditorium, Stanford, Palo Alto, CA"
+      session: "AI 1, Tuesday 2026-08-25, 2:15-4:15 PM PDT"
+      title: "Think Fast: LPU Accelerator for Heterogeneous Compute"
+      presenters: ["Igor Arsovski (NVIDIA)", "Santosh Raghavan (NVIDIA)"]
+      status: "disclosure scheduled, Hot Chips 38, Aug 2026 -- content not yet public as of 2026-08-08; no slides, abstract or specs exist"
+      do_not: "cite the talk title as the source of any spec"
+      rescan_after: "2026-08-25"
+      expected_to_resolve: [process_node, tdp, per_datatype_throughput]
+    sources:
+      - https://hotchips.org/
+      - https://hotchips.org/advance-program/

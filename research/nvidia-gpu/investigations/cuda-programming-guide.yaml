@@ -1,0 +1,201 @@
+resource: CUDA Programming Guide
+url: https://docs.nvidia.com/cuda/cuda-c-programming-guide/
+chip: nvidia-gpu
+as_of: 2026-04-05
+investigation_report: cuda-programming-guide.md
+
+# Which stack layers this resource belongs to
+layer_mappings:
+  - layer: Runtime
+    components:
+      - name: CUDA Runtime API
+        url: https://docs.nvidia.com/cuda/cuda-runtime-api/
+        role: High-level C API for device management, memory allocation, kernel launch, and stream/event management
+        entry_points:
+          - cudaMalloc / cudaFree
+          - cudaMemcpy / cudaMemcpyAsync
+          - cudaLaunchKernel (underlying <<<>>> syntax)
+          - cudaStreamCreate / cudaStreamSynchronize
+          - cudaEventCreate / cudaEventRecord / cudaEventElapsedTime
+          - cudaMallocManaged (Unified Memory)
+          - cudaMemPrefetchAsync / cudaMemAdvise
+          - cudaGraphCreate / cudaGraphLaunch (CUDA Graphs)
+      - name: CUDA Driver API
+        url: https://docs.nvidia.com/cuda/cuda-driver-api/
+        role: Low-level C API for fine-grained context management, module loading, virtual memory, and kernel dispatch
+        entry_points:
+          - cuInit / cuDeviceGet / cuCtxCreate
+          - cuModuleLoad / cuModuleGetFunction
+          - cuLaunchKernel
+          - cuMemAddressReserve / cuMemCreate (Virtual Memory Management)
+          - cuStreamCreate / cuEventCreate
+      - name: CUDA Graphs
+        url: https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#cuda-graphs
+        role: Capture and replay GPU work as DAGs to eliminate per-launch CPU overhead; critical for inference latency
+
+  - layer: Compiler/IR
+    components:
+      - name: nvcc
+        url: https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/
+        role: NVIDIA CUDA C/C++ compiler driver; separates device and host compilation; generates PTX (virtual ISA) and cubin (SASS machine code)
+        outputs:
+          - PTX (Parallel Thread Execution — virtual ISA, forward-compatible)
+          - cubin (SASS machine code for specific compute capability)
+          - fat binary (bundle of PTX + one or more cubins)
+      - name: PTX (Parallel Thread Execution)
+        url: https://docs.nvidia.com/cuda/parallel-thread-execution/
+        role: Stable virtual ISA for NVIDIA GPUs; enables forward binary compatibility via driver JIT compilation
+      - name: NVVM IR
+        url: https://docs.nvidia.com/cuda/nvvm-ir-spec/
+        role: LLVM-based IR used internally by nvcc as the device-side compilation intermediate representation
+
+  - layer: Framework Integration
+    components:
+      - name: CUDA C/C++ Language Extensions
+        url: https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/intro-to-cuda-cpp.html
+        role: C++ dialect extensions (__global__, __device__, __shared__, <<<>>>  launch syntax) that allow GPU kernel authoring directly in C++
+      - name: Cooperative Groups
+        url: https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/cooperative-groups.html
+        role: Flexible synchronization API for groups at warp, block, cluster, and grid granularity; replaces hardcoded __syncthreads()
+      - name: Thrust
+        url: https://docs.nvidia.com/cuda/thrust/
+        role: STL-like parallel algorithms library built on CUDA; used by higher-level frameworks and libraries
+
+# Key abstractions exposed by CUDA with their semantics
+key_abstractions:
+  - name: Kernel
+    description: >
+      A C++ function annotated with __global__ that executes on the GPU.
+      Launched from host code with <<<grid, block[, sharedMem, stream]>>> syntax.
+      Compiled to PTX/SASS by nvcc. Each invocation spawns a grid of thread blocks.
+    layer: Runtime / Compiler
+    hardware_mapping: SM execution; each block maps to one SM
+
+  - name: Thread Block
+    description: >
+      A group of up to 1024 threads that share a scratchpad (shared memory) and can
+      synchronize with __syncthreads(). The SM allocates registers and shared memory
+      for all warps in a block simultaneously; the block occupies the SM until all
+      threads complete. Block dimensions are chosen by the programmer to balance
+      occupancy and resource usage.
+    layer: Runtime
+    hardware_mapping: Single SM; shared memory and register file partitioned per block
+
+  - name: Warp
+    description: >
+      32 consecutive threads within a block. The hardware scheduling and execution
+      unit. All threads in a warp execute the same instruction each cycle (SIMT);
+      divergent branches are serialized via predication. Warp context switches are
+      zero-latency (registers are always live). The warp size is architecturally
+      fixed at 32 for all current NVIDIA GPUs.
+    layer: Runtime (hardware concept exposed to programmer)
+    hardware_mapping: One warp scheduler slot; 32 lanes in SIMD execution units
+
+  - name: Stream
+    description: >
+      An ordered sequence of GPU operations (kernels, memcopies, graph launches)
+      that execute in issue order relative to each other. Operations in different
+      streams may overlap. Maps to a GPU hardware command queue. Default stream
+      (legacy) implicitly synchronizes with all other streams; per-thread default
+      stream avoids this serialization.
+    layer: Runtime
+    hardware_mapping: GPU hardware channel / command queue fed to GigaThread engine
+
+  - name: Shared Memory
+    description: >
+      Fast on-chip SRAM visible to all threads in a block, programmer-managed.
+      Partitioned from the unified data cache alongside L1 cache; split ratio is
+      configurable. Organized into 32 banks; simultaneous accesses to the same bank
+      by different threads in a warp serialize (bank conflict). Primary tool for
+      tiling algorithms that reuse data within a block (e.g., GEMM tiling in CUTLASS).
+    layer: Runtime
+    hardware_mapping: On-chip unified data cache (shared mem partition) on each SM
+
+  - name: Unified Memory
+    description: >
+      A single virtual address space accessible from both CPU and GPU, allocated
+      with cudaMallocManaged(). The CUDA runtime and GPU Page Migration Engine
+      handle physical page placement and migration transparently. cudaMemPrefetchAsync
+      and cudaMemAdvise allow explicit optimization hints. Requires Pascal (cc 6.x)+
+      for hardware page-fault support and oversubscription.
+    layer: Runtime
+    hardware_mapping: GPU MMU + Page Migration Engine + CPU IOMMU
+
+  - name: CUDA Graph
+    description: >
+      A captured representation of a GPU workload as a directed acyclic graph of
+      nodes (kernels, memcopies, events, sub-graphs). After capture, graph instances
+      can be launched with a single API call, bypassing per-node driver overhead.
+      Critical for production inference workloads requiring sub-millisecond dispatch latency.
+    layer: Runtime
+    hardware_mapping: Driver-level work submission batching; no distinct hardware unit
+
+  - name: Thread Block Cluster
+    description: >
+      An optional fourth level of the thread hierarchy (compute capability 9.0+).
+      A cluster is a group of thread blocks guaranteed to be co-scheduled on
+      proximate SMs within the same GPC. Threads across blocks in a cluster can
+      access each other's shared memory (distributed shared memory) and synchronize
+      via cluster-level barriers. Enables inter-SM cooperation without kernel relaunch.
+    layer: Runtime
+    hardware_mapping: Group of SMs within a GPC; SM-to-SM interconnect for distributed shared mem
+
+  - name: Tensor Core / MMA instruction
+    description: >
+      Specialized matrix multiply-accumulate execution units within each SM, exposed
+      via CUDA's wmma:: API (C++) or MMA PTX instructions. Operate on warp-level
+      (16x16x16 or similar) matrix tiles. Hopper extends this to warpgroup MMA
+      (128 threads cooperating) paired with TMA for load pipelining. Tensor Cores
+      are the primary throughput source for AI workloads (e.g., 989 TFLOPS BF16 on H100 SXM).
+    layer: Runtime / Compiler/IR
+    hardware_mapping: 4 Tensor Core units per SM warp scheduler partition (H100)
+
+  - name: Compute Capability
+    description: >
+      A version number (major.minor, e.g., 9.0 for H100) that identifies the SM
+      feature set. Controls which CUDA APIs, memory instructions, and hardware
+      capabilities are available. nvcc targets a specific compute capability for
+      cubin generation; PTX provides forward compatibility to future capabilities
+      via JIT compilation.
+    layer: Compiler/IR
+    hardware_mapping: SM microarchitecture version; determines register counts, warp limits, instruction set
+
+# Performance-critical programming patterns documented in the guide
+programming_patterns:
+  - name: Tiling / blocking
+    description: >
+      Decompose large matrices or tensors into tiles that fit in shared memory.
+      Load a tile cooperatively into shared memory, compute from shared memory,
+      then slide to the next tile. Reduces global memory traffic by a factor equal
+      to tile size. Foundation of all high-performance GEMM kernels.
+    relevant_to: [shared memory, thread block, warp]
+
+  - name: Memory coalescing
+    description: >
+      Arrange global memory accesses so consecutive threads in a warp access
+      consecutive memory addresses. The L1/L2 cache hardware can then satisfy
+      the entire warp's load with a single or minimal number of cache line
+      transactions. Misaligned or strided access patterns multiply transaction counts.
+    relevant_to: [warp, global memory, L1 cache]
+
+  - name: Latency hiding via warp interleaving
+    description: >
+      Keep enough warps resident per SM so the warp scheduler always has a
+      ready warp to issue while other warps stall on memory. Effective occupancy
+      of 50–75% is typically sufficient to hide L2/HBM latency on modern SMs.
+    relevant_to: [occupancy, warp scheduler, SM]
+
+  - name: Producer-consumer pipeline (async copy + compute overlap)
+    description: >
+      Use cudaMemcpyAsync or cp.async (Ampere) / TMA (Hopper) to overlap data
+      loading into shared memory with computation on previously loaded tiles.
+      Double or triple buffering in shared memory is the standard pattern.
+      Separates the DMA warpgroup from the compute warpgroup on Hopper.
+    relevant_to: [shared memory, streams, async copies, TMA, warpgroup MMA]
+
+  - name: CUDA Graphs for low-latency dispatch
+    description: >
+      Capture static GPU workloads as graphs to eliminate per-launch CPU overhead
+      (~5–20 us per kernel launch). Essential for inference with many small kernels
+      where launch overhead would dominate execution time.
+    relevant_to: [CUDA Graphs, streams, runtime]

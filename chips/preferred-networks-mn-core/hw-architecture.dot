@@ -1,0 +1,170 @@
+// Preferred Networks MN-Core 2 hardware architecture
+// as_of: 2026-08-08
+// chip: preferred-networks-mn-core
+// device_class: Compiler-Scheduled SIMD Accelerator (Japan)
+digraph preferred_networks_mn_core_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.55;
+    nodesep=0.35;
+
+    title [label="Preferred Networks MN-Core 2 Hardware Architecture\nTSMC N7  |  550 mm2 single die  |  22B transistors  |  750 MHz  |  4096 PEs  |  330 W (design value)\nHost-sequenced VLIW/SIMD tree: no hardware cache, no per-PE program counter, no instruction decoder\nas_of 2026-08-08",
+           shape=plaintext, style="", fontname="Helvetica-Bold", fontsize=13, fontcolor="#1A237E"];
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host (part of the run-time execution model)";
+        style="rounded,dashed";
+        color="#B71C1C";
+        fontcolor="#B71C1C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        host_cpu [label="Host CPU\nGenerates the instruction stream\nMV instructions + VLIW PE instructions\n(auto-stride 3PE+1MV / flat 2PE+1MV)", fillcolor="#FFCDD2"];
+        host_pcie [label="PCIe Gen5 x16\nInstruction stream + all data I/O\nISSUE RATE LIMIT: 1 PE instr / 4 cycles\n(\"1 cycle per instruction would saturate\nthe PCIe bandwidth\" - SDM)", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== CHIP =====================
+    subgraph cluster_chip {
+        label="MN-Core 2 die (GPFN3) - broadcast/reduction tree, 100% software-managed";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        subgraph cluster_group {
+            label="Group x4  (only Group 0 is wired to the host)";
+            style="rounded,filled";
+            fillcolor="#E8EAF6";
+            color="#283593";
+            fontcolor="#283593";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            pdm [label="PDM (PIU Data Memory)\n4 MiB SRAM per Group  |  16 MiB/chip\nALL host<->device I/O funnels\nthrough Group 0's PDM", fillcolor="#C5CAE9"];
+            dram [label="GDDR6 DRAM\n4 GiB per Group  |  16 GiB/chip\n~128 GB/s per Group  |  512 GB/s total\n(PFN slides disagree: GDDR6 vs GDDR6X)", fillcolor="#C5CAE9"];
+            dataeng [label="Group Data Engines\nMove data among PDM / DRAM / L2BM,\nwithin and across Groups\n(driven by MV instructions)", fillcolor="#C5CAE9"];
+        }
+
+        subgraph cluster_l2b {
+            label="L2B x8  (8 L1Bs + 1 L2BM each)";
+            style="rounded,filled";
+            fillcolor="#E3F2FD";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            l2bm [label="L2BM\n32 Ki LW = 256 KiB each  |  2 MiB/chip\nModes: broadcast, individual,\nreduction, distribute/collect\n(up to 32 LW/cycle collect/distribute)", fillcolor="#BBDEFB"];
+        }
+
+        subgraph cluster_l1b {
+            label="L1B x64  (16 MABs + 1 L1BM each)";
+            style="rounded,filled";
+            fillcolor="#E1F5FE";
+            color="#0277BD";
+            fontcolor="#0277BD";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            l1bm [label="L1BM\n8 Ki LW = 64 KiB each  |  4 MiB/chip\nBroadcast / individual / 4x4 reduction /\ndistribute-collect toward MABs\n(bandwidth not disclosed)", fillcolor="#B3E5FC"];
+        }
+
+        subgraph cluster_mab {
+            label="MAB x1024  (4 PEs + 1 MAU each  =  4096 PEs, 1024 MAUs)";
+            style="rounded,filled";
+            fillcolor="#E0F2F1";
+            color="#00695C";
+            fontcolor="#00695C";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            mau [label="MAU - Matrix Arithmetic Unit\nDouble-buffered matrix register\nmatvec y = A.b + c per cycle:\nFP64 2x4 | FP32 8x4 | pseudo-single 8x8 | half 16x16\nAll matrix operands are BLOCK FLOATING POINT", fillcolor="#B2DFDB"];
+            pe_alu [label="PE x4 - ALU\nInteger + general ops (incl. ReLU)\nMask registers = the only predication\nNO program counter, NO decoder", fillcolor="#B2DFDB"];
+            grf [label="GRF0 / GRF1 (per PE)\n256 LW = 2 KiB each  |  16 MiB/chip\n1R1W, 2 LW/cycle each\nNever a compiler `Location`", fillcolor="#B2DFDB"];
+            lm [label="LM0 / LM1 (per PE)\n2 Ki LW = 16 KiB each  |  128 MiB/chip\n1RW, 2 LW/cycle each\nThe compiler's only on-chip `Location`\n~98 TB/s aggregate (DERIVED)", fillcolor="#B2DFDB"];
+            treg [label="T-register (per PE)\n8 LW = 64 B  |  256 KiB/chip\n1R1W, 2 LW/cycle", fillcolor="#B2DFDB"];
+        }
+
+        peaks [label="Peak throughput @ 750 MHz\nFP64 12 TF  |  FP32 49 TF\npseudo-single (\"TF32\") 98 TF  |  half (\"TF16\") 393 TF\n1192 GFLOPS/W is the HALF figure only;\nFP64 efficiency is 37.24 GFLOPS/W", fillcolor="#FFF9C4", color="#F9A825"];
+
+        numerics [label="Numerics: NOT IEEE-754\nhalf = 1-6-9 (not binary16's 1-5-10)\nNO denormals, NO NaNs\nBlock floating point at ALL precisions\nUntyped operands, big-endian", fillcolor="#FFF9C4", color="#F9A825"];
+    }
+
+    // ===================== ABSENT BLOCKS =====================
+    subgraph cluster_absent {
+        label="Deliberately absent (implemented in the compiler / on the host)";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        absent_cache [label="No hardware cache at ANY tier\n-> compiler Location Planner + Scheduler\n   do spill / refill / Forget", fillcolor="#E1BEE7"];
+        absent_sched [label="No hardware instruction scheduler,\nno OoO, no scoreboard, no hazard interlocks\n-> \"it is the programmer's responsibility\"", fillcolor="#E1BEE7"];
+        absent_ctrl [label="No branches, no control flow on device\n-> mask-register predication only\n   (fwd + bwd + optimizer in ONE program)", fillcolor="#E1BEE7"];
+        absent_noc [label="No NoC / mesh / crossbar\n-> fixed broadcast+reduce tree modes;\n   distribute/collect are exact inverses", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE =====================
+    subgraph cluster_scale {
+        label="Scale-up / scale-out";
+        style="rounded,dashed";
+        color="#455A64";
+        fontcolor="#455A64";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        no_fabric [label="MN-Core 2 chip-to-chip fabric: NONE\nNo NVLink analogue, no device-side collectives\nMulti-board = host OpenMPI + torch.distributed (gloo)", fillcolor="#CFD8DC"];
+        gen1_fabric [label="Gen 1 only: MN-Core DirectConnect\n+ DirectConnect Switches\n32 servers + 2 switches = one \"Zone\"\nNo gen-2 equivalent documented", fillcolor="#CFD8DC"];
+        systems [label="Systems\nDevkit V1 (MNC2DV1): 1 board, JPY 2.0M\nMN-Server 2 V1 (MNS2V1): 5U, 8 boards, 4200 W, JPY 20M\nMN-Pod 2: 42U, 48 boards, 590 TF FP64 / 18.9 PF half\nHost NICs: 2x ConnectX-6 100 GbE + 2x X710 10 GbE", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== EDGES =====================
+    title -> host_cpu [style=invis];
+
+    host_cpu -> host_pcie [label="single instruction stream", fontsize=8];
+    host_pcie -> pdm [label="MV + PE instructions,\nall host data I/O\n(Group 0 PDM only)", fontsize=8, color="#B71C1C", penwidth=1.6];
+
+    pdm -> dram [dir=both, label="8 LW/cyc PDM side\n2 LW/cyc DRAM side", fontsize=8];
+    dataeng -> pdm [style=dashed];
+    dataeng -> dram [style=dashed];
+    dram -> l2bm [dir=both, label="16 LW/cyc per group\n(~96 GB/s/group, derived)", fontsize=8];
+    pdm -> l2bm [dir=both, label="8 LW/cyc PDM side,\n1 LW/cyc L2BM side", fontsize=8];
+
+    l2bm -> l1bm [dir=both, label="broadcast / individual /\nreduction / distribute-collect", fontsize=8];
+    l1bm -> mau [dir=both, label="broadcast / 4x4 reduce /\ndistribute-collect", fontsize=8];
+    l1bm -> lm [style=dashed, label="lbf forward path", fontsize=8];
+
+    mau -> lm [dir=both, label="operands / results", fontsize=8];
+    mau -> pe_alu [style=dashed, label="mauf forward", fontsize=8];
+    pe_alu -> grf [dir=both];
+    pe_alu -> treg [dir=both, style=dashed];
+    grf -> lm [dir=both, style=dashed];
+
+    mau -> peaks [style=dashed, color="#F9A825"];
+    mau -> numerics [style=dashed, color="#F9A825"];
+
+    absent_cache -> lm [style=dotted, color="#6A1B9A", label="every byte placed\nby the compiler", fontsize=8];
+    absent_sched -> host_cpu [style=dotted, color="#6A1B9A"];
+    absent_ctrl -> pe_alu [style=dotted, color="#6A1B9A"];
+    absent_noc -> l2bm [style=dotted, color="#6A1B9A"];
+
+    dram -> no_fabric [style=dashed, color="#455A64"];
+    no_fabric -> gen1_fabric [style=dotted, color="#455A64", label="regression vs gen 1", fontsize=8];
+    no_fabric -> systems [style=dashed, color="#455A64"];
+}

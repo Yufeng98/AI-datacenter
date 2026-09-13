@@ -1,0 +1,412 @@
+chip: preferred-networks-mn-core
+as_of: "2026-08-08"
+device_class: "Compiler-Scheduled SIMD Accelerator (Japan)"
+investigation: software-stack
+
+# ── Stack-level facts ─────────────────────────────────────────────────────────
+overview:
+  sdks:
+    mlsdk: "machine learning SDK (PyTorch front end) — the supported path"
+    hpcsdk: "general-purpose C/C++ SDK; only MNCL (OpenCL-like) provided; ALPHA, no public docs"
+  container_layout: "/opt/pfn/pfcomp/{fx2onnx,pfvm,mncl,codegen}"
+  pipeline: >-
+    PyTorch (custom torch build) -> fx2onnx (torch.fx + FakeTensor) -> Exported ONNX ->
+    PFVM Compiler -> Compiled ONNX -> codegen Graph Compiler (L3IR) -> MNGraph ->
+    codegen Code Emitter -> GPFNApp (FlatBuffers) -> codegen runtime -> libgpfn3 -> gpfn3.ko -> board
+  ir_spine: "ONNX all the way down (Exported ONNX -> Compiled ONNX -> MNGraph); NOT MLIR"
+  openness_summary: >-
+    Overwhelmingly proprietary. PFVM, codegen (graph compiler + code emitter), runtime,
+    operator library, assembler, emulator, user-space driver and kernel module all ship as
+    binary .deb packages from a private Google Artifact Registry APT repo under an EULA
+    (/opt/pfn/licenses/MN-Core_SDK_End-User_License_Agreement.pdf). Documentation, the full
+    ISA manual, and a free assembler+emulator are nevertheless public and login-free.
+  confidence: confirmed
+  sources:
+    - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/technical_notes.html
+    - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/getting_started.html
+    - https://github.com/pfnet/mncore
+
+layers:
+
+  # ── Layer 1 ─────────────────────────────────────────────────────────────────
+  framework_integration:
+    - name: PyTorch
+      detail: "The ONE supported framework. MLSDK ships a CUSTOM-BUILT torch (2.9.0 in SDK 0.7, torchvision 0.24.0), patched with MLSDK extensions. Official PyTorch wheels do not work; a different torch version or a user venv in the same environment is unsupported."
+      open_source: false
+      confidence: confirmed
+      sources: [https://github.com/pfnet/mncore, https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/getting_started.html]
+
+    - name: pytorch-pfn-extras
+      version: "0.9.0"
+      repo: https://github.com/pfnet/pytorch-pfn-extras
+      detail: "PFN's OSS training-loop/extensions library, pulled in as an MLSDK dependency"
+      open_source: true
+      license: Apache-2.0
+      confidence: confirmed
+
+    - name: HuggingFace transformers
+      detail: "Used by PFN's own LLM examples (Llama / Qwen2 / PLaMo pipeline-parallel inference, SLM SFT)"
+      open_source: true
+      confidence: confirmed
+
+    - name: JAX
+      detail: "Claimed on PFN marketing pages ('PyTorch and JAX'). Appears NOWHERE in MLSDK 0.7 docs, the GitHub repo, or the PFCP docs."
+      status: "unsubstantiated marketing statement"
+      confidence: unconfirmed
+      sources: [https://www.preferred.jp/en/business/chips/, https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/index.html]
+
+    - name: "vLLM / TensorRT-LLM / ONNX Runtime EP"
+      detail: "None exist. LLM inference is an EXPERIMENTAL workload category; PFN's own path is hand-rolled pipeline parallelism over MPI + gloo."
+      confidence: confirmed
+
+  programming_model:
+    style: "compile a pure function; no eager device"
+    signature: "Callable[[Dict[str, Tensor]], Dict[str, Tensor]]"
+    api_historical: "mncore.compile(model_with_loss, backward=True, optimizer=optimizer)"
+    api_current: "mlsdk.Context(...).compile(fn, sample, storage.path(...))"
+    key_consequence: "forward + backward + optimizer step are compiled into a SINGLE device program (no host-side per-op control flow, no device-side branching)"
+    device_strings:
+      "pfvm:cpu": "PFVM Runtime executing Compiled ONNX with LibTorch on CPU"
+      "pfvm:cuda": "same, on GPU — for numerical verification"
+      "emu2": "MN-Core 2 software emulator (recommended development target)"
+      "mncore2:auto": "real hardware (index or auto)"
+    debugging_matrix: "(PyTorch graph vs Compiled graph) x (LibTorch vs codegen/layers) = four checkable combinations for bisecting numerical regressions"
+    dynamic_shapes: false
+    dynamic_shapes_quote: "we currently do not support graphs that have Dynamic Shapes in their input/output structures"
+    confidence: confirmed
+    sources:
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/technical_notes.html
+      - https://dev.mn-core.com/getting-started/
+      - https://projects.preferred.jp/mn-core/assets/MN-Core_2_whitepaper_en.pdf
+
+  model_coverage:
+    timm_survey_sdk_version: "v0.4"
+    compilable: 378
+    inference_ready: 369
+    training_ready: 156
+    advertised_categories:
+      - "image classification (ResNet / ViT / ConvNeXt / EfficientNet)"
+      - "detection (SSD, DETR, FCOS, YOLACT)"
+      - "Stable Diffusion (training + eval examples in-repo)"
+      - "LLM training / fine-tuning (LLaMA 8B, Qwen2, PLaMo)"
+      - "LLM inference (EXPERIMENTAL)"
+      - "speech (SqueezeFormer, Whisper — 'example coming soon')"
+      - "robotics diffusion policy ('coming soon')"
+    confidence: confirmed
+    sources: [https://dev.mn-core.com/models/]
+
+  # ── Layer 2 ─────────────────────────────────────────────────────────────────
+  graph_capture:
+    components:
+      - name: FX2ONNX Exporter
+        path: /opt/pfn/pfcomp/fx2onnx
+        function: "torch.fx symbolic tracing with FakeTensors (no real compute during trace) -> Exported ONNX"
+        limitation: "control flow that branches on tensor presence may not trace correctly"
+        open_source: false
+        confidence: confirmed
+
+      - name: fx2onnx.linter
+        api: [fx2onnx.linter.lint, LintLevel, LintResult]
+        added: "SDK v0.6"
+        function: "pre-flights a model for exportability and reports actionable issues"
+        open_source: false
+        confidence: confirmed
+
+      - name: legacy torch.onnx path
+        env: "MNCORE_USE_LEGACY_ONNX_EXPORTER=1"
+        status: deprecated
+        note: "limited support; still used by some shipped examples (pipeline-parallel Llama script)"
+        confidence: confirmed
+    static_shapes_only: true
+    sources:
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/technical_notes.html
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/api_reference.html
+
+  # ── Layer 3 ─────────────────────────────────────────────────────────────────
+  graph_compiler_pfvm:
+    name: PFVM
+    path: /opt/pfn/pfcomp/pfvm
+    dual_role: "both a compiler AND a runtime for Exported ONNX"
+    compiler_passes: [constant propagation, common-subexpression elimination, operator fusion, replacement with backend-specific specialized operators, injection of weight-update handling as custom ONNX operators]
+    output: "Compiled ONNX"
+    runtime: "executes Compiled ONNX with each operator implemented in LibTorch — this IS pfvm:cpu / pfvm:cuda"
+    design_rationale: "the PFVM rewrite is large and hard to validate, so the pipeline is deliberately split so a numerical regression can be bisected"
+    open_source: false
+    confidence: confirmed
+    sources:
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/technical_notes.html
+      - https://tech.preferred.jp/ja/blog/pfvm-onnx-exporter/
+
+  # ── Layer 4 ─────────────────────────────────────────────────────────────────
+  graph_compiler_codegen:
+    name: "codegen Graph Compiler (historical name L3IR)"
+    path: /opt/pfn/pfcomp/codegen
+    input: "Compiled ONNX"
+    output: "MNGraph — an ONNX extension of MNNode and MNValue objects"
+    dumps: [l3ir.txt, l3ir_stripped.onnx]
+    mnvalue_properties:
+      dtype: "numeric precision; mixed precision managed graph-wide (GEMM/conv may be demoted to Half, BatchNorm restored)"
+      location: "DRAM or LM0/LM1 ONLY. GRF0/GRF1 and L1BM/L2BM are never Locations."
+      layout: "how the tensor maps across the physical memory tree"
+    layout_notation_example: "(64,128)/((8_L2B:1, 8:2), (16_MAB:1, 2:1, 4_PE:1); B@[L1B,W])"
+    layout_levels: [PE, W, Addr, MAB, L1B, L2B, Time]
+    pass_pipeline:
+      - {n: 1, pass: "Dtype Planner", decides: "precisions; rough LM-consumption estimate"}
+      - {n: 2, pass: "Location Planner (initial)", decides: "pin things that must be in DRAM (e.g. parameters)"}
+      - {n: 3, pass: "Layout Planner", decides: "Layouts satisfying per-node requirements; inserts MNCoreLayoutSwitch on conflict; variant lpz ('Layout Planner Z') recommended, costs LayoutSwitch into its objective"}
+      - {n: 4, pass: "Location Planner", decides: "finalize now that Layout determines LM footprint; inserts MNCoreUpload / MNCoreDownload"}
+      - {n: 5, pass: "Time-Slice", decides: "for MNValues whose num_lw exceeds LM capacity (2048 LW on MN-Core 2), add a Time subaxis and split the node with MNCoreInputSplit / MNCoreOutputConcat"}
+      - {n: 6, pass: "Location Planner (sliced)", decides: "re-adjust after slicing"}
+      - {n: 7, pass: "Node Simulation", decides: "actually compile each MNNode under multiple configurations to MEASURE real cycle counts and memory usage; modes fake/default/fast/best/full; cached; dumped to simulation_result.json"}
+      - {n: 8, pass: "Scheduler", decides: "topological order + DRAM spill/refill, LM0<->LM1 moves, Forget operations, RECOMPUTATION; options always_from_dram / reuse_consecutive (default) / spill_opt / auto_recompute_sa"}
+      - {n: 9, pass: "Address Planner", decides: "concrete addresses once lifetimes are known"}
+      - {n: 10, pass: "Gene propagation", decides: "carry layout constraints from strongly-constrained nodes (matmul, conv) to distant nodes"}
+    recompute_rationale_quote: "particularly effective for the MN-Core architecture where SRAM capacity is limited and data transfer costs between LM and DRAM are significant"
+    presets: {O0: "just make it compile", O1: "conservative, same scheduler as O2+", O2: "simulated annealing", O3: "wider search + L1Merge", O4: "wider still", debug: "debug.json"}
+    preset_path: /opt/pfn/pfcomp/codegen/preset_options/
+    autotuners: [CODEGEN_FIND_BEST_COMPILE_OPTIONS, CODEGEN_FIND_BETTER_COMPILE_OPTIONS]
+    env_var_count: "~35 documented CODEGEN_* variables"
+    notable_env_vars: [CODEGEN_SA_STEPS, CODEGEN_NUM_SA_THREADS, CODEGEN_SCHEDULE_PP_BEAM_WIDTH, CODEGEN_AUTO_RECOMPUTE_HACK_FOR_QWEN]
+    per_model_hack_note: "CODEGEN_AUTO_RECOMPUTE_HACK_FOR_QWEN is a candid signal of how much per-model tuning this compiler still needs"
+    python_compile_options: [option_json, float_dtype, layout_planner, scheduler, simulation_mode, sram_budget, sa_expected_run_iters, out_onnx, layout_spec, gemm_layout_spec, num_threads]
+    open_source: false
+    confidence: confirmed
+    sources:
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/technical_notes.html
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/advanced_features.html
+      - https://tech.preferred.jp/ja/blog/mn-core-tensor-layout/
+      - https://tech.preferred.jp/ja/blog/mncore-compiler-optimization-with-recompute/
+
+  # ── Layer 5 ─────────────────────────────────────────────────────────────────
+  code_emitter:
+    name: "codegen Code Emitter"
+    transform: "MNGraph -> GPFNApp (compile each MNNode independently, then link)"
+    link_strategies:
+      concat: "literal concatenation of per-node assembly (the Address Planner already made addresses globally consistent)"
+      l1merge: "merge two instruction sequences using disjoint resources into one, shortening the stream; applied repeatedly; blocked by in-place I/O, in which case MNCoreReorderAddress is inserted"
+    operator_library:
+      path: codegen/layers
+      shipped_as_source: false
+      quote: "The implementations in codegen/layers are not yet included in the MN-Core SDK image and are instead bundled with the pre-built codegen libraries."
+      user_extensibility: "NOT POSSIBLE — a user cannot add an unimplemented operator. PFN says it is 'actively preparing the framework to enable feature expansions'; no timeline."
+    historical_names: "L2IR / Generic Conv / Layer (MNTensor, PEVector, Generic Move Impl) and L1IR (Layer Impl, L1-level instruction merger, L1IR scheduling graph)"
+    open_source: false
+    confidence: confirmed
+    sources:
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/technical_notes.html
+      - https://tech.preferred.jp/en/blog/mncore-compiler-1/
+
+  # ── Layer 6 ─────────────────────────────────────────────────────────────────
+  kernel_language:
+    - name: "MN-Core 2 assembly (VSM)"
+      documentation: "MN-Core 2 Software Developer Manual (EN/JA), ~130 pages, revised 2026-06-02, first edition 2024-11-15"
+      documentation_public: true
+      covers:
+        - "statement / immediate / tag syntax; quit, d get, d set control statements"
+        - "MV instruction statements: ~24 transfer modes with documented LW/cycle throughput, DRAM indirection, priority, inter-MV constraints"
+        - "PE instruction statements: operand namespaces ($p,$d,$c,$b,$m,$n,$r,$s,$t,omr,x/y matrix regs,dar), forwarding operands (mauf/aluf/lbf/mreadf/nowrite), mask registers, hazard-avoidance rules"
+        - "L1BM/L2BM instruction expressions (broadcast, 4x4 reductions, distribute/collect)"
+        - "MAU instructions: dmfma/dmmul/fmfma/fmmul/gmfma/gmmul/hmfma/hmmul (matrix); dvfma/fvfma/hvfma/dvadd/fvpassa (vector)"
+        - "matrix-register write and transposed-read; ALU instructions incl. imm and inter-PE circular shift msl/msr; wait"
+      toolchain_open_source: false
+      confidence: confirmed
+      sources: [https://projects.preferred.jp/mn-core/assets/mncore2_dev_manual_en.pdf]
+
+    - name: "assemble3 + gpfn3_package_main"
+      role: "assembler + cycle-faithful MN-Core 2 emulator"
+      distribution: "FREE, no login: mncore2_emuenv_20240826.tar.xz; also bundled in the SDK at /opt/pfn/pfcomp/codegen/build/tools/ since v0.6"
+      binary_form: "stripped x86-64 ELF binaries"
+      license: "bare 'AS IS' DISCLAIMER — no source, no permissive licence"
+      workflow: "assemble3 --instruction-mode flat out.vsm > out.asm ; gpfn3_package_main -i out.asm -d dump.txt"
+      emulator_advantages: "relaxes the instruction-packing requirement; supports `d get` debug dumps of any memory element"
+      open_source: false
+      confidence: confirmed
+      sources: [https://projects.preferred.jp/mn-core/assets/mncore2_emuenv_20240826.tar.xz]
+
+    - name: "HPCSDK / MNCL"
+      path: /opt/pfn/pfcomp/mncl
+      description: "general-purpose C/C++ environment with OpenCL-like and directive-based programming models; currently only MNCL (OpenCL-like) is provided"
+      status: alpha
+      public_documentation: none
+      documentation_note: "the repo says 'please refer to the header files included with the SDK'"
+      openacc_status: "2023 whitepaper described a subset of OpenACC with MN-Core-specific l2(...)/l1(...) data clauses on #pragma acc data, 'currently under development'; as of SDK 0.7 still no public docs"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/getting_started.html
+        - https://projects.preferred.jp/mn-core/assets/MN-Core_2_whitepaper_en.pdf
+
+    - name: mncore_simple_graph_compiler_for_education
+      repo: https://github.com/pfnet/mncore_simple_graph_compiler_for_education
+      description: "from-scratch teaching graph compiler: PyTorch MLP -> torch.fx -> ONNX -> MN-Core 2 assembly; trains MNIST on the emulator"
+      contents: "fx_export/{export,compile,mncore_transform,vsm_converter,mncore_utils,train,traincpp}.py; C++ matrix_operations.hpp shim; ~40 hand-written .vsm test cases"
+      license: "NO LICENSE FILE — describe as publicly readable, NEVER as open-source-licensed"
+      publicly_readable: true
+      confidence: confirmed
+      sources:
+        - https://github.com/pfnet/mncore_simple_graph_compiler_for_education
+        - https://tech.preferred.jp/ja/blog/mn-core2_graphcompiler_scratch/
+        - https://speakerdeck.com/pfn/202512_mncore-graph-compiler-mnist
+
+    - name: MN-Core Challenge
+      url: https://mncore-challenge.preferred.jp/
+      description: "public competitive-programming contest (2024): hand-optimize MN-Core 2 assembly against a judge; official tips section and errata against the SDM"
+      confidence: confirmed
+
+  # ── Layer 7 ─────────────────────────────────────────────────────────────────
+  tensor_api:
+    package: mlsdk
+    objects:
+      MNDevice: "colon-separated device string: mncore2:auto | emu2 | pfvm:cuda | pfvm:cpu; index or 'auto'"
+      Context: [compile, compile_automap, load_codegen_dir, register_param, register_buffer, register_optimizer_buffers, get_registered_value_proxy, switch_context, synchronize]
+      CompiledFunction: [__call__, allocate_input_proxy]
+      TensorProxy: "the device tensor type; .cpu() pulls back to host; .load_from() pushes a torch.Tensor or another proxy into device memory (option to copy so the source can be mutated) — this is how host round-trips between iterations are avoided"
+      CacheOptions: "persist Node Simulation and GPFNApp artifacts across runs; essential because O2+ compiles are slow"
+      optimizers: [MNCoreOptimizer, MNCoreSGD, MNCoreAdam, MNCoreAdamW, MNCoreLRScheduler]
+      optimizer_note: "device-side fused optimizers compiled into the same program as fwd+bwd; PFN warns MNCoreAdamW is NOT bit-compatible with LibTorch"
+      naming: [set_tensor_name, set_tensor_name_in_module, set_buffer_name_in_optimizer, get_tensor_name]
+      profiling: "trace_event() / trace_scope() -> trace.json, viewable in Perfetto UI / Chrome Tracing"
+      storage: [mlsdk.storage.path, mlsdk.path]
+    open_source: false
+    confidence: confirmed
+    sources: [https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/api_reference.html]
+
+  # ── Layer 8 ─────────────────────────────────────────────────────────────────
+  runtime:
+    name: "codegen runtime"
+    artifact: GPFNApp
+    artifact_format: FlatBuffers
+    artifact_contents: ["VSM (pre-compiled assembly, a.k.a. GPFNBin)", "input/output node metadata (name, Dtype, Layout, Address)", "original model parameters", "relocation info (address fields left blank, relocated against the live Context)"]
+    inspection_tool: dump_gpfnapp
+    reuse_design_quote: "particularly suitable for workloads that repeatedly execute the same computations, such as training loops or batch inference"
+    stated_weakness_quote: "it performs poorly with operations requiring extensive indexing... it generally excels at operations with high spatial locality"
+    host_device_path: "ALL traffic goes through Group 0's PDM over PCIe; host-side transposition into the device Layout happens on the CPU during upload (PFN flags this as a perf consideration for large inputs)"
+    implementation_details_from_faq: ["pinned-memory 'IDMA chunk' allocation", "device lock — one program per board; gpfn3-smi reset breaks it", "CAP_SYS_NICE required to set CPU affinity (docker run --cap-add=SYS_NICE)"]
+    observability:
+      codegen_dir_contents: [report.json, out.txt, out.json, model.onnx, model.app, model.vsm, "layout.* per-planner dumps", l3ir.txt, l3ir_stripped.onnx, simulation_result.json, trace.json]
+      dashboard: "shipped Codegen Dashboard with Netron graph view, per-node view, logs, Perfetto UI and Chrome Tracing panes"
+    open_source: false
+    confidence: confirmed
+    sources:
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/technical_notes.html
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/faq.html
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/advanced_features.html
+
+  communication:
+    collective_library: null
+    note: >-
+      There is NO NCCL/RCCL/CNCL analogue and no device-side collectives. Multi-board scaling
+      uses OpenMPI (libopenmpi3 / openmpi-bin are in the SDK image) with torch.distributed on
+      the GLOO backend and host-memory send/recv.
+    evidence: "sdk/examples/run_pp_llama.py (pipeline-parallel Llama prefill+decode across N boards), run_llm_infer_pp.sh"
+    planned_device_side_library: "not disclosed"
+    confidence: confirmed
+    sources: [https://github.com/pfnet/mncore]
+
+  # ── Layer 9 ─────────────────────────────────────────────────────────────────
+  driver:
+    apt_repo: "mncore-packages @ https://asia-northeast1-apt.pkg.dev/projects/mncore-packages (Google Artifact Registry)"
+    apt_setup_script: "apt/add_mncore_packages.sh in github.com/pfnet/mncore"
+    packages:
+      - {name: gpfn3-dkms, role: "Linux kernel module (DKMS-built), module name gpfn3; recognizes PCIe vendor 0ccd; creates /dev/mnc2p<bus>s<n>; applies clock/MAB configuration at load time (volatile across power cycles); Secure Boot via MOK enrollment on Ubuntu 24.04, Ubuntu 22.04 requires disabling Secure Boot"}
+      - {name: "libgpfn3-0 / libgpfn3-dev", role: "user-space driver and headers"}
+      - {name: gpfn3-smi, role: "management/monitoring CLI (nvidia-smi analogue): list, reset, clear, config <dev> clock --core 750 --gddr6 15000, config <dev> mab, mtest (~1-minute self-test). MLSDK docs say users should need nothing beyond `list`."}
+      - {name: gpfn3-loader, role: "loader utility"}
+      - {name: mncore-sdk, role: "the entire SDK (pinned via apt-mark hold mncore-sdk)"}
+    supported_host_os: ["Ubuntu 24.04 LTS", "Ubuntu 22.04 LTS"]
+    supported_host_os_policy: "latest LTS + one previous"
+    container_required: true
+    container_images: ["mncore-sdk-minimal:<ver>", "mncore-sdk-full:<ver> (adds JupyterLab, VS Code CLI, build tools)"]
+    dev_container_script: create_dev_ctr.sh
+    open_source: false
+    open_source_exception: "the Dockerfiles and the apt setup script are Apache-2.0 in github.com/pfnet/mncore; the packages they install are not"
+    confidence: confirmed
+    sources:
+      - https://github.com/pfnet/mncore
+      - https://projects.preferred.jp/mn-core/assets/MN-Core2-Devkit-MN-Server-2-installation-operation-manual.pdf
+      - https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/advanced_features.html
+
+  cloud_platform:
+    name: "PFCP — Preferred Computing Platform"
+    operator: "Preferred Computing Infrastructure, Inc. (PFCI) — PFN / Mitsubishi Corporation / IIJ JV announced 2024-12-23"
+    model: "multi-tenant managed Kubernetes"
+    k8s_extended_resource: "preferred.jp/mncore2"
+    node_types: ["Reserved (monthly fixed)", "Shared (pay-as-you-go; PriorityClasses shared-standard / shared-best-effort; HRQ quotas)"]
+    per_accelerator_cap: "7000m CPU, 125Gi memory"
+    custom_resources: [ReservedNode, ClusterWorkspacePreset, ParallelJob, SealedSecret]
+    tooling: ["Headlamp dashboard", "Grafana / Prometheus / Alertmanager", "OIDC workload identity federation to AWS/GCP", "RWO/RWX persistent storage with snapshots"]
+    docs: "https://docs.pfcomputing.com/ — Japanese authoritative; English machine-translated by PLaMo Translate"
+    pricing: "not published (contact-gated)"
+    playground: "https://playground.mn-core.com/ — live LLM fine-tuning service on PFCP, open to anyone"
+    confidence: confirmed
+    sources:
+      - https://docs.pfcomputing.com/en/
+      - https://pfcomputing.com/
+      - https://www.preferred.jp/en/news/pr20241223
+
+  # ── Layer 10 ────────────────────────────────────────────────────────────────
+  isa:
+    public: true
+    document: "MN-Core 2 Software Developer Manual, rev. 2026-06-02"
+    characteristics:
+      - "VLIW PE instruction, fixed width, always carries a `wait` field"
+      - "4-cycle 'step' granularity, chosen because 1-cycle issue would saturate the host PCIe link"
+      - "two packing modes: auto-stride (3 PE + 1 MV) and flat (2 PE + 1 MV)"
+      - "no branches; mask-register predication"
+      - "no hazard interlocks"
+      - "register-memory, not load-store"
+      - "untyped operands; big-endian storage"
+      - "explicit forwarding operands: mauf, aluf, lbf, mreadf, nowrite"
+      - "MV/PE instruction split maps exactly onto the memory tree (MV above L2B, PE at L2B and below)"
+    supported_onnx_op_count: "not disclosed"
+    confidence: confirmed
+    sources: [https://projects.preferred.jp/mn-core/assets/mncore2_dev_manual_en.pdf]
+
+# ── SDK release history ───────────────────────────────────────────────────────
+sdk_releases:
+  - {version: "v0.2", date: "2025 (via PFCP changelog)", note: "early PFCP release"}
+  - {version: "v0.4", date: "2026-02-27", note: "compiler perf improvements, MLSDK migration guide, sample projects"}
+  - {version: "v0.5", date: "2026-04-28", note: "'SDK source now public at github.com/pfnet/mncore' — MISLEADING: only Dockerfiles + examples became public, not compiler/runtime source. User-side container build became the recommended flow."}
+  - {version: "v0.6", date: "2026-06-05", note: "MN-Core 2 emulator and assembler bundled into MLSDK; fx2onnx.linter.lint API; Stable Diffusion advanced example"}
+  - {version: "v0.7", date: "2026-07-15", note: "current"}
+  - {version: "—", date: "2026-06-22", note: "MN-Core SDK Hub developer portal launch (dev.mn-core.com)"}
+public_availability_note: >-
+  The public, no-login MN-Core developer story is roughly six months old as of August 2026.
+  Before 2026 the SDK was effectively PFCP-internal.
+confidence: confirmed
+sources_release_history:
+  - https://dev.mn-core.com/news/en/
+
+# ── Assessment ────────────────────────────────────────────────────────────────
+assessment:
+  strengths:
+    - "The compiler performs cache replacement (Location Planner + Scheduler spill/refill/Forget), physical-topology data layout (Layout Planner), capacity management (Time-Slice), rematerialization (auto_recompute_sa) and instruction packing (VLIW + L1Merge) — all decisions a GPU hands to hardware."
+    - "The three-property MNValue model (Dtype / Location / Layout) is a genuinely reusable abstraction."
+    - "Free emulator + public ~130-page ISA manual + educational graph compiler make this the most REPRODUCIBLE proprietary stack in the registry."
+  weaknesses:
+    - "No source for anything load-bearing."
+    - "No user extensibility — you cannot add an operator because codegen/layers is not shipped."
+    - "One framework, one custom torch build, static shapes only."
+    - "No dynamic-shape or paged-attention story; LLM inference labelled experimental."
+    - "HPCSDK in alpha with no docs; OpenACC promised in 2023, still undocumented in 2026."
+    - "No collectives and no device fabric on MN-Core 2 — multi-board goes through host gloo/MPI."
+    - "Compile times long enough that caching is a first-class API."
+    - "CODEGEN_AUTO_RECOMPUTE_HACK_FOR_QWEN shows the 'compiler handles it' promise still needs per-model rescue."
+  comparison_anchor: >-
+    Groq's TSP is the obvious neighbour, but MN-Core goes further: Groq's compiler schedules a
+    chip that still fetches its own instructions; MN-Core's PEs have no program counter and no
+    decoder at all, and the instruction rate is bounded by the PCIe link to the host. MTIA and
+    Sophgo each have a hardware-managed or partially-hardware-managed memory path somewhere;
+    MN-Core has none, at any tier, in any generation.
+
+# ── Explicitly not disclosed ──────────────────────────────────────────────────
+not_disclosed:
+  - "MLSDK / HPCSDK licence terms (EULA PDF ships inside the container at /opt/pfn/licenses/, not published on the web in indexable form)"
+  - "Licence for pfnet/mncore_simple_graph_compiler_for_education (no LICENSE file)"
+  - "HPCSDK / MNCL public documentation, API surface, supported OpenCL subset, OpenACC status beyond 'alpha, see the headers'"
+  - "Source availability or extension mechanism for codegen/layers operator implementations (no timeline given)"
+  - "Number of ONNX operators supported by codegen; authoritative supported-op list"
+  - "Whether the MLSDK stack supports JAX (marketing claim, absent from all SDK documentation)"
+  - "Whether a device-side collective communication library is planned"
+  - "PFCP pricing (contact-gated; no public rate card)"
+  - "MN-Core Technology Conference 25 (2025-12-16) presentation materials — no public slide archive located"

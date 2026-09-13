@@ -1,0 +1,185 @@
+digraph muxi_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.3,0.15"];
+    edge [color="#555555", arrowsize=0.8, fontname="Helvetica", fontsize=9];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.4;
+
+    label="MetaX 沐曦 GPU Hardware Architecture (曦云 C-series / 曦思 N-series / 曦索 X-series / 曦景 S-series) — as_of 2026-08-08";
+    fontname="Helvetica-Bold";
+    fontsize=14;
+    labelloc=t;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine — GPGPU (SIMT Architecture)";
+        style="rounded,filled";
+        fillcolor="#E8EAF6";
+        color="#3949AB";
+        fontcolor="#3949AB";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        subgraph cluster_cu {
+            label="Compute Unit (CU) — Fundamental Execution Unit";
+            style="rounded,dashed";
+            color="#5C6BC0";
+            fontcolor="#5C6BC0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            fp32 [label="FP32 / BF16 / FP16 ALU\n(vector SIMT lanes)", fillcolor="#C5CAE9"];
+            int8 [label="INT8 / INT4 Units\n(quantized inference)", fillcolor="#C5CAE9"];
+            tensor [label="Tensor Acceleration Unit\nFP16/BF16/INT8 (C500)\n+ FP8 (C600)", fillcolor="#7986CB", fontcolor="white"];
+            fullprec [label="Full-Precision Mixed Compute\n(曦索 X300 series only)\nFP64-class numerics alongside\nlow-precision AI datatypes\nRate: not disclosed", fillcolor="#7986CB", fontcolor="white", style="rounded,filled,dashed"];
+            shmem [label="Local Shared Memory\n(programmer-managed scratchpad;\ncapacity undisclosed)", fillcolor="#9FA8DA"];
+        }
+
+        cu_summary [label="Die Summary\nFull SIMT GPGPU\nWarp scheduler + hardware divergence\n<<<grid, block, shmem, stream>>> launch\nC500: 7nm TSMC | C600: Domestic process\nMXC500: ~15 TFLOPS FP32 / ~160 TOPS INT8\nMXC600: 1,000 TFLOPS FP8 (native tensor instr.)", fillcolor="#3949AB", fontcolor="white"];
+    }
+
+    // ===================== VIDEO ENGINE =====================
+    subgraph cluster_video {
+        label="Video Engine (MXN Series)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+
+        video [label="Video Encode / Decode\nEncode: 128-ch\nDecode: 96-ch\n8K: HEVC / H.264 / AV1 / AVS2\n(MXN100 / Xisi N100)", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== MEMORY HIERARCHY =====================
+    subgraph cluster_memory {
+        label="Memory Hierarchy";
+        style="rounded,filled";
+        fillcolor="#E8F5E9";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        l2 [label="L2 Cache / On-chip SRAM\n(capacity undisclosed;\nhardware-managed)", fillcolor="#A5D6A7"];
+        hbm2e [label="HBM2E Off-chip Memory\nMXC500: ~64 GB (from benchmarks)\nMXN100: capacity undisclosed\nBandwidth: not officially disclosed", fillcolor="#4CAF50", fontcolor="white"];
+        hbm3e [label="HBM3e Off-chip Memory (MXC600)\n144 GB capacity\n3.6 TB/s bandwidth\n~2.5 TFLOPS/W at FP8\n(fully domestic supply chain)", fillcolor="#1B5E20", fontcolor="white"];
+    }
+
+    // ===================== HOST INTERFACE =====================
+    subgraph cluster_host {
+        label="Host Interface";
+        style="rounded,filled";
+        fillcolor="#FFF8E1";
+        color="#F57F17";
+        fontcolor="#F57F17";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        pcie [label="PCIe\n(gen undisclosed)\nFHFL card (C500)\nOAM module (C550)", fillcolor="#FFE082"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect";
+        style="rounded,filled";
+        fillcolor="#FCE4EC";
+        color="#AD1457";
+        fontcolor="#AD1457";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        metaxlink [label="MetaXLink (MX)\n(NVLink analog)\n8 GPUs per server (full-mesh, C550 OAM)\n4-card MetaXLink groups (N300 PCIe)\nAll GPUs → NUMA node 0\nPer-link BW: not disclosed", fillcolor="#F48FB1"];
+        mloe [label="MLoE (X300 series)\nSecond multi-card high-speed\ninterconnect named alongside MetaXLink\nMechanism / BW / topology: not disclosed", fillcolor="#F8BBD0", style="rounded,filled,dashed"];
+
+        sn_3dmesh [label="C550 3D Mesh Supernode\nUp to 64 cards / up to 8 servers\nFull cabinet; electrical 3D Mesh\n(current listed product)", fillcolor="#F48FB1"];
+        sn_cube [label="C500 Shanghai Cube\n128 liquid-cooled C550 cards / 47U\nMetaXLink, electrical", fillcolor="#F48FB1"];
+        sn_c500x [label="C500X Optical Interconnect Supernode\nHybrid optical / electrical\nDragonFly, 16→64 GPUs (up to 8 machines)\n— medium confidence, no vendor spec sheet", fillcolor="#F8BBD0", style="rounded,filled,dashed"];
+        sn_s600 [label="曦景 S600 AI Supernode  (NEW — WAIC 2026)\n64 GPU cards in a SINGLE cabinet\nIn-cabinet full interconnect\n\"Zero-cable direct-connect\" (0线缆直连)\ncompute node ↔ switch node\nEP / TP multi-dim parallelism\nCabinet-to-cabinet → 10,000+ card clusters\nPer-link BW / GPU SKU / total FLOPS: not disclosed\nSTATUS: ANNOUNCED ONLY", fillcolor="#AD1457", fontcolor="white"];
+    }
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+
+        scaleout [label="Ethernet / RoCE via Host NIC\nMXCCL (NCCL analog) for inter-node collectives\n10,000+ GPU clusters proven (end-2024)", fillcolor="#ECEFF1"];
+    }
+
+    // ===================== PRODUCT GENERATIONS =====================
+    subgraph cluster_generations {
+        label="Product Generations";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+
+        gen1 [label="Gen 1: MXN100 (Xisi 曦思)\n7nm | 160 TOPS INT8\nHBM2E | Video GPU\nMass production 2023", fillcolor="#E1BEE7"];
+        gen2 [label="Gen 2: MXC500 (Xiyun 曦云)\n7nm (TSMC) | ~15 TFLOPS FP32\nHBM2E ~64 GB | PCIe | MXMACA 2.0\n10,000+ GPUs deployed", fillcolor="#CE93D8"];
+        gen25 [label="Gen 2.5: MXC550\n7nm | OAM form factor\nMetaXLink | Shanghai Cube 128 cards/47U", fillcolor="#CE93D8"];
+        gen3 [label="Gen 3: MXC600 (Xiyun 曦云 C600) ← CURRENT\nDomestic process | FP8 1,000 TFLOPS\nHBM3e 144 GB @ 3.6 TB/s\nFully domestic supply chain\nTargets NVIDIA H20+ / Hopper FP8\nQ4 2025 small-batch → large-scale shipment 2026\n(company statement, 2026-07-08)", fillcolor="#7B1FA2", fontcolor="white"];
+        gen3b [label="Gen 3 siblings\nMXC588 — launched 2025-09-23 with C600; specs N/D\nMXN300 (曦思) — FHFL dual-slot PCIe, 500 W max\nMetaXLink ×4 cards; 16 GPUs/chassis via PCIe switch\nmemory + TOPS: not disclosed", fillcolor="#CE93D8"];
+        genx [label="曦索 X-series (AI4S) — parallel line\nX206: launched 2026-01-27 (智算申城)\nX300 series (X301 / X302): WAIC 2026\nFull-precision mixed compute (FP64-class)\nLarge-capacity HBM | MetaXLink + MLoE\nWeather / ocean / CFD / MD / materials / life sci\nAll specs not disclosed | ANNOUNCED ONLY", fillcolor="#4A148C", fontcolor="white"];
+        gens [label="曦景 S-series (supernode) — parallel line\nS600: WAIC 2026 (Jul 17–20, 2026)\n64 cards / single cabinet; zero-cable direct-connect\nANNOUNCED ONLY", fillcolor="#4A148C", fontcolor="white"];
+        gen4 [label="Gen 4+: MXC700 (Xiyun 曦云 C700)\nCompany-disclosed 2026-04-08 (FY2025 results call):\ncore design + functional verification largely complete;\nin deeper performance optimization; project began Apr 2025\nNo specs, no launch date\n\"H100 parity\" / \"mass production late 2027\" = UNVERIFIED", fillcolor="#E1BEE7", style="rounded,filled,dashed"];
+    }
+
+    // ===================== EDGES =====================
+
+    // CU internals
+    fp32 -> tensor [style=invis];
+    int8 -> tensor [style=invis];
+    tensor -> fullprec [style=invis];
+    tensor -> shmem [style=dashed, color="#5C6BC0", label="feeds", fontsize=8];
+    fullprec -> shmem [style=dashed, color="#5C6BC0", label="X300 only", fontsize=8];
+    shmem -> cu_summary [style=dashed, color="#3949AB"];
+
+    // Compute -> Memory
+    cu_summary -> l2 [label="L1→L2 miss", color="#2E7D32"];
+    l2 -> hbm2e [label="C500 path", color="#2E7D32"];
+    l2 -> hbm3e [label="C600 path", color="#1B5E20", style=dashed];
+
+    // Video engine (MXN series)
+    cu_summary -> video [style=dashed, color="#00695C", label="MXN only"];
+
+    // Compute -> Host
+    cu_summary -> pcie [label="DMA / ioctl", style=dashed, color="#F57F17"];
+
+    // Compute -> Scale-up
+    cu_summary -> metaxlink [label="GPU-to-GPU", color="#AD1457"];
+    cu_summary -> mloe [label="X300 only", style=dashed, color="#AD1457", fontsize=8];
+
+    // Scale-up -> supernode configurations (all coexist)
+    metaxlink -> sn_3dmesh [color="#AD1457", fontsize=8];
+    metaxlink -> sn_cube [color="#AD1457", fontsize=8];
+    metaxlink -> sn_c500x [style=dashed, color="#AD1457", fontsize=8];
+    metaxlink -> sn_s600 [color="#AD1457", label="2026", fontsize=8];
+
+    sn_3dmesh -> scaleout [label="inter-node", style=dashed, color="#37474F"];
+    sn_s600 -> scaleout [label="cabinet-to-cabinet\n→ 10,000+ cards", style=dashed, color="#37474F", fontsize=8];
+
+    // Roadmap sequence
+    gen1 -> gen2 [color="#6A1B9A", label="→"];
+    gen2 -> gen25 [color="#6A1B9A", label="→"];
+    gen25 -> gen3 [color="#6A1B9A", label="2025 →"];
+    gen3 -> gen3b [color="#6A1B9A", label="derivatives", fontsize=8];
+    gen3 -> gen4 [color="#6A1B9A", label="disclosed,\nnot announced", style=dashed, fontsize=8];
+    gen3 -> genx [color="#4A148C", label="2026 AI4S line", style=dashed, fontsize=8];
+    genx -> gens [color="#4A148C", label="WAIC 2026", style=dashed, fontsize=8];
+}

@@ -1,0 +1,177 @@
+digraph biren_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.3,0.15"];
+    edge [color="#555555", arrowsize=0.8];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.4;
+
+    // ===================== DUAL-DIE PACKAGE =====================
+    subgraph cluster_package {
+        label="BR100 Package — 2022, announced Hot Chips 34, never volume (TSMC CoWoS-S 2.5D, 77B transistors, 550W OAM)";
+        style="rounded,filled";
+        fillcolor="#F5F5F5";
+        color="#333333";
+        fontname="Helvetica-Bold";
+        fontsize=13;
+        penwidth=2;
+
+        // Die 0
+        subgraph cluster_die0 {
+            label="Die 0 (TSMC 7nm, ~1074 mm²)";
+            style="rounded,filled";
+            fillcolor="#E8EAF6";
+            color="#3949AB";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            spc0 [label="32× SPC\n(Streaming Processing Cluster)\n16 EU each | 4,096 threads/SPC\nC-Warp SIMT | TF32+/BF16/INT8", fillcolor="#3F51B5", fontcolor="white", shape=box];
+            l2_0 [label="Distributed L2 Cache\n150 MB (per die)\nHardware-managed\nMesh topology", fillcolor="#5C6BC0", fontcolor="white"];
+            hbm_ctrl0 [label="HBM2e Controller\n2 stacks × 16 GB\n32 GB / 1.15 TB/s\nper die", fillcolor="#7986CB", fontcolor="white"];
+        }
+
+        // Die 1
+        subgraph cluster_die1 {
+            label="Die 1 (TSMC 7nm, ~1074 mm²)";
+            style="rounded,filled";
+            fillcolor="#E8EAF6";
+            color="#3949AB";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            spc1 [label="32× SPC\n(Streaming Processing Cluster)\n16 EU each | 4,096 threads/SPC\nC-Warp SIMT | TF32+/BF16/INT8", fillcolor="#3F51B5", fontcolor="white", shape=box];
+            l2_1 [label="Distributed L2 Cache\n150 MB (per die)\nHardware-managed\nMesh topology", fillcolor="#5C6BC0", fontcolor="white"];
+            hbm_ctrl1 [label="HBM2e Controller\n2 stacks × 16 GB\n32 GB / 1.15 TB/s\nper die", fillcolor="#7986CB", fontcolor="white"];
+        }
+
+        // Die-to-die interposer link
+        d2d [label="Silicon Interposer (CoWoS-S)\nDie-to-Die Link: 896 GB/s bidirectional\nHBM stacks: 4× total (2 per die)", fillcolor="#9E9E9E", fontcolor="white", shape=ellipse];
+    }
+
+    // ===================== HBM2e STACKS =====================
+    subgraph cluster_hbm {
+        label="HBM2e Memory (Total: 64 GB / 2.3 TB/s)";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        hbm0 [label="HBM2e Stack 0\n16 GB / 575 GB/s\n1024-bit interface", fillcolor="#BBDEFB"];
+        hbm1 [label="HBM2e Stack 1\n16 GB / 575 GB/s\n1024-bit interface", fillcolor="#BBDEFB"];
+        hbm2 [label="HBM2e Stack 2\n16 GB / 575 GB/s\n1024-bit interface", fillcolor="#BBDEFB"];
+        hbm3 [label="HBM2e Stack 3\n16 GB / 575 GB/s\n1024-bit interface", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== HOST INTERFACE =====================
+    subgraph cluster_host {
+        label="Host Interface";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        pcie [label="PCIe Gen5 x16\n~128 GB/s bidir\nCXL 1.1/2.0 support\nCoherent memory expansion", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_blink {
+        label="BLink 1.x Scale-Up (BR100, 2022)";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        blink [label="BLink Interconnect\n8 bidirectional links\n64 GB/s per link\n512 GB/s aggregate\nMax 8 GPUs / server\nNo switch ASIC", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== SHIPPING 壁砺 (BR10X) SKUs =====================
+    subgraph cluster_bili {
+        label="Shipping BR10X products (壁砺 / Bili) — TSMC 7nm; Biren publishes form factor + peak power only";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        br106 [label="BR106 (壁砺106) — single die\nMass production Jan 2023\n106M: OAM air, 400 W\n106B: FHFL dual-width PCIe\nFLOPS / memory: not disclosed", fillcolor="#B2DFDB"];
+        br110 [label="BR110 (壁砺110) — single die\nMass production Oct 2024\nEdge inference positioning\nNo product page on birentech.com\nFLOPS / memory: not disclosed", fillcolor="#B2DFDB"];
+        br166 [label="BR166 (壁砺166) — 2.5D chiplet\n2× BR106 dies + die-to-die link\nMass production Aug 2025\n166M: OAM air 550 W | 166L: OAM liquid 600 W\n166C: FHFL 290 mm PCIe 300 W\nFLOPS / memory / D2D BW: not disclosed", fillcolor="#80CBC4"];
+    }
+
+    // ===================== ROADMAP: BR20X + BLINK 2.0 / NPO SUPERNODE =====================
+    subgraph cluster_roadmap {
+        label="Announced roadmap — WAIC 2026 (2026-07-17). NOT shipping; no availability date or per-link bandwidth disclosed";
+        style="rounded,dotted";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=2;
+
+        br20x [label="BR20X (\"BR2xx\") — 2nd-gen architecture\nNative FP8 / FP4 | chiplet\nStatus: physical design + tape-out verification\nNOT taped out, not sampling\nPlanned launch 2026 | process node: not disclosed", fillcolor="#E1BEE7"];
+        blink2 [label="BLink 2.0\nMemory-semantic: 1,024 GPUs, one memory space\nIn-network computing (collectives in switch nodes)\nCongestion control | multi-layer link self-healing\nPer-link BW: not disclosed", fillcolor="#CE93D8"];
+        npo [label="NPO — Near-Packaged Optics\nOptical engine fused into GPU module\nHigh-power DSP retimer removed\nReach: several hundred metres\nMotivation: >1 TB/s/GPU vs copper <3 m", fillcolor="#CE93D8"];
+
+        tier16 [label="Tier 1: 16-card\nStandard server\nElectrical", fillcolor="#F3E5F5"];
+        tier128 [label="Tier 2: 128-card\nHigh-density cabinet\nElectrical (prior ceiling)", fillcolor="#F3E5F5"];
+        tier1024 [label="Tier 3: 1,024-card\nDistributed decoupled supernode\nGPU nodes and switch nodes\nphysically separated, optically linked", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== PRIOR-GEN OPTICAL DEPLOYMENT =====================
+    subgraph cluster_docs {
+        label="Prior-generation deployment (not BLink 2.0)";
+        style="rounded,dashed";
+        color="#455A64";
+        fontcolor="#455A64";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        docs [label="dOCS — distributed optical circuit switching\n32-card / 4-chassis building block\nAggregated to a 2,048-card cluster at a\nnational computing platform (reported: Shanghai INESA)\nNOT a 2,048-card scale-up / shared-memory domain", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Die internal
+    spc0 -> l2_0 [color="#3949AB", label="mesh", fontsize=8];
+    l2_0 -> hbm_ctrl0 [color="#3949AB"];
+
+    spc1 -> l2_1 [color="#3949AB", label="mesh", fontsize=8];
+    l2_1 -> hbm_ctrl1 [color="#3949AB"];
+
+    // Die-to-die
+    spc0 -> d2d [color="#757575", label="896 GB/s", fontsize=8];
+    spc1 -> d2d [color="#757575"];
+
+    // HBM connections
+    hbm_ctrl0 -> hbm0 [color="#1565C0"];
+    hbm_ctrl0 -> hbm1 [color="#1565C0"];
+    hbm_ctrl1 -> hbm2 [color="#1565C0"];
+    hbm_ctrl1 -> hbm3 [color="#1565C0"];
+
+    // Host interface
+    d2d -> pcie [label="PCIe 5.0", fontsize=8];
+
+    // Scale-up
+    d2d -> blink [color="#E65100"];
+
+    // Generation lineage: BR10X architecture -> shipping 壁砺 SKUs
+    spc0 -> br106 [style=dotted, color="#00695C", label="same BR10X arch", fontsize=8];
+    br106 -> br110 [style=dotted, color="#00695C", label="respin, 2024", fontsize=8];
+    br106 -> br166 [color="#00695C", label="2× die chiplet\nco-package, 2025", fontsize=8];
+
+    // Prior-generation optical deployment sits on the shipping generation
+    br166 -> docs [style=dashed, color="#455A64", label="deployed", fontsize=8];
+    blink -> docs [style=dotted, color="#455A64"];
+
+    // Roadmap lineage
+    br166 -> br20x [style=dotted, color="#6A1B9A", label="2nd-gen\nsuccessor", fontsize=8];
+    br20x -> blink2 [color="#6A1B9A", label="native supernode\ninterconnect", fontsize=8];
+    blink2 -> npo [color="#6A1B9A", label="optical layer", fontsize=8];
+    blink2 -> tier16 [style=dashed, color="#6A1B9A"];
+    blink2 -> tier128 [style=dashed, color="#6A1B9A"];
+    npo -> tier1024 [color="#6A1B9A", label="optical fabric", fontsize=8];
+    docs -> npo [style=dotted, color="#455A64", label="upgraded by", fontsize=8];
+}

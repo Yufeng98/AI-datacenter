@@ -1,0 +1,59 @@
+# Intel Gaudi — Layer Mapping
+
+*as_of: 2026-08-08*
+*chip: intel-gaudi*
+*device_class: Mixed (GEMM + VLIW TPC)*
+
+| Layer | Component | Confidence | Sources |
+|-------|-----------|------------|---------|
+| **Software Layers** | | | |
+| Framework Integration | gaudi-pytorch-bridge (HPU device backend, ATEN op dispatch, lazy IR) | confirmed | https://github.com/HabanaAI/gaudi-pytorch-bridge |
+| Framework Integration | habana_frameworks.torch (Python surface: mark_step(), hpex, HPU device registration) | confirmed | https://docs.habana.ai/en/latest/PyTorch/Reference/Python_Packages.html |
+| Framework Integration | torch.distributed backend="hccl" (drop-in NCCL replacement) | confirmed | https://docs.habana.ai/en/latest/PyTorch/PyTorch_Scaling_Guide/Distributed_Backend_Initialization.html |
+| Framework Integration | optimum-habana (HuggingFace Transformers on HPU) | confirmed | https://docs.habana.ai/en/latest/PyTorch/Reference/Python_Packages.html |
+| Framework Integration | DeepSpeed Intel Gaudi fork (ZeRO 1/2/3 + HCCL backend) | confirmed | https://docs.habana.ai/en/latest/PyTorch/DeepSpeed/DeepSpeed_User_Guide/DeepSpeed_User_Guide.html |
+| Framework Integration | Megatron-DeepSpeed for Gaudi (3D parallelism: tensor + pipeline + data) | confirmed | https://github.com/HabanaAI/Megatron-DeepSpeed |
+| Framework Integration | PyTorch Lightning (lightning-Habana HPUAccelerator + HPUDDPStrategy) | confirmed | https://docs.habana.ai/en/latest/PyTorch/Reference/Python_Packages.html |
+| Compiler / IR | SynapseAI Graph Compiler (AOT DAG compilation: fusion, SRAM placement, MME/TPC dispatch, DMA scheduling) | confirmed | https://docs.habana.ai/en/latest/Gaudi_Overview/Intel_Gaudi_Software_Suite.html |
+| Compiler / IR | TPC-C LLVM Compiler — tpc-clang (C99 + Gaudi intrinsics → VLIW ISA binary) | confirmed | https://github.com/HabanaAI/tpc_llvm |
+| Compiler / IR | **[Next-gen] Crescent Island**: SynapseAI does **not** carry forward — Crescent Island uses oneAPI/SYCL with the Intel Graphics Compiler (IGC v2.27.10, Jan 2026, initial Crescent Island support) | confirmed (enablement in public source trees) | https://www.techpowerup.com/345253/intel-nova-lake-s-and-crescent-island-support-added-to-graphics-compiler |
+| Runtime | **[Next-gen] Crescent Island**: Level Zero / Intel Compute Runtime replaces the SynapseAI runtime — early support in Compute Runtime 26.01.36711.4 (2026-01-14), support promoted 2026-04-20; stack validated on Arc Pro B-series first, extending to Xe3P (Intel statement at OCP, Oct 2025) | confirmed (enablement in public source trees) | https://www.phoronix.com/news/Intel-CR-26.01.36711.4 |
+| Op Library | SynapseAI Graph API ops (synNodeCreateWithId; GEMM + elementwise + reduce graph nodes) | confirmed | https://docs.habana.ai/en/latest/Gaudi_Overview/Intel_Gaudi_Software_Suite.html |
+| Op Library | Habana Transformer Engine — hpex.ModuleExtension (FP8 E4M3/E5M2 linear layers) | confirmed | https://docs.habana.ai/en/latest/PyTorch/Reference/Python_Packages.html |
+| Kernel Library | TPC Kernel Library (1400+ precompiled VLIW SIMD kernels: activations, norms, elementwise, reductions, FP8/BF16/INT8) | confirmed | https://developer.habana.ai/get-started/kernel-libraries/ |
+| Runtime | SynapseAI Runtime — libsynapse.so (device mem manager, stream scheduler, DMA engine, PCIe command submission) | confirmed | https://docs.habana.ai/en/latest/Gaudi_Overview/Intel_Gaudi_Software_Suite.html |
+| Runtime | HCCL Communicator + QP management (hcclCommInitRank, RoCE QP lifecycle) | confirmed | https://docs.habana.ai/en/latest/API_Reference_Guides/HCCL_APIs/index.html |
+| Driver / Firmware | habanalabs kernel driver (PCIe BAR, command queues, device SMMU, hl-smi) | confirmed | https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html |
+| Driver / Firmware | Upstream status: mainline `drivers/accel/habanalabs/` covers Goya / Gaudi 1 / Gaudi 2 only — **no `gaudi3/` in Linux master as of 2026-08-08**; Gaudi 3 requires the out-of-tree driver (v6.19 pull request, dri-devel Dec 2025, rejected on code-quality grounds) | confirmed | https://github.com/torvalds/linux/tree/master/drivers/accel/habanalabs ; https://lists.freedesktop.org/archives/dri-devel/2025-December/539169.html |
+| Compiler / IR | SynapseAI_Core — open **reference implementation** of the SynapseAI API — archived 2025-02-03 ("no longer be maintained by Intel"); also archived: Gaudi-tutorials (2025-09-18), Model-References (2026-01-08). Production user-space is NOT archived: gaudi-pytorch-bridge (pushed 2026-07-13), vllm-fork (2026-07-27), optimum-habana-fork (2026-07-17), gaudi-* K8s operator suite (2026-07-23) | confirmed | https://github.com/orgs/HabanaAI/repositories?type=all&sort=updated ; https://www.phoronix.com/news/Intel-SynapseAI-Stops |
+| Communication | HCCL — Habana Collective Communications Library (NCCL-compatible: AllReduce, AllGather, ReduceScatter, Broadcast, Barrier, Send/Recv) | confirmed | https://docs.habana.ai/en/latest/API_Reference_Guides/HCCL_APIs/index.html |
+| Communication | Integrated RoCE v2 NIC (21 × 200 GbE scale-up + 3 × 200 GbE scale-out, on-die SerDes) | confirmed | https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf |
+| Communication | Scale-up fabric (21 × 200 GbE, intra-node/rack, 4.2 Tbps/card) | confirmed | https://cdrdv2-public.intel.com/833842/gaudi-3-ai-accelerator-cluster-ref-design-white-paper.pdf |
+| Communication | Scale-out fabric (3 × 200 GbE, inter-rack, standard Ethernet switches) | confirmed | https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf |
+| Communication | **[Next-gen] Crescent Island**: HCCL does not carry forward; no on-die RoCE NIC or scale-up fabric has been announced — multi-card collective path **not disclosed** | pre-announcement | https://codeoxi.com/blog/intel-crescent-island-gpu |
+| Assembler / ISA | TPC VLIW ISA (4-slot: Vector/Scalar/Load/Store; 256-byte vector; 5D AGU; FP8/BF16/FP32/INT8; arch-generation specific) | confirmed | https://docs.habana.ai/en/latest/TPC/TPC_User_Guide/Processor_Architectural_Overview.html |
+| **Hardware Layers** | | | |
+| Compute Engine | MME × 8 (Matrix Multiplication Engine: GEMM, Conv, Batched-GEMM; 4 per die; 1835 BF16 TFLOPs OAM) | confirmed | https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf |
+| Compute Engine | TPC × 64 (Tensor Processing Core: VLIW SIMD 256-byte; FP8 E4M3/E5M2; 32 per die) | confirmed | https://docs.habana.ai/en/latest/TPC/TPC_User_Guide/Processor_Architectural_Overview.html |
+| Compute Engine | **[Next-gen] Crescent Island**: MME/TPC replaced by Xe3P XMX GPU engines; datatype range reported **FP4 through FP64**; TFLOPs, XMX/core counts and process node **not disclosed**; no Gaudi ASIC lineage | pre-announcement (Computex figures medium confidence, trade-press-sourced) | OCP Global Summit Oct 2025 ; https://acceleratedcomputing.ai/news/2026-06-01-intel-crescent-island/ |
+| Compute Engine | **[Next-gen] Jaguar Shores**: Gaudi-branded; compute engine architecture not yet disclosed; built on Intel 18A (GAA); quad-tile package (~92.5×92.5 mm); training + inference | pre-announcement | Intel roadmap disclosures 2025 |
+| Data Path | MME→SRAM→TPC producer-consumer pipeline (GEMM result → SRAM → activation function without HBM round-trip) | confirmed | https://hc2024.hotchips.org/assets/program/conference/day1/60_HC2024.Intel.RomanKaplan.Gaudi3-0826.pdf |
+| Data Path | Async DMA engines (HBM2e↔SRAM; double-buffering for compute/memory overlap) | confirmed | https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Architecture.html |
+| Data Path | All-parallel execution (MME + TPC + DMA + NIC independent command queues) | confirmed | https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf |
+| On-chip Memory | 96 MB shared SRAM (12.8 TB/s; software-managed; 48 MB per die; 3.5× HBM BW) | confirmed | https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf |
+| On-chip Memory | TPC local per-TPC scratchpad (private, fast-access, small capacity) | confirmed | https://docs.habana.ai/en/latest/TPC/TPC_User_Guide/Processor_Architectural_Overview.html |
+| On-chip Memory | **[Next-gen] Crescent Island**: no on-chip SRAM disclosed; GPU SRAM model expected to differ from Gaudi scratchpad architecture | pre-announcement | OCP Global Summit Oct 2025 |
+| Off-chip Memory | 128 GB HBM2e @ 3.7 TB/s — Gaudi 3 (8 stacks; direct RDMA target for RoCE NIC) | confirmed | https://videocardz.com/newz/intel-announces-gaudi3-ai-accelerator-with-128gb-hbm2e-memory-up-to-900w-tdp-on-air |
+| Off-chip Memory | 96 GB HBM2e @ 2.45 TB/s — Gaudi 2 (reference) | confirmed | https://videocardz.com/newz/intel-announces-gaudi3-ai-accelerator-with-128gb-hbm2e-memory-up-to-900w-tdp-on-air |
+| Off-chip Memory | **[Next-gen] Crescent Island**: LPDDR5X (not HBM) — 160 GB reference design, **up to 480 GB in partner/ODM configurations**; capacity-optimized over bandwidth; targets token-volume inference economics. **Bandwidth not disclosed** — the circulating "~684 GB/s" is a press back-calculation, not an Intel figure; module breakdown also not disclosed | pre-announcement (Computex figures medium confidence, trade-press-sourced) | OCP Global Summit Oct 2025 ; https://videocardz.com/newz/intel-crescent-island-gpu-officially-supports-up-to-480gb-lpddr5x-memory ; https://codeoxi.com/blog/intel-crescent-island-gpu |
+| Off-chip Memory | **[Next-gen] Jaguar Shores**: HBM4 (SK Hynix); HBM4E also rumored; octal stacks expected; bandwidth not disclosed | pre-announcement | Intel roadmap disclosures 2025 |
+| Host Interface / Package | PCIe Gen5 x16 (~128 GB/s bidir; 2× Gaudi 2) | confirmed | https://cdrdv2-public.intel.com/817488/Gaudi%203%20PCIe%20Product%20Brief_RB_1_V6.pdf |
+| Host Interface / Package | OAM form factor HL-325L (8 cards per tray; dual-die package: 2 dies, each 4 MMEs + 32 TPCs + 48 MB SRAM) | confirmed | https://cdrdv2-public.intel.com/817487/gaudi-3-ai-accelerator-hl-325l-oam-mezzanine-card-product-brief.pdf |
+| Host Interface / Package | **[Next-gen] Crescent Island**: PCIe add-in card (generation not disclosed), **350 W**, **air-cooled** (explicitly not liquid-cooled); no OAM variant announced; die/package configuration not disclosed | pre-announcement (Computex figures medium confidence, trade-press-sourced) | https://acceleratedcomputing.ai/news/2026-06-01-intel-crescent-island/ ; https://codeoxi.com/blog/intel-crescent-island-gpu |
+| Host Interface / Package | **[Next-gen] Jaguar Shores**: rack-scale disaggregated platform; pairs with Diamond Rapids Xeon CPUs; PCIe gen not disclosed | pre-announcement | Intel roadmap disclosures 2025 |
+| Scale-up Interconnect | 21 × 200 GbE RoCE v2 (on-die SerDes; 4.2 Tbps/card; direct card-to-card or standard Ethernet switch) | confirmed | https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf |
+| Scale-up Interconnect | **[Next-gen] Jaguar Shores**: copper RoCE replaced by silicon photonics optical interconnects; bandwidth and topology not disclosed | pre-announcement | Intel roadmap disclosures 2025 |
+| Scale-out Interconnect | 3 × 200 GbE RoCE v2 (on-die SerDes; external Ethernet switches; same protocol as scale-up) | confirmed | https://cdrdv2-public.intel.com/817486/gaudi-3-ai-accelerator-white-paper.pdf |
+| Scale-out Interconnect | Host NIC PCIe peer-direct GDR (optional fallback for large clusters) | confirmed | https://docs.habana.ai/en/latest/API_Reference_Guides/HCCL_APIs/Overview.html |
+| **Cancelled Products** | | | |
+| Compute Engine (cancelled) | **Falcon Shores** (CANCELLED Jan 2025): planned Xe-HPC GPU chiplets + Gaudi ASIC hybrid; multi-chiplet; targeted late 2025; never shipped commercially; relegated to internal test chip | cancelled | Intel Q4 2024 earnings call |

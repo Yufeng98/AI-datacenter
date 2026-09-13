@@ -1,0 +1,469 @@
+chip: vastaitech
+as_of: "2026-08-08"
+device_class: "GPU-like Inference Accelerator + Video Codec (China, 瀚博 VastaiTech)"
+investigation: software-stack
+
+# The compute target is called VACC ("Vastai Accelerated Computing"; never expanded publicly).
+# The 2026 delivery vehicle is VVI (Vastai Versatile Inference), currently VVI-26.02, available
+# only from the sales-gated developer centre.
+#
+# STRUCTURAL FACT: two parallel runtime paths that share NOTHING above the driver —
+#   Build_In : VAMC (AOT, TVM-based) → VastStream/VastStreamX → VastGenX/VastGenServer
+#   vLLM     : torch_vacc device backend + vllm_vacc fork (eager only)
+# A model's behaviour on one path says almost nothing about the other.
+
+delivery:
+  sdk_bundle: VVI (Vastai Versatile Inference)
+  current_version: "VVI-26.02"
+  also_in_circulation: "VVI-25.12.SP2"
+  access: "Sales-gated developer centre; README states 需联系销售代表获取瀚博开发者中心版本权限"
+  confidence: confirmed
+  sources:
+    - https://github.com/Vastai/VastModelZOO
+    - https://developer.vastaitech.com/
+
+layers:
+
+  # ── Layer 1: framework integration ──────────────────────────────────────────
+  framework_integration:
+
+    - name: vllm_vacc
+      function: "Fork/port of vLLM; OpenAI-compatible server, tool calling (hermes / deepseek_v3 parsers), reasoning parsers, guided/JSON decoding, MTP speculative decoding for DeepSeek"
+      versions_observed: ["0.7.2", "0.9.2", "0.11.0", "0.17.0"]
+      distribution: "closed .whl + harbor.vastaitech.com/ai_deliver/vllm_vacc:{latest,VVI-26.02,VVI-25.12.SP2}"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/llm/common/docker/Dockerfile
+        - https://vllm-vacc.vastaitech.com/
+
+    - name: torch_vacc
+      function: "Out-of-tree PyTorch device backend supplying the 'vacc' device"
+      versions_observed: ["1.3.0", "1.3.3"]
+      pairing: "Paired with a CPU build of torch (torch==2.7.0+cpu, later 2.8.0+cpu) — torch itself is not built against the device"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/llm/common/docker/Dockerfile
+        - https://github.com/Vastai/MinerU
+
+    - name: vLLM recipe site
+      url: https://vllm-vacc.vastaitech.com/
+      function: "vllm-recipes-styled site; 'Community-maintained recipes for VASTAI Tech VA16 VA10L VA1L'"
+      recipe_count: 31          # 25 Qwen, 6 DeepSeek
+      vllm_version: "0.17.0"
+      note: "The ONLY place the current VA16 / VA10L / VA1L card configurations are documented"
+      confidence: confirmed
+
+    - name: VastModelZOO
+      repo: https://github.com/Vastai/VastModelZOO
+      license: Apache-2.0
+      created: "2022-12-07"
+      last_push: "2026-08-07"
+      stars: 30
+      contents: "1000+ models, 5 domains (CV/AUDIO/NLP/LLM/MLLM), 33 sub-categories, 2 runtimes; VAMC compile YAMLs, deploy docs, quantisation recipes, patched modeling_*_vacc.py"
+      confidence: confirmed
+
+    - name: VastStreamX-Samples
+      repo: https://github.com/Vastai/VastStreamX-Samples
+      license: MIT
+      created: "2025-08-26"
+      last_push: "2026-08-03"
+      stars: 3
+      contents: "42 sample dirs, 20+ CV/NLP tasks, VDSP built-in ops, custom ops, JPEG/H.264/H.265 codec, video capture, AI+codec pipelines, card telemetry"
+      confidence: confirmed
+
+    - name: xinference_vacc
+      repo: https://github.com/Vastai/xinference_vacc
+      license: Apache-2.0 (Dockerfiles)
+      last_push: "2026-08-07"
+      function: "Xinference integration — LLM / Embedding / Rerank / VLM; vLLM engine ONLY"
+      adds: ["VACC_VISIBLE_DEVICES", "VNNL_CONV1D_DLC=1 (Qwen2-Audio)"]
+      note: "Upstreamed fixes to Xinference and xoscar"
+      confidence: confirmed
+
+    - name: MinerU fork
+      repo: https://github.com/Vastai/MinerU
+      license: GPL-3.0
+      last_push: "2026-02-06"
+      function: "Document-parsing VLM pipeline on VACC; zero code change to upstream MinerU 2.7.3"
+      independent_corroboration: "Upstream OpenDataLab documents VastAI as a supported accelerator — the only genuinely third-party-hosted VastaiTech integration doc found"
+      confidence: confirmed
+      sources:
+        - https://opendatalab.github.io/MinerU/zh/usage/acceleration_cards/VastAI
+
+    - name: VastGenX
+      function: "Proprietary LLM/VLM serving tool for the Build_In path; OpenAI-compatible API + vastgenx webui"
+      invocation: 'vastgenx serve --model … --llm_devices "[0..7]" --vit_model … --vit_devices "[4]"'
+      note: "Devices are DIES. VLM vision and language towers are placed on DIFFERENT dies."
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/tools/vastgenx/README.md
+
+    - name: VastGenServer
+      function: "Proprietary text2vec / embedding serving (Build_In path)"
+      open_source: false
+      confidence: confirmed
+
+    - name: FFmpeg + VAAPI plugins
+      function: "Standard media interface for the codec blocks; VastStream ships FFmpeg VAAPI plugins"
+      open_source: false
+      confidence: confirmed
+      sources:
+        - https://www.vastaitech.com/software/vaststream
+
+    - name: evaluation tooling
+      components: ["evalscope integration scripts (LLM/VLM accuracy + perf)", "vllm bench serve", "OmniDocBench for OCR"]
+      confidence: confirmed
+
+    - name: compiler frontends accepted (Build_In)
+      supported: [huggingface, onnx, pytorch/torchscript, keras (.h5 natively), tensorflow, darknet, tvm relay]
+      derivation: "Census of frontend.type across 344 shipped VAMC configs"
+      confidence: confirmed
+
+  # ── Layer 2: graph capture ──────────────────────────────────────────────────
+  graph_capture:
+
+    build_in:
+      mechanism: "Source-level patch + AOT trace — there is NO runtime capture"
+      requirements: >-
+        Every LLM except LLaMA requires the user to add to the weight directory: a
+        config_vacc.json with an auto_map pointing at a vendor-modified
+        xxx_modeling_xxx_vacc.py, plus "_attn_implementation": "eager" and
+        "insert_slice": true. The modeling file also gains a quantize() method for
+        per-channel INT8.
+      consequence: "Invasive; the main portability tax of the Build_In path. Every new model architecture needs a vendor-authored modeling patch before it can be compiled."
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/llm/README.md
+        - https://github.com/Vastai/VastModelZOO/blob/main/llm/qwen2/README.md
+
+    vllm:
+      mechanism: "NONE"
+      enforce_eager: "MANDATORY — --enforce-eager appears in every documented command; MinerU states it as a rule"
+      cuda_graph_equivalent: "does not exist"
+      torch_compile_equivalent: "does not exist"
+      related_flag: "FUSE_ALL_DECODER_LAYERS=0 DISABLES a decoder-layer fusion optimisation for long-context runs, implying the fusion that exists is a runtime option, not a compiled graph"
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/MinerU
+        - https://vllm-vacc.vastaitech.com/
+
+  # ── Layer 3: graph compiler ─────────────────────────────────────────────────
+  graph_compiler:
+    name: VAMC
+    expansion: "Vastai Model Compiler"
+    invocation: ["vamc compile <config.yaml>", "vamc quant"]
+    distribution: "closed wheel (vamc-xxx.whl); Python 3.8 required for the classic CV flow"
+    open_source: false
+
+    backend_lineage:
+      value: "Apache TVM derivative"
+      evidence: >-
+        All 344 compile configs in VastModelZOO set backend.type: tvm_vacc (594 occurrences
+        across the tree); the calibration dataset loader is dataset.type: tvm; the compiled
+        artifact is a TVM-style module prefix deploy_weights/<name>/mod consumed as
+        --model_prefix .../mod.
+      significance: >-
+        THE most-often-missed fact about this stack. The graph compiler is TVM-based, NOT
+        MLIR-based — unlike most 2024+ Chinese accelerator compilers.
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/tools/vamc/vamc_config.yaml
+        - https://github.com/Vastai/VastModelZOO/blob/main/llm/qwen2/build_in/build/hf_qwen2_fp16.yaml
+
+    tensor_parallelism:
+      value: "COMPILE-TIME property on the Build_In path (model_kwargs.tp)"
+      contrast: "The vLLM path takes --tensor-parallel-size at launch"
+      consequence: "Changing TP degree on Build_In requires a recompile; the compiler emits a per-die partitioned model"
+      confidence: confirmed
+
+    memory_placement_flags:
+      note: "The compiler owns memory placement — strongest evidence that on-chip memory is a software-managed scratchpad"
+      flags: [output_ddr, mem_inplace, data_transport_mode, "graph.extra_ops: insert_odma", cluster_mode, output_layout, enable_graph_partition]
+      confidence: confirmed
+
+    static_shapes:
+      value: "Multiple STATIC shapes declared at compile time, e.g. input_ids: [[1024],[2048]]"
+      confidence: confirmed
+
+    other_compile_flags:
+      values: [opt_level, enable_float_to_half, gather_data_vccl_dsp_enable, quantize_dsp_ops, nearest_interpol_on_dsp, skip_conv_layers, skip_matmul_layers, requant_suppress, overflow_adaptive, split_convergence_points, switch_lhs_rhs, stream_mode, b2s, align_qkv, attention_split_num, ffn_split_num, build_visual, llm_build, merge_params]
+      semantics: "not disclosed"
+      semantics_note: >-
+        Values for cluster_mode (0/1), data_transport_mode (1/3), data_type (0/2), opt_level,
+        output_layout, stream_mode, split_convergence_points and requant_suppress are visible in
+        344 shipped configs, but their MEANINGS are documented only in the gated developer centre.
+      confidence: confirmed        # the flags exist; the semantics are not disclosed
+
+    quantization:
+      formats: [FP16, BF16, INT8 PTQ, W8A16-GPTQ, W4A16, INT4, FP8, FP4]
+      fp4_note: "FP4 on VA16, 2026"
+      calibration_modes: [kl_divergence, percentile, mse, max]
+      calibration_mode_census: "151 configs use percentile; 131 use kl_divergence"
+      per_channel: true
+      weight_scale: power2
+      calibration_datasets: [C4, CEval, Alpaca, ImageNet]
+      cross_vendor_quirk: "GPTQ calibration in vamc_quant.yaml can run on device: cuda:5 — calibration on NVIDIA hardware, deployment on VACC"
+      large_model_requirement: "VACC_STACK_SIZE=256 must be exported when compiling models above 32 B"
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/tools/vamc/vamc_quant.yaml
+        - https://github.com/Vastai/VastModelZOO/blob/main/llm/README.md
+
+  # ── Layer 4: kernel compiler ────────────────────────────────────────────────
+  kernel_compiler:
+    public_kernel_compiler: "NONE"
+    public_kernel_language: "NONE"
+    gap_note: >-
+      A real gap relative to peers: no Triton port, no TileLang, no assembler, no intrinsics
+      header, no disassembler. A customer cannot write a new fused kernel for this hardware.
+
+    vdsp_custom_ops:
+      form: "Pre-built ELF binaries shipped with the SDK at /opt/vastai/vaststreamx/data/elf/<op_name>"
+      examples: [planar_argmax, brightness, norma_tensor_3ch]
+      user_interface: "vsx::CustomOperator(op_name, elf_file); fill a packed C struct of device addresses and shapes; run_sync(tensors, config_bytes, output_info)"
+      authoring_toolchain: "not distributed, not documented"
+      evidence_vendor_writes_them: "'visual部分的旋转位置编码在VDSP自定义算子上实现' — VastaiTech engineers write new VDSP kernels; customers receive only binaries"
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/vdsp_op/custom_op/argmax/argmax_op.hpp
+        - https://github.com/Vastai/VastStreamX-Samples/blob/main/common/custom_op_base.hpp
+
+    vnnl:
+      inferred_role: "Low-level neural-network kernel library (cuDNN analogue)"
+      visible_only_through: ["VNNL_MODEL_SYNC (unset in the container entrypoint)", "VNNL_CONV1D_DLC=1 (required for Qwen2-Audio)"]
+      documentation: "none — no header, no docs, no public mention by the vendor"
+      confidence: inferred
+      caveat: "The NAME is confirmed from env vars. What VNNL actually is has never been stated. Flag as inferred."
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/llm/common/docker/Dockerfile
+        - https://github.com/Vastai/xinference_vacc
+
+  # ── Layer 5: operator language as exposed to users ──────────────────────────
+  operator_language:
+    model: "Users COMPOSE ops; they do not write kernels"
+    builtin_vdsp_ops: [cvtcolor, resize, scale, flip, warpaffine, crop, copy_make_border, batch_crop_resize]
+    fusion_ops:
+      selection: "JSON files (data/configs/*.json, build_in/vdsp_params/*.json) — the 'vdsp_params' argument threaded through every sample and every vamp invocation"
+      example: "FUSION_OP_RGB_LETTERBOX_CVTCOLOR_NORM_TENSOR with IimageFormat/Mean/Std/NormaType/ColorCvtCode/ResizeType"
+      identification: "GetOpType() >= 100"
+      also: "BERT_EMBEDDING_OP"
+    custom_ops: "ctypes/struct + prebuilt ELF (see kernel_compiler)"
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/VastStreamX-Samples/blob/main/data/configs/detr_bgr888.json
+
+  # ── Layer 6: tensor API ─────────────────────────────────────────────────────
+  tensor_api:
+
+    - name: VastStreamX
+      import: "import vaststreamx as vsx  /  #include \"vaststreamx/vaststreamx.h\""
+      release: "26.04, dated 2026-05-09; updated through 2026-07-20"
+      distribution: "Samples MIT-licensed; the library ships as a closed vaststreamx-xxx.whl / .bin"
+      core_types:
+        - "vsx.Tensor / vsx::Tensor — Shape(), GetContext(), GetDataAddress(), Clone(ctx), TypeFlag::kUint16/…"
+        - "vsx.Image / vsx::Image — Format (BGR_INTERLEAVE, RGB planar, YUV_NV12), width/height pitch"
+        - "Context::CPU() / Context::VACC(device_id) — explicit memory space; dev_type == kVACC"
+        - "vsx.from_numpy(arr, device_id) / vsx.as_numpy(t) — explicit H2D / D2H"
+        - "DataManager — ref-counted buffer with custom deleter (zero-copy wrap of host memory)"
+        - "vsx::Model, vsx::ModelOperator — loaded 'mod' artifact; GetInput/OutputShapeByIndex, GetMaxBatchSize"
+        - "vsx::Operator, BuildInOperator, CustomOperator — LoadOpsFromJsonFile, GetAttribute<AttrKey::…>"
+        - "vsx::Graph, vsx::Stream — AddOperators, RegisterModelOperatorOutput, Build, RunSync, process_async/get_output/close_input/wait_until_done, StreamBalanceMode::kBM_RUN, GraphOutputType::kGRAPH_OUTPUT_TYPE_NCHW_DEVICE"
+        - "vsx.Card, vsx.Die — uuid, card_type, dies, temperature, power, memory, utilization{ai, vdsp[], vdmcu[], vemcu[]}"
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastStreamX-Samples/blob/main/common/model_base.hpp
+        - https://github.com/Vastai/VastStreamX-Samples/blob/main/samples/card_info/card_info.cpp
+
+    - name: VastStream (original C SDK)
+      libraries:
+        - lib: VACM
+          expansion: "Common Lib"
+          function: "Base utilities, log management, device context management, data management, tensor management, memory management, OS abstraction"
+        - lib: VACE
+          expansion: "Compute Engine"
+          function: "Operator library; executes single operators by function call; loads/executes VDSP operators in combination with VACL"
+        - lib: VACL
+          expansion: "Accelerate Language"
+          function: "The inference API — load models, build a VDSPStream, run the stream"
+        - lib: VAME
+          expansion: "Media Engine"
+          function: "Image/video processing; media subsystem init; decode/encode operations"
+        - lib: VAML
+          expansion: "Management Library"
+          function: "Hardware monitoring and board status; backing library for VASMI and VAProfiler"
+      vendor_summary_of_sdk: "视频处理库、图像处理库、算子库、模型量化工具、编译器、运行时系统及硬件驱动"
+      api_reference_documentation: "not public — every doc route on developer.vastaitech.com returns 错误的账户或秘钥"
+      confidence: confirmed
+      sources:
+        - https://www.vastaitech.com/software/vaststream
+        - https://www.vastaitech.com/en/software/vaststream
+
+  # ── Layer 7: runtime ────────────────────────────────────────────────────────
+  runtime:
+
+    build_in:
+      components: "VACL/VACE + the VastStreamX stream engine"
+      artifact_naming: "Directories named by dtype and calibration method, e.g. resnet50-int8-percentile-1_3_224_224-vacc/mod, mask2former-fp16-none-1_3_1024_1024-vacc/mod"
+      profiling_cli:
+        name: vamp
+        analogue: trtexec
+        example: "vamp -m …/mod --vdsp_params …json -i 8 -p 1 -b 22 -s [3,224,224] --datalist list.txt --path_output out"
+      confidence: confirmed
+
+    vllm_env_vars:
+      device_selection: "VACC_VISIBLE_DEVICES — the CUDA_VISIBLE_DEVICES analogue; selects DIES"
+      others: [VACC_LOG_LEVEL, VACC_STACK_SIZE, VACC_RT_MODELSAVE_EN, VACM_LOG_CFG, "VLLM_VACC_KVCACHE_SPACE=16", "VLLM_MLA_PERFORM_MATRIX_ABSORPTION=0", LLM_MAX_PREFILL_SEQ_LEN, FUSE_ALL_DECODER_LAYERS, LLM_DEVICES, LLM_RECALL, VSX_DISABLE_DEEPBIND]
+      vastai_op_switches: [VASTAI_OP_DEFORM_ATTN_CORE, VASTAI_WINDOW_PARTITION_OP, VASTAI_WINDOW_REVERSE_OP, VASTAI_ROLL_OP, VASTAI_PATCH_MERGING_OP, VASTAI_OP_MVIT_FOLD, VASTAI_OP_MVIT_UNFOLD, VASTAI_GEN_SINEEMBED_FOR_POSITION]
+      op_switch_reading: "Per-operator enable switches for structural ops imply operator coverage is managed by hand, switch by switch, rather than by a general lowering"
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/llm/common/docker/Dockerfile
+
+    collectives:
+      library: VCCL
+      analogue: NCCL
+      env_vars: ["VCCL_SOCKET_IFNAME (default 'lo')", VCCL_MODEL_SYNC]
+      compile_flag: "gather_data_vccl_dsp_enable — collective gather executed on the VDSP engines"
+      public_api: "none"
+      documentation: "none of any kind"
+      supported_collectives: "not disclosed"
+      confidence: confirmed        # existence and the three observable knobs only
+
+    documented_limits:
+      max_concurrency: 4
+      max_concurrency_scope: "essentially EVERY model — DeepSeek-V3/R1 671B, all Qwen3 sizes, and even BGE-small embedding models"
+      deepseek_v3_contexts:
+        tp32_with_mtp: "56 K input / 64 K context"
+        tp32_pp2_without_mtp: "100 K input / 128 K context"
+      unsupported_sampling: "min_p is unsupported and errors out"
+      overlong_requests: "silently intercepted, not handled"
+      data_parallelism: "NOT SUPPORTED (MinerU support matrix: 数据并行 --data-parallel-size/--dp 🔴)"
+      reading: "A max concurrency of 4 on a 671 B serving configuration is the strongest self-disclosed signal that the vLLM port is functional but not performance-mature"
+      confidence: confirmed
+      sources:
+        - https://github.com/Vastai/VastModelZOO/blob/main/tools/vllm/usage_limits.md
+        - https://github.com/Vastai/MinerU
+
+    orchestration:
+      name: VastCloudNative
+      components:
+        - "Kubernetes Operator — driver install, container runtime"
+        - "Device plugin — schedules and health-checks VastaiTech devices"
+        - "Exporter — temperature, frequency, power, voltage, memory for Prometheus"
+        - "Docker integration via an OCI plugin"
+      confidence: confirmed
+      sources:
+        - https://www.vastaitech.com/software/vastcloudnative
+
+    fleet_management:
+      name: VastDCManager
+      built_on: "VADriver + VAML"
+      tools:
+        - name: VASMI (vasmi)
+          analogue: nvidia-smi
+          commands: ["vasmi list", "vasmi setconfig dpm=enable -d all", "vasmi setcardmode <mode> -d <id>"]
+          reports: "device type, clock, temperature, per-process memory and codec cost; sets over-current and over-temperature protection"
+        - name: VAProfiler
+          function: "Runtime / hardware-cost profiler"
+        - name: VASID
+          expansion: "System Integration Diag"
+          function: "Online environment/hardware/performance diagnosis with error reporting"
+        - name: valogger
+          function: "Logging daemon (nohup sudo valogger &)"
+      confidence: confirmed
+      sources:
+        - https://www.vastaitech.com/software/vastdcmanager
+
+  # ── Layer 8: driver ─────────────────────────────────────────────────────────
+  driver:
+    kernel_module: vastai_pci
+    device_node: "/dev/vastai0 (version string at /dev/vastai0_version)"
+    pci_device_id: "0x0100 (lspci -d:0100)"
+    installer: "sudo ./vastai_driver_install_xxx.run install --setkernelhook"
+    observed_version: "00.25.12.30 d3_3_v2_9_a3_1 a76bf37 20251230"
+    architectures: [x86_64, aarch64]
+    noavx_variant: "Dockerfile.noavx exists for CPUs without AVX"
+    open_source: false
+    upstreamed: false
+    confidence: confirmed
+    sources:
+      - https://github.com/Vastai/MinerU
+      - https://github.com/Vastai/VastModelZOO
+
+  # ── Layer 9: ISA ────────────────────────────────────────────────────────────
+  isa:
+    value: "not disclosed"
+    detail: >-
+      No ISA manual, no assembler, no disassembler, no intrinsics, no public instruction
+      reference. The only ISA-adjacent artefact visible to users is the opaque VDSP custom-op
+      ELF. No ISCA / MICRO / Hot Chips / ISSCC / arXiv paper describes the microarchitecture
+      or the instruction set.
+    confidence: not_disclosed
+
+# ── Open source vs proprietary ────────────────────────────────────────────────
+open_source_inventory:
+  org: https://github.com/Vastai
+  repo_count: 4
+  all_active_2026: true
+  repos:
+    - name: VastModelZOO
+      license: Apache-2.0
+      language: Python
+      stars: 30
+      created: "2022-12-07"
+      last_push: "2026-08-07"
+    - name: VastStreamX-Samples
+      license: MIT
+      stars: 3
+      created: "2025-08-26"
+      last_push: "2026-08-03"
+    - name: xinference_vacc
+      license: Apache-2.0
+      language: Dockerfile
+      stars: 4
+      last_push: "2026-08-07"
+    - name: MinerU (fork)
+      license: GPL-3.0
+      last_push: "2026-02-06"
+  characterisation: >-
+    Every one of these is samples, recipes, configs and Dockerfiles. NOT ONE LINE of the
+    driver, compiler, runtime, kernel library, or collective library is open.
+  confidence: confirmed
+
+proprietary_inventory:
+  components: [driver, VastStream (VACM/VACE/VACL/VAME/VAML), VAMC, VastStreamX libraries, VastGenX, VastGenServer, torch_vacc, vllm_vacc, VNNL, VCCL, vasmi, vamp, VAProfiler, VASID, "harbor.vastaitech.com Docker images", "all API reference documentation"]
+  confidence: confirmed
+
+developer_centre_gating:
+  verified: true
+  finding: >-
+    developer.vastaitech.com serves an identical React SPA shell on every route. Its backend
+    API is reachable — GET /api/home/v0/home returns solution blurbs — but every product and
+    documentation endpoint (/api/product/v0/summary, /api/product/v0/groups/1/summary,
+    /api/asset/v0/files/download) returns {"code":4000,"message":"错误的账户或秘钥，请检查"}.
+    VastModelZOO's README confirms the policy: 需联系销售代表获取瀚博开发者中心版本权限.
+  consequence: "No public API reference manual, no architecture whitepaper, no conference paper."
+  confidence: confirmed
+  sources:
+    - https://developer.vastaitech.com/
+    - https://github.com/Vastai/VastModelZOO
+
+# ── Comparative read ──────────────────────────────────────────────────────────
+comparative_position:
+  more_open_than: >-
+    Cambricon (MagicMind closed) and Huawei (CANN kernel layer) in ONE narrow respect: the
+    compile CONFIGURATION surface is fully public, so an outsider can read exactly which flags,
+    quantisation modes and parallelism degrees the compiler supports across 344 real models.
+  much_less_open_than: >-
+    Sophgo, whose TPU-MLIR is a complete open compiler. VastaiTech publishes the configs but
+    not the compiler that consumes them.
+  kernel_programmability: >-
+    Notably behind. Peers offer Triton ports, TileLang, or at minimum an intrinsics header.
+    VastaiTech offers pre-built ELFs and no authoring path at all.
+  llm_serving_maturity: >-
+    Behind. Mandatory eager mode, no data parallelism, and max-concurrency 4 are all
+    self-disclosed and all point the same way.
+  confidence: inferred

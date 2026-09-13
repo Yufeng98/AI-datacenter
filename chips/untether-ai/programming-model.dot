@@ -1,0 +1,135 @@
+digraph untether_ai_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.export / TorchScript\nONNX export", fillcolor="#D6E4F0"];
+        tensorflow [label="TensorFlow\nSavedModel\nConcrete functions", fillcolor="#D6E4F0"];
+        onnx [label="ONNX\nDirect model import\nStandardized IR", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== QUANTIZATION =====================
+    subgraph cluster_quant {
+        label="Quantization Engine";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ptq [label="PTQ / PQT\nCalibration-based\nPost-quant training", fillcolor="#E4DEFF"];
+        kd [label="Knowledge Distillation\nFloat teacher model\nAccuracy recovery", fillcolor="#E4DEFF"];
+        prec [label="Precision Targets\nINT4 / INT8 / FP8 / BF16\nZero-detect + 2:1 sparsity", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== COMPILER =====================
+    subgraph cluster_compiler {
+        label="imAIgine Compiler";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        gencompiler [label="Generative Compiler (v25.04)\nAuto-generates kernels\n300+ model support", fillcolor="#D4EDDA"];
+        graphopt [label="Graph Optimizer\nOp fusion, layout xform\nSparsity exploitation", fillcolor="#D4EDDA"];
+        hpcflow [label="HPC Bare-Metal Flow\nRISC-V + PE programming\nExpert kernel path", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== PHYSICAL ALLOCATOR =====================
+    subgraph cluster_alloc {
+        label="Physical Allocator";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        bankmap [label="Bank Mapper\nOps → 729 SRAM banks\nPE scheduling", fillcolor="#FFF3CD"];
+        multichip [label="Multi-Chip Partitioner\n4-card pipeline\nInter-chip routing", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        imaigine_rt [label="imAIgine Runtime\nlibimaigine.so\nPython wrapper + C lib\nInference session mgmt", fillcolor="#F8D7DA"];
+        dma [label="PCIe DMA Engine\nHost-to-card transfers\nBAR mapping\nPower mode control", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Untether AI speedAI240 Hardware (TSMC 7nm)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        banks [label="729 SRAM Banks\n512 PEs per bank (At-Memory Compute)\n238 MB SRAM | ~1 PB/s aggregate BW\n2 RISC-V cores/bank @ 1.35 GHz (1456 total)", fillcolor="#283593", fontcolor="white"];
+        scratch [label="On-Chip Scratchpads\n4 × 1 MB\nInter-bank staging", fillcolor="#283593", fontcolor="white"];
+        extmem [label="External Memory\nLPDDR5 up to 32 GB\n2 × 64-bit ports\nParameter overflow", fillcolor="#283593", fontcolor="white"];
+        perf [label="Performance\n2 PetaFLOPS FP8 | 1 PetaFLOP BF16\n30 TFLOPS/W efficiency\n75W TDP — PCIe low-profile", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Quantization
+    pytorch -> ptq;
+    tensorflow -> ptq;
+    onnx -> ptq;
+
+    // Quantization internal
+    ptq -> prec;
+    kd -> prec;
+
+    // Quantization -> Compiler
+    prec -> gencompiler;
+    prec -> hpcflow [style=dashed, color="#AAAAAA", label="expert path", fontsize=8];
+
+    // Compiler internal
+    gencompiler -> graphopt;
+
+    // Compiler -> Allocator
+    graphopt -> bankmap;
+    hpcflow -> bankmap [style=dashed, color="#AAAAAA"];
+
+    // Allocator internal
+    bankmap -> multichip;
+
+    // Allocator -> Runtime
+    multichip -> imaigine_rt;
+    bankmap -> imaigine_rt;
+
+    // Runtime internal
+    imaigine_rt -> dma;
+
+    // Runtime -> Hardware
+    dma -> banks [label="PCIe", fontsize=8];
+
+    // Hardware internal
+    banks -> scratch [color="#283593"];
+    banks -> extmem [style=dashed, color="#283593", label="overflow", fontsize=8];
+    banks -> perf [style=invis];
+}

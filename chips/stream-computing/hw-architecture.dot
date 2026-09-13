@@ -1,0 +1,139 @@
+// *as_of: 2026-08-08*
+// chip: stream-computing
+digraph stream_computing_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    labelloc="t";
+    label="Stream Computing NeuralScale P920 (STCP920/950/980 PCIe inference cards)\nTSMC 12nm · 400 mm² · 32 NeuralScale cores · 128 TFLOPS FP16 / 256 TOPS INT8 @ 1.0 GHz · 130 W chip TDP";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== NPC — the compute tile =====================
+    subgraph cluster_npc {
+        label="NeuralScale Core (NPC) × 32 — RISC-V scalar + 3 decoupled engines";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        subgraph cluster_npc_core {
+            label="Issue: in-order, ≤3 instr/cycle (one per engine)";
+            style="rounded,filled";
+            fillcolor="#EBF3FB";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            mcu [label="MCU — scalar core\nAndesCore N25F (RV32G)\n5-stage in-order, branch pred.\n64 KB I$ + 64 KB D$\n(HW-cached: control path only)", fillcolor="#BBDEFB"];
+            issue [label="Issue unit\n3 instruction buffers\n(one per engine)\nblocks only on address overlap", fillcolor="#BBDEFB"];
+            vme [label="VME — Vector MAC Engine\n64 FP16 MACs\n+ POLY (exp / div / sqrt)\nRVV v0.8 (VLEN 1024, ELEN 16)\n+ custom OP-VE instructions", fillcolor="#BBDEFB"];
+            mme [label="MME — Matrix MAC Engine\n64 × 32 = 2048 MACs\n1× FP16 or 2× INT8 per MAC/cycle\nDIB + Weight Buf → IM Buf", fillcolor="#BBDEFB"];
+            mte [label="MTE — Memory Transfer Engine\nexplicit L1 ↔ LLB ↔ DDR moves\nL1 ↔ remote L1\nLLB broadcast to all L1s", fillcolor="#BBDEFB"];
+        }
+
+        subgraph cluster_npc_mem {
+            label="Per-NPC software-managed buffers (no HW cache in the tensor path)";
+            style="rounded,filled";
+            fillcolor="#E8F5E9";
+            color="#2E7D32";
+            fontcolor="#2E7D32";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            l1buf [label="L1 Buffer — 1.25 MiB\n1 MiB Data IO Buffer\n+ 0.25 MiB Weight Buffer\naddressed by byte address in GPRs\n(512 GB/s — single 3rd-party-hosted figure)", fillcolor="#C8E6C9"];
+            imbuf [label="IM — Intermediate Buffer\n256 KB, private per NPC\nMME output / VME staging\nbandwidth not disclosed", fillcolor="#C8E6C9"];
+        }
+    }
+
+    // ===================== SoC-level =====================
+    subgraph cluster_soc {
+        label="P920 SoC — 4 NPC Clusters (8 NPCs each, derived)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        noc [label="NoC — 4×4 mesh\nNON-COHERENT interconnect\ncontrol 32 b / data 512 b per direction\n64 GB/s per dir per link (128 GB/s comb.)", fillcolor="#E4DEFF"];
+        llb [label="LLB — Last Level Buffer\n8 MiB per cluster / 32 MiB total\n8 × 4 MB banks on the NoC\nBW CONTESTED: 17 TB/s (CARRV'21)\nvs 256 GB/s per cluster (vendor table)", fillcolor="#E4DEFF"];
+        hsync [label="HSYNC\npartitions 32 cores into\nup to 16 sync groups\n(API not exposed in the SDK)", fillcolor="#E4DEFF"];
+        a53 [label="ARM Cortex-A53\nmanagement CPU\nin-order, 8-stage, dual-issue\nboot, PCIe/DDR/SPI init, monitoring", fillcolor="#E4DEFF"];
+        sysdma [label="sysDMA — 2 controllers\nper DDR subsystem (×4)\nC0: DDR→LLB · C1: LLB→DDR", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== Off-chip + host =====================
+    subgraph cluster_offchip {
+        label="Off-chip memory and host interface";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        ddr [label="LPDDR4X — 16 GB\n4 GiB per cluster × 4\n256-bit @ 3733 MT/s\n108 GB/s (manuals) / 119.4 GB/s (vendor table)\nTHE BINDING CONSTRAINT", fillcolor="#F8D7DA"];
+        pcie0 [label="PCIE0 — PCIe 4.0 ×16\nendpoint to host\nBAR0 16 GB / BAR2 32 MB / BAR4 1 GB\n1 PF, no SR-IOV; KVM passthrough OK", fillcolor="#F8D7DA"];
+        pcie1 [label="PCIE1 — up to ×16\nconfigurable as root complex\nfor chip-to-chip scaling (CARRV'21)\nNOT documented on any shipping card", fillcolor="#F5F5F5", style="rounded,filled,dashed"];
+        smbus [label="SMBus OOB (0x2A)\nboard/chip power + temp\nFW version, power brake\nserial / part number", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== Multi-card =====================
+    subgraph cluster_scaleout {
+        label="Multi-card — no scale-up fabric";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        p2p [label="PCIe peer-to-peer (measured, p2p_perf)\nLLB → LLB: 9.0 GB/s\nDDR → LLB: 9.0 GB/s\nLLB → DDR: 0.89 GB/s\nDDR → DDR: 0.89 GB/s", fillcolor="#E0E0E0"];
+        eth [label="Scale-out: standard datacenter Ethernet\nNo RDMA fabric\nNo collective-communication hardware\nNo NCCL/CNCL-equivalent library", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== EDGES =====================
+
+    // NPC internal issue
+    mcu -> issue [label="decode", fontsize=8];
+    issue -> vme [label="1 instr/cycle", fontsize=8];
+    issue -> mme [label="1 instr/cycle", fontsize=8];
+    issue -> mte [label="1 instr/cycle", fontsize=8];
+
+    // NPC data movement
+    vme -> l1buf [dir=both, label="byte-addressed", fontsize=8];
+    mme -> l1buf [label="DIB + Weight Buf read", fontsize=8];
+    mme -> imbuf [label="accumulate", fontsize=8];
+    imbuf -> vme [label="staging", fontsize=8];
+    mte -> l1buf [dir=both, label="explicit move", fontsize=8];
+
+    // NPC <-> SoC
+    mte -> noc [label="MTE traffic", fontsize=8];
+    noc -> llb [dir=both, label="8 banks", fontsize=8];
+    noc -> hsync [style=dashed, label="sync groups", fontsize=8];
+    a53 -> noc [style=dashed, label="management", fontsize=8];
+
+    // SoC <-> off-chip
+    llb -> sysdma [dir=both, fontsize=8];
+    sysdma -> ddr [dir=both, label="DDR ↔ LLB", fontsize=8];
+    noc -> pcie0 [dir=both, label="host DMA", fontsize=8];
+    noc -> pcie1 [style=dashed, color="#AAAAAA"];
+    a53 -> smbus [style=dashed, fontsize=8];
+
+    // Multi-card
+    pcie0 -> p2p [label="card-to-card", fontsize=8];
+    p2p -> eth [style=dashed, color="#AAAAAA"];
+}

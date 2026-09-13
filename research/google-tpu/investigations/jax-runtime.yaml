@@ -1,0 +1,265 @@
+chip: google-tpu
+investigation: jax-runtime
+as_of: "2026-04-05"
+components_covered:
+  - JAX (primary ML framework)
+  - libtpu (XLA compiler + TPU driver + ICI runtime)
+  - Flax (neural network library)
+  - Optax (gradient processing and optimization)
+  - Orbax (checkpointing and persistence)
+  - Grain (deterministic data pipelines)
+  - Tokamax (high-performance Pallas kernel library)
+  - MaxText (LLM reference implementation)
+
+layer_mappings:
+  - layer: Framework Integration
+    components: [JAX, Flax, Optax, Grain, Tokamax, MaxText]
+    confidence: confirmed
+    summary: >
+      JAX is Google's primary ML framework for TPU, built on functional transforms
+      (jit, grad, vmap, shard_map) and a NumPy-compatible API (jax.numpy). jax.Array
+      provides unified sharding across devices via NamedSharding / PartitionSpec.
+      Flax provides NNX/Linen neural network modules on top of JAX. Optax provides
+      composable gradient processing. Grain handles deterministic data loading.
+      Tokamax provides production Pallas kernels (Flash Attention, MoE, RoPE).
+      MaxText is the open-source LLM reference (Gemma, Llama, DeepSeek, Mistral).
+      All computation ultimately flows through jax.jit → libtpu → XLA → TPU.
+    sources:
+      - title: "JAX Repository"
+        url: "https://github.com/jax-ml/jax"
+      - title: "Building Production AI on Cloud TPUs with JAX"
+        url: "https://docs.cloud.google.com/tpu/docs/jax-ai-stack"
+      - title: "Flax Repository"
+        url: "https://github.com/google/flax"
+      - title: "MaxText Repository"
+        url: "https://github.com/AI-Hypercomputer/maxtext"
+
+  - layer: Runtime
+    components: [libtpu]
+    confidence: confirmed
+    summary: >
+      libtpu.so is a monolithic shared library on every Cloud TPU VM that bundles the
+      XLA compiler (StableHLO → VLIW binary), TPU kernel driver (DMA, PCIe command queue,
+      interrupt handling, HBM buffer management), and ICI runtime (AllReduce/AllGather/
+      AllToAll collective implementations with 3D/2D torus routing). JAX calls into libtpu
+      for all TPU operations. libtpu versions are tightly coupled to JAX releases.
+      Compilation output is cached on disk by content hash, amortizing the 30–120 second
+      compile time over many training iterations.
+    sources:
+      - title: "libtpu on PyPI"
+        url: "https://pypi.org/project/libtpu/"
+      - title: "TPU Software Versions Matrix"
+        url: "https://docs.cloud.google.com/tpu/docs/runtimes"
+      - title: "TPU VM System Architecture"
+        url: "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm"
+
+  - layer: Communication
+    components: [GSPMD collectives (legacy), Shardy (current), libtpu ICI runtime]
+    confidence: confirmed
+    summary: >
+      Distributed communication in JAX is expressed via jax.lax collective primitives
+      (lax.psum → AllReduce, lax.all_gather → AllGather, lax.all_to_all → AllToAll,
+      lax.psum_scatter → ReduceScatter, lax.ppermute → CollectivePermute). Shardy
+      (GSPMD successor, default in JAX since March 2026) automatically inserts these
+      collectives during XLA compilation based on sharding annotation propagation.
+      libtpu's ICI runtime implements ring AllReduce on each torus axis for data-parallel
+      gradient synchronization. Multi-pod AllReduce uses DCN via Titanium IPU offload.
+    sources:
+      - title: "Shardy Guide for JAX Users"
+        url: "https://openxla.org/shardy/getting_started_jax"
+      - title: "Shardy JAX Migration"
+        url: "https://docs.jax.dev/en/latest/shardy_jax_migration.html"
+      - title: "GSPMD Paper — arXiv:2105.04663"
+        url: "https://arxiv.org/abs/2105.04663"
+      - title: "PyTorch/XLA SPMD Blog"
+        url: "https://pytorch.org/blog/pytorch-xla-spmd/"
+
+key_abstractions:
+  - name: jax.jit (Just-In-Time Compilation)
+    description: >
+      The primary entry point for TPU execution. jax.jit wraps a Python function;
+      on first call with a given input signature, JAX traces the function to a jaxpr,
+      lowers it to StableHLO, and calls libtpu to compile to a TPU binary. Subsequent
+      calls with the same input shapes dispatch the cached binary directly. jax.jit is
+      not optional on TPU — eager op-by-op dispatch incurs extreme overhead due to the
+      static VLIW execution model.
+    layers_involved: [Framework Integration, Runtime]
+
+  - name: jax.Array + NamedSharding
+    description: >
+      jax.Array is JAX's unified array type supporting both single-device and multi-device
+      sharding. NamedSharding maps logical mesh dimensions (e.g., ('batch', 'model')) to
+      physical device axes. Shardy propagates these annotations through the entire
+      computation graph, inserting ICI collective communication ops wherever sharding
+      changes between operations. The jax.Array + NamedSharding model replaced the older
+      pmap/xmap APIs for distributed computation.
+    layers_involved: [Framework Integration, Communication]
+
+  - name: libtpu.so
+    description: >
+      The monolithic runtime library on every TPU VM. Bundles XLA compiler, TPU kernel
+      driver, and ICI communication runtime in a single deployable .so file. Versioned
+      and upgraded atomically with JAX. All JAX TPU operations call into libtpu — there
+      is no separate driver package, compiler package, or communication library. This
+      contrasts with NVIDIA's stack (CUDA toolkit + cuBLAS + NCCL + driver as separate
+      versioned components).
+    layers_involved: [Runtime, Communication]
+
+  - name: Flax NNX
+    description: >
+      Flax's modern neural network module system (introduced 2024). Provides stateful
+      Python objects (nnx.Module subclasses) with typed parameters (nnx.Param, nnx.Variable).
+      The forward method is a standard Python method; Flax's nnx.jit handles the necessary
+      pytree extraction to make the stateful module compatible with JAX's functional tracing.
+      Used in MaxText for Gemma, Llama, and other LLM architectures.
+    layers_involved: [Framework Integration]
+
+  - name: Optax Optimizer
+    description: >
+      Composable gradient transform library. Optimizers are expressed as (init, update)
+      function pairs over pytrees of gradient/parameter arrays. update() returns new
+      optimizer state and parameter updates. Because Optax state and parameters are
+      jax.Array objects, they participate in JAX's sharding propagation automatically —
+      each chip holds its shard of Adam's m/v states for its weight partition without
+      explicit sharding annotations on the optimizer.
+    layers_involved: [Framework Integration]
+
+  - name: Shardy (SPMD Partitioner)
+    description: >
+      The MLIR-based SPMD partitioner that replaced GSPMD in JAX (migration completed
+      March 2026). Accepts axis-based sharding annotations on StableHLO ops and propagates
+      them through the computation graph, inserting AllGather, AllReduce, AllToAll, and
+      ReduceScatter collective ops at sharding change boundaries. Shardy's mesh-axis
+      representation provides more predictable shard propagation and better MLIR-native
+      debugging (inspectable sharding annotations in the IR) than GSPMD.
+    layers_involved: [Communication, Compiler / IR]
+
+  - name: lax collective primitives
+    description: >
+      JAX's low-level distributed communication API: lax.psum (AllReduce), lax.all_gather,
+      lax.all_to_all, lax.psum_scatter (ReduceScatter), lax.ppermute (CollectivePermute).
+      These lower to XLA HLO collective ops and are executed by libtpu's ICI runtime.
+      In normal usage they are not called directly by users — Shardy inserts them
+      automatically. shard_map allows expert users to write explicit collective calls for
+      cases where automatic propagation is insufficient.
+    layers_involved: [Communication]
+
+framework_integrations:
+  - framework: JAX (primary)
+    integration_point: "jax.jit → StableHLO → libtpu → TPU"
+    description: >
+      JAX is the first-class TPU framework. All numerical computation, automatic
+      differentiation, and distributed sharding are expressed in JAX and compiled via
+      libtpu to TPU VLIW binaries. The entire Google DeepMind Gemini training infrastructure
+      uses this path.
+    notes: "Supported on all TPU generations v2 through v7"
+
+  - framework: PyTorch
+    integration_point: "torch.compile → PyTorch/XLA → StableHLO → libtpu → TPU"
+    description: >
+      PyTorch models can target TPU via PyTorch/XLA (torch_xla backend). torch.compile
+      traces PyTorch ops to StableHLO which is then compiled by libtpu. vLLM's TPU backend
+      uses JAX as the lowering path even for PyTorch-authored models (2025+).
+    notes: "TorchTPU initiative aims for CUDA software parity on TPU by 2026"
+
+  - framework: TensorFlow
+    integration_point: "tf2xla → HLO → libtpu → TPU (v2–v6e only)"
+    description: >
+      TensorFlow on TPU uses the tf2xla bridge to lower TF ops to HLO for XLA compilation.
+      TF is not supported on TPU v7 (Ironwood) and later. New TF workloads on TPU are
+      being migrated to JAX.
+    notes: "TF support deprecated from TPU v7 onward"
+
+  - framework: Keras
+    integration_point: "Keras → JAX backend → jax.jit → libtpu → TPU"
+    description: >
+      Keras 3.0 supports JAX as a backend, enabling Keras models to run on TPU via JAX.
+      Keras custom kernel guide demonstrates writing Pallas kernels callable from Keras layers.
+    notes: "Requires JAX backend selection; TF Keras TPU support remains for TF-compatible generations"
+
+runtime_components:
+  libtpu:
+    xla_compiler: true
+    tpu_kernel_driver: true
+    ici_runtime: true
+    versioning: "matched pair with JAX via PyPI; libtpu package (stable, since 2024)"
+    compilation_cache: "on-disk, content-hash keyed"
+    compile_time_s: "30–120 for large LLMs (amortized)"
+
+  collectives:
+    intra_pod: "libtpu ICI runtime; ring AllReduce on each 3D/2D torus axis"
+    inter_pod: "DCN via Titanium IPU offload (Multislice)"
+    primitives:
+      - {jax_api: "lax.psum", hlo_op: "AllReduce"}
+      - {jax_api: "lax.all_gather", hlo_op: "AllGather"}
+      - {jax_api: "lax.all_to_all", hlo_op: "AllToAll"}
+      - {jax_api: "lax.psum_scatter", hlo_op: "ReduceScatter"}
+      - {jax_api: "lax.ppermute", hlo_op: "CollectivePermute"}
+
+# ============================================================================
+# Dated investigation pass — 2026-08-08 (software stack)
+# Window 2026-04-27 -> 2026-08-08. google-tpu has no separate software-stack.yaml;
+# the software-stack investigation for this chip lives here and in xla-pallas.yaml.
+# ============================================================================
+update_2026_08_08:
+  window: "2026-04-27 to 2026-08-08"
+  headline: >
+    One substantive software-stack change: Compute Engine now natively supports TPU
+    provisioning (GA 2026-06-01). No libtpu or JAX version entries in the Cloud TPU
+    release notes for May-August 2026. TPU v8 is not yet in the supported-version list.
+
+  fact_groups:
+
+    - id: compute-engine-native-tpu
+      layer: Runtime
+      date: "2026-06-01"
+      release_stage: GA
+      confidence: confirmed
+      facts:
+        capability: "TPU VMs and TPU slices provisionable and manageable through standard Compute Engine instance and managed-instance-group APIs"
+        custom_os_image: true
+        boot_disk_sizing: true
+        consumption_options: [on-demand, spot, reservation]
+        scope: "control plane / provisioning only"
+        affects_compiled_execution_path: false
+        affects_libtpu: false
+      significance: >
+        Control-plane convergence with the rest of Compute Engine. TPU fleets stop being a
+        bespoke resource type reached through TPU-specific APIs and become ordinary GCE
+        instances, inheriting MIG autohealing/autoscaling, image management, and disk config.
+        Sits strictly above libtpu.so; JAX -> StableHLO -> Shardy -> HLO -> LLO -> VLIW unchanged.
+      sources:
+        - title: "Cloud TPU release notes (retrieved 2026-08-08)"
+          url: "https://docs.cloud.google.com/tpu/docs/release-notes"
+
+    - id: tpu-ai-zones
+      layer: Runtime
+      date: "2026-04-27"
+      release_stage: GA
+      confidence: confirmed
+      facts:
+        capability: "Cloud TPU now offers TPU availability in AI zones"
+      significance: "Additive, low-value; same date as the prior refresh baseline."
+      sources:
+        - title: "Cloud TPU release notes (retrieved 2026-08-08)"
+          url: "https://docs.cloud.google.com/tpu/docs/release-notes"
+
+    - id: v8-software-support-status
+      layer: Runtime
+      confidence: confirmed
+      facts:
+        v8_in_cloud_tpu_supported_version_list: false
+        newest_generation_in_supported_version_list: "TPU7x (Ironwood)"
+        v8_runtime_libtpu_jax_compatibility_entry: "none published"
+        only_preview_named_in_v8_deep_dive: "native PyTorch support on TPU (software preview, not a silicon preview)"
+      sources:
+        - title: "Cloud TPU system architecture / supported versions (retrieved 2026-08-08)"
+          url: "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm"
+        - title: "TPU 8t and TPU 8i technical deep dive — Google Cloud Blog (2026-04-22)"
+          url: "https://cloud.google.com/blog/products/compute/tpu-8t-and-tpu-8i-technical-deep-dive"
+
+  not_disclosed:
+    - "No libtpu version entries in the Cloud TPU release notes for May-August 2026"
+    - "No JAX version entries in the Cloud TPU release notes for May-August 2026"
+    - "No v8 runtime / libtpu / JAX compatibility matrix entry"
+    - "No Shardy, Pallas/Mosaic, Tokamax, MaxText, or vLLM-TPU changes surfaced in the window"

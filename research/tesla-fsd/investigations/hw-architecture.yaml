@@ -1,0 +1,283 @@
+chip: tesla-fsd
+investigation: hw-architecture
+date: "2026-04-05"
+last_updated: "2026-08-08"   # see update_2026_08_08 at end of file
+confidence: high
+
+device_class: Edge Inference SoC
+generations:
+  - name: HW3
+    process: Samsung 14nm
+    npu_count: 2
+    npu_tops_each: 36.86
+    total_tops: 73.7
+    dram: "8 GB LPDDR4, 68 GB/s"
+    tdp_board_w: 100
+    released: 2019
+  - name: HW4
+    process: Samsung 7nm
+    npu_count: 3
+    npu_tops_each: 40.55
+    total_tops: 121.6
+    dram: "16 GB GDDR6, 224 GB/s"
+    storage: "256 GB NVMe"
+    tdp_board_w: 160
+    released: 2023
+
+npu_microarchitecture:
+  type: systolic_mac_array
+  mac_array: "96x96 = 9216 MACs"
+  ops_per_cycle: 18432
+  precision: "INT8 (8x8 multiply, 32-bit accumulate)"
+  sram_per_npu_mib: 32
+  execution_model: static_scheduled
+  isa_instruction_count: 8
+
+memory_hierarchy:
+  on_chip_sram_per_npu_mib: 32
+  execution_feed_bytes_per_cycle:
+    activation: 256
+    weight: 128
+
+execution_model:
+  type: static_schedule
+  dispatch: compile_time
+  in_order: true
+  memory_subsystem: out_of_order
+
+precision:
+  inference: INT8
+  training: FP32
+
+redundancy: dual_chip_per_vehicle
+
+sources:
+  - https://fuse.wikichip.org/news/2707/inside-teslas-neural-processor-in-the-fsd-chip/
+  - https://en.wikichip.org/wiki/tesla_(car_company)/fsd_chip
+  - https://www.autopilotreview.com/tesla-hardware-4-rolling-out-to-new-vehicles/
+
+# ============================================================================
+# 2026-08-08 update — AI4.5, AI4.1/AI4 Plus, AI5
+# Appended, not merged: the block above is the 2026-04-05 investigation and
+# remains as-recorded. Each fact group below carries its own confidence and
+# sources. Tesla publishes no FSD datasheets; every value here is either a
+# vendor statement or third-party observation, never an audited spec.
+# ============================================================================
+update_2026_08_08:
+  date: "2026-08-08"
+  scope: "AI4.5 (AP45), AI4.1 / AI4 Plus, AI5; HW3 end-of-capability; memory-bandwidth dispute"
+
+  generations_added:
+
+    - name: "AI4.5"
+      aka: ["AP45", "AP4.5"]
+      status: shipping_unannounced
+      status_detail: "Found in Fremont-built 2026 Model Y AWD Premium delivered Dec 2025 - Jan 2026. Tesla has never announced it."
+      first_public_evidence: "2026-01-26"
+      part_number: "2261336-02-A"
+      part_number_corroboration: "matches Tesla Electronic Parts Catalog"
+      process: not_disclosed
+      npu_count: not_disclosed
+      total_tops: not_disclosed
+      dram: not_disclosed
+      tdp_board_w: not_disclosed
+      contested:
+        - claim: "three-SoC board instead of AI4's two"
+          confidence: low
+          basis: "firmware analysis by @greentheonly, reported by Electrek and hedged as 'may feature'"
+          not: "a teardown die count; not a Tesla statement"
+      confidence: medium   # existence + part number: medium; every spec: absent
+      sources:
+        - https://electrek.co/2026/01/26/tesla-quietly-starts-shipping-model-y-with-new-ai4-5-computer/
+
+    - name: "AI4.1"
+      aka: ["AI4 Plus"]
+      status: announced_only
+      status_detail: "No silicon, no tape-out claim. Memory-and-clock refresh of AI4, not a new microarchitecture."
+      announced: "2026-04-22"
+      announced_at: "Tesla Q1 2026 earnings call"
+      production_target: "2027"
+      production_gate: "Samsung must complete modifications to its 7nm process"
+      process: "Samsung 7nm (modified)"
+      dram_per_soc_gb: 32          # up from 16 on AI4
+      dram_per_board_gb: 64        # dual-SoC board
+      dram_type: "not disclosed ('newer generation RAM')"
+      compute_delta_vs_ai4: "~+10% (Musk, unqualified, unbenchmarked)"
+      memory_bandwidth_delta_vs_ai4: "~+10% (Musk, unqualified, unbenchmarked)"
+      npu_count: not_disclosed
+      total_tops: not_disclosed
+      tdp_board_w: not_disclosed
+      quote: "We are planning an AI4 upgrade to use newer generation RAM. So it'll go from 16 gigabytes to I think 32 gigabytes per SoC. So 64 gigabytes total, and probably a 10% increase in compute and in memory bandwidth."
+      known_aggregator_error: "one live blog renders the production year as 'mid-2025'; transcription error, 2027 is correct"
+      confidence: high      # for the announcement and the quoted figures being what Musk said
+      confidence_note: "high that Musk said this; the figures themselves are unverified vendor claims"
+      sources:
+        - https://electrek.co/2026/04/23/tesla-hw4-plus-upgrade-will-hw4-follow-hw3/
+        - https://247wallst.com/investing/2026/04/22/live-will-tesla-soar-after-announcing-q1-earnings/liveupdates/10/
+
+    - name: "AI5"
+      status: taped_out_engineering_sample
+      status_detail: >-
+        Taped out; one packaged engineering sample shown publicly. NOT sampling to third parties,
+        NOT shipping, NOT deployed. Headlines claiming imminent mass production are wrong.
+      tapeout_announced: "2026-04-15"
+      tapeout_date: not_disclosed
+      tapeout_date_note: "April 15 is the announcement date; a packaged part already existed, so tape-out predates it. Tesla has never published a tape-out date."
+      volume_production_target: "2027 (mid-2027 for automotive per Electrek)"
+      foundries:
+        - vendor: TSMC
+          node: not_disclosed
+          note: "no source discloses the TSMC node for AI5"
+        - vendor: Samsung
+          node: "SF2-class 2nm"
+          node_derivative: not_disclosed   # SF2 / SF2P / SF2T unknown
+          fab: "Taylor, Texas"
+          disclosed: "2026-07-13"
+          disclosure_channel: "LinkedIn post by Samsung Foundry principal engineer James Kim; post subsequently DELETED; Samsung declined to comment; no official Samsung or Tesla confirmation"
+      dual_source_sequencing:
+        claim_rejected: "Samsung implementation taped out several months after TSMC"
+        reason: "Korea Times reports both foundries received the design in April 2026; no source gives either tape-out date"
+      compute:
+        npu_count: not_disclosed
+        array_geometry: not_disclosed
+        clock: not_disclosed
+        peak_tops: not_disclosed
+        peak_flops: not_disclosed
+        data_types: not_disclosed
+        tdp_w: not_disclosed
+        die_area_mm2: not_disclosed
+        note: "The HW3/HW4 96x96 systolic NPU description must NOT be assumed to carry forward to AI5."
+      integration:
+        arm_cpu_cores: "integrated on-die (count/microarchitecture not disclosed)"
+        pcie: "integrated on-die — first FSD-line part described with a host interface"
+        basis: "Musk statement"
+      package_observations:
+        basis: "one photograph of one packaged engineering sample; vendor-unconfirmed"
+        die_size: "roughly half a standard reticle"
+        die_size_corroboration: "multi-outlet photo analysis; consistent with Musk's 'half a reticle with good margin'"
+        memory_packages: 12
+        memory_vendor: "SK hynix"
+        memory_type: "GDDR6 or GDDR7 — grade NOT established by any source"
+        substrate: "organic — NOT HBM, NOT interposer, NOT CoWoS"
+        confidence: medium
+        sources:
+          - https://www.benzinga.com/markets/prediction-markets/26/04/51885219/elon-musk-shows-off-first-physical-tesla-ai5-chip-tsla-up-14-in-5-days
+          - https://www.digitimes.com/news/a20260417VL202/tesla-ic-design-development-sk-hynix.html
+          - https://www.tomshardware.com/tech-industry/artificial-intelligence/elon-musk-demonstrates-first-sample-of-tesla-ai5-processor-accidentally-thanks-tsc-rather-than-tsmc-claims-40x-performance-boost-over-the-predecessor
+      single_source_inferences:
+        # recorded so they are never promoted to spec
+        - value: "384-bit external memory bus"
+          confidence: low
+          basis: "Tom's Hardware arithmetic from counting 12 packages in a photo"
+          uncorroborated: true
+        - value: "~768 GB/s - 1.536 TB/s memory bandwidth"
+          confidence: low
+          basis: "same arithmetic, plus an assumed DRAM grade"
+          uncorroborated: true
+          warning: "NOT a Tesla spec; do not cite as one"
+        - value: "'KR 2613' package date code => assembly week 13 of 2026"
+          confidence: low
+          basis: "Tom's Hardware only; no other outlet mentions any marking"
+          uncorroborated: true
+      vendor_marketing_claims:
+        # all Musk, all unaudited, mutually inconsistent — report as a spread, never cite 40x alone
+        confidence: low
+        classification: unverified_vendor_marketing
+        claims:
+          - claim: "up to 40x / 40 times better than AI4"
+            origin: "Q3 2025 earnings call, 2025-10-22/23"
+            note: "frequently misdated to April 2026; largest of the circulating figures"
+          - claim: "up to 10x more powerful than AI4"
+            origin: "Musk, via Electrek"
+          - claim: "~10x performance per dollar"
+            origin: "Musk, via Electrek"
+          - claim: "5x the memory bandwidth of AI4"
+            origin: "Musk, via Electrek"
+            note: "no absolute figure given"
+      target_market:
+        resolved: false
+        near_term_priority: "Optimus and datacenter / inference clusters"
+        automotive: "deferred, NOT excluded"
+        musk_q1_2026: "AI5 goes to Optimus and the data center 'because it's looking like we'll be able to achieve unsupervised self-driving with AI4 that is far greater than human safety levels'; allowed AI5 may eventually go into cars, no near-term urgency"
+        conflicting_coverage: "July 2026 Samsung coverage lists Tesla vehicles, robots and data centers; April 2026 coverage lists vehicles, Optimus and xAI data centers"
+        rejected_claim: "Musk said AI5 will NOT go into cars — materially overstated, he did not say this"
+      confidence: medium   # existence and tape-out: high; every spec: not disclosed
+      sources:
+        - https://electrek.co/2026/04/15/tesla-ai5-chip-taped-out-musk-ai6-dojo3/
+        - https://www.morningstar.com/news/marketwatch/20260415530/mw-is-tesla-a-chip-stock-now-investors-are-cheering-a-semiconductor-milestone
+        - https://www.koreatimes.co.kr/business/tech-science/20260713/samsung-taylor-fab-enters-production-phase-for-teslas-ai5-chip
+        - https://www.upi.com/Top_News/World-News/2026/07/13/samsung-tesla-foundry-texas-ai5-chip/8251783995948/
+        - https://www.asiae.co.kr/en/article/2026071314023594058
+        - https://www.techtimes.com/articles/320427/20260714/tesla-ai5-locks-samsung-2nm-taylor-flipping-node-assumption.htm
+        - https://xenospectrum.com/en/tesla-ai5-samsung-2nm-tapeout-dual-foundry/
+        - https://www.tweaktown.com/news/108461/elon-musk-says-teslas-next-gen-ai5-chip-is-40x-faster-than-ai4-calls-it-a-beautiful-chip/index.html
+        - https://www.autoevolution.com/news/tesla-hypes-ai5-autopilot-computer-as-neglected-hw3-owners-grow-angrier-259718.html
+        - https://hothardware.com/news/elon-musk-taps-samsung--tsmc-for-teslas-next-gen-ai5-chip
+
+  named_but_empty:
+    # named in Musk's 2026-04-15 X post; nothing else public. Recorded so the
+    # names are not later mistaken for evidence.
+    confidence: high   # that the names were said; nothing else exists
+    sources:
+      - https://electrek.co/2026/04/15/tesla-ai5-chip-taped-out-musk-ai6-dojo3/
+    names:
+      - name: "AI6"
+        disclosed: "named as 'in work', 2026-04-15"
+        everything_else: not_disclosed
+      - name: "Dojo 3"
+        disclosed: "named as 'in work', 2026-04-15"
+        everything_else: not_disclosed
+
+  hw3_end_of_capability:
+    date: "2026-04-22"
+    venue: "Tesla Q1 2026 earnings call"
+    fact: "Musk conceded millions of HW3 vehicles will not receive unsupervised FSD; Tesla will build dedicated 'micro factories' to retrofit them"
+    installed_base: "~4 million vehicles"
+    confidence: high
+    independently_confirmed_by: ["The Verge 2026-04-22", "Electrek 2026-04-22"]
+    attribution_caveats:
+      - quote: "simply does not have the capability"
+        attribute_to: "Electrek write-up, NOT a confirmed Tesla transcript"
+      - quote: "only one-eighth the memory bandwidth of HW4"
+        attribute_to: "Electrek write-up, NOT a confirmed Tesla transcript"
+        note: "the 1/8 ratio is internally consistent only with Electrek's own 48/384 GB/s pair"
+    litigation:
+      - "US class action, 2026-06-29"
+      - "Dutch collective action, 2026-06-18"
+    sources:
+      - https://electrek.co/2026/04/23/tesla-hw4-plus-upgrade-will-hw4-follow-hw3/
+      - https://www.autoevolution.com/news/tesla-hypes-ai5-autopilot-computer-as-neglected-hw3-owners-grow-angrier-259718.html
+
+  memory_bandwidth_dispute:
+    resolved: false
+    resolution_policy: "present both with attribution; do NOT pick a winner, do NOT average"
+    note: "neither set is a Tesla-published figure"
+    estimates:
+      - source_name: WikiChip
+        used_in_repo_tables_pre_2026: true
+        hw3: "8 GB LPDDR4, 68 GB/s (4266 Mbps x 128-bit)"
+        hw4: "16 GB GDDR6, 224 GB/s (14 Gbps x 128-bit)"
+        basis: per_soc
+      - source_name: Electrek
+        date: "2026-04"
+        hw3: "~48 GB/s"
+        hw4: "~384 GB/s GDDR6, 32 GB total across the dual-SoC board (16 GB/SoC)"
+        basis: "board-level for AI4; unclear for HW3"
+        comparison_points: "NVIDIA Orin ~205 GB/s; NVIDIA Thor ~273 GB/s"
+    confidence: low   # low confidence in ANY single bandwidth number for this chip family
+    sources:
+      - https://fuse.wikichip.org/news/2707/inside-teslas-neural-processor-in-the-fsd-chip/
+      - https://electrek.co/2026/04/23/tesla-hw4-plus-upgrade-will-hw4-follow-hw3/
+
+  ecosystem_status:
+    hot_chips_38:
+      tesla_talk: false
+      note: "no Tesla entry in the Hot Chips 38 advance program (conference 2026-08-23 to 2026-08-25); Waymo holds the autonomous-driving keynote and the automotive SoC slot"
+      verified_against: "hotchips.org advance program"
+    mlperf_submission: false
+    public_sdk: false
+    isa_disclosure: "none beyond the reverse-engineered HW3 8-instruction set"
+    characterization: closed_ecosystem_unchanged
+    confidence: high
+    sources:
+      - https://www.hotchips.org/advance-program/

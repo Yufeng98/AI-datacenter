@@ -1,0 +1,225 @@
+resource: Biren BIRENSUPA Software Stack
+url: https://www.birentech.com/BR10X.html
+chip: biren
+as_of: 2026-08-08
+baseline_as_of: 2026-04-05
+investigation_report: software-stack.md
+
+layer_mappings:
+  - layer: Framework Integration
+    components:
+      - name: PyTorch SUPA backend
+        role: Custom device backend registering BR100/BR104 as torch.device("supa"); dispatches ATen ops to Biren DL library; BCCL for distributed training
+        confidence: confirmed
+
+      - name: TensorFlow integration
+        role: XLA backend or custom device plugin; TensorFlow training and inference on BR100
+        confidence: confirmed
+
+      - name: PaddlePaddle integration
+        role: Custom operator plugins for BR100/BR104; important for Chinese AI market (Baidu ecosystem)
+        confidence: confirmed
+
+      - name: vLLM / LLM inference serving
+        role: SUPA-accelerated LLM inference (LLaMA, Qwen, Baichuan); Flash-Attention-style kernels on BR100
+        confidence: inferred
+
+  - layer: Compiler / IR
+    components:
+      - name: BRCC (Biren Runtime Compiler)
+        role: nvcc analog; compiles SUPA C++ GPU kernels to Biren native ISA binary; CUDA C++ migration support
+        confidence: confirmed
+
+      - name: SUPA MLIR inference compiler
+        role: TensorRT analog; ONNX/PyTorch/TF graph → fused+quantized BR100 engine; INT8/BF16/TF32+ quantization
+        confidence: inferred
+
+      - name: cuda2supa migration tool
+        role: Automated CUDA C++ → SUPA C++ namespace substitution and porting tool
+        confidence: confirmed
+
+  - layer: Op Library
+    components:
+      - name: BILA (Biren DL Library)
+        role: cuDNN + cuBLAS analog; GEMM/Conv/Attn/Norm/Activation/Pooling; TF32+/BF16/INT8 engines
+        confidence: confirmed
+
+      - name: General computing library
+        role: BLAS L1-L3, Reduce, Scan, Sort primitives; vector elementwise ops
+        confidence: inferred
+
+  - layer: Kernel Library
+    components:
+      - name: SUPA kernel template library
+        role: CUTLASS analog; GEMM/Conv templates for TF32+/BF16/INT8; targets SPC/EU hierarchy; L2-cache-aware tiling
+        confidence: inferred
+
+  - layer: Runtime
+    components:
+      - name: SUPA Runtime API (libsupa.so)
+        role: cudart analog; supaMalloc/Free, supaStream, supaEvent, supaMemcpyAsync, kernel launch <<<>>> syntax
+        confidence: confirmed
+
+      - name: SUPA Driver API
+        role: CUDA Driver API analog; explicit context management, module loading, fine-grained memory
+        confidence: inferred
+
+  - layer: Driver / Firmware
+    components:
+      - name: Biren Linux kernel driver (.ko)
+        role: PCIe BAR mapping, IOCTL dispatch, DMA control, interrupt handling
+        confidence: confirmed
+
+      - name: On-GPU firmware
+        role: Resource management, power control, GPU-side initialization; NVIDIA GSP analog
+        confidence: inferred
+
+      - name: Kubernetes device plugin
+        role: K8s DaemonSet; birentech.com/gpu resource reporting; health monitoring; SVI multi-tenancy
+        confidence: inferred
+
+  - layer: Communication
+    components:
+      - name: BCCL (Biren Collective Communication Library)
+        role: NCCL analog; AllReduce/AllGather/ReduceScatter/Broadcast over BLink intra-node; IB/ETH inter-node
+        confidence: confirmed
+
+  - layer: Assembler / ISA
+    components:
+      - name: Biren GPU ISA (BGISA)
+        role: Proprietary native SIMT ISA; C-Warp based; FP32/TF32+/BF16/INT8; NOT publicly documented (unlike PTX)
+        confidence: inferred
+
+      - name: BRCC as primary ISA entry point
+        role: Developers access hardware only through SUPA C++ + BRCC; no public PTX/ISA equivalent
+        confidence: confirmed
+
+key_abstractions:
+  - name: BIRENSUPA (SUPA SDK)
+    description: >
+      Biren's complete software platform. An 8-layer stack from framework (PyTorch/TF/Paddle)
+      through compiler (BRCC), op libraries (BILA), runtime (SUPA RT), to driver and kernel.
+      Explicitly positioned as CUDA replacement for Chinese AI market.
+    layer: All
+    hardware_mapping: Full BR100/BR104 hardware stack
+
+  - name: BRCC
+    description: >
+      Biren's kernel compiler. Accepts SUPA C++ (GPU kernel code using __global__, thread/block/grid model)
+      and compiles to Biren native ISA binary. Provides CUDA C++ migration path via limited CUDA-mode compilation.
+    layer: Compiler / IR
+    hardware_mapping: Generates SPC/EU-targeted GPU binary code
+
+  - name: BILA (Biren DL Library)
+    description: >
+      The cuDNN + cuBLAS combined equivalent. Implements GEMM, Conv, Attention, Normalization
+      in TF32+/BF16/INT8 precisions, exploiting BR100's 300 MB L2 cache and SPC parallel architecture.
+    layer: Op Library
+    hardware_mapping: Directly calls SUPA runtime kernel launches targeting EU tensor units
+
+  - name: BCCL
+    description: >
+      NCCL equivalent for Biren hardware. Implements collective communication primitives over BLink
+      for intra-node GPU-to-GPU communication (8-GPU ring/tree AllReduce), and falls back to
+      InfiniBand/Ethernet for inter-node scale-out.
+    layer: Communication
+    hardware_mapping: BLink scale-up links + host NIC for scale-out
+
+# =====================================================================
+# UPDATE 2026-08-08 — BIRENSUPA GitHub activity, serving stack, Token Factory
+# Additive. Nothing in the layer_mappings above is retracted.
+# =====================================================================
+
+update_2026_08_08:
+  investigated: 2026-08-08
+  scope: >
+    Additive software findings since the 2026-04-05 baseline: GitHub organization activity
+    (May-Aug 2026), a Mooncake fork introducing disaggregated prefill/decode serving, the
+    Token Factory application framework announced at WAIC 2026, and Day-0 model enablement claims.
+
+  fact_groups:
+
+    - group: GitHub organizations — one live, one archived
+      confidence: confirmed (GitHub REST API, primary)
+      facts:
+        - "BIRENSUPA is the live organization. BirenTechnology (ModelZoo, k8s-device-plugin, go-brml) is fully archived; last push 2024-12-17."
+        - "The Kubernetes device plugin and go-brml management binding documented in the baseline now live in the dormant org."
+        - "Live driver tooling is biren-driver-management-tools-skill in the BIRENSUPA org, created 2026-06-24."
+      sources:
+        - https://api.github.com/orgs/BIRENSUPA/repos
+        - https://api.github.com/orgs/BirenTechnology/repos
+
+    - group: Mooncake fork — disaggregated prefill/decode serving
+      confidence: confirmed (repo exists and is active); not disclosed (contents, backend, target hardware)
+      layer: Serving / KV-cache
+      facts:
+        - "BIRENSUPA/Mooncake — fork created 2026-07-20, pushed through 2026-08-08 (C++). The only actively developed repo in the org."
+        - "Mooncake is the KV-cache-centric disaggregated serving architecture - prefill and decode run on separate pools with a KV-cache transfer engine between them and a pooled multi-tier cache store."
+        - "Architecturally significant - the baseline described only monolithic vLLM-style serving on Biren hardware. Disaggregation puts new demands on the interconnect (KV transfer bandwidth, not just collective bandwidth)."
+        - "Created three days after the WAIC 2026 announcement; consistent with the BLink 2.0 memory-semantic / 1,024-GPU shared-memory-space direction."
+        - "NOT DISCLOSED - whether the fork carries a SUPA/BCCL transfer-engine backend, which Biren hardware it targets, or whether it tracks upstream. No release, docs, or announcement accompanies it."
+      sources:
+        - https://api.github.com/orgs/BIRENSUPA/repos
+        - https://github.com/BIRENSUPA
+
+    - group: SGLang fork — static, not an active port
+      confidence: confirmed (GitHub API)
+      layer: Framework Integration
+      facts:
+        - "BIRENSUPA/sglang was created 2026-05-06 with pushed_at also 2026-05-06 — a one-shot fork with ZERO subsequent pushes."
+        - "Record it as a fork, NOT as an SGLang port or an active integration. A claim that Biren 'supports SGLang' is unsupported by the repository state."
+      sources:
+        - https://api.github.com/orgs/BIRENSUPA/repos
+
+    - group: mmcv fork
+      confidence: confirmed (GitHub API)
+      layer: Framework Integration
+      facts:
+        - "BIRENSUPA/mmcv forked 2026-08-05. OpenMMLab CV operator layer. No activity beyond the fork at time of investigation."
+      sources:
+        - https://api.github.com/orgs/BIRENSUPA/repos
+
+    - group: Token Factory application framework
+      confidence: vendor claim, primary-sourced (Biren's own newsroom, unaudited)
+      layer: Framework Integration
+      facts:
+        - "Token Factory - application framework announced at WAIC 2026."
+        - "Claims a 95%+ cache hit rate via a five-level caching hierarchy."
+        - "Claims a cross-vendor heterogeneous co-inference scheme co-developed with China Telecom (中国电信) delivering ~20% throughput gain."
+        - "Unaudited vendor marketing, but published on Biren's own newsroom rather than a third-party rumour — stronger provenance than 'unverified'."
+        - "No benchmark methodology, model, or workload is given for either figure."
+        - "The five-level caching claim and the Mooncake fork are mutually consistent - both point at KV-cache tiering as Biren's main inference-efficiency lever."
+      sources:
+        - https://www.birentech.com/news/odug5ugc29npl8m6slum8d9k/
+
+    - group: Day-0 model enablement claims
+      confidence: vendor claim
+      layer: Framework Integration
+      facts:
+        - "MiniMax M3 — 2026-06-16."
+        - "Zhipu GLM-5.2 — 2026-06-26."
+        - "MiniMax H3 — 2026-08-03."
+        - "No throughput, latency, or accuracy data accompanies these announcements."
+      sources:
+        - https://www.birentech.com/news/
+
+    - group: Software implications of BLink 2.0 — open questions
+      confidence: not disclosed
+      layer: Communication
+      facts:
+        - "BLink 2.0's in-network computing offloads collectives into switch nodes, which would shift work out of BCCL's host/GPU path the way NVIDIA SHARP does for NCCL. No BCCL version, API, or documentation for BLink 2.0 has been published."
+        - "The memory-semantic 1,024-GPU shared memory space would require an addressing/allocation model above supaMalloc. None has been described."
+        - "Both are recorded as not disclosed rather than inferred."
+      sources:
+        - https://www.birentech.com/news/odug5ugc29npl8m6slum8d9k/
+
+    - group: Not disclosed / not found
+      confidence: not disclosed
+      facts:
+        - "No BIRENSUPA SDK version, release notes, or changelog published for the 壁砺 generation."
+        - "No public ISA documentation — BGISA remains closed (unchanged from baseline)."
+        - "No MLPerf submission for any Biren part."
+        - "No Biren paper found at Hot Chips 2026 / ISCA 2026 / ISSCC 2026; the Hot Chips program page returned HTTP 403, so this is 'could not verify', not 'absent'."
+      sources:
+        - https://www.birentech.com/product/software/birensupa/
+        - https://developer.birentech.com/Document_Hardware.html

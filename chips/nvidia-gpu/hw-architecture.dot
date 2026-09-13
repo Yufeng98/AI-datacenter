@@ -1,0 +1,176 @@
+digraph nvidia_gpu_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.5;
+    nodesep=0.4;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sm [label="Streaming Multiprocessor (SM)\n128 FP32 CUDA Cores\n4 Tensor Cores (5th gen on Blackwell)\n4 Warp Schedulers (64 warps/SM)\n16 SFUs, 32 LD/ST Units", fillcolor="#FFCDD2"];
+        tc [label="Tensor Cores\nHopper 4th gen: FP8/BF16/TF32\nBlackwell 5th gen: +MXFP4/MXFP6\nB200: 20 PFLOPS FP4", fillcolor="#FFCDD2"];
+        sm_count [label="SM Count\nH100: 132 SMs\nB200: 296 SMs (2x148)", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        simt [label="SIMT Execution\n32-thread warps\nIndependent thread scheduling\nDual-issue per scheduler", fillcolor="#FFE0B2"];
+        tma [label="Tensor Memory Accelerator\n(Hopper+)\nAsync 5D tensor moves\nGlobal <-> Shared Memory", fillcolor="#FFE0B2"];
+        cluster [label="Thread Block Clusters\n(Hopper+)\nUp to 8 CTAs co-scheduled\nDistributed Shared Memory", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP MEMORY =====================
+    subgraph cluster_onchip {
+        label="On-chip Memory";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        regfile [label="Register File\n256 KB/SM\n32 banks\nsub-cycle latency", fillcolor="#BBDEFB"];
+        smem [label="Shared Memory / L1\nH100: 228 KB SMEM/SM\n(256 KB unified pool)\nConfigurable split", fillcolor="#BBDEFB"];
+        l2 [label="L2 Cache\nH100: 50 MB\nB200: ~96-128 MB\nResidency controls", fillcolor="#BBDEFB"];
+        tmem [label="Tensor Memory (TMEM)\nBlackwell only\nMMA accumulator buffer\nDecoupled from register file", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory (HBM)";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hbm [label="HBM3 / HBM3e\nH100: 80 GB, 3.35 TB/s\nH200: 141 GB, 4.8 TB/s\nB200: 192 GB, 8.0 TB/s", fillcolor="#C8E6C9"];
+        memctrl [label="Memory Controllers\nCrossbar to L2 slices\nB200: NV-HBI 10 TB/s\ndie-to-die link", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== HOST INTERFACE / PACKAGE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pcie [label="PCIe Gen 5.0 x16\n~128 GB/s bidir", fillcolor="#E1BEE7"];
+        c2c [label="NVLink-C2C\n900 GB/s bidir\nCoherent CPU-GPU\n(Grace Hopper/Blackwell)", fillcolor="#E1BEE7"];
+        pkg [label="Package\nH100: monolithic 814mm2 (4N)\nB200: 2x800mm2 chiplet (4NP)\nCoWoS-L 2.5D, 208B transistors", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        nvlink [label="NVLink\nH100: 900 GB/s (4th gen)\nB200: 1.8 TB/s (5th gen)\n18 links per GPU", fillcolor="#B2DFDB"];
+        nvswitch [label="NVSwitch\n5th gen: 64 ports\n7.2 TB/s aggregate\nNon-blocking crossbar\nNVLink SHARP in-switch reduce", fillcolor="#B2DFDB"];
+        nvl72 [label="GB200 NVL72\n72 GPUs + 36 Grace CPUs\n130 TB/s total BW\n13.4 TB HBM\nRack-scale liquid-cooled", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== NEXT GEN (RUBIN) =====================
+    subgraph cluster_rubin {
+        label="Next Gen — Rubin (H2 2026)";
+        style="rounded,dashed";
+        color="#F57F17";
+        fontcolor="#F57F17";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2.0;
+
+        rubin_compute [label="Rubin GPU — Compute Engine\n6th-gen Tensor Cores\nTransformer Engine w/ adaptive compression\nTSMC 3nm\n50 PFLOPS NVFP4 inference\n35 PFLOPS NVFP4 training\n17.5 PFLOPS FP8-FP6 training", fillcolor="#FFF9C4"];
+        rubin_mem [label="Rubin GPU — Off-chip Memory\nHBM4: 288 GB per GPU\n22 TB/s bandwidth\n(2.8x Blackwell HBM3e)", fillcolor="#FFF9C4"];
+        rubin_nvlink [label="NVLink 6\n3.6 TB/s per GPU (2x NVLink 5)\nVR NVL72: 72 Rubin GPUs\n260 TB/s scale-up BW\n20.7 TB HBM / 3.6 EFLOPS NVFP4 per rack", fillcolor="#FFF9C4"];
+        rubin_ladder [label="NVLink domain ladder\nNVL72 (72 GPUs, 1 rack)\nNVL576 = 8 racks x 72 GPUs\nKyber NVL144 (144 GPUs/rack)\nNVL1152 = 8 Kyber racks", fillcolor="#FFF9C4"];
+    }
+
+    // ===================== SCALE-OUT INTERCONNECT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        cx7 [label="ConnectX-7 HCA\nNDR InfiniBand 400Gb/s\nRoCE v2 400GbE\nPCIe Gen 5 host", fillcolor="#CFD8DC"];
+        gpudirect [label="GPUDirect RDMA\nNIC direct to GPU HBM\nNo CPU bounce buffer\nGIN/GDAKI SM-initiated", fillcolor="#CFD8DC"];
+        sharp [label="SHARP\nIn-network AllReduce\non IB switches\nReduces GPU idle time", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute -> Data Path
+    sm -> simt [label="executes"];
+    tc -> simt [style=dashed];
+
+    // Data Path -> On-chip Memory
+    simt -> regfile [label="register\nR/W"];
+    simt -> smem [label="shared mem\naccesses"];
+    tma -> smem [label="async DMA\nfill"];
+    cluster -> smem [label="distributed\nSMEM", style=dashed];
+
+    // On-chip -> Off-chip Memory
+    smem -> l2 [label="L1 miss"];
+    l2 -> hbm [label="L2 miss"];
+    hbm -> memctrl;
+
+    // Off-chip -> Host Interface
+    memctrl -> pcie [style=dashed, label="host\nDMA"];
+    memctrl -> c2c [style=dashed, label="coherent\naccess"];
+
+    // Host Interface -> Scale-up
+    pcie -> nvlink [style=invis]; // layout only
+    c2c -> nvlink [style=dashed];
+
+    // Scale-up internal
+    nvlink -> nvswitch [label="fabric"];
+    nvswitch -> nvl72 [label="rack\nscale"];
+
+    // Scale-up -> Scale-out
+    nvl72 -> cx7 [label="inter-rack", style=dashed];
+    cx7 -> gpudirect;
+    cx7 -> sharp;
+
+    // Cross-references
+    gpudirect -> hbm [style=dashed, label="RDMA\nto HBM", color="#37474F"];
+
+    // Rubin connections (successor relationships)
+    tc -> rubin_compute [style=dashed, color="#F57F17", label="next gen\n(2.5x FP4)"];
+    hbm -> rubin_mem [style=dashed, color="#F57F17", label="next gen\n(2.8x BW)"];
+    nvlink -> rubin_nvlink [style=dashed, color="#F57F17", label="next gen\n(2x BW)"];
+    rubin_compute -> rubin_mem [label="HBM4\naccess"];
+    rubin_mem -> rubin_nvlink [style=dashed];
+    rubin_nvlink -> rubin_ladder [label="scales to", style=dashed];
+}

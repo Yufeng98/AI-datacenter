@@ -1,0 +1,230 @@
+chip: microsoft-maia
+document: software-stack
+as_of: "2026-04-05"
+primary_sources:
+  - "Azure Blog — From silicon to software to systems"
+  - "Microsoft Tech Community — Inside Maia 100"
+  - "Microsoft Blog — Maia 200 announcement (January 2026)"
+  - "HC2024 Inside Maia 100 PDF"
+
+framework_integration:
+  pytorch:
+    status: confirmed
+    modes: ["eager mode", "graph mode (torch.compile-style)"]
+    notes: "first-class PyTorch backend; standard model code runs without modification"
+  azure_openai_services:
+    status: confirmed
+    notes: "Maia serves Azure OpenAI production inference (Copilot, Azure AI Studio)"
+
+sdk:
+  name: "Maia SDK"
+  availability: "preview (Azure customers only)"
+  open_source: false
+  programming_models:
+    triton:
+      name: "Triton programming model"
+      language: "Python DSL (OpenAI Triton)"
+      open_source_base: true
+      maia_backend_open: false
+      characteristics: ["agility", "portability", "GPU + Maia cross-target"]
+    npl:
+      name: "NPL — Nested Parallel Language"
+      description: "Maia-specific custom programming model"
+      open_source: false
+      explicit_control:
+        - "data movement (DMA scheduling)"
+        - "SRAM placement (TSRAM/CSRAM tier selection)"
+        - "parallel execution mapping"
+      performance: "near-peak hardware utilization"
+  tools:
+    - name: "Triton compiler for Maia"
+      type: compiler
+      status: not_public
+    - name: "NPL compiler"
+      type: compiler
+      status: not_public
+    - name: "Maia simulator"
+      type: emulator
+      status: not_public
+    - name: "Cost calculator"
+      type: performance_tool
+      status: not_public
+    - name: "Debugger"
+      type: developer_tool
+      status: not_public
+    - name: "Profiler"
+      type: developer_tool
+      status: not_public
+    - name: "Visualizer"
+      type: developer_tool
+      status: not_public
+    - name: "Model quantization tools"
+      type: developer_tool
+      status: not_public
+    - name: "Validation suite"
+      type: developer_tool
+      status: not_public
+
+kernel_library:
+  status: not_public
+  description: "Microsoft-built ML compute + communication kernels using SDK compilers"
+  known_kernels:
+    - "GEMM / batched GEMM"
+    - "Attention (SRAM-tiling aware)"
+    - "All-gather, scatter-reduce, all-to-all collectives"
+    - "Activations, normalization"
+  custom_kernel_authoring: "supported via Triton or NPL"
+
+runtime:
+  status: not_public
+  availability: "SDK preview"
+  functions:
+    - "kernel dispatch and scheduling"
+    - "SRAM allocation"
+    - "HBM buffer management"
+    - "DMA queue management"
+    - "synchronization (hardware semaphores)"
+
+driver_firmware:
+  driver:
+    status: not_public
+    notes: "Azure-internal; not upstreamed to Linux kernel"
+  firmware:
+    status: not_public
+    notes: "Maia 100 firmware-upgradeable; 'new capabilities via firmware update' confirmed"
+
+communication:
+  maia_100:
+    protocol: "custom RoCE-like transport over Ethernet"
+    allgather_scatter_gbps: 4800
+    alltoall_gbps: 1200
+    encryption: "AES-GCM (confidential compute)"
+    topology: "unified scale-up + scale-out"
+  maia_200:
+    protocol: "advanced on-die transport"
+    bandwidth_tbs: 2.8
+    tiers: 2
+    max_cluster_size: 6144
+
+isa:
+  vector_processor:
+    status: not_public
+    formats: ["FP32", "BF16"]
+  tensor_unit:
+    status: not_public
+    formats_maia100: ["MX6", "MX9", "BF16"]
+    formats_maia200: ["FP4", "FP8", "BF16"]
+  mx_format:
+    name: "MX (Microscaling)"
+    standard: "OCP (Open Compute Project)"
+    co_developers: ["Microsoft", "AMD", "Arm", "Intel", "Meta", "Qualcomm", "NVIDIA"]
+    spec_public: true
+    spec_url: "https://www.opencomputeproject.org/projects/mx"
+    maia_isa_implementation: not_public
+
+data_types:
+  maia_100: ["MX6", "MX9", "BF16", "FP32"]
+  maia_200: ["FP4", "FP8", "BF16", "FP32"]
+
+# ---------------------------------------------------------------------------
+# Update investigation, window 2026-04-05 -> 2026-08-08 (appended 2026-08-08)
+# No software-stack change. Everything above is carried forward unchanged.
+# ---------------------------------------------------------------------------
+update_2026_08_08:
+  reviewed_on: "2026-08-08"
+  window: "2026-04-05 to 2026-08-08"
+  change_class: minor
+  stack_change: false
+
+  sdk_status_reverified:
+    confidence: confirmed
+    availability: "preview only; sign-up gated (selected academics, developers, frontier labs, open-source contributors)"
+    ga: "not announced; no GA date, no GA timeline"
+    version_number: "none public"
+    changelog: "none public"
+    public_docs_tree: "none - https://learn.microsoft.com/en-us/azure/maia/ returns HTTP 404"
+    components_changed: false
+    components: ["PyTorch backend", "Triton compiler for Maia", "NPL compiler", "Maia simulator", "cost calculator", "debugger", "profiler", "visualizer", "quantization tools", "validation suite", "pre-built kernel library"]
+    open_sourced_in_window: false
+    below_api_openness: "fully closed - no compiler source, no ISA spec, no kernel library, no runtime source, no upstreamed driver, no firmware"
+    sources:
+      - "https://learn.microsoft.com/en-us/azure/maia/ (HTTP 404, checked 2026-08-08)"
+      - "https://microsoft.ai/news/microsoft-build-2026-mai-keynote-transcript/"
+
+  new_workload_class_mai_models:
+    confidence: confirmed
+    date: "2026-06-02"
+    event: "Microsoft Build 2026"
+    claim: "Microsoft's first public model-to-silicon co-design claim on Maia"
+    quote: >-
+      "we're also co-designing our models with our own silicon, optimizing
+      MAI-Thinking-1 on our Maia 200 chip and benchmarking it head-to-head
+      against the GB200"
+    models_launched: 7
+    model_families: 5
+    models:
+      - name: "MAI-Thinking-1"
+        role: "Microsoft's first reasoning model; the model named as co-designed with / optimized on Maia 200"
+        reported_architecture: "~35B active-parameter MoE, 256K context window (reported by independent coverage, not a Microsoft spec sheet)"
+        confidence: "confirmed as named; architecture figures reported-not-first-party"
+      - name: "MAI-Image-2.5"
+      - name: "MAI-Transcribe-1.5"
+      - name: "MAI-Voice-2"
+      - name: "MAI-Code-1-Flash"
+    co_design_mechanism_disclosed: false
+    co_design_mechanism_note: >-
+      NOT DISCLOSED. Nothing published on which stack layers were changed
+      (NPL kernels, Triton schedules, quantization recipe, KV-cache placement
+      across TSRAM/CSRAM, collective schedules). Recorded as a workload and
+      positioning fact only, not an architectural or toolchain fact.
+    sources:
+      - "https://microsoft.ai/news/microsoft-build-2026-mai-keynote-transcript/"
+      - "https://microsoft.ai/news/building-a-hillclimbing-machine-launching-seven-new-mai-models/"
+      - "https://www.latent.space/p/ainews-microsoft-build-mai-thinking (2026-06-03)"
+
+  performance_claim:
+    confidence: vendor_claim_unverifiable
+    figure: "1.4x performance-per-watt running Microsoft's MAI models end to end on Maia 200"
+    incremental_on: "January 2026 '30% better performance per dollar than the latest generation hardware in our fleet today' (perf/DOLLAR, vs Microsoft's own fleet)"
+    baseline_in_primary_source: "not specified"
+    press_rendering: "'vs GB200' - press inference from an adjacent sentence, not stated in the transcript"
+    methodology_published: false
+    use_in_comparison_tables: forbidden
+    sources:
+      - "https://microsoft.ai/news/microsoft-build-2026-mai-keynote-transcript/"
+      - "https://blogs.microsoft.com/blog/2026/01/26/maia-200-the-ai-accelerator-built-for-inference/"
+
+  negative_results:
+    confidence: confirmed_absent
+    items:
+      - "No Maia compiler, runtime, driver, kernel-library or ISA artifact became public in the window"
+      - "No new Maia GitHub organization, repository, or package registry entry"
+      - "No Triton-for-Maia backend upstreaming into openai/triton"
+      - "No public NPL specification, tutorial, or sample corpus"
+      - "No MLPerf submission legitimising any Maia software-stack number (MLPerf Training v6.0, 2026-06-16: Azure's entry was 8,192 NVIDIA GB200 GPUs)"
+    sources:
+      - "https://mlcommons.org/2026/06/mlperf-training-v6-0-results/"
+      - "https://techcommunity.microsoft.com/blog/azurehighperformancecomputingblog/inside-llama-3-1-405b-mlperf-training-on-azure-system-level-insights-at-8k-gpu-s/4529296"
+
+  adjacent_not_maia:
+    mrc_transport:
+      confidence: confirmed_as_adjacent_only
+      what: "Multipath Reliable Connection (MRC), OCP Ethernet transport extending RoCEv2; Microsoft a co-developer"
+      paper: "arXiv:2606.18170, submitted 2026-06-16"
+      maia_link: "NONE - the paper does not mention Maia; not part of the Maia communication layer on available evidence"
+      sources:
+        - "https://arxiv.org/abs/2606.18170"
+
+  scheduled_future_source:
+    confidence: confirmed_as_scheduled_event
+    content_public: false
+    event: "Hot Chips 38, session AI 1, 2026-08-25"
+    title: "MAIA 200: A Data Center Scale AI system - MAIA-200 Accelerator"
+    presenters: ["Prashant Ranjan (Microsoft)", "Jackson Peng (Microsoft)"]
+    note: >-
+      Disclosure scheduled, Hot Chips 38, Aug 2026 - content not yet public.
+      HC2024 was the single richest software-stack source for Maia 100 (NPL vs
+      Triton split, DMA/semaphore programming model); re-run this investigation
+      once HC38 slides are released.
+    sources:
+      - "https://hotchips.org/program/conference/ (retrieved 2026-08-08)"

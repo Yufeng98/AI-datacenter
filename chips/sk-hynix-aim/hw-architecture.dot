@@ -1,0 +1,85 @@
+digraph sk_hynix_aim_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host System";
+        style="rounded,dashed";
+        color="#888888";
+        fontcolor="#888888";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        host [label="CPU or GPU\nIssues AiM ISR commands\nvia PCIe + AiMX card controller", fillcolor="#F5F5F5"];
+    }
+
+    // ===================== AIMX CARD =====================
+    subgraph cluster_aimx {
+        label="AiMX Accelerator Card";
+        style="rounded,filled";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fillcolor="#EEF2FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        card_ctrl [label="Card Controller\nAiM ISR dispatch\nPCIe interface", fillcolor="#90CAF9"];
+
+        // Representative GDDR6-AiM packages
+        subgraph cluster_pkg0 {
+            label="GDDR6-AiM Package (×16 or ×32)";
+            style="rounded,dashed";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontsize=10;
+            penwidth=1.2;
+
+            pc0 [label="Pseudo-Channel 0\nBanks 0–7 (DRAM)", fillcolor="#BBDEFB"];
+            mac0 [label="MAC Unit 0\n16-lane FP16 SIMD\nMultiplier + Adder + Regs", fillcolor="#64B5F6"];
+            pc1 [label="Pseudo-Channel 1\nBanks 8–15 (DRAM)", fillcolor="#BBDEFB"];
+            mac1 [label="MAC Unit 1\n16-lane FP16 SIMD\nMultiplier + Adder + Regs", fillcolor="#64B5F6"];
+        }
+    }
+
+    // ===================== BANDWIDTH ANNOTATION =====================
+    subgraph cluster_bw {
+        label="Bandwidth";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.2;
+        bw_internal [label="Internal DRAM BW\n~4 TB/s (all-bank)\nexploited by MAC units", fillcolor="#D4EDDA"];
+        bw_external [label="External I/O BW\n~64 GB/s (GDDR6 pins)\nstandard host access", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== EDGES =====================
+    host -> card_ctrl [label="PCIe + AiM ISR", fontsize=8];
+    card_ctrl -> pc0;
+    card_ctrl -> pc1;
+    card_ctrl -> mac0 [label="AiM ISR cmds", fontsize=8];
+    card_ctrl -> mac1 [label="AiM ISR cmds", fontsize=8];
+
+    // All-bank: DRAM → MAC
+    pc0 -> mac0 [label="all-bank activate\n~4 TB/s internal", fontsize=8, color="#1565C0"];
+    pc1 -> mac1 [label="all-bank activate", fontsize=8, color="#1565C0"];
+
+    // Results back to host
+    mac0 -> card_ctrl [label="GEMV result", fontsize=8];
+    mac1 -> card_ctrl [label="GEMV result", fontsize=8];
+    card_ctrl -> host [label="result via PCIe", fontsize=8, style=dashed];
+
+    // BW annotations (logical)
+    bw_internal -> mac0 [style=dashed, color="#34A853"];
+    bw_external -> host [style=dashed, color="#34A853"];
+}

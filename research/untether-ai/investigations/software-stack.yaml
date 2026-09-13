@@ -1,0 +1,83 @@
+chip: untether-ai
+as_of: 2026-08-08
+sdk: imAIgine SDK
+sdk_status: discontinued          # June 2025; final release v25.04, March 2025; no successor
+sdk_open_sourced: false           # never released; no compiler/runtime source in public record
+vendor_status: dead               # bankrupt 2025-10-15, BIA liquidation, Ontario Estate No. 31-3285414
+vendor_status_date: 2025-10-15
+vendor_trustee: "PricewaterhouseCoopers Inc., LIT"
+sdk_ip_owner: Untether AI Corporation (bankrupt estate)   # not AMD; no USPTO reassignment as of 2026-08-08
+amd_transaction_note: >
+  CORRECTION to the earlier "AMD acquired the team" framing. Per the trustee's report, the June 2025
+  AMD Transaction conveyed only the exclusive right to negotiate new employment with certain Untether
+  employees, for US$25M paid to Untether. AMD acquired no IP, no products, and no software; the imAIgine
+  compiler, allocator, and runtime did not transfer.
+github: https://github.com/untetherai   # third-party forks only; last activity May 2025
+docs_reachable: false                   # untether.ai TLS handshake failure as of 2026-08-08
+evidence_caveat: >
+  No source code was ever public and all vendor documentation URLs are dead. Every layer description below
+  is reconstructed from vendor announcements and press coverage published while the company operated, and
+  is not independently verifiable.
+status_sources:
+  - https://www.pwc.com/ca/en/car/untether/assets/untether-004_311025.pdf   # PRIMARY trustee's report, 2025-10-30
+  - https://www.pwc.com/ca/en/services/insolvency-assignments/untetherai.html
+  - https://github.com/untetherai
+
+layers:
+  framework_ingestion:
+    tools: [PyTorch, TensorFlow, ONNX]
+    description: Import trained models from standard frameworks
+
+  quantization:
+    engine: imAIgine Quantization Engine
+    methods: [PTQ, PQT, KnowledgeDistillation]
+    targets: [INT4, INT8, FP8, BF16]
+    description: Automated precision reduction with accuracy recovery
+
+  compiler:
+    name: imAIgine Compiler (Generative Compiler from v25.04)
+    versions:
+      - version: "1.0"
+        year: 2023
+        notes: Basic operator lowering
+      - version: "2.0"
+        year: 2023
+        notes: HPC bare-metal kernel programming flow
+      - version: EA
+        year: 2024
+        notes: Early access for speedAI240, ONNX support
+      - version: "25.04"
+        year: 2025
+        notes: Generative compiler; 300+ models; 4x model coverage expansion
+    description: Lowers graph to bank-mapped PE instructions; auto-generates kernels for new layers
+
+  bare_metal_hpc_flow:
+    programming_model: RISC-V extensions + PE array programming
+    analogy: CUDA PTX for GPU
+    description: Expert path for custom kernel development
+
+  physical_allocator:
+    description: Maps ops to 729 SRAM banks; handles multi-chip (4-card) partitioning
+    features: [bank_assignment, pe_scheduling, inter_bank_routing, multi_chip_pipeline]
+
+  runtime:
+    lib: libimaigine.so
+    interface: Python wrapper + C library
+    hw_interface: PCIe BAR + DMA
+    features: [inference_session_management, dma_management, power_mode_control]
+
+model_support:
+  domains:
+    - image_classification
+    - object_detection
+    - semantic_segmentation
+    - anomaly_detection
+    - speech_audio  # limited
+    - generative  # early/limited pre-shutdown
+  model_count_v25_04: 300+
+
+programming_model_comparison:
+  kernel_lang: "RISC-V extensions + PE arrays (HPC flow)"
+  vs_cuda: "Bank = SM; PE array = CUDA cores; SRAM bank = shared memory"
+  memory_model: "Compute-in-memory: no explicit memcpy within bank"
+  multi_chip: "4-card pipeline partitioning built into allocator"

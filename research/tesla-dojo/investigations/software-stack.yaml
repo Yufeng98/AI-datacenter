@@ -1,0 +1,180 @@
+chip: tesla-dojo
+document: software-stack
+as_of: "2026-08-08"
+primary_source: "Hot Chips 34, August 2022; job postings (archived)"
+baseline_note: "No software-stack fact below changed since the 2026-04-05 baseline. See roadmap_update_2026_08_08 for what was re-checked."
+
+framework_integration:
+  pytorch:
+    status: confirmed
+    details: "User-facing training interface; standard PyTorch model compatibility goal"
+    public_backend: false
+  jax:
+    status: "not mentioned"
+  tensorflow:
+    status: "not mentioned"
+  manual_kernels_required: false
+
+compiler:
+  type: "Custom in-house ML compiler"
+  frontend: "PyTorch computation graph"
+  backend: "LLVM"
+  backend_confirmed: true
+  ir: "custom; not public"
+  mlir_based: unknown
+  parallelism:
+    data_parallel: confirmed
+    model_parallel: confirmed
+    graph_parallel: confirmed
+    user_directives_required: false
+  jit_compilation: true
+  mixed_precision_handling: "BF16 / CFP8 / CFloat16"
+  source_public: false
+
+isa:
+  type: "Custom Tesla ISA"
+  scalar_width_bits: 64
+  vector_width_bytes: 64
+  precisions: ["BF16", "CFP8", "CFloat16", "FP32"]
+  specification_public: false
+  assembler_public: false
+
+op_library:
+  exists: inferred
+  public: false
+  notes: "Believed internal to compiler codegen; no standalone library described publicly"
+
+kernel_library:
+  exists: inferred
+  public: false
+
+runtime:
+  fault_tolerant: true
+  fault_model: "Reroutes mesh traffic around failed links"
+  dynamic_scaling: true
+  virtual_memory: false
+  source_public: false
+
+communication:
+  ttpoe:
+    description: "Tesla Transport Protocol over Ethernet"
+    layer: "Custom Layer-2/transport over commodity Ethernet"
+    open_source: true
+    repo: "https://github.com/teslamotors/ttpoe"
+    presented_at: "Hot Chips 36, August 2024"
+  ttp_data_ingestion:
+    description: "TTP data loading for video frames from host servers"
+    bandwidth_gbs: 160
+    hardware: "DIP cards"
+
+not_public:
+  - "Compiler source code"
+  - "ISA specification"
+  - "Assembler / disassembler"
+  - "SDK / toolchain"
+  - "Kernel library"
+  - "Runtime source"
+  - "Profiling / debugging tools"
+  - "PyTorch backend plugin"
+  - "MLIR dialect"
+
+open_source_artifacts:
+  - name: "teslamotors/ttpoe"
+    url: "https://github.com/teslamotors/ttpoe"
+    description: "TTPoE kernel-space driver and protocol implementation"
+
+project_status:
+  team_disbanded: "August 2025"
+  restart_announced: "January 2026"
+  new_direction: "AI5 (Samsung Taylor, 2nm) and AI6 (Samsung) are Tesla's near-term AI silicon; Dojo 3 is paired with AI7 and stated to target space-based compute"
+  software_stack_frozen: true
+
+# ---------------------------------------------------------------------------
+# Software-stack re-check appended 2026-08-08. Nothing above changed.
+# ---------------------------------------------------------------------------
+roadmap_update_2026_08_08:
+
+  releases_since_baseline:
+    sdk: "none"
+    compiler: "none"
+    runtime: "none"
+    isa_specification: "none"
+    kernel_library: "none"
+    framework_backend: "none"
+    confidence: high
+    sources:
+      - "https://github.com/teslamotors/ttpoe"
+      - "https://hotchips.org/advance-program/"
+
+  ttpoe_status:
+    new_release_since_hot_chips_36: false
+    last_release_event: "Hot Chips 36, August 2024 (open-sourcing)"
+    still_only_open_source_artifact: true
+    stated_to_be_dojo3_fabric: false
+    confidence: high
+    sources:
+      - "https://github.com/teslamotors/ttpoe"
+      - "https://hc2024.hotchips.org/assets/program/conference/day2/17_HC2024_Tesla_TTPoE_v5.pdf"
+
+  dojo3_software:
+    framework_integration: "not disclosed"
+    compiler: "not disclosed"
+    ir: "not disclosed"
+    codegen_backend: "not disclosed"
+    isa: "not disclosed"
+    runtime: "not disclosed"
+    collectives_library: "not disclosed"
+    d1_stack_carries_forward: "unknown — no statement either way"
+    confidence: "not disclosed (no primary source exists as of 2026-08-08)"
+    sources: []
+
+  ai5_ai6_ai7_software:
+    external_sdk: "none — Tesla-internal silicon, no public toolchain"
+    confidence: high
+    sources:
+      - "https://www.teslarati.com/elon-musk-teases-expectations-tesla-ai6-self-driving-chip/"
+
+  discontinuity_factors:
+    - factor: "Team disbanded August 2025; Peter Bannon departed and ~20 engineers left to found DensityAI (reported 2025-08-07). No known maintaining organization for the D1 compiler/runtime/ISA tooling."
+      confidence: medium
+      sources: ["Bloomberg, 2025-08-07", "Reuters, 2025-08-07"]
+    - factor: "Dojo 3's stated target changed to space-based/orbital compute (Musk, January 2026; corroborated by SpaceX Form S-1 2026-05-20), a different software problem from D1-era video training."
+      confidence: high
+      sources:
+        - "https://techcrunch.com/2026/01/20/elon-musk-says-teslas-restarted-dojo3-will-be-for-space-based-ai-compute/"
+        - "https://www.sec.gov/Archives/edgar/data/1181412/000162828026036936/spaceexplorationtechnologi.htm"
+    - factor: "Silicon leadership change: Anant Nivarti rejoined Tesla April 2026 to lead silicon engineering including AI6 and Dojo 3. No software-organization detail disclosed."
+      confidence: medium
+      sources: ["Data Center Dynamics, 2026-04-07"]
+
+  not_a_software_disclosure:
+    megapod_trademark:
+      filing: "USPTO SN 99893717, filed ~2026-06-18"
+      goods: "computer servers, computer hardware for artificial intelligence processing, computer networking hardware, electrical power distribution units, and cooling systems, sold as a unit"
+      names_software: false
+      names_chip: false
+      confidence: medium
+      sources:
+        - "https://www.teslarati.com/tesla-just-trademarked-megapod-heres-what-it-is/"
+
+  corrections_to_circulating_claims:
+    - claim: "AI6 is reserved for Optimus and data centers, not vehicles"
+      status: "WRONG — conflated with AI5. AI6 is described as a self-driving/FSD chip in addition to Optimus and datacenter use; it is AI5 whose initial focus is Optimus and supercomputer clusters, with vehicles ~2027."
+      confidence: medium-high
+      sources:
+        - "https://www.teslarati.com/elon-musk-teases-expectations-tesla-ai6-self-driving-chip/"
+        - "https://www.notateslaapp.com/news/3974/musk-says-teslas-ai5-chip-is-done-not-coming-to-vehicles-first"
+    - claim: "The July 2025 'converged Dojo 3 / AI6, 5-12 on a board' remark implies a unified programming model"
+      status: "No programming-model claim was ever attached to it; the remark is stated intent and predates the January 2026 space repositioning."
+      confidence: high
+      sources:
+        - "https://www.insidermonkey.com/blog/tesla-inc-nasdaqtsla-q2-2025-earnings-call-transcript-1575336/"
+
+  hot_chips_38:
+    dates: "2026-08-23 to 2026-08-25"
+    tesla_or_dojo_talk: false
+    checked: "2026-08-08"
+    note: "Conference is in the future; no slides or abstracts exist for any listed talk."
+    confidence: high
+    sources:
+      - "https://hotchips.org/advance-program/"

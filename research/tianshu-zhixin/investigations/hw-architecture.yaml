@@ -1,0 +1,390 @@
+chip: tianshu-zhixin
+device_class: "GPU (天数智芯 / Iluvatar CoreX)"
+resource: hw-architecture
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+confidence: medium
+sources_count: 22
+
+compute_engine:
+  architecture: SIMT GPGPU
+  paradigm: general_purpose_gpu
+  compute_unit_name: "CU (Compute Unit, exact structure not publicly disclosed)"
+  simt_width: undisclosed
+  products:
+    - name: "TianGai-100 (BI-V100)"
+      generation: "Big Island Gen1"
+      process: "TSMC 7nm"
+      packaging: "2.5D CoWoS"
+      memory: "32 GB HBM2"
+      memory_bw_tbs: 1.2
+      fp16_tflops: ~100
+      int8_tops: ~200
+      tdp_w: ~350
+      tpp_density: 2352
+      host_interface: "PCIe Gen4 x16"
+      released: "Jan 2021"
+
+    - name: "TianGai-150 (BI-V150)"
+      generation: "Big Island Gen2"
+      process: "TSMC 7nm"
+      packaging: "2.5D CoWoS"
+      memory: "64 GB HBM2"
+      memory_bw_tbs: 1.4
+      fp16_tflops: ~140
+      int8_tops: ~280
+      tdp_w: ~400
+      tpp_density: 3040
+      host_interface: "PCIe Gen4 x16 FHFL"
+      status: "current training flagship"
+
+    - name: "Zhikai 100 (智铠100)"
+      product_code: "MR-V100"
+      generation: "Zhikai (inference)"
+      purpose: "AI inference"
+      memory: "32 GB GDDR6 (est.)"
+      status: "production inference chip"
+      naming_note: "Vendor site lists the part as 智铠100; MR-V100 is the product code, not the current product name"
+      confidence: confirmed
+      sources: ["iluvatar-site", "wikipedia-iluvatar"]
+
+    # ---- Added 2026-08-08 ----
+    - name: "TianGai 300 (天垓300)"
+      generation: "New-generation self-developed architecture (no public architecture name)"
+      purpose: "General-purpose GPU flagship — AI training + inference"
+      announced: "2026-07-19"
+      announced_venue: "WAIC 2026 (World AI Conference), Shanghai, day 3 of July 17-20"
+      status: announced
+      status_verb_note: >-
+        Company states only '天垓300已具备规模化应用条件' ('meets the conditions for large-scale
+        deployment') plus adaptation/joint-solution discussions with domestic cloud providers,
+        server OEMs and supernode system vendors. This is a company readiness assertion, NOT
+        evidence of tape-out, sampling, mass production, or any named deployment.
+        TianGai-100/150 remain the shipping products.
+      vendor_product_node: "cpjs-yj-xlxl-tg300"
+      vendor_spec_sheet_published: false
+      confidence: confirmed_existence_only
+      sources: ["iluvatar-site", "tencent-news-tg300-a", "tencent-news-tg300-b", "ithome-tg300", "semi-insights-tg300", "aastocks-09903hk"]
+
+      architecture:
+        execution_model: "SIMT retained (scalar + vector + tensor execution paths)"
+        generation_change: true
+        derivative_of_big_island: false
+        confidence: confirmed
+        sources: ["tencent-news-tg300-a", "ithome-tg300", "semi-insights-tg300"]
+
+      data_types:
+        fp8: true
+        fp4: true
+        note: "First Iluvatar part for which FP8/FP4 is claimed. Peak throughput at every dtype NOT disclosed."
+        instruction_classes: ["MMA", "DPX", "FMA"]
+        confidence: confirmed
+        sources: ["tencent-news-tg300-a", "tencent-news-tg300-b"]
+
+      isa_extensions:
+        extensions:
+          - name: ixSMEX
+            function: "Raises data reuse to cut redundant memory traffic"
+          - name: ixDPX
+            function: "Compresses a six-instruction dynamic-programming sequence into one instruction"
+            nearest_analogue: "NVIDIA Hopper DPX instructions"
+          - name: ixTrans
+            function: "Lossless matrix transpose; reduces bank conflicts and VRAM overhead"
+        encodings_disclosed: false
+        note: "The only concrete microarchitectural detail disclosed for TianGai 300."
+        confidence: confirmed
+        sources: ["tencent-news-tg300-a", "tencent-news-tg300-b"]
+
+      workload_optimizations_named:
+        optimizations:
+          - "Attention/FFN (AF) separation"
+          - "Prefill/decode (PD) separation"
+        implementation_disclosed: false
+        confidence: reported
+        sources: ["semi-insights-tg300"]
+
+      not_disclosed:
+        # Positive findings: actively checked, no public figure exists. Never estimate these.
+        fields:
+        - process_node
+        - foundry
+        - die_size
+        - transistor_count
+        - packaging
+        - memory_type            # incl. HBM generation — the raw scan's 'uses HBM' claim is NOT supported
+        - memory_capacity
+        - memory_bandwidth
+        - on_chip_sram_l1_l2
+        - peak_flops_fp32
+        - peak_flops_tf32
+        - peak_flops_bf16
+        - peak_flops_fp16
+        - peak_flops_fp8
+        - peak_flops_fp4
+        - peak_tops_int8
+        - compute_unit_count
+        - tensor_unit_dimensions
+        - clock_frequency
+        - scale_up_link_bandwidth_per_chip
+        - host_interface_generation
+        - tdp
+        - form_factor
+        - card_board_name
+        - price
+        confidence: confirmed_absence
+        sources: ["iluvatar-site", "tencent-news-tg300-b"]
+
+      vendor_performance_claims:
+        # MARKETING. First-party, relative-only, unverified. Baseline is an unspecified
+        # 'Hopper-architecture mainstream international solution' — NOT Blackwell.
+        baseline: "NVIDIA Hopper (unspecified solution)"
+        third_party_verified: false
+        mlperf_submission: false
+        absolute_figures_published: false
+        claims:
+          attention_efficiency: ">90% across precisions; ~10% above Hopper at 64k context"
+          moe_compute_efficiency: ">70%; ~10% higher average MoE throughput on a DeepSeek-V4-class workload"
+          time_to_first_token: "~20% lower across Qwen / GLM / Kimi / DeepSeek"
+          decode_efficiency: "~10% higher"
+          inter_card_comm_latency: "~13% lower average"
+          energy_efficiency: "'above mainstream Hopper solutions' — no figure given"
+        confidence: vendor_claim
+        sources: ["tencent-news-tg300-a", "tencent-news-tg300-b", "ithome-tg300"]
+
+  # ---- Added 2026-08-08 ----
+  edge_endpoint_line:
+    family: "彤央 (Tongyang) TY series"
+    products: ["TY1000", "TY1100", "TY1100-NX", "TY1100-NX-PRO", "TY1200"]
+    specifications_retrieved: false
+    note: "Listed on the vendor site; absent from this survey until 2026-08-08. Recorded as a known gap."
+    confidence: confirmed_existence_only
+    sources: ["iluvatar-site"]
+
+scale_up_supernode:
+  # ---- Added 2026-08-08 ----
+  name: "天数超节点 (Tianshu supernode)"
+  announced: "2026-07-19"
+  claimed_domain_size_chips: 144
+  claimed_property: "high-speed full interconnect"
+  significance: "First scale-up domain size Iluvatar CoreX has ever stated publicly (prior public ceiling: 8 GPUs/server over CLIF)"
+  status: "trial / partnership-discussion stage — explicitly pre-production"
+  not_disclosed:
+    fields:
+    - topology                      # full mesh vs switched fabric unstated
+    - per_link_bandwidth
+    - per_chip_bandwidth
+    - switch_asic                   # no switch chip named
+    - single_coherent_domain_status
+    - rack_power_and_cooling
+    - relationship_to_clif          # extends CLIF or a new fabric: unstated
+  comparability_note: >-
+    With neither bandwidth nor topology published, the supernode cannot be compared
+    quantitatively to NVL72, CloudMatrix384, or any other rack-scale domain.
+    Only the domain size (144) is citable, and only as a company claim.
+  confidence: vendor_claim
+  sources: ["tencent-news-tg300-a", "tencent-cloud-waic2026"]
+
+roadmap:
+  # Big-Dipper (北斗七星) ARCHITECTURE codenames, from Jan 2026 press coverage of an
+  # investor-facing roadmap. Kept as a SEPARATE namespace from the 天垓 PRODUCT line.
+  codename_mapping_status: unresolved
+  codename_mapping_note: >-
+    No retrieved source ties TianGai 300 (or any shipped/announced product) to 天枢/天璇/天玑/天权.
+    Two signals argue against assuming TianGai 300 = Tianxuan: (1) 天垓300 is named from the 天垓
+    product line, which already contains 天垓100 and 天垓150, not from the Big-Dipper architecture
+    namespace; (2) the Jan 2026 roadmap positioned the 2026 generation against B200/Blackwell,
+    whereas TianGai 300's own marketing benchmarks are all against Hopper.
+  codename_sources: ["trendforce-roadmap", "trendforce-roadmap-jan28", "tomshardware-roadmap"]
+  entries:
+    - name: "Tianshu (天枢)"
+      year: 2025
+      vs_nvidia: "Claims to exceed Hopper H100/H200"
+      confidence: announced
+    - name: "Tianxuan (天璇)"
+      year: 2026
+      vs_nvidia: "Targets Blackwell B200"
+      confidence: unverified
+      note: "Roadmap codename only; no product tied to this name as of 2026-08-08"
+    - name: "Tianji (天玑)"
+      year: 2026
+      vs_nvidia: "Claims to surpass Blackwell"
+      confidence: unverified
+      note: "Roadmap codename only; no product tied to this name as of 2026-08-08"
+    - name: "Tianquan (天权)"
+      year: 2027
+      vs_nvidia: "Targets Rubin R100"
+      confidence: announced
+
+memory_hierarchy:
+  # Big Island generation
+  l1_scratchpad: "Per-CU local shared memory (capacity undisclosed)"
+  l2_cache: "On-chip HW-managed (capacity undisclosed)"
+  hbm_stacks: 4
+  training_dram: "HBM2"
+  inference_dram: "GDDR6"
+  tiangai_300:
+    # ---- Added 2026-08-08 ----
+    memory_type: not_disclosed
+    memory_capacity: not_disclosed
+    memory_bandwidth: not_disclosed
+    on_chip_sram: not_disclosed
+    note: >-
+      No vendor or press source states HBM generation, capacity, stack count or bandwidth
+      for TianGai 300. The raw scan's 'uses HBM' claim did not survive verification.
+      Do not estimate.
+    confidence: confirmed_absence
+    sources: ["iluvatar-site", "tencent-news-tg300-b"]
+
+interconnect:
+  # Big Island generation
+  host: "PCIe Gen4 x16"
+  scale_up: "CLIF (Cluster Interconnect Fabric, proprietary)"
+  clif_bw_gbs: undisclosed
+  max_cards_per_server: 8
+  scale_out: "Ethernet / InfiniBand via host NIC"
+  tiangai_300:
+    # ---- Added 2026-08-08 ----
+    host_interface_generation: not_disclosed
+    scale_up_domain: "144 chips via 天数超节点 (Tianshu supernode) — claimed; see scale_up_supernode"
+    scale_up_link_bw_per_chip: not_disclosed
+    scale_out: not_disclosed
+    confidence: vendor_claim
+    sources: ["tencent-news-tg300-a", "tencent-cloud-waic2026"]
+
+data_types:
+  # Big Island generation (TianGai-100 / TianGai-150 / Zhikai 100)
+  big_island:
+    fp32: true
+    bf16: true
+    fp16: true
+    int8: true
+    int4: partial
+    fp8: false
+    fp4: false
+    confidence: confirmed
+    sources: ["wikipedia-iluvatar", "csdn-tiangai150"]
+  # New-generation architecture (TianGai 300, announced 2026-07-19)
+  tiangai_300:
+    fp32: true
+    bf16: true
+    fp16: true
+    int8: true
+    fp8: true
+    fp4: true
+    peak_throughput_any_dtype: not_disclosed
+    confidence: confirmed
+    sources: ["tencent-news-tg300-a", "tencent-news-tg300-b", "ithome-tg300"]
+
+business:
+  founded: 2015
+  founder: "Li Yunpeng (李仲远), ex-Oracle R&D Director"
+  hq: "Shanghai, China"
+  ipo:
+    exchange: "HKEX (Hong Kong Stock Exchange)"
+    date: "2026-01-08"
+    raised_usd: 475_000_000
+    valuation_usd: 4_600_000_000
+    debut_gain_pct: 8.4
+    first_chinese_gpgpu_hkex: true
+  revenue:
+    2022: "RMB 189M"
+    2023: "RMB 289M"
+    2024: "RMB 540M"
+    2025: "RMB 1.03B (+92% YoY)"
+  gpu_shipments:
+    # NOTE (2026-08-08): the two figure sets below measure DIFFERENT things
+    # (cumulative units shipped vs chips concurrently online) and are NOT directly
+    # comparable. Both are company-stated and neither is independently audited.
+    cumulative_to_jun_2025: 52000
+    customers: 290
+    as_of_customers_290: "2025-06"
+    unit_shipments_by_year:
+      2022: 7800
+      2023: 12700
+      2024: 16800
+      h1_2025: 15700
+    confidence: company_stated
+    sources: ["ipo-prospectus-coverage"]
+  deployment_end_2025:
+    # ---- Added 2026-08-08; supersedes the Jun 2025 customer count ----
+    customers: "340+"
+    industries: "30+"
+    chips_in_online_cluster_operation: ">10,000"
+    continuous_cluster_uptime_days: "1,000+"
+    as_of: "2025-12-31"
+    stated_at: "WAIC 2026 briefing, 2026-07-19"
+    confidence: company_stated
+    sources: ["tencent-news-tg300-a", "tencent-cloud-waic2026"]
+  net_loss_2024: "RMB 892M"
+  hkex_ticker: "09903.HK"
+  h1_2026_financials: not_disclosed
+
+# ---- Added 2026-08-08 ----
+not_found_checked_2026_08_08:
+  mlperf_submission:
+    found: false
+    note: "Zero Iluvatar entries in MLCommons results through 2025 (per a Chinese analysis); none in v6.0."
+  conference_presentation_2026:
+    found: false
+    note: >-
+      No Hot Chips / ISCA / ISSCC 2026 presentation by Iluvatar CoreX.
+      Hot Chips 38 (2026-08-23/25) is still in the future as of this investigation;
+      its program is public but no content is.
+  h1_2026_financials:
+    found: false
+    note: "Nothing post-dating the FY2025 RMB 1.03B figure."
+
+source_keys:
+  iluvatar-site:
+    url: "https://www.iluvatar.com/"
+    type: primary
+    note: >-
+      Vendor product navigation lists 天垓300 (node cpjs-yj-xlxl-tg300), 天垓150, 天垓100,
+      智铠100, and the 彤央 TY1000/TY1100/TY1100-NX/TY1100-NX-PRO/TY1200 edge line.
+      NO specification sheet is published for 天垓300. The vendor news feed has not been
+      updated since 2021, so there is no launch press release; this navigation listing is
+      the strongest primary artifact for the launch.
+  tencent-news-tg300-a:
+    url: "https://news.qq.com/rain/a/20260719A08MB800"
+    date: "2026-07-19"
+    type: secondary
+  tencent-news-tg300-b:
+    url: "https://news.qq.com/rain/a/20260719A08J8N00"
+    date: "2026-07-19"
+    type: secondary
+  ithome-tg300:
+    url: "https://www.ithome.com/0/978/781.htm"
+    type: secondary
+  tencent-cloud-waic2026:
+    url: "https://cloud.tencent.com/developer/news/4280275"
+    type: secondary
+  semi-insights-tg300:
+    url: "https://www.semi-insights.com/s/bdt/15/50538.shtml"
+    type: secondary
+  jjckb-waic2026:
+    url: "https://www.jjckb.cn/20260720/3cb0e7d7378745b58c576c51ee79b65a/c.html"
+    date: "2026-07-20"
+    type: secondary
+  guancha-tg300:
+    url: "https://www.guancha.cn/GongSi/2026_07_18_824207.shtml"
+    date: "2026-07-18"
+    type: secondary
+  aastocks-09903hk:
+    url: "https://www.aastocks.com"
+    type: secondary
+    note: "09903.HK company news: 'released its new-generation general-purpose GPU flagship product, Tiangai 300'"
+
+source_independence_caveat: >-
+  The many Chinese outlets covering the 2026-07-19 launch appear to derive from a common
+  company briefing. Source count is high; true independence is low. Nothing in the coverage
+  is independently measured, and no vendor specification sheet exists to check it against.
+
+confidence_vocabulary:
+  confirmed: "Multiple sources agree and a primary artifact supports it"
+  confirmed_existence_only: "Product/feature provably exists (vendor listing) but no specification is published"
+  confirmed_absence: "Actively checked; no public figure exists. A positive finding — never fill by estimation"
+  announced: "Vendor has stated it; no verifiable specification published"
+  vendor_claim: "First-party marketing; unverified by any third party"
+  company_stated: "Company-reported business/deployment figure; not independently audited"
+  reported: "Appears in secondary coverage; not corroborated by a primary artifact"
+  unverified: "Claim exists in coverage but no source connects it to a real product"

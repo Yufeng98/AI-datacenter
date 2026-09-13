@@ -1,0 +1,107 @@
+digraph tesla_fsd_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK =====================
+    subgraph cluster_framework {
+        label="Training Framework";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nTrained on Dojo/GPU cluster\nFP32/BF16 training", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER =====================
+    subgraph cluster_compiler {
+        label="Compiler";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        tesla_compiler [label="Tesla NN Compiler (proprietary)\nCoarse: topology mapping\nFine: INT8 quant + pruning\nStatic schedule generation\nLayer fusion (conv+scale+act+pool)", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        static_sched [label="NPU Static Microcode Scheduler\nCompile-time scheduled\nNo dynamic dispatch\nDMA-fed MAC array", fillcolor="#F8D7DA"];
+        embedded_linux [label="Embedded Linux\nARM Cortex-A clusters\nSensor ingestion, preprocessing", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DEPLOYMENT =====================
+    subgraph cluster_deploy {
+        label="Deployment";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ota [label="OTA Binary Update\nChip-specific binary\n(HW3 ≠ HW4)\nProprietary format", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== INFERENCE PIPELINE =====================
+    subgraph cluster_pipeline {
+        label="Inference Pipeline (48 NNs)";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        vision [label="Vision Engine\n8 cameras, 360°\n1B pixels/sec", fillcolor="#FFE0CC"];
+        bev [label="BEV Occupancy Network\n3D spatial understanding", fillcolor="#FFE0CC"];
+        traj [label="Trajectory / Ego-Motion\nPath planning", fillcolor="#FFE0CC"];
+        decision [label="Decision Network\nCollision avoidance", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Tesla FSD SoC Hardware (HW3 / HW4)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        npu [label="NPU Array (×2 HW3 / ×3 HW4)\n96×96 MACs = 9,216 MACs/NPU\nINT8: 18,432 ops/cycle/NPU\nHW3: 73.7 TOPS | HW4: 121.6 TOPS\n32 MiB SRAM per NPU", fillcolor="#283593", fontcolor="white"];
+        cpu [label="ARM CPU Cluster\nHW3: 12× Cortex-A72 @ 2.6 GHz\nHW4: 20× ARM cores @ 2.35 GHz", fillcolor="#283593", fontcolor="white"];
+        gpu [label="GPU\nHW3: Mali G71 MP12 @ 1 GHz\nPreprocessing / ISP", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory\nHW3: 8 GB LPDDR4, 68 GB/s\nHW4: 16 GB GDDR6, 224 GB/s\nHW4: 256 GB NVMe", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+    pytorch -> tesla_compiler;
+    tesla_compiler -> ota [label="binary", fontsize=8];
+    ota -> static_sched [label="OTA install", fontsize=8];
+    embedded_linux -> static_sched [style=dashed];
+    static_sched -> npu;
+    embedded_linux -> cpu;
+    cpu -> gpu [style=dashed];
+    vision -> bev;
+    bev -> traj;
+    traj -> decision;
+    cpu -> vision [label="camera feed", fontsize=8];
+    npu -> vision [style=dashed, label="runs NNs", fontsize=8];
+    npu -> mem;
+    cpu -> mem [style=dashed];
+}

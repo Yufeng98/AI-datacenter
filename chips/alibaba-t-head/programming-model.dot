@@ -1,0 +1,184 @@
+digraph alibaba_thead_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\n(Zhenwu 810E primary)\nfrontend API compat layer\nAOT compiled", fillcolor="#D6E4F0"];
+        onnx_fe [label="ONNX\n(both stacks)\nmodel interchange", fillcolor="#D6E4F0"];
+        legacy_fe [label="TensorFlow / MXNet / Caffe\n(HGAI SDK only)\nHanguang 800 legacy", fillcolor="#D6E4F0"];
+        cloud_api [label="Alibaba Cloud\nModel Studio API\nQwen / DeepSeek V3\n(cloud-only access)", fillcolor="#D6E4F0"];
+        sail_fe [label="SAIL-claimed frameworks (2026-07-18)\n260+ mainstream frameworks (vendor claim)\nPyTorch, TensorFlow, vLLM, SGLang\nNot independently benchmarked", fillcolor="#D6E4F0"];
+        bailian [label="Alibaba Bailian\nmodel service platform\nServes Panjiu AL128 supernode\n(only asserted availability\nfor the M890 generation)", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hgai_compiler [label="HGAI Compiler (Hanguang 800)\nGraph IR conversion\nINT8 quantization\nSparse weight compression\nTE/PE/ME mapping + SRAM tiling", fillcolor="#E4DEFF"];
+        zhenwu_compiler [label="Zhenwu Compiler (810E)\nProprietary MLIR-based IR (inferred)\nTraining + inference lowering\nQwen3/DeepSeek V3 optimized\nOperator coverage gaps in RL", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hg_ops [label="Hanguang Tensor Engine Ops\nConv, Deconv, Dilated/3D Conv\nGEMM, Interpolation, ROI\nExtensible activation functions", fillcolor="#D4EDDA"];
+        zw_ops [label="Zhenwu LLM Ops\nAttention (Qwen/DeepSeek)\nFeedforward, Layer Norm\nGeneral DNN ops", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hgrt [label="HGRT — Hanguang Runtime\nPCIe DMA, kernel launch\nResult collection\nCloud-only", fillcolor="#F8D7DA"];
+        zw_rt [label="Zhenwu Runtime\nCluster orchestration\n10K+ card deployments\nProprietary, not public", fillcolor="#F8D7DA"];
+        npusmi [label="NPUSMI Monitoring\nFrequency, mem util\nCompute utilization\n(Hanguang 800)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        driver [label="PCIe / ICN Drivers\n(proprietary, closed-source)\nBAR mapping, DMA, interrupts\nZhenwu: 400W board management", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        icn [label="ICN — Inter-Chip Network\n7 proprietary links\n700 GB/s aggregate BW\nAllReduce/AllGather analogs\n(Zhenwu 810E only)", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== SAIL STACK (announced open-sourced 2026-07-18) =====================
+    subgraph cluster_sail {
+        label="SAIL Stack — announced open-sourced 2026-07-18 (WAIC Shanghai); no public repo or license confirmed";
+        style="rounded,dotted";
+        color="#C2185B";
+        fontcolor="#C2185B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sail_compiler [label="SAIL Compiler\nIR design / passes: not disclosed\nCUDA migration: '<7 days' (vendor claim)\nDeep-dive instead claims\n'no code modification'", fillcolor="#FCE4EC"];
+        sail_oplib [label="SAIL Operator +\nCommunication Libraries\nOp coverage: not disclosed\nKernel authoring API: not disclosed", fillcolor="#FCE4EC"];
+        sail_sdk [label="SAIL SDK / Toolchain\nDistributed via T-Head\ndeveloper community\n(not a GitHub org)", fillcolor="#FCE4EC"];
+        sail_prof [label="SAIL Performance Analysis\n+ Debug Tools\nTool names: not disclosed", fillcolor="#FCE4EC"];
+        sail_drv [label="SAIL Kernel Drivers\nNative adaptation to OpenAnolis\nAnolis Cloud Kernel (ANCK)", fillcolor="#FCE4EC"];
+        sail_note [label="Layer count NOT settled:\nseveral outlets say 5 layers,\none technical deep-dive says 3\n(interface / SDK / OS).\n'Open source' = vendor-asserted\navailability, not a verified repo.", shape=note, fillcolor="#FFF9C4"];
+    }
+
+    // ===================== OPEN-SOURCE TOOLCHAIN (XUANTIE) =====================
+    subgraph cluster_xuantie {
+        label="Xuantie RISC-V Open-Source Stack (Apache 2.0)";
+        style="rounded,dashed";
+        color="#00897B";
+        fontcolor="#00897B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        xuantie_tc [label="xuantie-gnu-toolchain\nGCC + Binutils (RVV ext.)\nOpenC906 / OpenC910 RTL\nbuildroot, newlib, riscv-aosp", fillcolor="#B2DFDB"];
+        c950_ai [label="C950 AI Engine\n(Integrated in CPU)\nNative 100B+ LLM inference\nQwen3, DeepSeek V3\nNo separate NPU SDK", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="T-Head Hardware";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        hg800 [label="Hanguang 800 NPU (2019)\nTSMC 12nm, 17B transistors\n4 cores × (TE+PE+ME+48MB SRAM)\n4-core ring bus + Command Processor\n820 TOPS INT8 | 500 IPS/W\nPCIe Gen4 x16 | SRAM-only (no HBM)", fillcolor="#283593", fontcolor="white"];
+        zw810e [label="Zhenwu 810E / PPU (Jan 2026)\nSMIC 7nm domestic | 400W TDP\n96 GB HBM2e | 7× ICN links\n700 GB/s inter-chip BW\nH20-class perf | 40% lower BOM\n470K units by Feb 2026, >RMB 10B ARR", fillcolor="#283593", fontcolor="white"];
+        m890 [label="Zhenwu M890 (announced 2026-05-20)\nProcess: NOT DISCLOSED\n144 GB 'on-chip memory' (type unconfirmed)\n800 GB/s inter-chip BW | FP32 down to FP4\nVendor claim: 3× the 810E (no methodology)\nPanjiu AL128: 128 accelerators/unit\nICN Switch 1.0: 25.6 Tbps\nDebuted — no mass-production/GA claim\n560K cumulative Zhenwu-SERIES units", fillcolor="#283593", fontcolor="white"];
+        c950 [label="XuanTie C950 RISC-V (Mar 2026)\nTSMC 5nm | 3.2 GHz | RVA23\nWorld-record SPEC >70 (RISC-V)\n>3× over C920\nNative 100B+ LLM inference\nTarget: agentic AI data center", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> zhenwu_compiler [label="AOT compile"];
+    onnx_fe -> hgai_compiler;
+    onnx_fe -> zhenwu_compiler [style=dashed];
+    legacy_fe -> hgai_compiler;
+    cloud_api -> zw_rt [style=dashed, label="REST inference", fontsize=8];
+
+    // Compiler -> Op Library
+    hgai_compiler -> hg_ops;
+    zhenwu_compiler -> zw_ops;
+
+    // Op -> Runtime
+    hg_ops -> hgrt;
+    zw_ops -> zw_rt;
+
+    // Runtime -> Driver
+    hgrt -> driver;
+    zw_rt -> driver;
+    hgrt -> npusmi [style=dashed];
+
+    // Driver -> Hardware
+    driver -> hg800 [label="PCIe dispatch"];
+    driver -> zw810e [label="ICN mgmt"];
+
+    // Communication
+    zw_rt -> icn [label="multi-card\ntraining", style=dashed];
+    icn -> zw810e;
+
+    // SAIL stack (2026-07-18)
+    sail_fe -> sail_compiler [label="AOT compile", color="#C2185B"];
+    sail_compiler -> sail_oplib [color="#C2185B"];
+    sail_oplib -> sail_sdk [color="#C2185B"];
+    sail_sdk -> sail_prof [style=dashed, color="#C2185B"];
+    sail_sdk -> sail_drv [color="#C2185B"];
+    sail_drv -> m890 [label="Zhenwu-series\ntarget", color="#C2185B"];
+    sail_drv -> zw810e [style=dashed, color="#C2185B"];
+    sail_sdk -> sail_note [style=invis];
+    bailian -> m890 [style=dashed, label="supernode\nserving", fontsize=8];
+
+    // Xuantie toolchain -> C950
+    xuantie_tc -> c950_ai [label="compiler target"];
+    c950_ai -> c950 [label="integrated\nAI engine"];
+}

@@ -1,0 +1,476 @@
+chip: spinncloud-spinnaker2
+as_of: "2026-08-08"
+device_class: "Event-Driven Neuromorphic Manycore (152 ARM Cortex-M4F PEs + per-PE MAC/2D-conv accelerators)"
+investigation: hw-architecture
+
+# Primary source for nearly every figure below:
+#   Scholze, Partzsch, Höppner et al., "The SpiNNaker2 chip: a many-core platform for flexible and
+#   scalable brain-inspired computing", IEEE Open Journal of Circuits and Systems 2026,
+#   DOI 10.1109/OJCAS.2026.3714974, arXiv:2607.24396 (posted 27 Jul 2026, CC-BY 4.0).
+# It SUPERSEDES arXiv:2103.08392, which described an 8-PE / 8.76 mm2 testchip, not the product.
+
+maturity:
+  status: "Shipping (low volume)"
+  commercial_availability_announced: "2024-05 (ISC High Performance, Hamburg)"
+  documented_deployments:
+    - "Sandia National Laboratories NERL Braunfels — delivered March 2025, publicized 12 June 2025"
+    - "TU Dresden / SpiNNcloud — ~35,000 chips / 5 million cores / eight racks"
+  successor: "SpiNNext — announced only; no silicon, no specs, no date"
+  mlperf_submission: false
+  confidence: confirmed
+  sources:
+    - https://spectrum.ieee.org/neuromorphic-computing-spinnaker2
+    - https://www.sandia.gov/labnews/2025/06/12/brain-based-computing-for-nd-solutions/
+    - https://arxiv.org/abs/2607.24396
+    - https://spinncloud.com/spinnext/
+
+# ── Compute Engine ──────────────────────────────────────────────────────────
+compute_engine:
+  processing_elements:
+    count_per_chip: 152
+    organization: "38 Quad units (QPEs) x 4 PEs"
+    core: "ARM Cortex-M4F (ARMv7E-M / Thumb-2, DSP ext, FPv4-SP single-precision FPU)"
+    interrupt_sources_per_pe: 45
+    timers_per_pe: "3, on a 1 MHz reference clock"
+    clock_low_power: "150 MHz @ 0.5 V"
+    clock_performance: "300 MHz @ 0.8 V"
+    confidence: confirmed
+    sources:
+      - https://arxiv.org/abs/2607.24396
+      - https://arxiv.org/abs/2401.04491
+
+  management_core:
+    count: 1
+    core: "ARM Cortex-M4 in the periphery module, FPU and accelerators removed"
+    clock_mhz: 100
+    sram_kb: 128
+    sram_ecc: true
+    role: "boot, background tasks, broadcasting application code to PEs; full access to chip memory/config"
+    note: >-
+      Reconciles the vendor portal's "153 ARM cores" with the papers' "152 PEs".
+      State which convention is in use; both are defensible.
+    confidence: confirmed
+    sources:
+      - https://arxiv.org/abs/2607.24396
+      - https://spinnaker2.gitlab.io/external/documentation/hardware/5-periphery/
+
+  application_visible_cores:
+    per_chip: 148
+    reserved_for_system_software: 4
+    per_48_node_board: 7104
+    board_total_cores: 7296
+    confidence: confirmed
+    sources:
+      - https://spinnaker2.gitlab.io/py-spinnaker2/tutorials/deep_dive/06_hardware_architecture.html
+
+  ml_accelerator:
+    per_pe: true
+    array: "16 x 4 output-stationary MAC array = 64 MACs/PE"
+    datatypes: "8-bit signed/unsigned; two neighbouring 8-bit cells fuse for 16-bit row- or column-wise operands"
+    accumulator_bits: 24
+    post_processing_modules: 4
+    output_quantization: "shift + truncate to 8/16/32-bit"
+    operations: ["2-D matrix multiply (MM)", "2-D convolution (CONV)"]
+    features:
+      - "shift register for input-feature-map reuse in CONV"
+      - "operands prefetched directly over the NoC"
+      - "ReLU fusable with matmul"
+    software_reach: "software currently only reaches each core's LOCAL MLA, though the hardware supports remote access"
+    note: >-
+      The 2022 prototype paper (arXiv:2103.08392) described 8-bit UNSIGNED only with a 29-bit
+      accumulator. That is the older testchip revision; do not quote it for the product.
+    confidence: confirmed
+    sources:
+      - https://arxiv.org/abs/2607.24396
+      - https://spinnaker2.gitlab.io/external/documentation/hardware/1-ml-accelerator/
+      - https://arxiv.org/abs/2507.13736
+
+  numerical_accelerator:
+    per_pe: true
+    functions: ["exp", "natural log"]
+    formats: "s16.15 and s0.31 fixed-point AND FP32; operand and result formats chosen independently"
+    iterations: "configurable 1-16 = 7-22 cycles"
+    accuracy: "1-2 ulp, monotonic"
+    measured_speedup_vs_arm: "4.4x - 5.7x for exp/log/sigmoid/tanh/softmax"
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2607.24396]
+
+  rounding_accelerator:
+    per_pe: true
+    functions:
+      - "signed/unsigned integer rounding + saturation of 64/32/16-bit values"
+      - "FP -> BFloat16"
+      - "round-to-nearest and stochastic rounding (PRNG-driven)"
+    threads: 4
+    latency_cycles: "3-4 per thread"
+    configurable_rounding_position: "up to 32 LSBs"
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2607.24396]
+
+  random_number_generation:
+    prng: "one per PE, MARS KISS64, 32 bit/cycle"
+    trng: "one global, derived from ADPLL bang-bang jitter; can scramble the PRNGs"
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2607.24396]
+
+  event_handler:
+    per_pe: true
+    name: "spDMA"
+    filters: "two configurable hardware filters plus a default handler"
+    behavior: >-
+      Matching SpiNNaker packets (32-bit multicast keys and/or payload) are written into an
+      SRAM-mapped hardware FIFO WITHOUT interrupting the ARM core.
+    full_behaviour: "configurable: drop+count / overwrite / stall NoC"
+    interrupts: "non-empty / fill-level / full"
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2607.24396]
+
+# ── Throughput ────────────────────────────────────────────────────────────────
+throughput:
+  total_macs_per_chip: 9728        # 152 PEs x 64 MACs — structural arithmetic
+  peak_int8_tops_theoretical: 5.837   # at 300 MHz
+  measured_int8_tops_300mhz_0v8: 4.563
+  measured_int8_tops_150mhz_0v5: 2.281
+  measured_mac_utilization_at_peak: "78 % (transformer matmul, full-chip tiling)"
+  energy_efficiency_tops_per_w:
+    at_150mhz_0v5: 2.77     # 0.825 W
+    at_300mhz_0v8: 2.06     # 2.219 W
+    condition: "chip measurements with operands resident in on-chip SRAM"
+  coremark_all_152_pes:
+    at_0v5_150mhz: 65968
+    at_0v8_300mhz: 138168
+  snn_capacity:
+    neurons_per_chip: ">150,000"
+    synaptic_events_per_s_per_chip: ">1.8e9 at a 1 ms time step"
+    synaptic_events_per_s_per_core: "up to 12e6 with 1024 sparse-connectivity neurons"
+  peak_at_other_precisions: "not disclosed"
+  note_other_precisions: >-
+    The MLA is 8/16-bit integer only. FP32 exists on the Cortex-M4F FPU but no aggregate FLOPS
+    figure is published. No FP16/BF16/INT4 throughput number exists.
+  confidence: confirmed
+  sources: [https://arxiv.org/abs/2607.24396]
+
+utilization_reality_check:
+  fully_connected_layers: "16-19 % MAC utilization (only 1 of 4 MAC-array rows used)"
+  convolutions: "22-50 %"
+  transformer_matmuls: "78 %"
+  dram_share_of_matmul_layer_time: "71.6-98.0 % (OctopuScheduler benchmark)"
+  mlp_case: "weight fetch 192 us of a 323 us layer; MLA compute 29 us — accelerator used for 9 % of layer runtime"
+  confidence: confirmed
+  sources:
+    - https://arxiv.org/abs/2607.24396
+    - https://arxiv.org/abs/2507.13736
+
+# ── Memory ────────────────────────────────────────────────────────────────────
+on_chip_memory:
+  hardware_data_cache: false
+  shared_virtual_memory: false
+  management: "Entirely software-managed. Every byte movement is an explicit DMA or NoC transaction issued by software; the memory map is planned STATICALLY BY THE HOST before execution."
+  pe_local_sram_kb: 128
+  pe_local_sram_banks: 4
+  pe_local_sram_partition:
+    itcm_kb: "~32 (compiled neuron-model / application code)"
+    dtcm_kb: "~96 (host-allocated data-spec regions: routing tables, synapses, neuron state, recording buffers, log region)"
+    heap_stack: "4 kB at 0x1F000"
+    managed_by: "linker script + host-side allocator"
+  quad_shared_sram_kb: 512
+  quad_sharing_note: "PEs within one Quad can address the full Quad SRAM when running in synchronous mode (low-latency sharing via the PE crossbar)"
+  total_on_chip_sram_mbyte: 19.8      # 158.625 Mbit
+  total_on_chip_sram_breakdown: "152 PEs x 1 Mbit + event links 896 kbit + Ethernet 1.875 Mbit + GPIO/mgmt 1 Mbit + event router 2.875 Mbit"
+  vendor_portal_rounding: "19 MB"
+  max_neurons_synapses_per_pe: "not disclosed — the chip paper explicitly declines to give a hard limit, stating it varies with weight precision, logging, connectivity and time-step"
+  confidence: confirmed
+  sources:
+    - https://arxiv.org/abs/2607.24396
+    - https://spinnaker2.gitlab.io/py-spinnaker2/advanced_topic/memory/memory-structure.html
+
+off_chip_memory:
+  interfaces: 2
+  type: LPDDR4
+  max_addressable_per_interface_gb: 4
+  shipping_node_capacity_gb: 2        # 1 GB per interface
+  phy_controller: "Uniquify LPDDR4 PHY + controller at 800 MHz"
+  raw_bitrate_per_interface_gbps: 25.6
+  aggregate_raw_bandwidth_gbyte_s: 6.4
+  sustained_bandwidth: "not disclosed"
+  dma: "each interface has its own DMA controller to offload bulk transfers and keep the NoC uncongested"
+  host_partitioning: "statically partitioned by the host before the run — global config, per-layer time-measurement area, per-layer config blocks, then a data-memory area holding all layer inputs/intermediates/outputs"
+  dma_api:
+    pe_to_pe: ["dma_rd()", "dma_wr()"]
+    sram_to_dram: ["dram_dma_rd()", "dram_dma_wr()"]
+    constraints: "16-byte alignment; reads may not cross the interface boundary; addresses 0x0-0x3FF and 0x40000000-0x400003FF reserved"
+  confidence: confirmed
+  sources:
+    - https://arxiv.org/abs/2607.24396
+    - https://spinnaker2.gitlab.io/external/documentation/hardware/4-dram/
+    - https://spinnaker2.gitlab.io/external/documentation/hardware/7-dma/
+
+# ── Interconnect ──────────────────────────────────────────────────────────────
+on_chip_interconnect:
+  data_noc:
+    name: DNoC
+    topology: "2-D mesh"
+    flit_bits: 192
+    note_flit: "a whole packet incl. 128-bit payload moves in one transaction"
+    clock_mhz: 300
+    bisection_bandwidth_gbps: 307.2
+    hop_latency_cycles: 5
+    routing: "XY (x-first) by default; optional 64-entry (8x8) lookup-table routing"
+    arbitration: "round-robin at outputs; multicast at QPE granularity via 4 destination-PE bits"
+    confidence: confirmed
+  config_noc:
+    name: CNoC
+    flit_bits: 32
+    switching: wormhole
+    clock_mhz: 100
+    note: "runs on the reference clock so it is alive before any PLL is up; used for boot, register access and production test; remains usable when the DNoC is blocked by large DMAs"
+    confidence: confirmed
+  noc_packet_format: "15-bit NoC header + 17-bit packet header + 32-bit address + 0-128-bit payload"
+  event_router:
+    name: "SpiNNaker router"
+    placement: "centre of the die, occupying the area of two Quads"
+    clock_mhz: 400
+    noc_ports: 6
+    routing_engines: "three parallel, fed by an input crossbar"
+    multicast_pipeline: "4 stages — TCAM lookup, priority encode, link-destination resolution, 152-core destination lookup (last stage power-gated when no local destination)"
+    multicast_entries: 16384
+    entry_format: "32-bit source filter with wildcards"
+    head_of_line_blocking: "prevented by an out-of-order issue buffer"
+    peak_to_pes_gbps: 1843.2
+    peak_to_external_links_gbps: 460.8
+    diagnostic_counters: 16
+    confidence: confirmed
+  packet_types:
+    types:
+      - {name: "Multicast", fields: "40-bit packet, 32-bit source ID, up to 128-bit payload", use: "spike/event path"}
+      - {name: "Core-to-Core", fields: "16-bit chip + 8-bit core address", use: "point-to-point messaging"}
+      - {name: "Nearest-Neighbour", fields: "32-bit address", use: "boot, debug"}
+      - {name: "Global Read/Write", fields: "direct access to any address on any chip", use: "host and management access"}
+    payloads: "all support 0/32/64/128-bit payloads"
+    confidence: confirmed
+  sources:
+    - https://arxiv.org/abs/2607.24396
+    - https://spinnaker2.gitlab.io/external/documentation/hardware/11-NoC/
+    - https://spinnaker2.gitlab.io/external/documentation/hardware/8-spinnaker-router/
+
+scale_up:
+  links_per_chip: 6
+  topology: "hexagonal grid; 48 chips form a toroidal mesh on one board"
+  modes:
+    short_range:
+      reach: "on-board, a few cm"
+      electrical: "chiplet-like low-swing, eight IO pad cells at 0.5 V; six data lanes, DDR on a 500 MHz differential clock (0.25 V common mode)"
+      rate_gbps: 6
+      packet: "96-bit, serialization factor 8, two 125 MHz system-clock cycles"
+      error_handling: "CRC-12 with packet-ID-based resend and ordering"
+      idle_power: "clock and data driven to ground when idle for immediate-restart power saving"
+    long_range:
+      reach: "board-to-board, up to 1.5 m"
+      electrical: "two LVDS pads per link, 1 GHz DDR, 8b10b with clock-data recovery"
+      rate_gbps: 2
+      caveat: "must stay active to hold sync, so power-down has a longer lead time"
+  modes_exclusive: true
+  aggregate_per_chip_bandwidth: "not disclosed"
+  portal_alternate_phrasing: >-
+    The developer portal states "2 Gbps per lane in each direction... combined throughput of
+    12 Gbps bidirectionally". Attribute that phrasing to the portal, not to the chip paper.
+  rdma: false
+  pcie: false
+  collective_library: false
+  confidence: confirmed
+  sources:
+    - https://arxiv.org/abs/2607.24396
+    - https://spinnaker2.gitlab.io/external/documentation/hardware/2-chip-to-chip-link/
+
+scale_out:
+  host_interface: "1 Gbit/s UDP Ethernet per chip over SGMII (625 MHz DDR), extended with UDT (reliable UDP with congestion control) plus an optional packet-counter field"
+  ethernet_to_noc_bridge: "interprets UDP payloads with magic headers as NoC packets with on- or off-chip destinations; programmable routing LUTs"
+  board_note: "on a 48-node board only chip 43 carries the Gigabit Ethernet connection; the rest are reached through the fabric"
+  gpio: "27 GPIOs at 1.8 V — 4x UART, QSPI master/slave to 200 Mbit/s, I2C master/slave to 1 Mbit/s, 13 PWM channels, behind a flexible multiplexer"
+  confidence: confirmed
+  sources:
+    - https://arxiv.org/abs/2607.24396
+    - https://spinnaker2.gitlab.io/external/documentation/hardware/7-48-node-board/
+
+# ── Execution model ───────────────────────────────────────────────────────────
+execution_model:
+  operating_system: false
+  shared_virtual_memory: false
+  scheduling: "static; each core runs a small pre-compiled program on 128 kB SRAM that executes simple tasks upon reception of events"
+  event_dispatch: "ARM interrupt controller starts/pauses/resumes user functions; core sleep (WFI/WFE) between events"
+  snn_mode:
+    integration: "neuron models integrated IN SOFTWARE on the ARM core by Euler method"
+    tick: "typically 1 ms, derived from the 1 MHz reference clock"
+    start: "chip-global interrupt wakes all PEs simultaneously"
+    barrier_synchronization: false
+    overrun_behaviour: "a PE that overruns its tick falls out of phase and may catch up later; incidents are logged and reported"
+    multi_chip_sync: "planned via a per-chip SCAMP program using the SpiNNaker1 drift-compensation mechanism"
+  dnn_mode:
+    pattern: "one scheduler PE drives up to 151 worker PEs through a finite state machine"
+    host_role: "writes the whole DRAM structure and raises ONE interrupt; the entire multi-layer schedule then runs on-chip with no host interaction"
+    intra_layer_sync: false
+    inter_layer_sync: true
+    measured_worker_scheduler_utilization: "80.9-99.6 %"
+    per_layer_scheduling_overhead_us: 13
+    full_chip_setup_us: 39
+    full_chip_cleanup_us: 93
+  dvfs:
+    domains: "each PE is its own switchable power domain"
+    performance_levels: 4
+    nominal_points: ["0.5 V / 150 MHz (low power)", "0.8 V / 300 MHz (performance)"]
+    clocking: "GALS — PEs individually asynchronous, or synchronously coupled within a Quad; frequency divided locally from a central ADPLL"
+    control: "PE-driven or global controller; Quad hardware semaphores throttle simultaneous switching against IR droop"
+    measured_benefit: "DVS-gesture SNN — per-core per-timestep auto-PL selection cut energy 28 % vs always-high-PL at identical accuracy (0.741 J vs 1.023 J, 92.04 %)"
+  confidence: confirmed
+  sources:
+    - https://arxiv.org/abs/2607.24396
+    - https://arxiv.org/abs/2401.04491
+    - https://arxiv.org/abs/2507.13736
+
+# ── Physical ──────────────────────────────────────────────────────────────────
+physical:
+  process_node: "GlobalFoundries 22FDX (22 nm FDSOI)"
+  body_biasing: "Racyics ABX adaptive body biasing (forward-body-bias scheme)"
+  die_area_mm2: 102
+  gate_equivalents: "266 M"
+  transistor_count: "not disclosed"
+  supply_rails: "two digital voltages only: 0.5 V and 0.8 V; always-on zero-body-biased 0.8 V domain for comms/config; each PE in its own switchable FBB domain"
+  clock_domains:
+    pe: "150 MHz @0.5 V / 300 MHz @0.8 V"
+    dnoc_mhz: 300
+    event_router_mhz: 400
+    cnoc_periphery_mhz: 100
+    short_range_link: "500 MHz differential"
+    lpddr4_mhz: 800
+    sgmii_mhz: 625
+  measured_power:
+    pes_off_mw: 75.2
+    pes_sleeping_0v5_mw: 235.4
+    pes_sleeping_0v8_mw: 564.7
+    coremark_all_pes_0v5_mw: 424.6
+    coremark_all_pes_0v8_mw: 1247.9
+    summary_range_w: "0.24 - 2.2"
+    abstract_claim: "baseline power below 250 mW"
+  single_chip_application_power: "Mamba SSM (170 M parameters) ~0.6 W average (vendor developer-portal figure)"
+  rated_tdp: "not disclosed"
+  package_type: "not disclosed"
+  ball_pin_count: "not disclosed"
+  package_dimensions: "not disclosed"
+  thermal_solution: "not disclosed"
+  confidence: confirmed
+  sources:
+    - https://arxiv.org/abs/2607.24396
+    - https://arxiv.org/abs/2103.08392
+    - https://spinnaker2.gitlab.io/external/about/mamba/
+
+form_factors:
+  spinnode:
+    chips: 1
+    contents: "STM32H743 manager, >=2 GB LPDDR4, 1G Ethernet RJ45, USB-C serial CLI, DCMI camera connector, 5 V or 12-24 V barrel input, JTAG, fan header"
+    confidence: confirmed
+    sources: [https://spinnaker2.gitlab.io/external/documentation/hardware/10-spinnode-board/]
+  board_48_node:
+    chips: 48
+    dram_per_chip_gb: 2
+    topology: "toroidal mesh"
+    management: "on-board STM32 with 2 MB flash for boot/management over an SPI chain + I2C"
+    ethernet: "GbE on chip 43"
+    host_access: "via STLink, or via a Backbone/STM Card over CAN"
+    board_power: "not disclosed"
+    cooling: "not disclosed"
+    dimensions: "not disclosed"
+    confidence: confirmed
+    sources: [https://spinnaker2.gitlab.io/external/documentation/hardware/7-48-node-board/]
+
+# ── Systems as built ──────────────────────────────────────────────────────────
+systems:
+  - name: "TU Dresden / SpiNNcloud"
+    scale: "5 million cores, ~35,000 chips, eight racks"
+    status: "Operating; large-scale-deployment software stack 'currently under development'"
+    confidence: confirmed
+    sources: [https://arxiv.org/abs/2607.24396, https://arxiv.org/abs/2401.04491]
+  - name: "Sandia NNSA NERL Braunfels"
+    scale: "175 million neurons; 3 chassis of up to 18 boards each; 48 chips per board"
+    status: "Delivered March 2025, unboxed 3 April 2025, publicized 12 June 2025; NNSA ASC funded"
+    confidence: confirmed
+    sources: [https://www.sandia.gov/labnews/2025/06/12/brain-based-computing-for-nd-solutions/]
+  - name: "Dresden full-build target"
+    scale: "'will be 16 racks (69,120 chips total) for a total of 10.5 billion neurons'"
+    status: "TARGET, future tense. NOT delivered."
+    confidence: confirmed
+    sources: [https://www.eetimes.com/spinnaker-based-neuromorphic-supercomputer-opens-in-dresden/]
+  - name: "Largest commercially offered configuration"
+    scale: "'10 billion neurons', '0.3 exaops'"
+    status: "Vendor/press framing of an OFFERED configuration, not a measured deployed system"
+    confidence: likely
+    sources: [https://spectrum.ieee.org/neuromorphic-computing-spinnaker2]
+  - name: "SpiNNext"
+    scale: "not disclosed"
+    status: "Announced only — no process node, no specs, no silicon status, no date"
+    confidence: confirmed
+    sources: [https://spinncloud.com/spinnext/]
+
+measured_deployment_performance: "not disclosed — all published SpiNNaker2 measurements are single-chip"
+
+# ── Vendor claims (label as such) ─────────────────────────────────────────────
+vendor_claims:
+  - claim: "18x higher energy efficiency than GPUs (SpiNNaker2)"
+    status: "unaudited marketing"
+    peer_reviewed_anchor: >-
+      For one specific case the chip paper reports EGRU language-model inference at 65 mJ on
+      SpiNNaker2 vs 1.19 J on an A100 — an 18x energy reduction for SINGLE-BATCH inference, at the
+      cost of 8x longer execution time. Report it that way or not at all.
+    confidence: confirmed
+    sources: [https://spinncloud.com/, https://arxiv.org/abs/2607.24396]
+  - claim: "78x more energy efficient than GPUs (SpiNNext)"
+    status: "unaudited marketing, no anchor of any kind"
+    confidence: confirmed
+    sources: [https://spinncloud.com/spinnext/]
+  - note: >-
+      The company homepage renders headline metrics as unpopulated placeholders
+      ("Cores: 0M", "Chips: 0K", "Boards: 0", "Racks: 0") and is unusable as a spec source.
+    confidence: confirmed
+    sources: [https://spinncloud.com/]
+
+independent_gpu_comparison:
+  source_table: "chip paper Tab. 5 — INT8, all measured, 6 real DNN layers including DRAM traffic and scheduling"
+  spinnaker2_power_w: "0.58 - 0.80 (at 150 MHz)"
+  a100_power_w: "107 - 133"
+  jetson_orin_nano_power_w: "3.1 - 8.2"
+  energy_wins: "SpiNNaker2 won on energy for 4 of 6 layers (e.g. FC1: 0.064 mJ vs 1.332 mJ A100)"
+  energy_losses: "lost badly on the two largest matmuls (MM2: 17.07 mJ vs 4.18 mJ A100)"
+  wall_clock: "30 - 700x slower than A100"
+  confidence: confirmed
+  sources: [https://arxiv.org/abs/2607.24396]
+
+predecessor_and_peer_table:
+  source: "chip paper Tab. 6"
+  spinnaker1: {process: "130 nm", clock: "180 MHz", die_mm2: 102, sram_mb: 1.8, power_w: "0.36-1", cores: "18 x ARM M0", neurons: 16000}
+  spinnaker2: {process: "22 nm FDSOI", clock: "150/300 MHz", die_mm2: 102, sram_mb: 19.8, power_w: "0.24-2.2", cores: "152 x ARM M4F", neurons: 150000}
+  loihi: {process: "14 nm", die_mm2: 60, sram_mb: 33, cores: 128}
+  loihi2: {process: "7 nm", die_mm2: 60, sram_mb: 31, cores: 128}
+  confidence: confirmed
+  sources: [https://arxiv.org/abs/2607.24396]
+
+# ── Explicitly not public ─────────────────────────────────────────────────────
+not_disclosed:
+  - "Rated TDP (only measured workload power is published)"
+  - "Transistor count (266 M gate equivalents is not a transistor count)"
+  - "Package type, pin/ball count, package dimensions, thermal solution"
+  - "Sustained (as opposed to raw) LPDDR4 bandwidth"
+  - "Aggregate off-chip event-link bandwidth per chip; board/rack bisection bandwidth"
+  - "Board- and rack-level power draw, cooling method, physical dimensions"
+  - "Price of any product (chip, SpiNNode, 48-node board, rack)"
+  - "Units shipped, revenue, customer list beyond Sandia and TU Dresden/SpiNNcloud"
+  - "Peak throughput at any precision other than INT8"
+  - "Maximum neurons and synapses per PE as a hard limit (explicitly declined by the chip paper)"
+  - "Reconciliation of the portal FAQ's QuadPE coordinate range (x=1..7, y=1..6 minus (4,3) and (4,4) => 40 positions) with the confirmed 38 QPEs"
+  - "Any MLPerf or independently audited benchmark result — none exists"
+  - "Everything about SpiNNext: process node, PE count, memory, interconnect, silicon status, tape-out or availability date, and the basis for the 78x claim"
+  - "Measured end-to-end performance of the 35,000-chip Dresden system or NERL Braunfels on any workload"
+
+unconfirmed_items:
+  - item: "QuadPE coordinate range vs 38 QPE count"
+    note: "Developer-portal FAQ implies 40 QPE positions; the chip paper confirms 38. The portal does not explain the discrepancy."
+    confidence: unconfirmed
+    sources: [https://spinnaker2.gitlab.io/external/faq/]

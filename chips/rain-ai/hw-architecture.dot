@@ -1,0 +1,150 @@
+digraph rain_ai_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+    labelloc="t";
+    fontname="Helvetica-Bold";
+    fontsize=14;
+    fontcolor="#B00020";
+    label="Rain AI D-IMC Stack — HISTORICAL RECORD (as_of 2026-08-08)\nVendor DEFUNCT: never shipped commercially; patents assigned to OpenAI Opco, LLC (USPTO-recorded 2025-10-23)\nNo software layer shown here was ever released or open-sourced";
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        frameworks [label="PyTorch / ONNX / Other\n(implied by RISC-V generality)\nNo public connector released", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        rain_compiler [label="Rain Proprietary Compiler\n(never released)\nFull-stack, co-designed with HW", fillcolor="#E4DEFF"];
+        ace_copilot [label="Andes ACE/COPILOT\nCustom RISC-V Instruction\nExtension for D-IMC Dispatch", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        oplib [label="Proprietary Op Library\n(never released)\nMAC, activation, norm", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kernels [label="D-IMC Tile Kernels\n(proprietary, never released)\nRISC-V RVV kernels (inferred)", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        runtime [label="Rain Proprietary Runtime\n(never released)\nClaimed Training + Inference\nIP licensing offered; no licensee announced", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        driver [label="Host Driver\n(never released)\nInterface: not disclosed", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        riscv_isa [label="RISC-V RV64GCV\nAndes AX45MPV\n(OoO, RVV 1.0 vector)", fillcolor="#EFEBE9"];
+        dimc_ext [label="D-IMC Custom Instructions\n(via ACE/COPILOT)\nProprietary encodings", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Rain AI D-IMC Hardware\n(process node: not disclosed; tapeout: Synopsys Cloud)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        risc_v_core [label="Andes AX45MPV RISC-V\nHost Control Cores\n(RV64GCV, OoO, RVV 1.0)", fillcolor="#283593", fontcolor="white"];
+        dimc_tiles [label="D-IMC Compute Tiles\n(Digital In-Memory Computing)\nMAC inside SRAM arrays\nCapacity: not disclosed", fillcolor="#283593", fontcolor="white"];
+        noc [label="Arteris FlexNoC 5\nPhysically Aware NoC\nAdvanced Mesh Topology", fillcolor="#283593", fontcolor="white"];
+        mem [label="On-chip SRAM\n(compute + storage in D-IMC)\nOff-chip memory: not disclosed", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    frameworks -> rain_compiler;
+
+    // Compiler internals
+    rain_compiler -> ace_copilot;
+    rain_compiler -> oplib;
+    rain_compiler -> kernels;
+
+    // Op/Kernel -> Runtime
+    oplib -> runtime;
+    kernels -> runtime;
+
+    // Runtime -> Driver
+    runtime -> driver;
+
+    // ISA chain
+    riscv_isa -> dimc_ext [label="extends", fontsize=8];
+    ace_copilot -> dimc_ext [label="generates", fontsize=8];
+    dimc_ext -> risc_v_core [style=dashed];
+
+    // Driver -> Hardware
+    driver -> risc_v_core;
+
+    // Hardware internal
+    risc_v_core -> noc [color="#283593"];
+    noc -> dimc_tiles [color="#283593"];
+    dimc_tiles -> mem [color="#283593", style=dashed, label="in-situ", fontsize=8];
+    risc_v_core -> mem [color="#283593", style=dashed];
+}

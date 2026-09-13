@@ -1,0 +1,105 @@
+digraph sk_hynix_aim_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch / TensorFlow\nUnmodified user code\nTransparent PIM offload", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        aim_blas [label="AiM BLAS Library\nBLAS Level 2 GEMV\nEmbedding lookup\n(not public)", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        aim_runtime [label="AiM Runtime Library\nAiM ISR dispatch\nMode switching DRAM↔compute\nSync CPU/GPU↔AiMX\n(not public)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        aim_driver [label="AiMX Card Firmware\nPCIe card controller\nAiM ISR encoding\nJEDEC GDDR6 mode enable\n(not public)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="SK Hynix GDDR6-AiM Hardware";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        mac [label="FP16 SIMD MAC Units\n16-lane per pseudo-channel\n2 MAC units per package\n32 FP16 lanes total\nAll-bank operation", fillcolor="#283593", fontcolor="white"];
+        dram [label="GDDR6 DRAM Arrays\n16 banks, all-bank activation\nInternal BW: ~4 TB/s\nExternal I/O: ~64 GB/s\n1 GB/package, 16–32 packages/card", fillcolor="#283593", fontcolor="white"];
+        isr [label="AiM ISR\nExtended DRAM command set\nJEDEC GDDR6 compatible\nAiM mode enable/disable", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host System (GPU or CPU)";
+        style="rounded,dashed";
+        color="#888888";
+        fontcolor="#888888";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        host_gpu [label="GPU / CPU\nCompute-bound ops:\nsoftmax, output projection\nattn score QK^T", fillcolor="#F5F5F5"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework → Runtime
+    pytorch -> aim_blas [label="GEMV/embed ops", fontsize=8];
+    aim_blas -> aim_runtime;
+
+    // Runtime chain
+    aim_runtime -> aim_driver;
+    aim_driver -> isr;
+
+    // Hardware
+    isr -> mac [label="AiM ISR cmds", fontsize=8];
+    mac -> dram [label="all-bank access\n~4 TB/s", fontsize=8, color="#283593"];
+    dram -> mac [label="weight rows", fontsize=8, color="#283593"];
+
+    // Host coordination
+    host_gpu -> aim_runtime [style=dashed, label="dispatch non-GEMV", fontsize=8];
+    aim_runtime -> host_gpu [style=dashed, label="GEMV results", fontsize=8];
+}

@@ -1,0 +1,200 @@
+digraph ibm_spyre_pm {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    labelloc="t";
+    label="IBM Spyre — Programming Model and Software Stack\nOpen through the interface IRs · CLOSED from the back-end compiler down";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== FRAMEWORK / SERVING =====================
+    subgraph cluster_framework {
+        label="Framework Integration + Serving  (OPEN, Apache-2.0)";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pytorch [label="PyTorch 2.x\n\"spyre\" registered via PrivateUse1\nrename_privateuse1_backend(\"spyre\")\neager + torch.compile(backend=\"spyre\")", fillcolor="#D6E4F0"];
+        vllm [label="vLLM plugins\nsendnn-inference (production, ~638 commits)\nspyre-inference (built on torch-spyre)\nchunked prefill, prefix cache, TP, beam search\nNO LoRA / spec-decode / PP / EP / DP", fillcolor="#D6E4F0"];
+        hfa [label="hf-adapters\nLoad-time MONKEY-PATCHING of only the ops\nSpyre cannot run natively (RoPE, RMSNorm,\nKV-cache mgmt, generation loop)\n30 adapters · 46 checkpoints · 100+ models", fillcolor="#D6E4F0"];
+        neg [label="NEGATIVE FINDING\nzDLC / zDNN target Telum II zAIU via NNPA ONLY\nNo public ONNX or z/OS-native path to Spyre", shape=note, fillcolor="#FFEBEE"];
+    }
+
+    // ===================== GRAPH CAPTURE =====================
+    subgraph cluster_capture {
+        label="Graph Capture  (OPEN)";
+        style="rounded,dashed";
+        color="#00897B";
+        fontcolor="#00897B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        dynamo [label="TorchDynamo + AOTAutograd\nFX graph of ATen ops -> core ATen\nSTATIC SHAPES REQUIRED\ndynamic=True -> static binary specialization\nOne graph break erases the region's gains", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== GRAPH COMPILER =====================
+    subgraph cluster_compiler {
+        label="Graph Compiler — TorchInductor, out-of-tree Spyre backend  (OPEN, deepest open layer)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        inductor [label="SuperDSCScheduling (scheduler.py)\nSpyrePythonWrapperCodegen (wrapper.py)\nSpyreDeviceOpOverrides (op_overrides.py)\n6 upstream extension points", fillcolor="#E4DEFF"];
+        loopir [label="LoopLevelIR — 16-pass pre-scheduling pipeline\nDCE / split multi-ops / propagate layouts /\ninsert RESTICKIFY / BMM padding / coarse tile", fillcolor="#E4DEFF"];
+        workdiv [label="WORK DIVISION across the 32 cores\nspan reduction (256 MB per-core limit)\ncost = compute + hbm + psum + penalties + batch\nEqual stick counts per core; SENCORES=32", fillcolor="#D1C4E9"];
+        lxplan [label="LX SCRATCHPAD PLANNING\n4 solvers: greedy (default), first-fit,\nbest-fit, CP-SAT (2-D rectangles over\nlifetime x address, minimize DDR traffic)\n~1.6 MB budget · 128 B align · NO EVICTION", fillcolor="#D1C4E9"];
+        layout [label="Tensor layout model\nSpyreTensorLayout / FixedTiledLayout\nSTICKIFICATION: (1024,256) fp16 -> (4,1024,64)\nNOT expressible with PyTorch strides\nDCI drives the DMA engine", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== KERNEL LANGUAGE =====================
+    subgraph cluster_kernels {
+        label="Kernel Language  (OPEN)";
+        style="rounded,dashed";
+        color="#F9A825";
+        fontcolor="#F9A825";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        triton [label="Triton — IBM fork (MIT)\ntorch-spyre/triton, sync-* branches\nLowering is NOT upstream", fillcolor="#FFF3C4"];
+        spykern [label="spyre-kernels\nTriton -> TTIR -> KTIR -> machine code\nCommits .ttir/.ktir per model and per vLLM op\nT0 numerics vs GPU · T1 shape compliance\nT2 ktir_cpu + real HW · T3 expert review", fillcolor="#FFF3C4"];
+    }
+
+    // ===================== INTERFACE IRs =====================
+    subgraph cluster_ir {
+        label="Compiler <-> Device Interface IRs  (SPECS PUBLISHED OPEN even though consumers are closed)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sdsc [label="SuperDSC / SDSC  — PRODUCTION PATH\nMLIR (sdsc_execute, scf.for, affine.apply)\n+ sdsc.json per op: OpFunc, DDR-vs-LX location,\ncore work mapping, stick config, back-gaps,\naffine \"folds\" describing all 32 cores\n70+ OpFunc primitives · chosen JSON to be diffable", fillcolor="#D4EDDA"];
+        ktir [label="KTIR — KernelTile IR (ktdp MLIR dialect)\nANNOUNCED SUCCESSOR · RFC 0682 merged Mar 2026\nconstruct_memory_view -> construct_access_tile\n-> ktdp.load / ktdp.store\nSpyreMemorySpaceAttr: HBM vs \"LX, core=N\"\nIBM positions it as a cross-vendor dataflow spec\nSpec stable; backend lowering in development", fillcolor="#D4EDDA"];
+        ktircpu [label="ktir-cpu — CPU INTERPRETER + LATENCY MODEL\nMulti-core grid, HBM 128 GB + LX 2 MB/core\n\"an environment and reward model for\nAI-driven compiler development\"\nMAKES HARDWARE-FREE STUDY POSSIBLE", fillcolor="#C8E6C9"];
+        dfsched [label="dataflow-scheduler\nKTIR + architecture description (MLIR)\n-> KTDF / KTDFLow -> DFIR\npartition -> fuse -> load/compute/store pipeline\n-> refine (double buffering, tiling, LICM)\n-> parallelize -> 1-D grid -> per-engine units", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== CLOSED BACK END =====================
+    subgraph cluster_closed {
+        label="PROPRIETARY — back-end compiler, runtime, driver, firmware, ISA";
+        style="rounded,filled";
+        fillcolor="#FBE9E7";
+        color="#C62828";
+        fontcolor="#C62828";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        deeptools [label="DeepTools  (CLOSED)\ndxp_standalone -d <output_dir>, out-of-process\nSuperDSC -> dataflow mapping, core scheduling\nacross all 32 cores, LPDDR5->LX load/store gen\nPasses / instruction formats NOT DISCLOSED", fillcolor="#F8D7DA"];
+        spyrecode [label="SpyreCode container  (SPEC IS OPEN)\nJob Execution Plan (ComputeOnHost/Device,\nDataTransfer via DMAI/DMAO control blocks)\nJob Preparation Plan (Allocate SegmentId=7)\ninit.bin job binaries (FORMAT UNDOCUMENTED)\nHost metadata -> PROGRAM CORRECTION\n(JIT-patch loop counts + addresses pre-launch)", fillcolor="#FFF3E0"];
+        deeprt [label="DeepRT  (CLOSED)\nPrepares ops into SpyreCode directories\nconsumed by the JobPlan translator", fillcolor="#F8D7DA"];
+        flex [label="Flex runtime  (CLOSED)\nRuntimeStream.launchOperation(), FlexAllocator\nkernel launch, device comms, driver dispatch\nFLEX_DEVICE=PF|VF · FLEX_COMPUTE=SENTIENT", fillcolor="#F8D7DA"];
+        sendnn [label="torch_sendnn  (NOT PUBLICLY DISTRIBUTED)\n\"only available pre-installed in a base environment\"\nCPU-only dev path exists for front-end work", fillcolor="#F8D7DA"];
+        ccl [label="spyre_comms / spyreccl  (CLOSED lib, open shim)\ntorch.distributed backend; blocking\nallreduce prioritized for tensor parallel\nON-NODE ONLY · up to 8 cards", fillcolor="#F8D7DA"];
+        driver [label="Kernel driver + card firmware  (CLOSED)\nPF and VF (SR-IOV); VF uses region_id lookup\nComputeOnDevice = firmware control message\nioctl/ABI and message format NOT DISCLOSED", fillcolor="#F8D7DA"];
+        isa [label="ISA — NOT PUBLIC\nNo instruction set, encoding or assembler\nNearest public contract is SpyreCode, which\ndescribes COMMANDS, not INSTRUCTIONS\nRFCs cite EXPORT CONTROL", fillcolor="#EF9A9A"];
+    }
+
+    // ===================== OPEN RUNTIME SHIM =====================
+    subgraph cluster_rt_open {
+        label="Runtime shim  (OPEN, Apache-2.0)";
+        style="rounded,dashed";
+        color="#5D4037";
+        fontcolor="#5D4037";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        torchspyre_rt [label="torch_spyre C++/Python\nSpyreAllocator (lazy chunked, VF-safe suballoc)\nSpyreGuardImpl · SpyreStream (FIFO, no cross-stream\nordering, STICKY ERROR MODEL) · cached JobPlan\nPrepareKernel / LaunchKernel", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== OBSERVABILITY + ORCHESTRATION =====================
+    subgraph cluster_ops {
+        label="Observability and Orchestration";
+        style="rounded,dashed";
+        color="#546E7A";
+        fontcolor="#546E7A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        prof [label="PyTorch Profiler ext (OPEN)\nREGISTER_PRIVATEUSE1_PROFILER, kineto-spyre\n\"event completion\" = all output tokens written\nlibaiupti (CLOSED) · aiu-trace-analyzer (OPEN)", fillcolor="#CFD8DC"];
+        smi [label="aiu-smi over spyremetrics (CLOSED impl, open RFC)\nnvidia-smi analogue: power, temp, busy %,\nmem + PCIe BW, RDMA ops, per-segment memory,\nPT-array utilization ESTIMATED FROM POWER\nDual hierarchy: DRAM runtime-observable;\nLX compile-time AND runtime observable", fillcolor="#CFD8DC"];
+        k8s [label="ibm-aiu org (OPEN, Go, Apache-2.0)\nspyre-operator (OpenShift) · spyre-device-plugin\ndra-driver-spyre (K8s DRA) · scheduler-plugins\nhealth-checker · webhook-validator", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="IBM Spyre Hardware — statically scheduled dataflow, SPMD, no caches";
+        style="rounded,filled";
+        color="#0D47A1";
+        fontcolor="white";
+        fillcolor="#0D47A1";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        hw_compute [label="32 active AI cores (34 physical)\n2 corelets each: PT 8x8 SIMD-systolic (64 engines)\n+ SFU 1D vector · fp16/fp8/int8/int4 (+fp32 vector)\n>300 TOPS per card at 75 W (IBM primary)", fillcolor="#1565C0", fontcolor="white"];
+        hw_mem [label="LX scratchpad 2 MB/core (~1.6 MB usable)\nNO HW CACHE · NO EVICTION\n128 GB LPDDR5, 16 ch @ 6.4 Gbps, ~204 GB/s\n128-byte \"sticks\" as the transfer quantum", fillcolor="#1565C0", fontcolor="white"];
+        hw_net [label="Bidirectional ring NoC, 128 B/cycle/dir\n(aggregate GB/s not derivable — clock unknown)\nPCIe card; scale-out over a STANDARD PCIe switch\nfabric with card-to-card RDMA; no proprietary fabric", fillcolor="#1565C0", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> capture
+    pytorch -> dynamo;
+    vllm -> pytorch [style=dashed, color="#AAAAAA"];
+    hfa -> pytorch [style=dashed, color="#AAAAAA", label="patched models", fontsize=8];
+
+    // Capture -> compiler
+    dynamo -> inductor [label="FX graph (ATen)", fontsize=8];
+    inductor -> loopir;
+    loopir -> workdiv;
+    workdiv -> lxplan;
+    layout -> loopir [style=dashed, label="FixedTiledLayout", fontsize=8];
+
+    // Compiler -> IRs
+    lxplan -> sdsc [label="OpSpec -> SuperDSC JSON", fontsize=8];
+    triton -> spykern;
+    spykern -> ktir [label="TTIR -> KTIR", fontsize=8];
+    ktir -> ktircpu [style=dashed, label="validate / simulate", fontsize=8];
+    ktir -> dfsched [style=dashed, label="+ arch description", fontsize=8];
+    ktir -> deeptools [style=dotted, label="future path\n(lowering in development)", fontsize=8, color="#9E9E9E"];
+
+    // IRs -> closed back end
+    sdsc -> deeptools [label="production path", fontsize=8, penwidth=1.6, color="#C62828"];
+    deeptools -> spyrecode [label="codegen", fontsize=8];
+    spyrecode -> deeprt [label="job plans + init.bin", fontsize=8];
+    deeprt -> flex;
+    torchspyre_rt -> flex [label="LaunchKernel", fontsize=8];
+    sendnn -> flex [style=dashed, color="#AAAAAA"];
+    ccl -> flex [style=dashed, label="collectives\n(8 cards, on-node)", fontsize=8];
+    flex -> driver;
+    driver -> isa [style=dashed];
+
+    // Runtime -> hardware
+    driver -> hw_compute [style=dashed, color="#0D47A1"];
+    hw_compute -> hw_mem [color="#1565C0"];
+    hw_mem -> hw_net [style=dashed, color="#1565C0"];
+
+    // Observability
+    prof -> torchspyre_rt [style=dotted, color="#9E9E9E", arrowhead=none];
+    smi -> driver [style=dotted, color="#9E9E9E", arrowhead=none];
+    k8s -> driver [style=dotted, color="#9E9E9E", arrowhead=none, label="card allocation", fontsize=8];
+}

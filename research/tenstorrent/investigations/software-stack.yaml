@@ -1,0 +1,267 @@
+chip: tenstorrent
+investigation: software-stack
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+status: complete
+
+layers:
+  - layer: ISA / Intrinsics
+    component: TT-LLK
+    repo: https://github.com/tenstorrent/tt-llk
+    description: "Header-only LLK library; Unpack→Math→Pack pipeline; arch-specific for Wormhole and Blackhole"
+    open_source: true
+
+  - layer: ISA / Intrinsics
+    component: TT-ISA-Documentation
+    repo: https://github.com/tenstorrent/tt-isa-documentation
+    description: "Complete public ISA reference: Baby RISC-V, Matrix Unit, Vector Unit (SFPU), Scalar Unit"
+    open_source: true
+
+  - layer: Runtime
+    component: TT-Metalium
+    repo: https://github.com/tenstorrent/tt-metal
+    description: "Low-level SDK: Device/Program/CircularBuffer/Kernel C++ API; JIT kernel compilation to RISC-V"
+    open_source: true
+    key_abstractions: [Device, Program, CircularBuffer, KernelHandle, Buffer, CommandQueue]
+
+  - layer: Op Library
+    component: TT-NN
+    repo: https://github.com/tenstorrent/tt-metal (ttnn/ subdirectory)
+    description: "PyTorch-like op library; tile layout; sharding; MeshDevice for multi-chip; CCL for collectives"
+    open_source: true
+    model_count: "800+ model variants in CI"
+
+  - layer: Compiler / IR
+    component: TT-MLIR
+    repo: https://github.com/tenstorrent/tt-mlir
+    dialects: [TTIR, TTNN, TTMetal, TTKernel]
+    description: "MLIR-based compiler: TTIR→TTNN→TTMetal dialects; fusion, sharding, memory passes"
+    open_source: true
+
+  - layer: Framework Integration
+    component: TT-Forge
+    repo: https://github.com/tenstorrent/tt-forge
+    description: "End-to-end MLIR compiler combining TT-XLA (JAX/PyTorch), TT-Torch, TT-Forge-FE (ONNX/TF)"
+    open_source: true
+
+  - layer: Framework Integration
+    component: TT-XLA
+    repo: https://github.com/tenstorrent/tt-xla
+    description: "PJRT bridge for JAX and torch.compile; StableHLO → TT-MLIR; recommended new-project path"
+    open_source: true
+
+  - layer: Driver / Firmware
+    component: TT-KMD
+    repo: https://github.com/tenstorrent/tt-kmd
+    description: "Linux kernel module: /dev/tenstorrent, PCIe BAR, command queues, IRQ"
+    open_source: true
+
+  - layer: Communication
+    component: TT-NN CCL
+    description: "Built-in collective comms in TT-NN: AllReduce, AllGather, ReduceScatter over Ethernet"
+    open_source: true
+
+tt_mlir_dialects:
+  TTIR: "High-level tensor ops (hardware-independent); akin to StableHLO/TOSA"
+  TTNN: "Models TT-NN API as MLIR; lowered from TTIR"
+  TTMetal: "Host-side TT-Metalium ops: buffer alloc, program dispatch"
+  TTKernel: "Kernel code representation for code generation"
+
+compilation_pipeline:
+  - "StableHLO / ONNX / torch.export"
+  - "TTIR (import + optimization passes)"
+  - "TTNN (layout + sharding + fusion)"
+  - "TTMetal (code generation)"
+  - "TT-NN C++ + TT-Metalium RISC-V kernel binaries"
+  - "Device execution via Fast Dispatch"
+
+open_source_summary:
+  fully_open: true
+  license: "Apache 2.0 / MIT"
+  includes: [TT-Metal, TT-NN, TT-MLIR, TT-Forge, TT-LLK, TT-KMD, TT-SMI, TT-ISA-Docs]
+  contrast: "NVIDIA has closed cuDNN, closed GSP firmware, closed TensorRT kernel weights"
+
+key_insights:
+  - "Fully open-source stack from ISA to framework integration"
+  - "No hardware cache means programmer/compiler must orchestrate all data movement"
+  - "TT-MLIR enables MLIR-standard compiler pass reuse and community contribution"
+  - "TT-XLA PJRT bridge enables JAX/torch.compile without framework changes"
+  - "800+ model variants in CI ensures broad model compatibility"
+
+confidence: confirmed
+sources:
+  - url: https://docs.tenstorrent.com/getting-started/tt-software-stack.html
+  - url: https://docs.tenstorrent.com/tt-mlir/
+  - url: https://docs.tenstorrent.com/tt-mlir/dialects-overview.html
+  - url: https://github.com/tenstorrent/tt-mlir
+  - url: https://github.com/tenstorrent/tt-forge
+  - url: https://github.com/tenstorrent/tt-llk
+
+# ============================================================================
+# Update appended 2026-08-08 — Metal 2.0 / Device 2.0, DataflowBuffer, TT-Lang,
+# Quasar backend, model coverage and vendor performance claims. Facts above
+# (as_of 2026-04-05) are retained.
+# ============================================================================
+
+updates:
+  - update_as_of: "2026-08-08"
+    change_class: major
+
+    metal_2_0_device_2_0:
+      description: >-
+        API rearchitecture of TT-Metalium ("Metal 2.0", runtime-facing) and TT-NN
+        ("Device 2.0", op-facing). Absent from prior repo coverage; a closed coverage gap
+        rather than a new-window event.
+      first_public_commit: "2025-11-16 — '[DM]: Porting DM tests to Device 2.0 APIs first pass' (#32121)"
+      metal_2_0_commit_count: 168
+      predates_repo_baseline: true
+      misdating_warning: >-
+        Do NOT frame Metal 2.0 / Device 2.0 as an April-August 2026 development. It predates
+        the repo's 2026-04-05 baseline.
+      v0_75_0_items:
+        - "Kernel scratchpad support for Metal 2.0"
+        - "NOC-distinctness legality check added to the Metal 2.0 API"
+        - "Migrate normalization and reduction ops to the Device 2.0 API (CNN ops in progress)"
+        - "Feature: multi-config layer support"
+        - "emule: multichip fiber engine + fabric/CCL teleport (8-chip Blackhole LoudBox)"
+      release: "tt-metal v0.75.0, published 2026-07-30"
+      confidence: confirmed
+      sources:
+        - url: https://api.github.com/repos/tenstorrent/tt-metal/releases/tags/v0.75.0
+        - url: https://api.github.com/search/commits?q=repo:tenstorrent/tt-metal+%22Metal+2.0%22&sort=committer-date&order=asc
+
+    dataflow_buffer:
+      component: "DataflowBuffer (DFB)"
+      layer: Runtime
+      description: >-
+        Systematic replacement for CircularBuffer as the L1 producer-consumer primitive.
+        Migration spans eltwise, conv/pool, data-movement and Moreh kernels in v0.75.0;
+        DFBs are enabled in the Quasar fast-dispatch flow.
+      survey_significance: >-
+        The repo previously presented CircularBuffer as THE Metalium synchronization
+        primitive (summary.md Programming Model Rationale item 2). That framing is now
+        generation-scoped: accurate for existing Wormhole/Blackhole kernels, superseded in
+        new code. Both coexist during the migration.
+      dfb_as_next_gen_primitive: inference_not_vendor_stated
+      confidence: confirmed
+      sources:
+        - url: https://api.github.com/repos/tenstorrent/tt-metal/releases/tags/v0.75.0
+
+    tt_lang:
+      component: TT-Lang
+      status: "listed on docs.tenstorrent.com/aibs; absent from prior repo coverage"
+      layer: not_disclosed
+      scope: not_disclosed
+      relationship_to_metalium_ttnn_ttmlir: not_disclosed
+      confidence: listed-only
+      sources:
+        - url: https://docs.tenstorrent.com/aibs/
+
+    quasar_software_support:
+      first_public_code: "tenstorrent/tt-llk PR #593, 'feat: initial commit of Quasar LLK', 2025-08-15"
+      merged_into_tt_metal: "2025-08-17"
+      tt_metal_commit_count: 662
+      tt_llk_commit_count: 85
+      predates_repo_baseline: true
+      v0_75_0_and_dev_items:
+        - "Enable trace capture and replay on Quasar"
+        - "Enabling DFBs in Quasar fast-dispatch flow"
+        - "Add Quasar fast dispatch stress tests"
+        - "Fix Quasar unicast and iDMA VC assignments"
+        - "make Quasar-unsupported APIs fail at compile time"
+        - "Quasar unary and binary SFPU performance tests"
+        - "Quasar LLK perf matmul coverage"
+        - "Enable Quasar selection in LLK ttsim regression script"
+      isa_documentation: "absent — tt-isa-documentation contains only WormholeB0 and BlackholeA0"
+      isa_openness_caveat: >-
+        The survey's "ISA fully public" claim is now generation-scoped: it holds for shipped
+        silicon (Wormhole B0, Blackhole A0) but not for the next-generation target.
+      confidence: confirmed
+      sources:
+        - url: https://api.github.com/search/commits?q=repo:tenstorrent/tt-llk+Quasar&sort=committer-date&order=asc
+        - url: https://api.github.com/search/commits?q=repo:tenstorrent/tt-metal+Quasar&sort=committer-date&order=asc
+        - url: https://api.github.com/repos/tenstorrent/tt-isa-documentation/contents/
+
+    model_coverage:
+      tt_forge_build: "1.5.0.dev (August 2026)"
+      devices_covered: [n150, n300, p150]
+      strategies: [single-device, data-parallel, tensor-parallel]
+      models_present: ["DeepSeek-V3.1", "DeepSeek-V3.2", "GLM-4.7", "Kimi K2", "Kimi K2.6", "Qwen 2.5", "Qwen 3 (incl. embeddings)", "Phi-4", "Falcon-3"]
+      models_absent: ["DeepSeek-V4 — no such entry exists; the raw scan claim was wrong"]
+      reported_rates_examples:
+        - "DeepSeek-V3.1: 2-3 tok/s/user on n150"
+        - "Falcon-3-10B: 40-41 tok/s/user on p150"
+      vendor_claim_2p5m_models:
+        claim: "roughly 2.5 million Hugging Face models running on Tenstorrent at a ~90% pass rate"
+        date: "2026-05-04 (TT-Deploy)"
+        status: "vendor marketing; The Register explicitly flags it as awaiting independent verification"
+      confidence: "confirmed (tt-forge build contents); vendor-claim-unverified (2.5M / 90%)"
+      sources:
+        - url: https://api.github.com/repos/tenstorrent/tt-forge/releases?per_page=5
+        - url: https://tenstorrent.com/en/newsroom/tt-deploy
+        - url: https://www.theregister.com/software/2026/04/28/tenstorrents-galaxy-blackhole-ai-servers-are-finally-out/5229759
+
+    performance_claims:
+      status: "ALL vendor marketing; none independently reproduced"
+      entries:
+        - date: "2026-04-28"
+          workload: "DeepSeek-R1-0528 671B"
+          claim: "350+ tok/s/user, batch 8-64, up to 128K context"
+          independent_caveat: >-
+            The Register reported ~300 tok/s/user, with 350 only expected via software
+            improvements; flagged that Tenstorrent does not specify the batch size; noted
+            prior Tenstorrent testing showed "generally poor performance scaling".
+        - date: "2026-05-04"
+          workload: "DeepSeek-R1-0528 671B"
+          claim: "350+ tok/s/user; batch 32 across 16 Galaxies; sub-4 s TTFT at 100K context"
+          note: "same claim generation as GA — not a new record"
+        - date: "2026-06-30"
+          workload: "DeepSeek-R1-0528 671B"
+          claim: "over 400 tok/s/user; roadmap target 500 tok/s/user at ~$6/M tokens"
+        - date: "2026-06-30"
+          workload: "Kimi K2.6"
+          claim: "900 tok/s/user, '3x faster than GPUs'"
+          note: "comparison GPU unspecified"
+        - date: "2026-06-30"
+          workload: "LTX 2.3 Fast"
+          claim: "~6 s for a 144-frame 1080p video with audio and lip-sync, '4x faster than GPUs'"
+        - date: "2026-04-28"
+          workload: "Prodia video generation"
+          claim: "720p, 81-frame video in 2.4 seconds, '10x faster than leading GPU systems'"
+          note: "TT-Deploy restates as 2.5 s; secondary coverage quoting a bare '2.5 s' drops resolution and frame count"
+      timeline_correction: >-
+        350+ tok/s/user on DeepSeek-R1-0528 was already the GA (2026-04-28) figure, not a
+        TT-Deploy-only result. 400+ arrived 2026-06-30.
+      confidence: vendor-claim-unverified
+      sources:
+        - url: https://tenstorrent.com/en/newsroom/tenstorrent-enables-ai-at-scale-with-industry-leading-performance
+        - url: https://tenstorrent.com/en/newsroom/tt-deploy
+        - url: https://tenstorrent.com/en/newsroom/tenstorrent-sets-new-performance-records-launches-tt--ascalon-s
+        - url: https://www.theregister.com/software/2026/04/28/tenstorrents-galaxy-blackhole-ai-servers-are-finally-out/5229759
+
+    partnerships:
+      in_window:
+        - name: Stealthium
+          type: "runtime observability"
+          date: "2026-07-30"
+      out_of_window:
+        - name: "Infinia Technologies"
+          type: "sovereign AI infrastructure"
+          date: "2026-01-27"
+          note: "predates the repo's 2026-04-05 baseline"
+      confidence: confirmed
+      sources:
+        - url: https://tenstorrent.com/en/news
+        - url: https://tenstorrent.com/en/newsroom/tenstorrent-and-infinia-technologies-partner-to-build-sovereign-ai-infrastructure
+
+    not_confirmed:
+      - claim: "Tenstorrent talk at Hot Chips 38 (Aug 23-25, 2026)"
+        finding: "confirmed ABSENT from the HC38 advance program"
+        source: https://hotchips.org/advance-program/
+      - claim: "Tenstorrent MLPerf Inference v6.0 / Training submission"
+        finding: "none found"
+        source: https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/
+      - claim: "TT-Lang scope / layer placement"
+        finding: not_disclosed
+      - claim: "Schedule for Metal 2.0 / Device 2.0 to fully replace the 1.0 APIs"
+        finding: not_disclosed

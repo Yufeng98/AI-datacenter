@@ -1,0 +1,173 @@
+digraph graphcore_ipu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\n(standard nn.Module)\nMinimal code changes", fillcolor="#D6E4F0"];
+        tf [label="TensorFlow 2 / TF1\n(standard Keras)\nipu_strategy", fillcolor="#D6E4F0"];
+        onnx_src [label="ONNX Model\n(framework-exported)", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== IPU EXTENSIONS =====================
+    subgraph cluster_extensions {
+        label="IPU Framework Extensions";
+        style="rounded,dashed";
+        color="#0097A7";
+        fontcolor="#0097A7";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        poptorch [label="PopTorch\ngithub.com/graphcore/poptorch\ntorch.fx trace → Poplar IR\npoptorch.trainingModel()\nBeginBlock/EndBlock pipeline\nrecomputationCheckpoint()", fillcolor="#E0F7FA"];
+        tfipu [label="TF-IPU Backend\nIPUStrategy / ipu_config\nKeras model API\ncustom_op() codelet binding", fillcolor="#E0F7FA"];
+        popart [label="PopART\n(Poplar Advanced Runtime)\nONNX import\nTrainingSession / InferenceSession\nPython + C++ API", fillcolor="#E0F7FA"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        poplar [label="Poplar Graph Framework\nStatic graph compiler (AoT)\npoplar::Graph API (C++)\nTile assignment (static)\nBSP superstep layout\nExchange schedule\nCodelet C++/ASM compilation\n→ poplar::Engine", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library (PopLibs — open source)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        poplibs [label="PopLibs\npoplin: GEMM, Conv2D fwd/bwd/upd\npopnn: LSTM, GRU, LayerNorm, Softmax\npopops: elementwise, reduce, gather\npoprand: uniform/normal RNG\npopsparse: sparse GEMM, embedding", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LANGUAGE =====================
+    subgraph cluster_kernel {
+        label="Kernel Language";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        codelets [label="Codelets / Vertices\nC++ or ASM\npoplar::Vertex base class\nInput/Output SRAM fields\n1 vertex = 1 tile worker thread\nCustom ops via host shared lib", fillcolor="#FFF3CD"];
+        tileisa [label="Tile Vertex ISA\nNative IPU tile instruction set\nLLVM-based (inside Poplar SDK)\nPublicly documented", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        engine [label="poplar::Engine\nHost-side runtime\nLoad compiled binary via PCIe\nRun BSP program sequences\nStreaming Memory DMA mgmt\nMulti-IPU distribution", fillcolor="#F8D7DA"];
+        vipu [label="V-IPU\nVirtualized IPU resource manager\nMulti-tenant partitioning\nSlurm integration", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver / HAL";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pcie_hal [label="PCIe HAL\nClosed-source kernel driver\nIPU-Machine PCIe interface\nFirmware management", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ipulink [label="IPU-Link\nDirect chip-to-chip (intra-M2000)\n~64 GB/s bidir per pair\nFully connected 4-IPU topology", fillcolor="#FFE0CC"];
+        gwlink [label="GW-Link\nGateway link (inter-rack)\nLooped or Switched topology\nIPU-POD128 / POD256+ scale", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Graphcore IPU Hardware (Bow IPU — TSMC 7nm WoW, 2022)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        tiles [label="1,472 MIMD Tiles\n6 worker threads + 1 supervisor/tile\n= 8,832 total HW threads\nBarrel-scheduled (1 insn/ctx/cycle)\nFP16 MAC + FP32 FPU + 32b ALU\nClock: 1.85 GHz (Bow) / 1.35 GHz (GC200)", fillcolor="#283593", fontcolor="white"];
+        sram [label="On-Chip SRAM (In-Processor Memory)\n624 KB private per tile\n900 MB total\nNo L1/L2 cache — deterministic latency", fillcolor="#283593", fontcolor="white"];
+        fabric [label="All-to-All Exchange Fabric\n11 TiB/s aggregate BW\nBSP exchange phase only\nStatically scheduled by Poplar\nNon-blocking", fillcolor="#283593", fontcolor="white"];
+        stream_mem [label="Streaming Memory (DDR4)\nUp to 112 GB/IPU\n180 TB/s (4-IPU M2000)\nExplicit DMA into tile SRAM\n(no HBM on-chip)", fillcolor="#283593", fontcolor="white"];
+        wow [label="Bow WoW Die Stack\nActive die (823mm², 59.4B transistors)\n+ Power Delivery die (Cu-Cu bond)\n350 TFLOPS FP16 / ~120W\nFirst production WoW chip", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework → Extensions
+    pytorch -> poptorch;
+    tf -> tfipu;
+    onnx_src -> popart;
+
+    // Extensions → Compiler
+    poptorch -> poplar [label="Poplar IR"];
+    tfipu -> poplar;
+    popart -> poplar;
+
+    // Compiler ↔ Op Library
+    poplar -> poplibs [style=dashed, color="#AAAAAA"];
+    poplibs -> codelets [style=dashed, color="#AAAAAA", label="compiled ops", fontsize=8];
+
+    // Compiler → Kernel
+    poplar -> codelets [label="codelet compile", fontsize=8];
+    codelets -> tileisa [label="LLVM → tile binary", fontsize=8];
+
+    // Compiler → Runtime
+    poplar -> engine [label="compiled static schedule", fontsize=8];
+
+    // Runtime → Driver
+    engine -> pcie_hal;
+    vipu -> engine [style=dashed, label="allocate", fontsize=8];
+
+    // Driver → Hardware
+    pcie_hal -> tiles;
+    pcie_hal -> stream_mem [style=dashed];
+
+    // Hardware internal
+    tiles -> sram [label="private access\n(compute phase)", fontsize=8, color="#283593"];
+    tiles -> fabric [label="BSP exchange\n(exchange phase)", fontsize=8, style=dashed, color="#7B61FF"];
+    fabric -> sram [style=dashed, color="#7B61FF"];
+    stream_mem -> sram [label="explicit DMA\n(exchange phase)", fontsize=8, style=dashed, color="#EA4335"];
+    tiles -> wow [style=dashed, color="#757575"];
+
+    // Communication
+    ipulink -> tiles [style=dashed, color="#FF6D01", label="intra-M2000", fontsize=8];
+    gwlink -> ipulink [style=dashed, color="#FF6D01", label="inter-rack", fontsize=8];
+}

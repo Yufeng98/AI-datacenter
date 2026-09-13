@@ -1,0 +1,102 @@
+chip: luminous
+display_name: Luminous Computing Photonic-Electronic Hybrid
+as_of: "2026-08-08"
+device_class: Photonic-Electronic Hybrid
+status: defunct
+status_verified_date: "2026-08-08"
+operating: false
+software_availability: none_public
+software_availability_permanent: true
+
+summary: >
+  Luminous Computing wound down its hardware program in May 2023 before releasing
+  any public software stack, and the company is defunct. No compiler, runtime, SDK,
+  driver, or op library was ever published or open-sourced, and none was transferred
+  in either IP transaction (2023 Enosemi license; 2026-02-28 patent sale to AMD).
+  The only partial evidence of a software layer is a "native PyTorch integration"
+  claim for a Gen 1 AI inference card (never shipped publicly). These gaps are
+  permanent, not pending disclosures.
+
+layers:
+  framework_integration:
+    pytorch:
+      status: not_public
+      notes: "Claimed native integration for Gen 1 inference card; no SDK released"
+    tensorflow:
+      status: not_public
+    jax:
+      status: not_public
+
+  compiler_ir:
+    weight_to_phase_compiler:
+      status: not_public
+      notes: "Required for photonic MVM: W -> SVD(W) -> MZI phase angles; internal only"
+    graph_compiler:
+      status: not_public
+      notes: "Network partitioning across photonic chips; internal only"
+    mlir_backend:
+      status: not_public
+
+  op_library:
+    matrix_vector_multiply:
+      status: not_public
+      execution_domain: electronic_CMOS
+    activation_functions:
+      status: not_public
+    attention:
+      status: not_public
+
+  kernel_library:
+    status: not_public
+
+  runtime:
+    execution_runtime:
+      status: not_public
+    memory_management:
+      status: not_public
+    multi_chip_coordination:
+      status: not_public
+
+  driver_firmware:
+    kernel_driver:
+      status: not_public
+      notes: "PCIe driver for CMOS compute die; never released"
+    photonic_calibration_firmware:
+      status: not_public
+      notes: "Thermal drift compensation for MZI/ring modulators; critical but internal"
+    wdm_control_firmware:
+      status: not_public
+      notes: "Wavelength locking and modulator bias control"
+
+  communication:
+    multi_chip_library:
+      status: not_public
+    collective_ops:
+      status: not_public
+
+  assembler_isa:
+    status: not_applicable
+    notes: >
+      Photonic hardware has no conventional ISA. The primitive would be
+      electro-optic phase voltage settings for MZI modulators. No specification
+      was ever published.
+
+ip_transfer:
+  silicon_photonics_design_ip:
+    transaction: committed_commercial_license
+    title_transferred: false
+    licensee: Enosemi
+    date: "2023-10"
+    subsequent_acquirer: AMD
+    acquirer_acquisition_date: "2025-05-28"
+    purpose: "Co-packaged optics (CPO) for AI data center systems"
+    note: "Design IP only (photonic circuit layouts, PDK); no software stack involved"
+  patent_portfolio:
+    transaction: outright_assignment
+    assignee: "Advanced Micro Devices, Inc."
+    uspto_recordation_date: "2026-02-28"
+    note: "Patents only; no software, SDK, or source code was included or exists"
+  software:
+    transferred: false
+    open_sourced: false
+    note: "Nothing survived the wind-down"

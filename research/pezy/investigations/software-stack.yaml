@@ -1,0 +1,256 @@
+resource: software-stack
+chip: pezy
+as_of: "2026-04-05"
+confidence: medium
+source_urls:
+  - https://pezy-mokumoku.github.io/tutorial/tutorial/
+  - https://chipsandcheese.com/p/pezy-sc4s-at-hot-chips-2025
+  - https://www.pezy.co.jp/wp-content/uploads/2025/09/HC2025.PEZYComputing.NaoyaHatta.v06.pdf
+  - https://www.nextplatform.com/2025/09/04/why-is-japan-still-investing-in-custom-floating-point-accelerators/
+  - https://arxiv.org/abs/2301.07510
+
+programming_model:
+  name: PZCL
+  full_name: "PEZY Computing Language / PEZY Computing Layer"
+  base: "OpenCL 1.2"
+  openness: "Closed — API docs access-controlled; request via PEZY contact"
+  note: "GPU-analog for PEZY MIMD PEs; familiar to OpenCL/GPU developers"
+
+framework_integration:
+  # CORRECTED 2026-08-08 — the previous value `pytorch: false` was a pre-existing
+  # error. See update_2026_08_08.retracts and .fact_groups[ml_framework_support_retraction].
+  pytorch: announced_unverifiable   # PEZY press release 2025-06-06; demonstrated on SC3; no public artifact
+  pytorch_ecosystem_announced: [Accelerate, DeepSpeed, Transformers, vLLM, Text Generation Inference, Diffusers]
+  jax: false
+  tensorflow: false
+  onnx_runtime: false
+  mpi: true  # Standard HPC MPI over InfiniBand
+  openmp: false
+  note: >
+    HPC-first stack. PyTorch and an inference stack were ANNOUNCED for the PEZY-SC
+    series on 2025-06-06 and demonstrated on PEZY-SC3 (Gemma3, Llama3, Qwen2,
+    Stable Diffusion 2, HuBERT, ViT), with SC4s support said to follow the SC4s
+    release. Vendor claim only — no public repo, tag, version, benchmark or docs
+    were located, and the PZCL SDK remains access-controlled. JAX/TensorFlow/ONNX
+    Runtime remain unannounced.
+
+compiler:
+  host: "GCC/Clang for AMD EPYC x86-64 host"
+  kernel: "Proprietary PZCL compiler (OpenCL-C → PEZY PE ISA binary)"
+  isa: "Proprietary PEZY PE ISA (MIPS64-derived in SC2; SC3/SC4 undisclosed)"
+  ir: "Proprietary (not public)"
+  llvm_based: "Unconfirmed"
+
+op_library: null
+kernel_library: null
+note_on_libraries: "No public math/op/kernel library; scientists write custom PZCL kernels"
+
+runtime:
+  name: PZCL Runtime
+  functions:
+    - "Platform/device/context management (OpenCL model)"
+    - "Command queue for kernel dispatch"
+    - "Host ↔ HBM3 DMA memory transfers"
+    - "Scratchpad memory management"
+    - "Kernel binary loading to PE instruction memory"
+  management_processor_sc4s: "RISC-V Rocket Core quad (on-chip Linux; enables host-independent operation)"
+
+driver:
+  type: "Linux PCIe kernel module (proprietary)"
+  interface: "ioctl via PZCL runtime"
+  host_os: "Linux (on AMD EPYC host or RISC-V on-chip for SC4s)"
+
+communication:
+  intra_node: "PCIe peer-to-peer (no proprietary chip-to-chip fabric)"
+  inter_node: "InfiniBand (400 Gb/s NDR) via MPI"
+  collective_library: "Standard MPI (OpenMPI/Intel MPI)"
+  nccl_equivalent: null
+
+assembler_isa:
+  virtual_isa: null
+  public_assembler: false
+  note: "Proprietary PE ISA; no PTX equivalent; PZCL binary output is opaque"
+
+openness:
+  pzcl_api_docs: "Closed (access-controlled)"
+  pzcl_compiler: "Closed"
+  pzcl_runtime: "Closed"
+  tutorial: "Partially public"
+  risc_v_core: "Rocket Core is open-source (UC Berkeley/SiFive); PEZY integration is proprietary"
+  mpi: "Open standard"
+
+software_gaps_vs_ai_peers:
+  # CORRECTED 2026-08-08 — item 1 previously read "No ML framework backend (PyTorch/JAX/TF)"
+  - "ML framework backend ANNOUNCED but unverifiable (PyTorch + vLLM/TGI/Transformers/Accelerate/DeepSpeed/Diffusers on SC3, 2025-06-06); no public artifact of any kind. JAX/TensorFlow/ONNX Runtime unannounced"
+  - "No tensor op library"
+  - "No MLIR/LLVM community path"
+  - "No FP8/INT4 low-precision support"
+  - "OpenCL 1.2 base (2011 standard)"
+  - "Access-controlled SDK limits developer adoption"
+  - "No cloud deployment path"
+
+# ============================================================================
+# PEZY software-stack update — appended 2026-08-08
+# RETRACTS a pre-existing error: framework_integration.pytorch: false above is
+# WRONG. See update_2026_08_08.fact_groups.ml_framework_support_retraction.
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  window: "2026-04-05 -> 2026-08-08"
+  change_class: moderate
+  trigger: >
+    Adversarial verification found that PEZY announced PyTorch support for the
+    PEZY-SC series on 2025-06-06 (pre-baseline). The repo's "no ML framework
+    backends" claim was a pre-existing error. No new SDK activity occurred in
+    the window itself.
+
+  retracts:
+    - path: framework_integration.pytorch
+      old_value: false
+      new_value: "announced_unverifiable"
+    - path: framework_integration.note
+      old_value: "HPC-only stack; no ML framework backends announced"
+      new_value: >
+        PyTorch and an inference stack were ANNOUNCED for the PEZY-SC series on
+        2025-06-06 and demonstrated on PEZY-SC3, but no public artifact exists.
+    - path: software_gaps_vs_ai_peers[0]
+      old_value: "No ML framework backend (PyTorch/JAX/TF)"
+      new_value: >
+        ML framework backend announced but unverifiable (PyTorch + vLLM/TGI/
+        Transformers/Accelerate/DeepSpeed/Diffusers on SC3); JAX/TF/ONNX RT
+        remain unannounced.
+
+  fact_groups:
+
+    - group: ml_framework_support_retraction
+      confidence: high            # the announcement is confirmed
+      claim_class: vendor_claim   # the working software is NOT independently confirmed
+      basis: vendor_press_release
+      facts:
+        announcement_date: "2025-06-06"
+        hardware_family: "PEZY-SC series"
+        demonstrated_on: "PEZY-SC3 / ZettaScaler 3.0"
+        sc4s_support: "said to follow with the SC4s release"
+        frameworks_announced:
+          - PyTorch
+          - Accelerate
+          - DeepSpeed
+          - Transformers
+          - vLLM
+          - Text Generation Inference
+          - Diffusers
+        models_reported_working:
+          - Gemma3
+          - Llama3
+          - Qwen2
+          - Stable Diffusion 2
+          - HuBERT
+          - Vision Transformer
+        jax: false
+        tensorflow: false
+        onnx_runtime: false
+        verification_result: not_confirmed
+        not_found:
+          - public PyTorch fork or upstream device backend
+          - PZCL/OpenCL PrivateUse1 backend registration
+          - MLIR or LLVM path
+          - package, release tag, or SDK version number
+          - benchmark, documentation, or public repository
+        sdk_access: access_controlled
+        standard_wording: >
+          PEZY announced a PyTorch backend for the PEZY-SC series in June 2025, with
+          Accelerate/DeepSpeed/Transformers/vLLM/TGI/Diffusers reported functional on
+          PEZY-SC3 and inference demonstrated for Gemma3, Llama3, Qwen2, Stable
+          Diffusion 2, HuBERT and ViT. This is a vendor claim only: no public
+          repository, release tag, version number, benchmark, or documentation for
+          this backend could be located, and the PZCL SDK remains access-controlled.
+          Treat the PyTorch path as announced-but-unverifiable rather than as an open
+          ecosystem.
+        assessment_unchanged: >
+          The "no public ML ecosystem / access-controlled SDK" weakness stands. Only
+          the factual claim about announcements changes, not the ecosystem assessment.
+      sources:
+        - title: "PEZY news 2025-06-06 - PyTorch / generative-AI support on the PEZY-SC series"
+          url: "https://www.pezy.co.jp/en/news/news20250606-pezysc-pytorch-generativeai/"
+        - title: "PEZY English news index (confirms the 2025-06-06 item)"
+          url: "https://www.pezy.co.jp/en/news/"
+
+    - group: sdk_activity_in_window
+      confidence: high
+      basis: verified_absence
+      facts:
+        pzcl_release: none
+        sdk_version_number: not_disclosed
+        changelog: none
+        new_documentation: none
+        new_public_tutorial_content: none
+        only_public_programming_resource: "https://pezy-mokumoku.github.io/tutorial/tutorial/"
+        mlir_llvm_public_path: none
+        op_library: none
+        kernel_library: none
+      sources:
+        - title: "PEZY news indexes (JA + EN), fetched 2026-08-08"
+          url: "https://www.pezy.co.jp/en/news/"
+
+    - group: workloads_exercised_2026
+      confidence: medium
+      claim_class: vendor_claim
+      basis: vendor_press_releases_no_independent_replication
+      facts:
+        note: >
+          Both 2026 announcements exercise the PZCL/HPC path on PEZY-SC3, not the
+          announced PyTorch path, and neither involves SC4s.
+        pzMutect2:
+          date: "2026-05-11"
+          claim: "139x vs Mutect2 in GATK 4.2.6.1; 62h36m05s -> 26m57s; >99.99% concordance via bcftools isec"
+          system: "ZettaVEGA (SC3 attribution inferred from release slug + 2024-12-26 announcement; processor not named on the release page)"
+          independent_replication: none
+        PZLAST_MAG:
+          date: "2026-05-13"
+          hardware: "PEZY-SC3"
+          scale: "210,000+ MAGs, ~400M sequences, ~100B amino acids"
+          latency: "~5-15 min"
+          accuracy_claim: "PEZY describes as comparable to DIAMOND and MMseqs2"
+          service_url: "https://pzlast.nig.ac.jp/pzlast/mag"
+          paper_doi: "10.1093/bioadv/vbag129"
+      sources:
+        - title: "PEZY news 2026-05-11 (pzMutect2)"
+          url: "https://www.pezy.co.jp/news/news20260511-humangenome-zettavega-pzmutect2/"
+        - title: "PEZY news 2026-05-13 (PZLAST-MAG)"
+          url: "https://www.pezy.co.jp/en/news/news20260513-pzlastmag/"
+
+    - group: third_party_ai_kernel_work
+      confidence: high
+      basis: crossref_metadata
+      facts:
+        winograd_convolution_sc3s:
+          title: "Optimize Winograd Convolution for a Novel MIMD Many-core Architecture PEZY-SC3s"
+          venue: "PACT 2025"
+          date: "2025-11-03"
+          doi: "10.1109/PACT65351.2025.00045"
+          note: "only public AI kernel optimization work on PEZY hardware located to date; third-party academic, not a PEZY-shipped library"
+        pezy_dpm_sc3s:
+          title: "PEZY-DPM: Porting and optimization of the DPM Monte Carlo dose calculation code on the PEZY-SC3s MIMD processor"
+          venue: "Computer Physics Communications 328:110319"
+          doi: "10.1016/j.cpc.2026.110319"
+          crossref_indexed: "2026-08-07"
+          note: "HPC Monte Carlo port; does not imply a PEZY op library"
+        implication: "the 'no public math/op/kernel library' finding stands"
+      sources:
+        - title: "Crossref record for 10.1016/j.cpc.2026.110319"
+          url: "https://api.crossref.org/works/10.1016/j.cpc.2026.110319"
+
+  unresolved:
+    - "Existence of any PEZY PyTorch backend artifact (repo, tag, package, version) - not disclosed"
+    - "Whether the announced PyTorch path is training-capable or inference-only - not disclosed"
+    - "PZCL SDK version number and release cadence - not disclosed"
+    - "Whether PEZY-SC4s PyTorch support exists in any form - not disclosed (tied to the unreleased SC4s)"
+
+  update_sources:
+    - https://www.pezy.co.jp/en/news/news20250606-pezysc-pytorch-generativeai/
+    - https://www.pezy.co.jp/en/news/
+    - https://www.pezy.co.jp/news/
+    - https://www.pezy.co.jp/news/news20260511-humangenome-zettavega-pzmutect2/
+    - https://www.pezy.co.jp/en/news/news20260513-pzlastmag/
+    - https://api.crossref.org/works/10.1016/j.cpc.2026.110319

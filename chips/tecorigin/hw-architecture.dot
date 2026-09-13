@@ -1,0 +1,131 @@
+digraph tecorigin_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    labelloc="t";
+    label="Tecorigin SDAA — T1 chip (元碁 T100 / T110 / T111 cards)\nas_of 2026-08-08 · Peak TFLOPS, HBM bandwidth, process node, die size and TDP are ALL NOT DISCLOSED";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== HOST =====================
+    subgraph cluster_host {
+        label="Host (the master — no on-device master core is documented)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        host_cpu [label="Host CPU\nx86_64 / Hygon 海光 / Phytium 飞腾 (ARMv8)\nSunway 申威 8A (SW-64) / Loongson 龙芯 (LoongArch)\nAll five validated with full framework stacks", fillcolor="#E4DEFF"];
+        pcie [label="PCIe Gen4 ×16\nHost interface\n/dev/tcaicardN (one node per CARD)", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== CARD =====================
+    subgraph cluster_card {
+        label="元碁 T100 / T110 / T111 card — chip: T1 (T100 系列)";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        card_hdr [label="4 × SPA per card = 128 SPEs per card\nEach SPA is an INDEPENDENT SDAA device\nNO shared address space across SPAs\nCard memory: 65536 MB (64 GB) HBM, driver-reported", fillcolor="#D6E4F0"];
+
+        // ---- SPA 0 expanded ----
+        subgraph cluster_spa0 {
+            label="SPA 0  (Synergistic Processor Element Array)  — SPA 1..3 identical";
+            style="rounded,filled";
+            fillcolor="#EBF3FB";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            global0 [label="Global memory (HBM)\n15296 MB per SPA (≈14.94 GB)\nECC present\nBANDWIDTH: NOT DISCLOSED\nHBM gen / stacks / bus width: NOT DISCLOSED", fillcolor="#BBDEFB"];
+
+            ring0 [label="On-chip ring network (环网)\nGlb clock 2200 MHz (vendor-stated)\nBandwidth / bisection: NOT DISCLOSED", fillcolor="#BBDEFB"];
+
+            grid0 [label="32 × SPE, SPMD\nBehaves as an 8-column × 4-row grid\n(derived from vendor RMA / broadcast / sync cost models:\nD(x,y)=abs(x/8−y/8)+abs(x%8−y%8);\nrow buses {0-7}..{24-31}, column buses {0,8,16,24}..)\nSPE clock 2000 MHz (max 3000); benchmarks at 2.36 GHz", fillcolor="#BBDEFB"];
+
+            // ---- one SPE expanded ----
+            subgraph cluster_spe {
+                label="SPE (从核 'slave core') — 32 per SPA, fully independent core";
+                style="rounded,filled";
+                fillcolor="#E8F5E9";
+                color="#2E7D32";
+                fontcolor="#2E7D32";
+                fontname="Helvetica-Bold";
+                fontsize=11;
+                penwidth=1.5;
+
+                su [label="SU + SREG\nScalar unit\nRegister file size:\nNOT DISCLOSED", fillcolor="#C8E6C9"];
+                vpu [label="VPU + VREG\nVector unit: arithmetic, type conversion,\ncompare/select, vector load/store\nSIMD + 128-bit SIMD forms\nPhysical VREG width: NOT DISCLOSED", fillcolor="#C8E6C9"];
+                fu [label="FU — matrix / MMA engine\n128 × 32 × 32 MMA per operation\nWeight-stationary, double-buffered weight reg\nDTYPES (ONLY four):\nFP16→FP16 · FP16→FP32 · S16→S16 · S16→S32\nNO BF16 · NO TF32 · NO FP8 · NO INT8\nReads/writes SPM ONLY", fillcolor="#A5D6A7"];
+                spm [label="SPM — PRIVATE scratchpad\n≥235 KB usable (ceiling 240512 B)\nheap / stack / local partitions\nPhysical size: NOT DISCLOSED\nNO HARDWARE DATA CACHE", fillcolor="#A5D6A7"];
+                icache [label="Instruction cache\n(the ONLY cache on the device)\nSize: NOT DISCLOSED\nEvidenced by the Instruction Cache Miss counter", fillcolor="#C8E6C9"];
+            }
+        }
+
+        // ---- other SPAs collapsed ----
+        spa1 [label="SPA 1\n32 SPEs + 15296 MB Global", fillcolor="#BBDEFB"];
+        spa2 [label="SPA 2\n32 SPEs + 15296 MB Global", fillcolor="#BBDEFB"];
+        spa3 [label="SPA 3\n32 SPEs + 15296 MB Global", fillcolor="#BBDEFB"];
+
+        mpe [label="Mpe clock domain\n2000 MHz (max 2300)\nRole, count, ISA, programmability:\nALL NOT DISCLOSED\nInvisible to SDAA C and PCX\n(TecoGDB: SPE index >31 = 'special modules')", fillcolor="#FFE0B2", color="#E65100", style="rounded,filled,dashed"];
+    }
+
+    // ===================== INTERCONNECT =====================
+    subgraph cluster_fabric {
+        label="Off-card Interconnect";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        scaleup [label="Scale-up: PCIe P2P ONLY\nNO proprietary chip-to-chip link is documented\nEvidence is NEGATIVE: teco-smi topo legend is\nexactly SYS / NODE / PHB / PXB / PIX\nwith no NVLink-equivalent entry\nTeco-vLLM runs TP=8 across 2 cards over PCIe P2P", fillcolor="#F8D7DA"];
+        scaleout [label="Scale-out: standard InfiniBand / RoCE\nRequires MLNX_OFED 5.9-0.5.6.0 (+ NVIDIA SHARP 3.2.0)\nand Open MPI 4.1.5rc2, vendor-redistributed\nT1108 server: '8 IB/RoCE 高速通信'", fillcolor="#F8D7DA"];
+        rack [label="SuperPOD-128 — 128 cards per rack\nVENDOR CLAIM (太湖之光A+): 32 PFLOPS, 100 kW\nprecision unspecified\nRack interconnect topology: NOT DISCLOSED", fillcolor="#F8D7DA", style="rounded,filled,dashed"];
+    }
+
+    // ===================== EDGES =====================
+
+    host_cpu -> pcie;
+    pcie -> card_hdr [label="sdaaMemcpy (host ↔ Global)", fontsize=8];
+
+    card_hdr -> global0;
+    card_hdr -> spa1 [style=dashed];
+    card_hdr -> spa2 [style=dashed];
+    card_hdr -> spa3 [style=dashed];
+    card_hdr -> mpe [style=dashed, label="telemetry only", fontsize=8];
+
+    global0 -> ring0 [dir=both];
+    ring0 -> grid0 [dir=both];
+
+    grid0 -> spm [label="SPE array", fontsize=8];
+
+    // SPE-internal
+    global0 -> spm [label="DMA (explicit)\nmemcpy / memcpy_stride\nmemcpy_async + MemcpyHandle\n45.45 GB/s aligned, 0.92 GB/s misaligned (1 SPE)", fontsize=8, dir=both, color="#2E7D32"];
+    spm -> fu [dir=both, label="FU touches SPM only", fontsize=8, color="#2E7D32"];
+    spm -> vpu [dir=both, label="simd_load / simd_store", fontsize=8, color="#2E7D32"];
+    spm -> su [dir=both, fontsize=8, color="#2E7D32"];
+    icache -> su [style=dashed, label="instruction fetch", fontsize=8];
+
+    spm -> spm [label="RMA: SPE↔SPE SPM directly\nrma_get / rma_put (+ async)\nplus hardware row/column broadcast\n— the Sunway athread fingerprint", fontsize=8, color="#2E7D32"];
+
+    // Off-card
+    card_hdr -> scaleup [style=dashed];
+    scaleup -> scaleout [style=dashed];
+    scaleout -> rack [style=dashed];
+}

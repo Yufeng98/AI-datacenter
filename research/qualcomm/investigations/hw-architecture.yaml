@@ -1,0 +1,260 @@
+chip: qualcomm-cloud-ai-100
+investigation: hw-architecture
+date: "2026-04-05"
+confidence: high
+
+device_class: Cloud AI Inference Accelerator
+focus: Cloud AI 100 and Cloud AI 200 data center inference
+
+sku:
+  standard:
+    socs_per_card: 1
+    ai_cores: 16
+    tops_int8: 400
+    tflops_fp16: 200
+    sram_mb: 144
+    dram: "32 GB LPDDR4X, 136 GB/s"
+    tdp_w: 75
+    pcie: "Gen4 x8"
+  ultra:
+    socs_per_card: 4
+    ai_cores_total: 64
+    tops_int8: 870
+    sram_mb: 576
+    dram: "128 GB LPDDR4X, 548 GB/s"
+    tdp_w: 150
+    pcie: "Gen4 x16"
+  ai200:
+    status: announced_2026
+    dram_capacity_per_card_gb: 768
+    power_rack_kw: 160
+    direct_liquid_cooling: true
+
+ai_core_microarchitecture:
+  type: "Hexagon Q6 DSP + HVX + HMX"
+  cores_per_soc: 16
+  tensor_unit:
+    int8_ops_per_cycle: 8192
+    fp16_ops_per_cycle: 4096
+    instruction_count: 125
+  vector_unit:
+    int8_ops_per_cycle: 512
+    fp16_ops_per_cycle: 256
+    instruction_count: 700
+  scalar_unit:
+    type: "4-way VLIW"
+    hardware_threads: 6
+
+memory:
+  on_chip_sram_per_soc_mb: 144
+  noc_count: 3
+  noc_bandwidth_gbs: 186  # Compute NoC
+  dram_type: LPDDR4X
+  no_hbm: true
+
+sources:
+  - https://quic.github.io/cloud-ai-sdk-pages/latest/Getting-Started/Architecture/
+  - https://www.qualcomm.com/artificial-intelligence/data-center/cloud-ai-100-ultra
+  - https://docs.kernel.org/accel/qaic/aic100.html
+
+# =====================================================================
+# UPDATE 2026-08-08 — Qualcomm Dragonfly (Investor Day 2026-06-24)
+# Additive. Nothing above is superseded: Qualcomm published nothing
+# that contradicts the Cloud AI 100 figures.
+# =====================================================================
+update_2026_08_08:
+  as_of: "2026-08-08"
+  event: "Qualcomm Investor Day, 2026-06-24"
+
+  branding:
+    confidence: high
+    umbrella_brand: "Qualcomm Dragonfly"
+    products_named_in_pr: [C1000, AI200, AI250, AI300]
+    note: >-
+      AI200 and AI250 are the October 2025 parts retroactively rebranded. A separate
+      'connectivity / custom silicon / AI accelerator / CPU' sequence is REVENUE-RAMP
+      SEQUENCING from the Investor Day financial deck, NOT the product taxonomy; only the
+      'custom silicon revenue Q1 FY2027' and 'AI accelerator revenue H2 FY2027' legs are
+      attested (via Futurum). Do not conflate the two.
+    sources:
+      - https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent
+      - https://futurumgroup.com/insights/qualcomms-data-center-reentry-at-investor-day-2026-arrives-just-in-time-for-the-inference-decode-prize/
+
+  hbc_architecture:
+    confidence: high            # that the architecture is as described
+    name: "HBC — High Bandwidth Compute"
+    mechanism: "3D-stacked near-memory computing: DRAM stacked over XPU logic die, connected via TSVs"
+    mechanism_confidence: medium_high   # Qualcomm PR says 'near-memory computing'; DRAM-over-logic-via-TSV detail is The Register
+    strategic_position: "explicit bet against HBM"
+    generations:
+      gen1: AI250
+      gen2: AI300
+    sources:
+      - https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent
+      - https://www.theregister.com/systems/2026/06/30/qualcomms-proposed-solution-to-catch-up-in-ai-infra-bury-the-compute-under-the-dram/5264071
+
+  hbc_vendor_claims:
+    confidence: high            # high that Qualcomm CLAIMED these; the values themselves are UNAUDITED
+    claim_status: vendor_marketing_unaudited
+    methodology: not_disclosed
+    bandwidth_per_watt_vs_hbm: "6x"
+    capacity_per_watt_vs_sram: "200x"
+    disputed_by:
+      source: https://www.theregister.com/systems/2026/06/30/qualcomms-proposed-solution-to-catch-up-in-ai-infra-bury-the-compute-under-the-dram/5264071
+      argument: >-
+        The Register (2026-06-30) reports Qualcomm declined to disclose peak FLOPS for AI250 or
+        AI300 and declined to explain the 'effective bandwidth' methodology, and computes that
+        the implied ~414 TB/s aggregated across 56 AI200 chips would require an implausible
+        ~6,720-bit bus on standard LPDDR5x. Treat 18x / 54x / 133 TB/s as inflated-by-definition
+        until audited.
+    sources:
+      - https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent
+      - https://www.theregister.com/systems/2026/06/30/qualcomms-proposed-solution-to-catch-up-in-ai-infra-bury-the-compute-under-the-dram/5264071
+
+  ai200:
+    confidence: medium          # sampling status is Futurum-only
+    brand: Dragonfly
+    memory_type: LPDDR5x
+    no_hbm: true
+    dram_capacity_per_card_gb: 768      # Oct 2025 launch figure; NOT restated June 2026
+    dram_capacity_conflict: >-
+      The Register (2026-06-30) attributes 768 GB/card on LPDDR5x to AI250, not AI200.
+      Per-card capacity attribution is UNRESOLVED.
+    power_rack_kw: 160                  # Oct 2025 launch figure
+    direct_liquid_cooling: true
+    peak_flops: not_disclosed
+    peak_tops: not_disclosed
+    process_node: not_disclosed
+    tdp_w: not_disclosed
+    status: "sampling in fiscal 2026 on LPDDR5x (Investor-Day-reported); no Qualcomm PR claims production shipment"
+    sources:
+      - https://futurumgroup.com/insights/qualcomms-data-center-reentry-at-investor-day-2026-arrives-just-in-time-for-the-inference-decode-prize/
+      - https://www.theregister.com/systems/2026/06/30/qualcomms-proposed-solution-to-catch-up-in-ai-infra-bury-the-compute-under-the-dram/5264071
+
+  ai250:
+    confidence: high            # for the claims-as-stated; values unaudited
+    brand: Dragonfly
+    memory_tier: "HBC Gen 1"
+    claimed_bandwidth_per_card: "133 TB/s"          # vendor marketing, unaudited
+    claimed_bandwidth_multiple_vs_ai200: "18x effective memory bandwidth"   # vendor marketing, unaudited
+    dram_capacity_per_card_gb: not_disclosed_by_qualcomm
+    dram_capacity_reported_by_the_register_gb: 768  # on LPDDR5x; conflicts with repo AI200 attribution
+    peak_flops: not_disclosed                       # Qualcomm explicitly declined
+    process_node: not_disclosed
+    tdp_w: not_disclosed
+    sampling: "Commercial sampling of HBC Gen 1 with AI250 is expected in mid-2027 (exact Qualcomm wording)"
+    timeline_slip_narrative:
+      confidence: low
+      note: >-
+        The claim that mid-2027 sampling represents a slip from an October 2025 'commercial
+        availability in 2027' promise is PLAUSIBLE BUT UNVERIFIED — the Oct 2025 launch PR could
+        not be retrieved, and The Register still describes AI250 as 'launching 2027'. NOT asserted.
+    sources:
+      - https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent
+      - https://www.theregister.com/systems/2026/06/30/qualcomms-proposed-solution-to-catch-up-in-ai-infra-bury-the-compute-under-the-dram/5264071
+
+  ai300:
+    confidence: high            # for the claims-as-stated; values unaudited
+    brand: Dragonfly
+    status: announced_only
+    memory_tier: "HBC Gen 2 (3D-stacked near-memory compute)"
+    claimed_bandwidth_multiple: "54x increase over AI200 in effective memory bandwidth"
+    claimed_bandwidth_baseline_conflict: >-
+      Qualcomm's PR states the baseline as AI200; The Register renders the same figure as
+      54x versus AI250. PREFER THE PR.
+    claimed_perf_per_watt: "4x-8x better vs existing GPU-based architectures (stated on a memory-bandwidth-per-watt-per-card basis)"
+    platform: "air- and direct-liquid-cooled rack-level platform"
+    scale_up: [UALink, ESUN]
+    sampling: "commercial sampling expected 2028"
+    memory_capacity: not_disclosed
+    process_node: not_disclosed
+    tdp_w: not_disclosed
+    rack_power_kw: not_disclosed
+    peak_flops: not_disclosed                       # Qualcomm explicitly declined
+    sources:
+      - https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent
+      - https://www.theregister.com/systems/2026/06/30/qualcomms-proposed-solution-to-catch-up-in-ai-infra-bury-the-compute-under-the-dram/5264071
+
+  c1000_cpu:
+    confidence: high
+    brand: Dragonfly
+    status: announced_only
+    device_class: "data center CPU"
+    cores: "250+"
+    core_type: "custom Qualcomm Oryon"
+    packaging: chiplet
+    clock_ghz: ">5"
+    claimed_perf_per_watt: ">2x better vs competitive server CPUs (Qualcomm estimate)"
+    claimed_speed_the_register: "30 percent more speed"
+    host_io: ">2 TB/s PCIe Gen 7, plus CXL"
+    configurations: [agentic, general_purpose_virtualization, ai_head_node]
+    availability: 2028
+    process_node: not_disclosed
+    tdp_w: not_disclosed
+    cache_hierarchy: not_disclosed
+    memory_channels: not_disclosed
+    named_customer:
+      name: Meta
+      terms: "strategic multi-generation agreement on data center CPUs; Qualcomm 'in production starting in the second half of 2028'; no volumes, pricing or binding terms disclosed; supply agreement, not a deployment"
+      source: https://www.qualcomm.com/news/releases/2026/06/qualcomm-and-meta-announce-strategic-multi-generation-agreement-
+    sources:
+      - https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent
+      - https://www.theregister.com/systems/2026/06/24/qualcomm-claims-its-not-too-late-for-dragonfly-to-land-in-datacenters/5261758
+
+  interconnect:
+    confidence: high
+    note: "First scale-up fabric for Qualcomm in this survey; open standards, no proprietary fabric"
+    scale_up: [UALink, "ESUN (Ethernet for Scale-Up Networking)"]
+    scale_out: "Ethernet over copper and optical; 800G and 1.6T"
+    reach: "intra-data-center up to 20 km campus"
+    scale_up_bw_per_chip: not_disclosed
+    chips_per_rack: not_disclosed
+    max_system_scale: not_disclosed
+    ecosystem_supporters: "over 35 named, including Meta, Arista, Supermicro, Lenovo, Samsung SDS, SK hynix America"
+    sources:
+      - https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent
+
+  independent_validation:
+    confidence: high
+    mlperf_inference_v6_0:
+      submitted: false
+      note: "Qualcomm is not among the 24 submitters; results published 2026-04-01"
+      source: https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/
+    hot_chips_2026:
+      present: false
+      conference_dates_per_program_page: "August 24-25, 2026"
+      note: "Qualcomm absent from the HC38 speaker list"
+      source: https://hotchips.org/program/conference/
+    conclusion: "No independent benchmark or measurement exists for Cloud AI 100 / AI200 / AI250 / AI300 in this window"
+
+  financials:
+    confirmed_by_qualcomm_pr:
+      confidence: high
+      data_center_revenue_target: ">$15 billion by fiscal 2029"
+      combined_tam: "~$1.7 trillion by 2030 across all segments"
+      q3_fy2026_revenue: "$9.9 billion (reported 2026-07-29)"
+      non_handset_growth_guide: "including Data Center, from 24% YoY growth in FY2026 to >60% in FY2027"
+      sources:
+        - https://www.qualcomm.com/news/releases/2026/06/qualcomm-accelerates-diversification-with-comprehensive-strategy
+        - https://www.qualcomm.com/news/releases/2026/07/qualcomm-announces-third-quarter-fiscal-2026-results
+    investor_day_reported_only:
+      confidence: medium        # Futurum writeup only; not in any retrieved Qualcomm release
+      fy2027_data_center_target: "$5B"
+      hyperscaler_custom_silicon: ">=$1B from two unnamed global-scale hyperscaler customers"
+      fy2029_tam_split: "$680B accelerators / $200B CPU / $115B custom silicon"
+      source: https://futurumgroup.com/insights/qualcomms-data-center-reentry-at-investor-day-2026-arrives-just-in-time-for-the-inference-decode-prize/
+    rejected:
+      - "'$9.95B, down 4% YoY' for Q3 FY2026 — NOT confirmed; Qualcomm states '$9.9 billion' and the release emphasizes growth"
+      - "'first shipments December 2026' — an INFERENCE from 'meaningful revenue starting in Q1 FY2027' (Qualcomm FQ1'27 = Oct-Dec 2026); no source states it"
+
+  not_disclosed:
+    - AI300 memory capacity, process node, TDP, rack power
+    - AI250 per-card capacity (Qualcomm vs The Register conflict)
+    - Peak FLOPS/TOPS for AI200, AI250, AI300 (Qualcomm explicitly declined)
+    - Compute-engine detail (core type/count, array dimensions, clock, data types) for all Dragonfly accelerators
+    - Whether AI200 has shipped to any customer beyond sampling
+    - Identities of the two hyperscaler custom-silicon customers
+    - Any 2026 confirmation that the HUMAIN 200 MW Riyadh deployment (announced Oct/Nov 2025) has begun
+
+  excluded_as_rumor:
+    - "2026-06-16 report that Qualcomm was circling Tenstorrent in a ~$10B deal — rumor only, not entered into the survey"

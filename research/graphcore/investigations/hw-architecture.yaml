@@ -1,0 +1,282 @@
+chip: graphcore-ipu
+investigation: hw-architecture
+date: "2026-04-05"
+last_rescan: "2026-08-08"   # see rescan_2026_08_08 below — no hardware change
+status: completed
+
+chip_family:
+  vendor: Graphcore (acquired by SoftBank, July 2024)
+  brand: IPU — Intelligence Processing Unit
+  generations:
+    - name: Colossus Mk1 (GC2)
+      year: 2018
+      process: "16nm"
+      tiles: 1216
+      sram_mb: 304
+      tflops_fp16: 125
+    - name: Colossus Mk2 (GC200)
+      year: 2020
+      process: "TSMC 7nm"
+      tiles: 1472
+      sram_mb: 900
+      tflops_fp16: 250
+    - name: Bow IPU
+      year: 2022
+      process: "TSMC 7nm WoW (3D wafer-on-wafer)"
+      tiles: 1472
+      sram_mb: 900
+      tflops_fp16: 350
+  current_generation: Bow IPU
+
+execution_model:
+  paradigm: BSP  # Bulk Synchronous Parallel
+  mimd: true
+  simt: false
+  systolic_array: false
+  bsp_phases:
+    - compute   # tiles run independent vertex code on private SRAM
+    - exchange  # all-to-all SRAM DMA through IPU fabric
+    - barrier   # global hardware sync before next superstep
+  race_free: true
+  deterministic: true
+  cache_hierarchy: none  # no caches; all memory is private SRAM
+
+tile_architecture:
+  tiles_per_chip: 1472
+  hardware_contexts_per_tile: 7  # 6 worker + 1 supervisor
+  worker_threads_per_tile: 6
+  supervisor_threads_per_tile: 1
+  total_worker_threads: 8832  # 6 * 1472
+  scheduling: barrel_round_robin  # 1 instruction per context per cycle
+  execution_order: in_order
+  vector_unit: "FP16 MAC (2x FP16/cycle)"
+  integer_alu: "32-bit"
+  fp32_fpu: true
+  out_of_order: false
+  hardware_prefetch: false
+
+memory:
+  in_processor_memory:
+    type: SRAM
+    per_tile_kb: 624
+    total_chip_mb: 900
+    access: private_per_tile  # no shared access
+    latency: deterministic
+  streaming_memory:
+    type: DDR4
+    per_ipu_gb: 112
+    per_m2000_gib: 448
+    aggregate_bandwidth_tbs: 180  # for 4 IPUs in M2000
+    access_model: explicit_copy  # must DMA into SRAM before compute
+  no_hbm: true
+  no_dram_on_chip: true
+
+clock_and_power:
+  gc200_clock_ghz: 1.35
+  bow_clock_ghz: 1.85
+  bow_wow_benefit: "Capacitor reservoirs on power die allow higher freq at lower VDD"
+  perf_improvement_bow_vs_mk2: "40% TFLOPS, 16% better efficiency"
+
+on_chip_interconnect:
+  name: IPU Exchange
+  bandwidth_tibs: 11  # all-to-all aggregate
+  topology: non_blocking_all_to_all
+  routing: static  # Poplar compiler schedules exchange statically
+  communication_model: memory_to_memory_DMA
+
+off_chip_interconnect:
+  ipu_link:
+    description: "Direct IPU-to-IPU links within IPU-Machine M2000"
+    bandwidth_gbps_per_pair: 64
+    topology: fully_connected_within_m2000
+  gw_link:
+    description: "Gateway links between IPU-Machine racks"
+    topologies:
+      - looped  # ring-like direct cables, up to ~POD256
+      - switched  # network switch, for large clusters
+    use_case: "Multi-rack IPU-POD scaling"
+
+system_platforms:
+  ipu_m2000:
+    form_factor: 1U
+    ipus: 4
+    streaming_memory_gib: 448
+    avg_power_kw: 1.25
+  ipu_pod:
+    pod4: {ipus: 4, pflops: 1.4}
+    pod16: {ipus: 16, pflops: 5.6}
+    pod64: {ipus: 64, pflops: 22}
+    pod128: {ipus: 128, pflops: 45}
+    pod256: {ipus: 256, pflops: 90}
+    max: {ipus: 65536, eflops: 16}
+
+die_specs_gc200_bow:
+  transistors_billions: 59.4
+  die_area_mm2: 823
+  layers_3d: 2  # active die + power delivery die (Bow only)
+  bonding: "Cu-Cu hybrid bond (Bow)"
+
+key_differentiators:
+  - "900 MB SRAM on-chip (vs ~50 MB L2 on H100) — 18x more on-chip SRAM"
+  - "11 TiB/s on-chip BW — ~3,000x H100 HBM BW"
+  - "MIMD: each tile runs independent ISA stream (vs GPU SIMT warp lockstep)"
+  - "BSP: race-free, deadlock-free, bit-reproducible execution"
+  - "No caches: deterministic latency, software-managed data placement"
+  - "First production 3D WoW chip (Bow, 2022)"
+  - "Sparsity-native: tiles branch independently on irregular data"
+
+acquisition:
+  acquirer: SoftBank Group
+  date: "2024-07"
+  value_usd_millions: ~500   # SUPERSEDED 2026-08-08 — see rescan_2026_08_08.acquisition_price_correction
+  status: "Operates as SoftBank subsidiary under Graphcore name"
+  product_continuity: "IPU line continues; next-gen timeline not announced"
+  last_sdk_release: "Poplar SDK 3.4.0, March 2024"
+
+# =====================================================================
+# Appended 2026-08-08 — roadmap re-scan (window 2026-04-01 -> 2026-08-08)
+# Verdict: NO hardware change. All fields above remain valid.
+# =====================================================================
+rescan_2026_08_08:
+  date: "2026-08-08"
+  window: "2026-04-01 to 2026-08-08"
+  prior_investigation_date: "2026-04-05"
+  hardware_changed: false
+  current_generation: Bow IPU   # unchanged
+  summary: >-
+    No new IPU silicon and no new Poplar SDK in the window. Bow (2022) remains the
+    current and only shipping part. The material in-window developments are corporate:
+    an ongoing SoftBank recapitalisation and the departure of the last technical co-founder.
+
+  confirmed_negatives:
+    - fact: "No next-generation IPU (no Mk3, no post-Bow part) announced between 2026-04-01 and 2026-08-08."
+      confidence: high
+      basis: "Absence across all Graphcore public channels; blog index in 2026 is recruiting/culture/office posts only."
+      sources:
+        - https://www.graphcore.ai/posts
+    - fact: "Graphcore does not appear anywhere in the Hot Chips 38 advance program (Aug 23-25, 2026); no hardware disclosure is scheduled there."
+      confidence: high
+      sources:
+        - https://hotchips.org/advance-program/
+    - fact: >-
+        The only 2026 Graphcore technical blog post, "Stochastic Rounding: How randomness helps us
+        build better models" (2026-05-26), describes the EXISTING GC200/Bow FP16.SR hardware feature.
+        Not a new-hardware disclosure.
+      confidence: high
+      sources:
+        - https://www.graphcore.ai/posts
+    - fact: "No new datapath (FP8, BF16, INT4) and no HBM-bearing IPU. Streaming Memory is still DDR4."
+      confidence: high
+      basis: "No public Graphcore material describes one."
+    - fact: "Process node for any successor part: not disclosed."
+      confidence: high
+
+  rejected_claims:
+    - claim: "Graphcore/Ampere co-developed 'Izanagi' chip for SoftBank Stargate deployments in 2026."
+      status: NOT_CONFIRMED
+      confidence: low
+      assessment: >-
+        Analyst commentary only; no primary Graphcore or SoftBank confirmation. Likely conflates
+        SoftBank's separately-reported Izanagi initiative with Graphcore. MUST NOT be written into
+        the survey, comparison tables, or generation lists as fact.
+      sources:
+        - https://www.jonpeddie.com/news/graphcores-ipu-doing-well-at-softbank/
+
+  corporate_context:   # not hardware, but drives the "roadmap uncertain" limitation
+    softbank_recapitalisation:
+      fact: >-
+        Graphcore issued a single share to SoftBank valued at roughly $457M, recorded in a UK
+        Companies House SH01 filed 2026-04-13; reported by CNBC on 2026-05-12 as a ~$450M injection.
+        Further RES10 allotment resolutions and SH01 filings on 2026-05-29, 2026-06-08, 2026-07-24
+        and 2026-08-04, plus articles re-adopted 2026-04-30, indicate an ongoing recapitalisation
+        rather than a one-off event.
+      value_usd_millions: 457
+      value_provenance: press_derived_from_registry_filing   # NOT a vendor statement
+      confidence: high   # primary registry filings
+      sources:
+        - https://find-and-update.company-information.service.gov.uk/company/10185006/filing-history
+        - https://www.cnbc.com/2026/05/12/softbank-graphcore-ai-chip-investment.html
+        - https://techfundingnews.com/softbank-hands-graphcore-450m-as-the-chipmaker-once-considered-a-british-nvidia-rival-rebuilds-its-business/
+    leadership:
+      fact: >-
+        Nigel Toon, co-founder and Executive Chair, stepped down with effect from 2026-07-31;
+        Companies House records the directorship terminated 2026-07-30 (TM01 filed 2026-08-06),
+        a one-day discrepancy against the announcement. Marcus William McElroy leads the company
+        but was appointed a director on 2025-12-18 -- July 2026 was Toon's exit, not McElroy's
+        arrival. McElroy's title is NOT vendor-confirmed: Graphcore's post says only that he
+        "takes the helm"; Bristol24/7 calls him "chief executive"; theofficialboard lists
+        General Manager.
+      confidence: high   # registry + vendor post + independent press
+      sources:
+        - https://find-and-update.company-information.service.gov.uk/company/10185006/officers
+        - https://www.graphcore.ai/posts/graphcore-co-founder-and-executive-chair-nigel-toon-steps-down
+        - https://www.bristol247.com/business/news-business/co-founder-of-billion-dollar-bristol-ai-firm-steps-down/
+    cofounder_departures:
+      fact: >-
+        Simon Knowles, co-founder and IPU chief architect, ceased to be a director on 2025-08-20.
+        With Toon's 2026-07-31 exit, both technical co-founders have now left the company.
+      confidence: high
+      sources:
+        - https://find-and-update.company-information.service.gov.uk/company/10185006/officers
+        - https://sifted.eu/articles/graphcore-cofounder-exits-company-one-year-on-from-softbank-acquisition
+    acquisition_price_correction:
+      fact: >-
+        The "~$500M" acquisition price above is an estimate, not a disclosed figure. Deal terms were
+        never officially disclosed. Sifted reported "$600m+"; Jon Peddie Research reported
+        "$500-600 million". Correct phrasing: "reported at roughly $500-600M; terms not officially
+        disclosed."
+      confidence: high
+      sources:
+        - https://sifted.eu/articles/graphcore-cofounder-exits-company-one-year-on-from-softbank-acquisition
+        - https://www.jonpeddie.com/news/graphcores-ipu-doing-well-at-softbank/
+    acquisition_timing_corroboration:
+      fact: >-
+        July 2024 acquisition timing is corroborated by the register: SoftBank-side directors
+        Ippei Mimura and Jared Roscoe were appointed 2024-07-11, the same day seven prior
+        investor-directors resigned. Graphcore's own framing is a partnership with SoftBank
+        Corporation from 2023 followed by acquisition of the business in summer 2024.
+      confidence: high
+      sources:
+        - https://find-and-update.company-information.service.gov.uk/company/10185006/officers
+    headcount_and_sites:
+      headcount_claim: "approaching 1,000 employees"
+      headcount_confidence: low   # self-reported vendor claim, no independent corroboration found
+      development_centres:
+        - Austin, Texas, USA
+        - Bengaluru, India
+        - Taipei, Taiwan
+        - Hsinchu City, Taiwan
+        - "Gdansk, Poland"
+        - Cambridge, UK
+        - London, UK
+      global_hq_planned: "Bristol, UK — September 2026"
+      site_events:
+        - site: Bengaluru AI Engineering Campus
+          event: inaugurated
+          event_date: "2026-05-06"
+          blog_post_date: "2026-05-14"   # post date is NOT the event date
+          confidence: high
+        - site: Taipei office
+          event: officially opened
+          event_date: "2026-06-04"
+          blog_post_date: "2026-08-03"   # post date is NOT the event date
+          confidence: high
+      india_investment:
+        announced: "2025-10-09"   # predates the 2026-04-05 repo baseline; previously absent from repo
+        amount_gbp_billions: 1
+        amount_alt_framing_usd_billions: 1.3   # Bloomberg / Indian outlets; same commitment, different currency framing
+        horizon: "roughly a decade"
+        jobs: 500
+        confidence: high
+        sources:
+          - https://www.datacenterdynamics.com/en/news/softbanks-graphcore-announces-1bn-investment-in-india-opens-ai-engineering-campus-in-the-country/
+      sources:
+        - https://www.graphcore.ai/posts/graphcores-bengaluru-campus-opens-its-doors
+        - https://www.graphcore.ai/posts/welcome-to-graphcore-taipei
+        - https://www.graphcore.ai/posts/graphcore-co-founder-and-executive-chair-nigel-toon-steps-down
+
+  status_verbs:
+    announced_silicon: false
+    sampling: false
+    shipping_new_part: false
+    note: "In-window facts are a completed funding event, a completed leadership exit, and completed office openings."

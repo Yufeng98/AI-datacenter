@@ -1,0 +1,173 @@
+chip: etched-sohu
+investigation: software-stack
+as_of: 2026-08-08
+baseline_as_of: 2026-04-05  # everything not under update_2026_08_08 is the Gen 1 (Sohu, 2024) baseline
+confidence_overall: low  # SDK still not released as of 2026-08-08; all inferred from architecture + public statements
+
+key_findings:
+  - finding: "No user-programmable ISA — hardware is the computation, no CUDA/PTX equivalent"
+    confidence: confirmed
+    source: architectural constraints + Etched statements
+  - finding: "Transformer-specific compiler — maps PyTorch/ONNX model to Sohu execution binary"
+    confidence: confirmed-in-principle
+    source: Etched marketing ('few lines of code to port')
+  - finding: "No separate op library or kernel library layer — ops are hardware blocks"
+    confidence: confirmed
+    source: architectural constraints
+  - finding: "Thin runtime — model loader + I/O manager, no dynamic dispatch"
+    confidence: inferred
+    source: architectural constraints
+  - finding: "SDK not publicly released as of Q1 2026"
+    confidence: confirmed
+    source: no public SDK found in search
+  - finding: "OpenAI-compatible serving API likely (industry standard; not confirmed)"
+    confidence: speculative
+    source: inference from industry norms
+  - finding: "MoE routing handled by separate hardware variant"
+    confidence: confirmed
+    source: Etched announcements
+
+stack_layers:
+  - layer: framework_integration
+    components: [PyTorch_export, ONNX]
+    confidence: inferred
+  - layer: compiler
+    name: Etched Transformer Compiler
+    inputs: [PyTorch_graph, ONNX]
+    outputs: [Sohu_execution_binary]
+    tasks: [architecture_validation, weight_packing, pipeline_mapping, binary_generation]
+    open_source: false
+    released: false
+    confidence: confirmed-in-principle
+  - layer: runtime
+    description: thin_loader_and_io_manager
+    dynamic_dispatch: false
+    kernel_scheduling: false
+    confidence: inferred
+  - layer: driver
+    type: PCIe_kernel_driver
+    firmware_on_chip: none  # fixed pipeline ASIC needs no firmware runtime
+    confidence: inferred
+  - layer: serving_api
+    format: likely_openai_compatible_http
+    confidence: speculative
+
+absent_layers:
+  - no_user_isa
+  - no_kernel_library
+  - no_op_library
+  - no_collective_comm_library_disclosed
+  - no_profiler_released
+  - no_assembler
+
+supported_architectures:
+  - dense_transformer_mha: confirmed
+  - grouped_query_attention: likely
+  - multi_query_attention: likely
+  - mixture_of_experts: confirmed_variant
+  - sliding_window_attention: unknown
+  - ssm_mamba: not_supported
+  - cnn: not_supported
+  - rnn: not_supported
+
+# =====================================================================
+# 2026-08-08 UPDATE — software signals from the June/July 2026 posts.
+# Headline: no SDK, no compiler, no runtime docs, no API, no open source.
+# Prior-generation facts above are retained unchanged.
+# =====================================================================
+update_2026_08_08:
+  investigated: "2026-08-08"
+  change_class: minor  # the major update for this chip is on the hardware side
+  headline: "No public software artifact of any kind was released. Software appears only as a named co-design axis and in hiring copy."
+
+  still_true:
+    facts:
+      - fact: "No public SDK, compiler, runtime documentation, profiler, API reference, or open-source repository"
+        confidence: confirmed-absence
+      - fact: "No user-programmable ISA disclosed; no contrary statement published"
+        confidence: confirmed-absence
+      - fact: "No serving API or endpoint format published"
+        confidence: confirmed-absence
+    sources:
+      - "https://www.etched.com/ (retrieved 2026-08-08)"
+      - "https://www.etched.com/progress (retrieved 2026-08-08)"
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+      - "https://www.etched.com/progress/accelerating-inference (2026-07-23)"
+
+  software_as_codesign_axis:
+    facts:
+      - fact: "Etched markets co-designing 'chips, racks, software, and manufacturing methods' for 'frontier inference systems'"
+        confidence: confirmed  # vendor wording
+        technical_content: none
+      - fact: "David Munday is listed as VP of Software on etched.com/join (alongside Brian Loiler, VP Platform; Wayne Cao, VP Production)"
+        confidence: confirmed
+        implication: "A VP-level software org is consistent with more than a thin loader, but no product or stack layer is described."
+        implication_confidence: inferred
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+      - "https://www.etched.com/join (retrieved 2026-08-08)"
+
+  recursive_kernel_generation:
+    facts:
+      - fact: "Verbatim from the 2026-07-23 /progress post: 'thousand-chip scale-up domains, in-house SMT lines, and new RL environments for recursive kernel generation'"
+        confidence: confirmed  # the quote exists
+        provenance: "closing hiring pitch of the /progress post; NOT on /join"
+      - fact: "The word 'kernel' is in tension with the repo's 'no op library / no kernel library / no ISA' layer rows for this chip"
+        confidence: confirmed  # the tension is real
+      - fact: "What 'kernel' denotes here"
+        value: not_disclosed
+        confidence: not-disclosed
+        candidate_readings:
+          - "(a) loose usage for compiler-emitted schedules/tilings, not GPU-style programmable kernels"
+          - "(b) the Gen 2 part is more programmable than Sohu was described to be"
+          - "(c) an internal LLM/RL tooling effort unrelated to the product's programming surface"
+    rule: "Record as a signal only. Do NOT revise the 'no kernel library' layer rows on the strength of one hiring sentence. Flag the tension and revisit on any technical publication."
+    confidence: claimed-unverified
+    sources:
+      - "https://www.etched.com/progress (2026-07-23 post, retrieved 2026-08-08)"
+
+  communication_layer:
+    facts:
+      - fact: "Cluster Scale Memory exposes 'a much lower-latency shared memory pool across our scale-up domain' via 'a proprietary ultra-low-latency, high-bandwidth interconnect'"
+        confidence: claimed-unverified  # hardware claim, vendor-only
+      - fact: "Software interface to that pool — API, collectives library, memory model, coherence semantics, addressing"
+        value: not_disclosed
+        confidence: not-disclosed
+      - fact: "No NCCL-analogue or collectives library has ever been disclosed by Etched"
+        confidence: confirmed-absence
+    note: "A memory-semantic thousand-chip domain would change what a collectives layer must do; this is an inference, not a disclosure."
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+      - "https://techcrunch.com/2026/07/23/ai-chip-startup-etched-defies-skeptics-hits-10-3b-valuation-from-big-name-investors/"
+
+  workload_scope:
+    facts:
+      - fact: "Platform now marketed for BOTH prefill and decode; targets many-trillion-parameter sparse MoEs, long context, and agentic workloads"
+        confidence: confirmed  # vendor
+      - fact: "How the toolchain handles MoE expert routing at thousand-chip scale, long-context KV-cache management, or agentic multi-turn/tool-calling patterns"
+        value: not_disclosed
+        confidence: not-disclosed
+    note: "The 2024 software model (compile transformer graph -> pack weights -> fixed pipeline) has no published account of any of these."
+    sources:
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"
+
+  open_questions_2026_08_08:
+    - "Compiler name, input format, IR, output binary format"
+    - "Whether a kernel-level or ISA-level programming surface exists on the Gen 2 part"
+    - "Runtime architecture, scheduler, batching policy"
+    - "Collectives / communication library for the scale-up domain"
+    - "Memory model and coherence semantics of the CSM shared pool"
+    - "Serving API and endpoint format"
+    - "Supported-model list and quantization/data-type support in the toolchain"
+    - "Profiler, debugger, model-compatibility checker"
+    - "Any open-source component"
+
+  disclosure_watch:
+    facts:
+      - fact: "Etched is a Rhodium-level sponsor of Hot Chips 2026 (Aug 23-25, 2026) with NO talk in the advance program — no software disclosure is scheduled there"
+        confidence: confirmed
+      - fact: "Etched promised 'more updates on our performance and roadmap this summer' (2026-06-30); unpublished as of 2026-08-08"
+        confidence: confirmed
+    sources:
+      - "https://www.hotchips.org/advance-program/ (retrieved 2026-08-08)"
+      - "https://www.etched.com/progress/frontier-inference-clusters (2026-06-30)"

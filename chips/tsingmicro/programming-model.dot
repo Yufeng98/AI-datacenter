@@ -1,0 +1,197 @@
+digraph tsingmicro_pm {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    labelloc="t";
+    fontname="Helvetica-Bold";
+    fontsize=14;
+    label="Tsingmicro TX81 — RAISA Stack / Programming Model\nSolid boxes = open source.  Grey boxes = closed binary.\nEverything below LLVM IR is a closed binary from an internal vendor artifact server.";
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration  (device \"txda\", PrivateUse1)";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pytorch [label="PyTorch 2.7.0\ndevice \"txda\"", fillcolor="#D6E4F0"];
+        torchtxda [label="torch_txda  [CLOSED wheel]\nRegisters txda via PrivateUse1\ntorch.txda.{is_available,\nset_device, current_stream, ...}", fillcolor="#E0E0E0"];
+        flaggems [label="FlagGems _tsingmicro  [OPEN]\nBAAI Triton operator library\ntune_configs.yaml: 1313 lines,\n~37 op families\nfp64/int64 disabled", fillcolor="#D6E4F0"];
+        serving [label="vllm-plugin-FL / sglang-plugin-FL\nFlagScale / Megatron-LM-FL\n[OPEN forks, THIN]\n~0 stars; upstream PyTorch-Plugin-FL\nhas no txda backend", fillcolor="#D6E4F0"];
+        txops [label="txops  [CLOSED wheel]\nVendor PyTorch op package", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== GRAPH LAYER =====================
+    subgraph cluster_graph {
+        label="Graph Layer  —  the weakest link";
+        style="rounded,dashed";
+        color="#B71C1C";
+        fontcolor="#B71C1C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        nocapture [label="Graph capture: NONE PUBLIC\nNo torch.compile / Dynamo / FX\nExecution is per-kernel Triton JIT\n+ FlagGems op dispatch", fillcolor="#FFEBEE"];
+        raisagraph [label="RAISA graph optimisation  [CLOSED]\n\"计算图进行全局优化\"\nComponent name, IR, artifact:\nNOT DISCLOSED\n~60 ops still fall back to CPU\n(TXDA_FALLBACK_CPU_OPS)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== KERNEL LANGUAGE =====================
+    subgraph cluster_lang {
+        label="Kernel Language";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        triton [label="Triton 3.3  [OPEN]\nThe public kernel language for TX81\n(pinned to 3.3 while other FlagTree\nvendors moved to 3.6)", fillcolor="#E4DEFF"];
+        libdevice [label="triton.language.extra.txda\nlibdevice (51 KB)  [OPEN]\nMath builtins → Tx81 intrinsics", fillcolor="#E4DEFF"];
+        tledsa [label="TLE-DSA  [OPEN]\ntle.dsa.alloc(scope=spm)\n.copy(GM↔SPM, SPM↔SPM)\n.local_ptr()\n→ explicit scratchpad control", fillcolor="#E4DEFF"];
+        tledist [label="TLE-distributed  [OPEN]\ntle.device_mesh / sharding\ntle.shard_id / tle.remote\ntle.distributed_barrier\ntle.distributed_dot\n→ how the MESH is programmed", fillcolor="#E4DEFF"];
+        ccpp [label="\"自研 C/C++ 接口语言\"\n[CLAIMED, NOT PUBLIC]", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== KERNEL COMPILER =====================
+    subgraph cluster_compiler {
+        label="Kernel Compiler — FlagTree third_party/tsingmicro (609 files, triton_v3.3.x)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        ttir [label="ttir  [OPEN]\ninliner, ttir-combine, canonicalize,\nreorder-broadcast, CSE, LICM", fillcolor="#D4EDDA"];
+        coreir [label="coreir  [OPEN]\n--triton-to-core-dialects (linalg/memref)\n--tle-to-mk   --dsa-memory-to-core\n--linalg-tiling   --linalg-fusion\n--core-dialects-to-mk=precision-mode={0,1,2}\n--one-shot-bufferize\n--mk-pipeline (num_stages CLAMPED to 2)", fillcolor="#D4EDDA"];
+        txir [label="txir  [OPEN]\n--spmd-allocate-shared-memory\n  (SPM liveness allocator → triton_tsm.spm_use)\n--mk-to-tx81   (103 KB of patterns)\n--tx81-insert-barrier\n--tx81-resolve-dma-base-addr", fillcolor="#D4EDDA"];
+        llir [label="llir  [OPEN passes]\n--tx81-memref-to-llvm  --addr-to-llvm\n--kernel-arg-buffer\n--tx81-to-llvm (118 KB)\n→ mlir-translate --mlir-to-llvmir", fillcolor="#D4EDDA"];
+        dialects [label="MLIR dialects  [OPEN]\nAddress · triton-shared · DSA\nMagicKernel (30 KB, ~90 ops)\nTx81 (47 KB, ~150 ops)\n= an operation-level model\nof the accelerator", fillcolor="#D4EDDA"];
+        llvm21 [label="tsingmicro-llvm21  [CLOSED]\nVendor LLVM 21 fork\nInternal codename \"ZTC\"\nSource on private gitlab", fillcolor="#E0E0E0"];
+        riscvgen [label="RISC-V codegen\nclang++ --target=riscv64-unknown-elf\n  -march=rv64imfdc -O2\nriscv64-unknown-elf-gcc -shared -mabi=lp64d\n-lcommon_util -linstr_rcs1 -llibc_stub -lvr\nT-Head XuanTie-900 SDK V2.8.0", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== BINARY =====================
+    subgraph cluster_binary {
+        label="Kernel Binary";
+        style="rounded,dashed";
+        color="#00838F";
+        fontcolor="#00838F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        kernelso [label="kernel.so\nRISC-V shared object (NOT a cubin)\nScalar RISC-V code that BUILDS and\nDISPATCHES engine command descriptors\nmetadata[\"shared\"] = SPM bytes used", fillcolor="#B2EBF2"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime  (Kuiper SDK — all closed)";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        txruntime [label="tx_runtime.h / libhpgr  [CLOSED]\n/usr/local/kuiper\nHIP-SHAPED API:\ntxLaunchKernelGGL, txMalloc,\ntxMemcpyAsync, txStreamCreate,\ntxEventRecord, txIpcGetMemHandle\n(API shape ≠ CUDA compatibility)", fillcolor="#E0E0E0"];
+        oplib [label="oplib_rcs1 / tx8be-oplib  [CLOSED]\nlibinstr_rcs1.a  [CLOSED]\n= the accelerator command ABI", fillcolor="#E0E0E0"];
+        tccl [label="TCCL  [CLOSED]\nTsingMicro Collectives Library\nNCCL-shaped: tcclComm_t,\ntcclRedOp_t, tcclDataType_t\nAlgorithms + achieved BW:\nnot disclosed", fillcolor="#E0E0E0"];
+        flagcx [label="FlagCX adaptors  [OPEN]\ntccl_adaptor.cc\ntsmicro_adaptor.cc/.h\nAll 12 collectives, homo + hetero", fillcolor="#F8D7DA"];
+        profiler [label="Profiling  [MIXED]\ntx-profiler IR pass  [OPEN]\nprofiling_tool v5.6.0  [CLOSED]\nENABLE_PROFILING, TRACE_POINTS", fillcolor="#F8D7DA"];
+        sim [label="Simulation  [CLOSED]\ntriton_cmodel, tx8be_op_cmodel,\nneuralcore_qemu  (USE_SIM_MODE=1)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware  (all closed)";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        kmod [label="Kernel driver  [CLOSED, NOT PUBLIC]\nShips inside the Kuiper SDK\nModule name + IOCTL: not disclosed\nCLI: tsm_smi (nvidia-smi analogue)", fillcolor="#E0E0E0"];
+        fw [label="tx81fw / rcs1fw-rtt  [CLOSED]\nRT-Thread SMP via T-Head YoC\n(tx8-yoc-rt-thread-smp)\nRuns on each tile's RISC-V kcore", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="TX81 Hardware — Reconfigurable Dataflow RPU";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        hwtiles [label="16 tiles, 4 × 4 mesh\nPer tile: RISC-V RV64IMFDC kcore\n+ neural engine (I_NEUR)\n+ RDMA/WDMA (I_RDMA) + DTE\n+ vector / layout / reduction units", fillcolor="#283593", fontcolor="white"];
+        hwmem [label="Memory: TWO address spaces only\nSPM 3 MiB/tile (48 MiB aggregate)\nDDR 64 GB — technology + BW\nNOT DISCLOSED\nNO HARDWARE DATA CACHE", fillcolor="#283593", fontcolor="white"];
+        hwnet [label="Interconnect\nOn-chip: 2-D mesh NoC + globally\naddressable peer SPM\nScale-up: switchless mesh/torus,\n(chip_x, chip_y, die, tile)\nHost: PCIe (gen/lanes not disclosed)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // framework
+    pytorch -> torchtxda [label="PrivateUse1", fontsize=8];
+    pytorch -> flaggems [style=dashed, color="#AAAAAA"];
+    serving -> flaggems [style=dashed, color="#AAAAAA"];
+    txops -> torchtxda [style=dashed, color="#AAAAAA"];
+
+    // framework -> graph
+    flaggems -> nocapture [style=dashed, color="#AAAAAA", label="no whole-graph path", fontsize=8];
+    nocapture -> raisagraph [style=dotted, color="#B71C1C", label="claimed only", fontsize=8];
+
+    // -> kernel language
+    flaggems -> triton [label="Triton kernels", fontsize=8];
+    triton -> libdevice [style=dashed, color="#AAAAAA"];
+    triton -> tledsa [style=dashed, color="#AAAAAA"];
+    triton -> tledist [style=dashed, color="#AAAAAA"];
+
+    // language -> compiler
+    triton -> ttir [label="AST", fontsize=8];
+    tledsa -> coreir [style=dashed, label="--dsa-memory-to-core", fontsize=8];
+    tledist -> coreir [style=dashed, label="--tle-to-mk", fontsize=8];
+
+    // compiler chain
+    ttir -> coreir;
+    coreir -> txir;
+    txir -> llir;
+    dialects -> txir [style=dashed, color="#AAAAAA", label="Tx81 ops", fontsize=8];
+    llir -> llvm21 [label="LLVM IR", fontsize=8];
+    llvm21 -> riscvgen;
+    riscvgen -> kernelso [label="link -linstr_rcs1", fontsize=8];
+
+    // binary -> runtime
+    kernelso -> txruntime [label="txLaunchKernelGGL\n(grid=tiles, block=1×1×1)", fontsize=8];
+    torchtxda -> txruntime [style=dashed, color="#AAAAAA"];
+    oplib -> kernelso [style=dashed, color="#AAAAAA", label="intrinsics", fontsize=8];
+    tccl -> txruntime [style=dashed, color="#AAAAAA"];
+    flagcx -> tccl [label="adaptor", fontsize=8];
+    profiler -> txruntime [style=dashed, color="#AAAAAA"];
+    sim -> txruntime [style=dotted, color="#AAAAAA", label="USE_SIM_MODE", fontsize=8];
+
+    // runtime -> driver
+    txruntime -> kmod;
+    kmod -> fw [style=dashed, label="loads firmware", fontsize=8];
+
+    // driver -> hardware
+    kmod -> hwtiles [style=dashed, color="#283593"];
+    fw -> hwtiles [style=dashed, color="#283593", label="runs on kcore", fontsize=8];
+
+    // hardware internal
+    hwtiles -> hwmem [color="#283593", label="RcsExecute →\noperands in SPM", fontsize=8];
+    hwmem -> hwnet [style=dashed, color="#283593"];
+}

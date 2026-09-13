@@ -1,0 +1,292 @@
+chip: hygon-dcu
+resource: hw-architecture
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+device_class: "GPU/DCU (China, 海光)"
+status: completed
+
+# NOTE (2026-08-08): every key in the legacy blocks below (compute_engine,
+# on_chip_memory, off_chip_memory, host_interface, scale_up, scale_out, package)
+# is scoped to 深算一号 (Y100) / 深算二号 (Z100, Z100L) / K100 / K100_AI.
+# The CURRENT flagship is 深算三号 (BW1000) and NONE of these values apply to it.
+# See update_2026_08_08 at the end of this file.
+generation_scope_of_legacy_blocks: "Y100 / Z100 / Z100L / K100 / K100_AI only — NOT 深算三号 (BW1000)"
+
+compute_engine:
+  architecture: GCN/Vega-derived SIMT (AMD-lineage)
+  wavefront_size: 64
+  simd_width: 16
+  cus_z100_class: ~60
+  cus_k100_class: ~64
+  clock_ghz: 1.7
+  fp32_tflops:
+    z100_class: ~45 (est.)
+    shen_suan_2: 90
+  fp16_tflops:
+    z100_class: ~90 (est.)
+    shen_suan_2: 180
+  data_types: [FP64, FP32, FP16, BF16, INT8, INT4]
+  tensor_unit: "No dedicated Tensor Core; FP16/BF16 via SIMD wide ops"
+
+on_chip_memory:
+  lds_per_cu_kb: 64
+  vgpr_per_simd_kb: 64
+  max_vgpr_per_thread: "256x 32-bit"
+  l2_cache_mb_est: "4-8"
+
+off_chip_memory:
+  z100:
+    type: HBM2
+    capacity_gb: 16-32
+    bandwidth_tbs: 1.0
+  z100l:
+    type: HBM2
+    capacity_gb: 32
+    bandwidth_tbs: 1.0
+  k100_ai:
+    type: HBM2e (est.)
+    capacity_gb: 64
+    bandwidth_tbs: ~1.2
+    tdp_w: 400
+  shen_suan_1_y100:
+    type: HBM2
+    capacity_gb: 32
+    bandwidth_tbs: 1.0
+    channels: 4
+
+host_interface:
+  type: PCIe Gen4 x16
+  form_factor: FHFL dual-slot
+
+scale_up:
+  protocol: xGMI (AMD Infinity Fabric derivative)
+  bandwidth_gb_s: 184
+  topology: peer-to-peer multi-card
+
+scale_out:
+  protocol: Standard Ethernet / RoCE v2
+  library: DTK RCCL
+
+package:
+  type: 2.5D interposer with HBM stacks
+  process_est: TSMC 7nm (est.)
+
+key_differentiators:
+  - "x86 Hygon C86 (Zen-derived) CPU + DCU GPU in same vendor ecosystem"
+  - "ROCm-compatible HIP programming model via DTK"
+  - "64-thread wavefront (same as AMD CDNA)"
+  - "xGMI scale-up (AMD Infinity Fabric compatible)"
+  - "Entity-listed (US 2019) but manufacturing independent"
+  # CORRECTED 2026-08-08: the merger did not complete.
+  - "Sugon (中科曙光) absorption merger announced 2025-05-25 was TERMINATED by Hygon board 2025-12-09; Sugon remains independently listed (603019.SH)"
+
+# =====================================================================
+# UPDATE 2026-08-08 — 深算三号 (BW1000) flagship correction + merger termination
+# =====================================================================
+update_2026_08_08:
+  update_date: "2026-08-08"
+  change_class: major
+  framing: >-
+    NOT a new-in-window (Apr-Aug 2026) product launch. 深算三号 BW1000 launched in 2025 and was
+    publicly deployed by 2025-12-17. This update fixes a MISS plus two pre-existing repo errors.
+
+  corrections_to_prior_baseline:
+    - id: E1
+      prior_statement: "Current AI flagship is the K100_AI (64 GB, 400 W)"
+      corrected_statement: "Current DCU flagship is 深算三号 (BW1000); K100_AI is the prior generation"
+      confidence: confirmed
+      sources:
+        - https://finance.sina.com.cn/jjxw/2025-12-11/doc-inhakwak9142063.shtml
+        - https://www.ictnj.ac.cn/newsinfo/10874852.html
+        - https://baike.baidu.com/item/%E6%B7%B1%E7%AE%97%E4%B8%89%E5%8F%B7/67723890
+    - id: E2
+      prior_statement: "Merger with Sugon announced May 2025 (recorded as a live transaction)"
+      corrected_statement: "Hygon board terminated the Sugon absorption merger on 2025-12-09; Sugon did not delist"
+      confidence: confirmed
+      sources:
+        - https://www.caixin.com/2025-12-09/102391669.html
+        - https://www.yicai.com/news/102948899.html
+        - https://www.jiemian.com/article/13741594.html
+        - https://finance.eastmoney.com/a/202512093586757039.html
+        - https://www.guancha.cn/economy/2025_12_10_799933.shtml
+        - https://news.10jqka.com.cn/20251209/c673085520.shtml
+
+  shensuan_3_bw1000:
+    identity:
+      product_name_zh: 深算三号
+      product_name_en: Shensuan No.3
+      model: BW1000
+      series_reference: "DCU 8300 (secondary listings only; not vendor-confirmed)"
+      role: current DCU flagship
+      launch_year: 2025
+      confidence: confirmed
+      sources:
+        - https://baike.baidu.com/item/%E6%B7%B1%E7%AE%97%E4%B8%89%E5%8F%B7/67723890
+        - https://www.ictnj.ac.cn/newsinfo/10874852.html
+
+    status_first_party:
+      statement_zh: "深算三号已经投入市场，受到客户认可"
+      statement_en: "in market, accepted by customers"
+      venue: Shanghai Stock Exchange investor-interaction platform (上证e互动)
+      date: "2025-12-11"
+      confidence: confirmed
+      sources:
+        - https://finance.sina.com.cn/jjxw/2025-12-11/doc-inhakwak9142063.shtml
+
+    deployment:
+      first_domestic_deployment_zh: 国内首发
+      operator: 中科南京信息高铁研究院 (CAS-affiliated)
+      platform: 信息高铁智算算力网 AI development platform
+      date: "2025-12 (announced 2025-12-17; government newsroom echo 2025-12-19/22)"
+      confidence: confirmed
+      sources:
+        - https://www.ictnj.ac.cn/newsinfo/10874852.html
+        - https://qilinpark.nanjing.gov.cn/xwzx/202512/t20251222_5748374.html
+
+    specifications:
+      note: >-
+        Hygon publishes no DCU model names or specifications on its own accelerator product page.
+        There is NO vendor-primary spec source for BW1000. Every field below is genuinely undisclosed,
+        not merely unlocated-by-this-pass.
+      confidence: not_disclosed
+      sources:
+        - https://www.hygon.cn/product/accelerator
+      cu_count: not disclosed
+      clock: not disclosed
+      peak_fp64: not disclosed
+      peak_fp32: not disclosed
+      peak_tf32: not disclosed
+      peak_bf16_fp16: not disclosed
+      peak_int8: not disclosed
+      data_types: not disclosed
+      matrix_tensor_unit: not disclosed
+      hbm_generation: not disclosed
+      hbm_capacity: not disclosed
+      hbm_bandwidth: not disclosed
+      on_chip_sram: not disclosed
+      process_node: not disclosed
+      tdp: not disclosed
+      form_factor: not disclosed
+      pcie_generation: not disclosed
+      xgmi_generation: not disclosed
+      scale_up_bandwidth: not disclosed
+      scale_out_fabric: not disclosed
+
+    rejected_specification_claims:
+      confidence: rejected
+      reason: >-
+        Retail message-board / user-upload origin, no primary source, and mutually contradictory
+        across circulating variants. Recorded here so future passes do not re-adopt them.
+      claimed_figures:
+        fp32_tflops: 49
+        tf32_tflops: 96
+        bf16_fp16_tflops: 192
+        int8_tops: 392
+      actual_provenance:
+        - "Eastmoney 股吧 retail stock message-board post"
+        - "user-uploaded Baidu Wenku document"
+      contradicting_circulating_figures:
+        - "~20 TFLOPS FP32 (Zhihu)"
+        - "FP64 ~30 TFLOPS, H100-class (51CTO blog)"
+        - "FP16 300T for an alleged 'Alibaba BW1000 AI variant' (Sept-2025 retail note)"
+      sources:
+        - https://guba.eastmoney.com/news,688041,1483072345.html
+        - https://zhuanlan.zhihu.com/p/2066563534897652881
+        - https://www.jisilu.cn/question/510441
+        - https://xueqiu.com/2453283973/400298837
+
+    rejected_status_claims:
+      confidence: low
+      reason: "Chinese retail-investor channel-check posts (Toutiao/Xueqiu); not Hygon statements"
+      claims:
+        - "mass production initiated Q3 2025"
+        - "initial capacity 10k wafers/month rising to 30k in Q4 2025"
+        - "R&D began mid-2022"
+        - "tape-out verification completed 2024"
+      sources:
+        - https://xueqiu.com/2453283973/400298837
+
+    analyst_attribution_not_disclosure:
+      claim: "深算三号 entered large-scale shipment in H1 2026 and was the primary volume driver of compute-business growth"
+      confidence: analyst-inference
+      reason: >-
+        Brokerage / financial-media inference layered on Hygon's earnings pre-announcement.
+        Hygon's 业绩预告 discloses only consolidated revenue and profit ranges without attributing
+        growth to 深算三号 by name.
+      sources:
+        - https://www.yicai.com/news/102952855.html
+
+  shensuan_4:
+    product_name_zh: 深算四号
+    status_statement_zh: 进展顺利
+    status_statement_en: "R&D progressing smoothly"
+    statement_date: "2025-12-11"
+    statement_venue: Shanghai Stock Exchange investor-interaction platform
+    note: "DATED Dec 2025, not an H1 2026 disclosure. 'Silicon back next year' (明年回片) is retail rumor."
+    timeline: not disclosed
+    process_node: not disclosed
+    specifications: not disclosed
+    confidence: confirmed (statement) / not_disclosed (content)
+    sources:
+      - https://finance.sina.com.cn/jjxw/2025-12-11/doc-inhakwak9142063.shtml
+
+  sugon_merger:
+    outcome: TERMINATED
+    termination_date: "2025-12-09"
+    terminating_body: Hygon board resolution
+    stated_reason_zh: "市场环境较本次交易筹划之初发生较大变化，本次实施重大资产重组的条件尚不成熟"
+    stated_reason_en: >-
+      Market conditions changed materially since the transaction was first planned and the
+      conditions for implementing the major asset restructuring are not yet mature; compounded
+      by the deal's large scale and many counterparties.
+    also_terminated: associated matched-funds raise (募集配套资金)
+    commitments: "no further major asset restructuring planned for at least one month"
+    sugon_status_after: "did NOT delist; remains independently listed as 603019.SH; industrial cooperation with Hygon continues"
+    revived_through_2026_08_08: false
+    historical_deal_terms:
+      announced: "2025-05-25"
+      shares_halted: "2025-05-26"
+      formal_plan_disclosed: "2025-06-09 (重组预案)"
+      trading_resumed: "2025-06-10"
+      share_exchange_ratio: "1 Sugon share : 0.5525 Hygon shares"
+      sugon_price_rmb_per_share: 79.26
+      sugon_pricing_basis: "120-day VWAP +10%"
+      hygon_price_rmb_per_share: 143.46
+      headline_value_rmb_billion: "115.9-116.0"
+      note: "First case under China's revised merger regulations — but the transaction is DEAD."
+    confidence: confirmed
+    sources:
+      - https://www.caixin.com/2025-12-09/102391669.html
+      - https://www.yicai.com/news/102948899.html
+      - https://www.jiemian.com/article/13741594.html
+      - https://finance.eastmoney.com/a/202512093586757039.html
+      - https://finance.eastmoney.com/a/202512103587902138.html
+      - https://www.guancha.cn/economy/2025_12_10_799933.shtml
+      - https://news.10jqka.com.cn/20251209/c673085520.shtml
+
+  financials_h1_2026:
+    disclosure_date: "2026-07-16"
+    type: 业绩预告 (earnings pre-announcement)
+    revenue_rmb_billion: "8.5-9.3"
+    revenue_yoy_pct: "+55.56 to +70.20"
+    net_profit_rmb_billion: "1.70-1.83"
+    net_profit_yoy_pct: "+41.50 to +52.32"
+    non_gaap_net_profit_rmb_billion: "1.51-1.70"
+    non_gaap_yoy_pct: "+38.53 to +55.96"
+    non_gaap_confidence: unverified (not independently re-verified)
+    breakout: "consolidated CPU+DCU; no DCU-only revenue breakout disclosed"
+    confidence: confirmed
+    preferred_citation: "growth percentages"
+    sources:
+      - https://www.yicai.com/news/102952855.html
+
+  negative_results:
+    confidence: confirmed_absent
+    checked_2026_08_08:
+      mlperf_training_submission: none found
+      mlperf_inference_submission: none found
+      hot_chips_2026_paper: none found
+      isca_2026_paper: none found
+      isscc_2026_paper: none found
+      vendor_block_diagram_bw1000: none found
+      vendor_die_shot_bw1000: none found

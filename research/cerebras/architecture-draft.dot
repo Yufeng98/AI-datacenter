@@ -1,0 +1,184 @@
+digraph cerebras_wse_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cstorch [label="cerebras.pytorch (cstorch)\nPyTorch 2.0 LTC backend\ncstorch.compile() + Trainer", fillcolor="#D6E4F0"];
+        modelzoo [label="Model Zoo\nLlama/GPT/BERT/Mixtral/LLaVA\nYAML-driven Trainer configs", fillcolor="#D6E4F0"];
+        sparsity [label="Sparsity Library\nGMP + SRigL pruning\nUnstructured sparse training", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cirh [label="CIRH\nMLIR/ATen-based IR\nOp fusion, const folding\nExecution mode selection", fillcolor="#E4DEFF"];
+        autogen [label="AutoGen\nAuto CSL kernel generation\nFrom CIRH op patterns", fillcolor="#E4DEFF"];
+        compile_report [label="Compile Report\nLayer-by-layer analysis\nIncremental compile", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ops [label="Fused Ops (via CIRH)\nFlashAttention pattern\nLayerNorm+dropout\nGeLU+projection", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        csl [label="CSL (Cerebras Software Language)\nZig-inspired dataflow language\nTasks / Colors / Wavelets\nDSDs (strided SRAM views)", fillcolor="#FFF3CD"];
+        csl_libs [label="CSL Libraries\n<collectives_2d> reduce/broadcast\n<message_passing> (WSE-3)\n<math>, <time>, <io>", fillcolor="#FFF3CD"];
+        sdk_examples [label="SDK Examples\ngithub.com/Cerebras/sdk-examples\nGEMM, stencils, custom ops", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        sdkruntime [label="SdkRuntime API\nCompile / Load / Launch\nSymbol I/O, memcpy h2d/d2h", fillcolor="#F8D7DA"];
+        appliance_api [label="Appliance API\nCS-3 job lifecycle\nDevice allocation (multi-job)", fillcolor="#F8D7DA"];
+        memdataloader [label="MemDataLoader\nData prefetch pipeline\nBatch streaming to PE SRAM", fillcolor="#F8D7DA"];
+        ws_scheduler [label="Weight Streaming Scheduler\nLayer weight dispatch\nMemoryX → SwarmX → WSE\nGradient collection", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        csctl [label="csctl CLI\nJob submission + queue mgmt\nGrafana dashboards\nSlurm integration", fillcolor="#E0E0E0"];
+        compile_server [label="Compile Server\nDedicated host for\nCIRH→PE binary compilation", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        distributed [label="cerebras.pytorch.distributed\nMulti-replica data parallel\nGradient all-reduce via SwarmX", fillcolor="#FFE0CC"];
+        swarmx [label="SwarmX Fabric\n100GbE + RoCE RDMA\nTree topology (up to 2048 CS-3)\nBroadcast weights / Reduce grads", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        csl_isa [label="CSL Language Guide\nTask/Color/Wavelet micro-ISA\nDSD memory addressing\nCompile-time metaprogramming", fillcolor="#EFEBE9"];
+        csl_lang_libs [label="CSL Standard Libraries\ncollectives_2d, message_passing\nmath, time, io", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Cerebras WSE-3 Hardware (TSMC 5nm, 46,225 mm²)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        pe_array [label="PE Array (900,000 PEs)\n48KB SRAM/PE | FP16 8-wide SIMD\nINT8 16-wide SIMD | own PC\nDefect tolerance: 1–1.5% spare PEs", fillcolor="#283593", fontcolor="white"];
+        swarm_mesh [label="Swarm 2D Mesh (on-wafer)\n5-port router/PE | 24 colors/PE\n100 Pb/s aggregate | ~1 ns/hop\n<1 pJ/bit | hardware wavelet routing", fillcolor="#283593", fontcolor="white"];
+        memoryx [label="MemoryX (external)\nDRAM+Flash | 4TB–2.4PB\nWeight-only storage\nElastic SKUs", fillcolor="#283593", fontcolor="white"];
+        cs3_pkg [label="CS-3 System Package\nPCIe host interface\nWater-cooling cold plate\nCustom 300mm wafer PCB", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    cstorch -> cirh [label="ATen ops → CIRH", fontsize=8];
+    modelzoo -> cstorch [label="uses", fontsize=8];
+    sparsity -> cstorch [style=dashed, color="#AAAAAA"];
+
+    // Compiler -> Kernel
+    cirh -> autogen [label="unfused ops", fontsize=8];
+    cirh -> ops [label="fusion passes", fontsize=8];
+    autogen -> csl [label="generates CSL", fontsize=8];
+    compile_report -> cirh [style=dashed, label="analyze", fontsize=8];
+
+    // Op -> Kernel
+    ops -> csl [style=dashed, color="#AAAAAA"];
+
+    // Kernel -> Runtime
+    csl -> sdkruntime [label="binary load", fontsize=8];
+    csl_libs -> csl [label="imports", fontsize=8];
+    sdk_examples -> csl [style=dashed];
+
+    // Runtime chain
+    sdkruntime -> appliance_api [style=dashed];
+    sdkruntime -> memdataloader;
+    sdkruntime -> ws_scheduler;
+    ws_scheduler -> swarmx [label="dispatch weights", fontsize=8];
+
+    // Driver
+    appliance_api -> csctl [style=dashed];
+    cirh -> compile_server [label="compile job", fontsize=8];
+
+    // Communication
+    distributed -> swarmx [label="grad all-reduce", fontsize=8];
+    csl_libs -> swarm_mesh [style=dashed, color="#283593", label="collectives", fontsize=8];
+
+    // ISA chain
+    csl_isa -> csl [label="language spec", fontsize=8];
+    csl_lang_libs -> csl_isa [style=dashed];
+
+    // Hardware internal
+    pe_array -> swarm_mesh [color="#283593", label="wavelet routing", fontsize=8];
+    swarm_mesh -> memoryx [style=dashed, color="#283593", label="SwarmX ext", fontsize=8];
+    memoryx -> swarmx [style=dashed, color="#283593"];
+    cs3_pkg -> pe_array [style=dashed, color="#283593"];
+
+    // Runtime -> Hardware
+    sdkruntime -> cs3_pkg [label="PCIe host API", fontsize=8, color="#EA4335"];
+    ws_scheduler -> memoryx [style=dashed, color="#EA4335", label="weight stream", fontsize=8];
+}

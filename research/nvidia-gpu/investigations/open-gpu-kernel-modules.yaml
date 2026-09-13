@@ -1,0 +1,180 @@
+resource: "NVIDIA Open GPU Kernel Modules"
+url: "https://github.com/NVIDIA/open-gpu-kernel-modules"
+as_of: "2026-04-05"
+commit: "db0c4e6"
+version: "595.58.03"
+chip: "nvidia-gpu"
+investigation_report: "open-gpu-kernel-modules.md"
+
+layer_mappings:
+  - layer: "Driver"
+    sublayer: "Kernel OS Layer"
+    description: >
+      Linux kernel modules (nvidia.ko, nvidia-uvm.ko, nvidia-drm.ko,
+      nvidia-modeset.ko, nvidia-peermem.ko) providing PCI device management,
+      MMIO BAR mapping, interrupt handling, DMA buffer management, ioctl
+      dispatch, DRM/KMS integration, UVM page-fault handling, and GPUDirect
+      RDMA registration. Source tree: kernel-open/.
+    source_paths:
+      - "kernel-open/nvidia/nv.c"
+      - "kernel-open/nvidia/nv-pci.c"
+      - "kernel-open/nvidia-uvm/"
+      - "kernel-open/nvidia-drm/"
+      - "kernel-open/nvidia-peermem/"
+
+  - layer: "Driver"
+    sublayer: "Resource Manager (RM) Core — CPU side"
+    description: >
+      OS-agnostic RM core that manages GPU resources (clients, devices,
+      channels, memory allocations, events). Implements the NVOC object model,
+      the RM API dispatch (NV_ESC_RM_ALLOC, NV_ESC_RM_CONTROL, etc.), the GSP
+      RPC client, and per-engine kernel objects (KernelGsp, KernelFifo,
+      KernelChannel, KernelBus). Source tree: src/nvidia/.
+    source_paths:
+      - "src/nvidia/arch/nvalloc/unix/src/escape.c"
+      - "src/nvidia/arch/nvalloc/unix/src/osapi.c"
+      - "src/nvidia/src/kernel/gpu/"
+      - "src/nvidia/src/kernel/rmapi/"
+      - "src/nvidia/generated/"
+
+  - layer: "Firmware"
+    sublayer: "GSP Firmware Interface"
+    description: >
+      The GPU-side GSP (GPU System Processor) runs a full Resource Manager
+      firmware image (gspRmBoot). The CPU driver is a thin RPC client that
+      communicates with it via shared-memory message queues in VRAM. The
+      open-source release contains the CPU-side client RPC code and embedded
+      binary archives for each GPU generation. Source:
+      src/nvidia/src/kernel/gpu/gsp/ and src/nvidia/generated/g_bindata_kgsp*.c.
+    source_paths:
+      - "src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c"
+      - "src/nvidia/src/kernel/gpu/gsp/message_queue_cpu.c"
+      - "src/nvidia/src/kernel/gpu/gsp/kernel_gsp_booter.c"
+      - "src/nvidia/src/kernel/gpu/gsp/kernel_gsp_fwsec.c"
+
+key_abstractions:
+  - name: "OBJGPU / NVOC object model"
+    type: "Core data structure + OOP framework"
+    description: >
+      OBJGPU is the root software object representing one GPU. It owns 20+
+      child NVOC engine objects (KernelGsp, KernelFifo, KernelBus, KernelMc,
+      KernelBif, KernelChannel, etc.). NVOC is an in-house single-inheritance
+      C OOP system: each class has a generated header in src/nvidia/generated/
+      with vtable-style function pointers that are 'halified' — selected at
+      driver init based on the detected GPU chip. 382 NVOC-generated files
+      cover the full class hierarchy.
+    source:
+      - "src/nvidia/generated/g_gpu_nvoc.h"
+      - "src/nvidia/src/kernel/gpu/gpu.c"
+    relation_to_hardware: >
+      Direct 1-to-1 mapping: each NVOC engine object corresponds to a
+      physical engine on the GPU die (FIFO scheduler, GSP coprocessor, bus
+      interface, master control interrupt aggregator). Halified methods encode
+      per-generation microarchitecture differences.
+
+  - name: "GSP RPC message queue"
+    type: "Inter-processor communication protocol"
+    description: >
+      Shared-memory FIFO pair (command queue + status queue) residing in
+      VRAM through which the CPU kernel module sends RM control calls to the
+      GSP firmware. The CPU uses GspMsgQueueSendCommand() to write versioned
+      RPC structs (rpc_gsp_rm_control_v03_00 etc.), issues a store fence,
+      and rings the GSP doorbell by writing a BAR0 queue-head register via
+      kgspSetCmdQueueHead_HAL(). GSP processes the command and writes a
+      response to the status queue; the CPU polls GspMsgQueueReceiveStatus().
+    source:
+      - "src/nvidia/src/kernel/gpu/gsp/message_queue_cpu.c"
+      - "src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c"
+    relation_to_hardware: >
+      Abstracts the GSP on-chip RISC-V processor (or Falcon on older
+      architectures). The doorbell register write crosses the BAR0 MMIO
+      interface to notify the GSP processor, which has its own cache-coherent
+      view of VRAM where the queues reside.
+
+  - name: "RM Escape ioctl dispatch (RmIoctl / escape.c)"
+    type: "User-kernel boundary"
+    description: >
+      The primary user-space → kernel API. User-space issues ioctls on
+      /dev/nvidiactl. Large payloads use the NV_ESC_IOCTL_XFER_CMD
+      indirection. The dispatch chain is: nvidia_unlocked_ioctl() →
+      nvidia_ioctl() → rm_ioctl() → RmIoctl() → switch on NV_ESC_RM_*
+      commands (ALLOC, CONTROL, FREE, MAP_MEMORY, VID_HEAP_CONTROL, etc.).
+      NV_ESC_RM_CONTROL ultimately calls Nv04ControlWithSecInfo() →
+      _rmapiRmControl() and packages most calls as GSP RPCs.
+    source:
+      - "kernel-open/nvidia/nv.c"
+      - "src/nvidia/arch/nvalloc/unix/src/escape.c"
+      - "src/nvidia/arch/nvalloc/unix/src/osapi.c"
+    relation_to_hardware: >
+      Translates POSIX file-descriptor operations into GPU resource management
+      requests. Security checks (RS_PRIV_LEVEL_USER vs USER_ROOT) are applied
+      here before any hardware state is touched.
+
+  - name: "KernelChannel / GPFIFO work submission"
+    type: "GPU compute submission interface"
+    description: >
+      A KernelChannel represents one hardware GPFIFO channel. Allocation
+      calls kchannelAllocHwID_HAL() for a runlist channel ID and
+      kchannelAllocMem_HAL() for instance memory. Per-generation GPFIFO class
+      headers (clc46f.h Turing, clc56f.h Ampere, clc86f.h Hopper, clc96f.h
+      Blackwell) define the pushbuffer method space. After setup, user-space
+      (CUDA runtime) writes pushbuffer entries and rings a user-mode doorbell
+      mapped from BAR1 — no kernel transition required for steady-state work.
+    source:
+      - "src/nvidia/src/kernel/gpu/fifo/kernel_channel.c"
+      - "src/nvidia/src/kernel/gpu/fifo/kernel_fifo.c"
+      - "src/common/sdk/nvidia/inc/class/clc56f.h"
+    relation_to_hardware: >
+      Directly programs the FIFO engine's runlist and channel state area in
+      GPU instance memory. The user-mode doorbell write notifies the hardware
+      FIFO scheduler, which feeds pushbuffer entries to the GR / CE / NVDEC
+      engines.
+
+  - name: "UVM (Unified Virtual Memory) fault handler"
+    type: "Virtual memory management subsystem"
+    description: >
+      nvidia-uvm.ko implements GPU page fault handling for CUDA Managed Memory
+      and ATS. Per-architecture HAL files (uvm_ampere.c, uvm_hopper.c,
+      uvm_blackwell.c) parse the GPU fault buffer, identify faulting virtual
+      addresses, migrate pages via the Copy Engine, and update GPU page tables.
+      This enables transparent CPU/GPU memory oversubscription critical for
+      large-model training workloads.
+    source:
+      - "kernel-open/nvidia-uvm/uvm.c"
+      - "kernel-open/nvidia-uvm/uvm_ampere_fault_buffer.c"
+      - "kernel-open/nvidia-uvm/uvm_hopper_fault_buffer.c"
+    relation_to_hardware: >
+      Interfaces with the GPU MMU's replayable fault buffer (a hardware ring
+      buffer in VRAM filled by the GPU's TLB miss handler). After servicing,
+      UVM writes GPU page table entries and issues fault replay commands to
+      the MMU, resuming stalled warps.
+
+gsplite_support:
+  description: >
+    Blackwell GB100 multi-die GPUs expose multiple GSP instances
+    (KernelGsplite[4]), one per GPC partition. This reflects the
+    chiplet-based physical architecture of the GB100 die.
+  source: "src/nvidia/generated/g_gpu_nvoc.h"
+
+security_features:
+  - name: "Confidential Computing / SPDM"
+    description: >
+      libspdm crypto library (AEAD, RSA, EC, X.509) compiled into nvidia.ko
+      for device attestation. The conf_compute/ and spdm/ subsystems implement
+      the H100/H200/B100 Confidential Computing mode.
+    source:
+      - "kernel-open/nvidia/libspdm_*.c"
+      - "src/nvidia/src/kernel/gpu/conf_compute/"
+      - "src/nvidia/src/kernel/gpu/spdm/"
+
+test_infrastructure:
+  description: >
+    In-kernel lock stress and lock test objects exposed via RM ioctls
+    (lockStressObjCtrlCmdPerformLockStress* methods in rmapi/lock_stress.c).
+    Kernel compatibility detection via kernel-open/conftest.sh, which compiles
+    test snippets against the target kernel headers to select the correct API
+    shim at build time.
+  source:
+    - "src/nvidia/src/kernel/rmapi/lock_stress.c"
+    - "src/nvidia/src/kernel/rmapi/lock_test.c"
+    - "kernel-open/conftest.sh"

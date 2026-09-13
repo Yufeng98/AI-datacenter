@@ -1,0 +1,142 @@
+digraph rebellions_atom_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.5;
+    nodesep=0.4;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        atom_compute [label="ATOM — CGRA Neural Engines\n8 Neural Engines (Samsung 5nm)\nCGRA PE tiles (reprogrammable)\n32 TFLOPS FP16 / 128 TOPS INT8\nCommand Processor + RISC ISA", fillcolor="#FFCDD2"];
+        rebel_compute [label="REBEL Single — Neural Cores\n16 Neural Cores (Samsung 4nm)\n8 cores/cluster, mesh interconnect\nTensor + Vector + Scalar + IBUF\nCustom RISC ISA per Neural Engine", fillcolor="#FFCDD2"];
+        rebel_quad [label="REBEL-Quad (Rebel100)\n4 x REBEL ASIC dies (320 mm² each)\nUCIe-Advanced die-to-die, 16 Gbps\n4 TB/s aggregate chiplet bandwidth\n2,048 TFLOPS FP8 total\nSamsung 4nm", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        dataflow [label="Static Dataflow Execution\nCompile-time scheduled (no runtime JIT)\nCommand Processor dispatches\npre-scheduled instruction stream", fillcolor="#FFE0B2"];
+        ibuf [label="Input Buffer (IBUF)\nPer-Neural Engine / per-core\nCustom instruction set for\nfine-grained operand control", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP MEMORY =====================
+    subgraph cluster_onchip {
+        label="On-chip Memory (SW-managed, no caches)";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        atom_sram [label="ATOM On-chip SRAM\n64 MB flat SW-managed\nNo hardware caches\nCompiler allocates at compile time", fillcolor="#BBDEFB"];
+        rebel_sram [label="REBEL On-chip SRAM\n64 MB L1 distributed (per-core)\n64 MB L2 shared = 128 MB/die\nSW-managed (no caches)\n4 x 128 MB = 512 MB (REBEL-Quad)", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        atom_mem [label="ATOM: GDDR6\n16 GB, 256 GB/s\nSW-managed (compiler-scheduled)", fillcolor="#C8E6C9"];
+        rebel_mem [label="REBEL-Quad: HBM3e\n4 x 36 GB 12Hi stacks = 144 GB\n4.8 TB/s aggregate\n1.2 TB/s per die\n4 x ISC (power supply)\nSW-managed", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== HOST INTERFACE / PACKAGE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        atom_pcie [label="ATOM: RBLN-CA12 Card\nPCIe Gen5 x16 (~128 GB/s bidir)\nFHFL single-slot, 60-130W TDP\n16 hardware-isolated instances\nCard-to-card: PCIe Gen5 x16", fillcolor="#E1BEE7"];
+        rebel_pkg [label="REBEL-Quad Package\nPCIe card (~600W TDP)\n4 ASIC dies on single interposer\n8 cards per air-cooled node\nNot OAM/SXM — PCIe form factor\nOCP chiplet registry listed", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        ucie [label="UCIe-Advanced (REBEL-Quad)\nWorld's first in AI accelerator\n16 Gbps per link\n4 TB/s aggregate package BW\nOCP standard (not proprietary)", fillcolor="#B2DFDB"];
+        rebelrack [label="RebelRack\n4 nodes x 8 Rebel100 = 32 accelerators\n64 PFLOPS FP8 total\n4.6 TB HBM3e, 153.6 TB/s BW\nquad-400 GbE per node", fillcolor="#B2DFDB"];
+        rebelpod [label="RebelPOD\n8-128 nodes x 8 Rebel100\nUp to 1,024 accelerators\n800 GbE scale-out\nEnterprise rack deployment", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== NEXT GEN ROADMAP =====================
+    subgraph cluster_roadmap {
+        label="Roadmap";
+        style="rounded,dashed";
+        color="#F57F17";
+        fontcolor="#F57F17";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2.0;
+
+        roadmap [label="Future: REBEL-IO + REBEL-CPU\nTrillion-parameter MoE models\nMulti-node deployments\nSamsung 4nm (continued)\nArm CPU integration", fillcolor="#FFF9C4"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute -> Data Path
+    atom_compute -> dataflow [label="CGRA\nexecution"];
+    rebel_compute -> dataflow [style=dashed];
+    rebel_quad -> dataflow [style=dashed];
+    dataflow -> ibuf [label="operand\nfetch"];
+
+    // Data Path -> On-chip Memory
+    ibuf -> atom_sram [label="SRAM\nR/W"];
+    ibuf -> rebel_sram [style=dashed];
+
+    // On-chip -> Off-chip Memory
+    atom_sram -> atom_mem [label="compiler-\nscheduled DMA"];
+    rebel_sram -> rebel_mem [label="compiler-\nscheduled DMA"];
+
+    // Off-chip -> Host Interface
+    atom_mem -> atom_pcie [style=dashed, label="PCIe DMA"];
+    rebel_mem -> rebel_pkg [style=dashed];
+
+    // REBEL-Quad chiplet interconnect
+    rebel_quad -> ucie [label="die-to-die\n4 TB/s"];
+
+    // Scale-up
+    rebel_pkg -> rebelrack [label="8 cards/node"];
+    rebelrack -> rebelpod [label="scale-out"];
+    ucie -> rebelrack [style=dashed];
+
+    // Generation evolution
+    atom_compute -> rebel_compute [style=dashed, color="#F57F17", label="Gen 2\n(4nm)"];
+    rebel_compute -> rebel_quad [style=dashed, color="#F57F17", label="chiplet\n(UCIe)"];
+    rebel_quad -> roadmap [style=dashed, color="#F57F17", label="roadmap"];
+}

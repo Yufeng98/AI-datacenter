@@ -1,0 +1,150 @@
+chip: d-matrix
+investigation: software-stack
+date: "2026-04-05"
+confidence: medium
+note: "Aviator stack is proprietary; details from vendor white paper and HC37 coverage only"
+
+stack_name: "Aviator"
+open_source: false
+
+layers:
+  framework_integration:
+    frameworks:
+      - name: PyTorch
+        status: confirmed
+        notes: "Primary path; standard torch.nn.Module"
+      - name: Triton DSL
+        status: confirmed
+        notes: "Custom kernel authoring; leverages MLIR backend"
+      - name: JAX
+        status: "not disclosed"
+      - name: TensorFlow
+        status: "not disclosed"
+
+  model_factory:
+    status: "not public"
+    purpose: "Distributed inference templates; model sharding across Corsair cards"
+
+  compressor:
+    status: "not public"
+    purpose: "Block FP quantization: FP16/BF16 → MXINT4/MXINT8/MXINT16"
+    formats_supported:
+      - MXINT4
+      - MXINT8
+      - MXINT16
+
+  compiler:
+    status: "not public"
+    type: "MLIR-based AOT"
+    input: "PyTorch graph (torch.export) or Triton IR"
+    output: "DIMC-native binary"
+    notes: "Tiles for 64x64 (INT8) or 64x128 (INT4) MAC arrays"
+
+  inference_engine:
+    status: "not public"
+    purpose: "Distributed inference execution across cards"
+    features:
+      - "Tensor parallelism across chiplets and cards"
+      - "KV-cache placement (SRAM hot / LPDDR5X cold)"
+      - "Multi-card scheduling via DMX Bridge abstraction"
+
+  runtime:
+    status: "not public"
+    purpose: "Host to Corsair PCIe Gen5 communication; memory management"
+
+  driver_firmware:
+    status: "not public"
+    notes: "PCIe BAR management; Corsair card initialization"
+
+deployment:
+  mode: "PCIe accelerator in standard server"
+  networking: "JetStream 400G NIC (separate PCIe card)"
+  cloud_offering: "none disclosed"
+  training_support: false
+  inference_only: true
+
+# =====================================================================
+# UPDATE — 2026-08-08
+# Appended, not replacing. Fields above describe the 2026-04-05 baseline
+# and remain valid. Nothing above was deleted or edited.
+# =====================================================================
+updates:
+  - date: "2026-08-08"
+    scope: "Wallaroo orchestration layer; external automated kernel generation; heterogeneous deployment model"
+
+    orchestration_layer:
+      confidence: high
+      note: "NEW layer - the baseline stack had no deployment/orchestration tier above PyTorch"
+      name: "Wallaroo"
+      origin: "acquisition of Wallaroo.ai"
+      acquisition_date: "2026-08-03"
+      terms: "not disclosed"
+      acquired: ["platform", "IP", "engineering / product / go-to-market staff"]
+      financial_advisor_to_seller: "Bowen Inc."
+      status: "not public"
+      components:
+        serving_runtime:
+          status: "not public"
+          purpose: "executes deployed models"
+          engines_supported: ["vLLM", "SGLang"]
+        control_plane:
+          status: "not public"
+          purpose: "model deployment, lifecycle and operations management"
+      hardware_targets: ["x86", "Arm", "GPU", "d-Matrix Corsair"]
+      deployment_environments: ["cloud", "on-prem", "edge", "air-gapped"]
+      interface_to_aviator_inference_engine: "not disclosed"
+      strategic_note: "hardware-heterogeneous by design; a prerequisite for the disaggregated prefill-on-GPU / decode-on-Corsair pattern"
+      sources:
+        - "https://www.d-matrix.ai/announcements/d-matrix-acquires-wallaroo/"
+        - "https://www.prnewswire.com/news-releases/d-matrix-acquires-wallarooai-to-speed-up-deployment-of-heterogeneous-ai-inference-workloads-302840688.html"
+        - "https://www.unite.ai/d-matrix-buys-wallaroo-to-orchestrate-inference-across-chips/"
+        - "https://boweninc.com/transaction/wallaroo-ai-acquired-by-d-matrix/"
+
+    external_kernel_automation:
+      confidence: medium
+      note: "third-party bring-up accelerator, NOT a d-Matrix product"
+      vendor: "Infinity (infinity.inc)"
+      product: "Ignition (automated kernel-development agent)"
+      funding: "$15M raised"
+      date: "2026-07-22"
+      reported_results:
+        note: "Infinity's own published figures; not independently verified"
+        full_stack_bringup: "Qwen3, Qwen3.5 and Gemma4 running end-to-end in 10 days"
+        speed_of_light_pct_max: 92
+        theoretical_peak_92pct_time: "10 hours"
+      excluded_unverified_claim:
+        text: "'Corsair's 32 compute units'"
+        reason: "could not be independently verified; does not reconcile with 2,048 DIMC cores / 16 chiplets per dual card. Deliberately NOT recorded as a spec."
+      significance: "Corsair has no user-facing kernel library and a closed compiler; this is the first evidence of model bring-up scaling beyond d-Matrix's internal engineering team"
+      sources:
+        - "https://infinity.inc/research/dmatrix-corsair"
+        - "https://infinity.inc/research/dmatrix-partnership"
+        - "https://www.d-matrix.ai/advancing-full-model-ai-inference-on-corsair-with-infinity/"
+
+    deployment_model_update:
+      confidence: high
+      pattern: "heterogeneous disaggregated inference"
+      prefill_target: "NVIDIA Hopper / Blackwell (compute-bound)"
+      decode_target: "d-Matrix Corsair (latency-sensitive)"
+      partner: "Parasail"
+      date: "2026-07"
+      status: "ANNOUNCED PARTNERSHIP AND INTENT - NOT A DEPLOYMENT"
+      status_detail: "Parasail's own post says the companies 'plan to explore expanded integration' across a fleet of 40+ datacenters in 15 countries, and will share results 'following the first series of deployments'. Corsair is NOT currently running across 40+ datacenters."
+      vendor_claims_unqualified:
+        interactive_inference: "up to 10x faster"
+        energy_efficiency: "up to 3x better"
+        disclosure: "no model, baseline, batch size or benchmark disclosed"
+      sources:
+        - "https://www.parasail.io/blogs/parasail-d-matrix-accelerators"
+        - "https://www.engineering.com/parasail-deploys-d-matrix-accelerators-for-ai-inference/"
+
+    unchanged_or_not_disclosed:
+      confidence: high
+      aviator_open_source: false
+      open_source_repos: "none disclosed"
+      jax_support: "not disclosed"
+      tensorflow_support: "not disclosed"
+      dmatrix_hosted_cloud_service: "none disclosed (Wallaroo's control plane is a deployable product, not a d-Matrix hosted service)"
+      raptor_software_support: "not disclosed - the ISCA 2026 Raptor paper is a hardware disclosure; no Raptor compiler, runtime or SDK details are public"
+      training_support: false
+      inference_only: true

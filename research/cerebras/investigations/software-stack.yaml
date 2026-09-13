@@ -1,0 +1,195 @@
+resource: software-stack
+url: https://training-api.cerebras.ai/
+type: docs_site
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+commit_sha: null
+doc_version: "rel-2.7.0 / SDK 1.4.0 — last version verified 2026-04-05; not re-verified 2026-08-08"
+chip: cerebras
+device_class: Wafer-Scale Engine
+
+layer_mappings:
+  - layer: Framework Integration
+    component: "cerebras.pytorch (cstorch) — PyTorch 2.0 LTC backend"
+    confidence: confirmed
+    sources:
+      - https://training-api.cerebras.ai/en/latest/wsc/api/cerebras_pytorch/
+      - https://www.cerebras.ai/blog/supporting-pytorch-on-the-cerebras-wafer-scale-engine
+      - https://www.cerebras.ai/blog/cerebras-software-release-2.0-50-faster-training-pytorch-2.0-support-diffusion-transformers-and-more
+
+  - layer: Compiler / IR
+    component: "CIRH (MLIR/ATen-based IR) + AutoGen kernel generation + Compile Report"
+    confidence: confirmed
+    sources:
+      - https://www.cerebras.ai/blog/supporting-pytorch-on-the-cerebras-wafer-scale-engine
+      - https://training-api.cerebras.ai/en/rel-2.3.1/original/compiler-reports/compile-report.html
+      - https://training-api.cerebras.ai/en/latest/wsc/Fundamentals/autogen.html
+
+  - layer: Op Library
+    component: "Cerebras Model Zoo (Llama/GPT/BERT/Mixtral/DINOv2/LLaVA) + PyTorch Sparsity Library"
+    confidence: confirmed
+    sources:
+      - https://github.com/Cerebras/modelzoo
+      - https://www.cerebras.ai/blog/sparsity-made-easy-introducing-the-cerebras-pytorch-sparsity-library
+
+  - layer: Kernel Library
+    component: "CSL (Cerebras Software Language) — tasks, colors, wavelets, DSDs, collectives_2d, message_passing"
+    confidence: confirmed
+    sources:
+      - https://sdk.cerebras.net/
+      - https://sdk.cerebras.net/csl/language_index
+      - https://sdk.cerebras.net/csl/language/dsds
+      - https://sdk.cerebras.net/csl/language/libraries
+
+  - layer: Runtime
+    component: "SdkRuntime API + Appliance API + MemDataLoader + Weight Streaming Scheduler"
+    confidence: confirmed
+    sources:
+      - https://sdk.cerebras.net/api-docs/sdkruntime-api
+      - https://sdk.cerebras.net/api-docs/appliance-api.html
+      - https://docs.cerebras.net/en/latest/wsc/Model-zoo/tutorials/llm.html
+
+  - layer: Driver / Firmware
+    component: "csctl CLI + Grafana dashboards + Slurm integration + compile server"
+    confidence: confirmed
+    sources:
+      - https://training-api.cerebras.ai/en/1.9.1/wsc/getting-started/job-scheduler.html
+      - https://training-api.cerebras.ai/en/rel-2.2.1/wsc/general/system_requirements.html
+
+  - layer: Communication
+    component: "CSL <collectives_2d> + <message_passing> + cerebras.pytorch.distributed (SwarmX gradient all-reduce)"
+    confidence: confirmed
+    sources:
+      - https://sdk.cerebras.net/csl/language/libraries
+      - https://sdk.cerebras.net/csl/language/libraries_wse3
+      - https://training-api.cerebras.ai/en/latest/original/general/multi-replica-data-parallel-training.html
+
+  - layer: Assembler / ISA
+    component: "CSL Language (tasks/colors/wavelets/DSDs) — PE-level instruction model"
+    confidence: confirmed
+    sources:
+      - https://sdk.cerebras.net/csl/language_index
+      - https://sdk.cerebras.net/csl/language/dsds
+      - https://sdk.cerebras.net/computing-with-cerebras
+
+framework_integrations:
+  - framework: PyTorch
+    integration_point: "LTC backend: cerebras.pytorch.compile() captures ATen graph → CIRH IR → PE binary"
+  - framework: HuggingFace Transformers
+    integration_point: "Model Zoo provides checkpoint conversion tools (Cerebras ↔ HF format); HF model configs supported"
+  - framework: Slurm / HPC schedulers
+    integration_point: "csctl submits jobs to Slurm; CS-3 appears as a schedulable resource in HPC clusters"
+
+key_abstractions:
+  - name: cerebras.pytorch (cstorch)
+    description: "PyTorch 2.0 LTC backend: cstorch.compile() for graph capture, cstorch.Trainer for training loop lifecycle with weight streaming"
+  - name: CIRH
+    description: "MLIR-based ATen-aligned IR. Compiler input; supports op fusion (FlashAttn, LayerNorm+dropout), memory layout optimization, AutoGen kernel generation"
+  - name: CSL (Cerebras Software Language)
+    description: "Zig-inspired low-level PE kernel language. Dataflow model: tasks activated by wavelet arrival on colors. DSDs address PE SRAM. Used for custom kernels and SDK path."
+  - name: Task / Color / Wavelet
+    description: "CSL execution primitives: Task=activation handler, Color=virtual channel (0–23 per PE), Wavelet=32-bit data+color-tag message"
+  - name: Data Structure Descriptor (DSD)
+    description: "CSL typed memory view over PE-local SRAM. Defines N-D strided access patterns. All SRAM access in CSL goes through DSDs."
+  - name: Trainer + YAML config
+    description: "High-level training orchestrator: YAML file specifies model/dataset/optimizer/lr_scheduler; Trainer handles compile/run/checkpoint lifecycle"
+  - name: MemDataLoader
+    description: "Cerebras-specific data pipeline: prefetches batches from storage; streams data into PE memory; replaces standard PyTorch DataLoader"
+  - name: AutoGen
+    description: "Compiler pass for automatic CSL kernel generation from CIRH op patterns. Eliminates manual CSL for standard training ops."
+
+openness:
+  model_zoo: "open_source (Apache 2.0)"
+  cerebras_pytorch_api: "sdk_release (pip-installable, documented)"
+  csl_sdk: "public_sdk (sdk.cerebras.net, sdk-examples open source)"
+  cirh_compiler: "closed"
+  hardware_binary_format: "closed"
+  inference_api: "cloud_service (OpenAI-compatible REST)"
+
+# =====================================================================
+# Update appended 2026-08-08 — roadmap scan window 2026-04-01 → 2026-08-08
+# =====================================================================
+update_2026_08_08:
+
+  stack_baseline_status:
+    - fact: >-
+        No new SDK release, compiler IR, kernel-language feature, or runtime component was confirmed in the
+        2026-04-01 → 2026-08-08 window. The cstorch / CIRH / AutoGen / CSL / SdkRuntime / Appliance API /
+        MemDataLoader / Weight Streaming Scheduler / csctl stack recorded above stands unchanged.
+      confidence: unverified_unchanged   # no change found; upstream not re-fetched, so not "confirmed current"
+      sources:
+        - https://sdk.cerebras.net/sdk-release-notes/sdk-rel-notes-cumulative
+        - https://training-api.cerebras.ai/
+
+  disaggregated_prefill_decode_serving:
+    announced: "2026-07-23"
+    status: announced_only
+    expected_availability: "H2 2026, initially through Cerebras Cloud"
+    layer: Runtime
+    component: "Serving path routing prefill to AMD Helios (Instinct) and decode to the Cerebras WSE"
+    confidence: confirmed_as_product_announcement
+    sources:
+      - https://newsroom.amd.com/news/aai-2026-cerebras-inference/
+      - https://www.cerebras.ai/press-release/amd-and-cerebras-announce-industry-leading-ultra-low-latency-and-high-throughput-ai-inference
+    not_disclosed:
+      - api_or_sdk_surface_spanning_both_tiers
+      - scheduler_and_placement_policy
+      - kv_cache_serialization_format_between_tiers
+      - rocm_to_cerebras_stack_interoperability_mechanism
+      - whether_cirh_participates_in_the_prefill_decode_partitioning
+    notes: >-
+      AMD's performance footnote uses the Kimi 2.6 1T model, which is consistent with the decode tier running
+      in weight-streaming mode, but neither vendor states the execution mode. Do not infer it.
+
+  unverified_leads:
+    # Seen in the raw scan of cerebras.ai/blog; NOT independently corroborated. Not written into chips/ as confirmed.
+    - item: "Multi-LoRA on Cerebras Inference"
+      date: "2026-05-06"
+      potential_layer: Runtime
+      confidence: unverified
+      priority: high    # only item here with a real layer-table implication if confirmed
+      sources:
+        - https://www.cerebras.ai/blog
+    - item: "Trillion-parameter inference with Kimi K2.6 for enterprises"
+      date: "2026-05-19"
+      potential_layer: Runtime
+      confidence: unverified
+      sources:
+        - https://www.cerebras.ai/blog
+    - item: "Gemma 4 multimodal inference"
+      date: "2026-06-29"
+      potential_layer: Op Library
+      confidence: unverified
+      sources:
+        - https://www.cerebras.ai/blog
+    - item: "Upstage partnership (South Korea)"
+      date: "2026-07-10"
+      potential_layer: ecosystem
+      confidence: unverified
+      sources:
+        - https://www.cerebras.ai/blog
+    - item: "Sovereign-AI positioning post"
+      date: "2026-05-26"
+      potential_layer: none_deployment_only
+      confidence: unverified
+    - item: "Rest of World piece on India–UAE AI partnership involving G42 and Cerebras"
+      date: "2026-06-01"
+      potential_layer: none_deployment_only
+      confidence: unverified
+
+  scheduled_disclosures:
+    - event: "Hot Chips 38"
+      talk: "The Cerebras Rack-Scale Architecture for Wafer Scale Engine"
+      speaker: "Jean-Philippe (J.P.) Fricker, Cerebras"
+      when: "2026-08-25, 2:15–4:15 PM PDT, Session AI 1"
+      status: "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public"
+      may_contain_software_content: true
+      confidence: confirmed   # the scheduling is confirmed; the content is unknown
+      sources:
+        - https://hotchips.org/advance-program/
+
+  follow_up:
+    - "Re-scan sdk.cerebras.net and training-api.cerebras.ai for a release newer than rel-2.7.0 / SDK 1.4.0."
+    - "Verify Multi-LoRA and the Kimi K2.6 inference path against cerebras.ai/blog and inference-docs.cerebras.ai."
+    - "Watch inference-docs.cerebras.ai in H2 2026 for an API surface exposing the AMD Helios prefill tier."
+    - "Re-scan after 2026-08-25 for HC38 slides."

@@ -1,0 +1,383 @@
+chip: openai-broadcom
+product_name: "Jalapeño"          # official; unveiled 2026-06-24
+codename: unsourced               # "Project Titan" appears in no primary source — see jalapeno_unveiling_2026_06_24
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"      # sections below without their own as_of are the April baseline
+confidence: low-to-medium
+disclosure_level: very_limited
+status: sampling                  # engineering samples in lab; NOT mass production, NOT deployed
+
+company:
+  name: OpenAI (chip designer) + Broadcom (ASIC services + networking)
+  chip_lead: OpenAI
+  hardware_vp: Richard Ho (ex-Google TPU)
+  broadcom_role: ASIC design services, chip integration, end-to-end Ethernet networking
+  foundry: TSMC
+
+partnership:
+  announced: "2025-10-13"
+  scale: 10 GW of OpenAI-designed AI accelerators
+  deployment_start: H2 2026
+  deployment_complete: 2029
+  estimated_cost_usd: "$350B-$500B (FT estimate)"
+  working_together_since: "early 2024 (18 months before Oct 2025 announcement)"
+
+compute:
+  architecture: systolic_array  # reported; not officially confirmed
+  programmable: true
+  isa: not_public
+  primary_target: inference
+  secondary_target: training
+  peak_tflops_fp16: not_public
+  peak_tops_fp8: not_public
+  data_types: not_public  # BF16/FP8 inferred from systolic array class
+  flops_utilization: not_public
+  array_dimensions: not_public
+  tile_size: not_public
+  sparsity_support: not_public
+
+memory:
+  type: not_disclosed          # CORRECTED 2026-08-08: HBM generation (HBM3E vs HBM4) never stated by OpenAI or Broadcom
+  type_prior_claim: HBM4       # reported only; see samsung_hbm4_exclusive below
+  supplier: not_disclosed      # CORRECTED 2026-08-08: downgraded from "Samsung (confirmed)"
+  samsung_hbm4_exclusive:
+    value: reported_not_confirmed
+    confidence: low
+    notes: >-
+      Reported early 2026 on aggregator sourcing (tech-insider.org). The 2026-06-24 unveiling neither
+      confirms nor contradicts it. Downgraded from `confirmed` on 2026-08-08.
+    sources:
+      - https://tech-insider.org/openai-titan-chip-samsung-hbm4-custom-ai-chip-2026/
+  capacity_per_chip: not_public
+  bandwidth_per_chip: not_public
+  stacks: 6                    # THIRD-PARTY ESTIMATE from released package photography — not a vendor spec
+  stacks_confidence: medium
+  stacks_source: https://www.tomshardware.com/tech-industry/artificial-intelligence/broadcom-and-openai-unveil-custom-built-jalapeno-inference-processor-openais-first-chip-is-a-massive-reticle-sized-asic-built-in-an-ultra-fast-nine-month-development-cycle
+  on_chip_sram: not_public
+  packaging: not_public  # 2.5D advanced packaging inferred from chiplet + 6-stack HBM layout
+
+process:
+  gen1:
+    foundry: TSMC
+    node: not_disclosed        # CORRECTED 2026-08-08: node was NOT disclosed at unveiling
+    node_reported: N3          # 3nm-class per prior 10 GW-program reporting; confidence: medium
+    node_confidence: reported_not_confirmed
+    die_size_mm2: 840          # THIRD-PARTY ESTIMATE (~25.46 x 33 mm); reticle limit ~858 mm2
+    die_size_confidence: medium
+    die_size_source: toms_hardware_package_photo_analysis
+    transistors: not_public
+    tdp: not_public
+    status: sampling           # CORRECTED 2026-08-08 (was mass_production_H2_2026)
+  gen2:
+    foundry: TSMC
+    node: A16                  # 1.6nm nanosheet + Super Power Rail
+    node_confidence: unconfirmed_reporting   # DOWNGRADED 2026-08-08: 2nm/A16 not corroborated in primary sources
+    development_start: H2_2026
+    target_deployment: "2027+"
+    tdp: not_public
+  multi_generation_roadmap:
+    value: stated_without_specifics
+    confidence: high
+    quote: "This is just the beginning of a multi-generation roadmap"  # Hock Tan, Broadcom CEO, 2026-06-24
+
+interconnect:
+  scale_up:
+    protocol: Ethernet  # all-Ethernet; not NVLink/InfiniBand
+    chip: Broadcom Jericho4
+    chip_confidence: inferred_not_confirmed   # NOT named in the 2026-06-24 announcement
+    bandwidth: not_public
+    topology: not_public
+  scale_out:
+    protocol: Ethernet
+    chip: Broadcom Tomahawk
+    chip_confidence: confirmed                # UPGRADED 2026-08-08: explicitly named by OpenAI + Broadcom
+    bandwidth_per_port: not_public  # 400 GbE / 800 GbE inferred
+    optical: included  # Broadcom optical solutions per announcement
+  host_interface: not_public  # PCIe Gen5/6 inferred
+  host_cpu:
+    value: not_disclosed
+    rumor: "Arm server-class CPU to anchor OpenAI next-gen racks (The Information, unnamed sources)"
+    confidence: low
+    notes: Never confirmed by Arm, OpenAI or Broadcom; publication date not independently verified.
+    sources:
+      - https://www.theinformation.com/articles/openai-working-softbanks-arm-broadcom-ai-chip-effort
+      - https://www.tomshardware.com/pc-components/cpus/openai-arm-partner-on-custom-cpu-for-broadcom-chip
+
+rack_system:
+  chips_per_rack: not_public
+  power_per_rack: not_public
+  networking: Broadcom end-to-end Ethernet + PCIe + optical
+  deployments: OpenAI facilities and partner data centers
+  system_integration_partner: Celestica     # NEW 2026-06-24
+  named_deployment_partner: Microsoft       # NEW 2026-06-24 (Hock Tan statement)
+
+software:
+  compiler: Triton  # OpenAI job postings confirm Triton for custom silicon
+  frameworks: PyTorch  # primary; standard for OpenAI
+  runtime: not_public
+  driver: not_public
+  sdk_released: false
+
+what_is_not_public:
+  - peak_tflops_any_precision
+  - on_chip_sram_capacity
+  - hbm4_capacity_per_chip
+  - die_size
+  - transistor_count
+  - tdp_power
+  - chips_per_rack
+  - scale_up_bandwidth
+  - host_interface_generation
+  - isa_or_compiler_ir
+  - any_independent_benchmarks
+  - hbm_generation                    # added 2026-08-08
+  - process_node_vendor_stated        # added 2026-08-08
+  - scale_up_fabric_silicon           # added 2026-08-08 (only Tomahawk, a scale-out part, is named)
+  - microarchitecture_details         # added 2026-08-08
+  # REMOVED 2026-08-08: "chips_shipped_or_sampled" — engineering samples now confirmed running in lab
+  #                     (still NOT shipped and NOT in mass production)
+
+# =====================================================================
+# Jalapeño unveiling — scan 2026-08-08, event 2026-06-24
+# Fact groups below each carry their own confidence + sources.
+# Authoritative where they conflict with the April 2026 baseline above.
+# =====================================================================
+jalapeno_unveiling_2026_06_24:
+
+  product_identity:
+    confidence: high
+    facts:
+      official_name: "Jalapeño"
+      positioning: "OpenAI's first Intelligence Processor"
+      release_titles:
+        - "OpenAI and Broadcom unveil LLM-optimized inference chip"   # OpenAI page
+        - "OpenAI and Broadcom Unveil LLM-Optimized Intelligence Processor"  # joint release
+      unveiled: "2026-06-24"
+      prior_codename_project_titan: unsourced
+      prior_codename_note: >-
+        "Project Titan" appears in no primary source; traces only to aggregator/SEO sites
+        (opentools.ai, tech-insider.org, xagi-labs). Repo defect corrected 2026-08-08.
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+      - https://www.nasdaq.com/press-release/openai-and-broadcom-unveil-llm-optimized-intelligence-processor-2026-06-24
+      - https://finance.yahoo.com/technology/ai/articles/openai-broadcom-unveil-llm-optimized-130000020.html
+      - https://www.cnbc.com/2026/06/24/openai-and-broadcom-reveal-jalapeno-first-ai-chip-in-partnership.html
+
+  silicon_status:
+    confidence: high
+    facts:
+      status: sampling
+      statement: >-
+        Engineering samples of the Jalapeño chip are running ML workloads in the lab at production
+        target frequency and power, including GPT-5.3-Codex-Spark.
+      workload_proof_point: GPT-5.3-Codex-Spark
+      is_mass_production: false
+      is_deployed_at_scale: false
+      independent_characterization: "still in testing, 'early results' (TechCrunch)"
+    sources:
+      - https://finance.yahoo.com/technology/ai/articles/openai-broadcom-unveil-llm-optimized-130000020.html
+      - https://techcrunch.com/2026/06/24/openai-unveils-its-first-custom-chip-built-by-broadcom/
+
+  development_cycle:
+    confidence: vendor_claim_unverifiable
+    facts:
+      design_to_tapeout_months: 9
+      quote: >-
+        Jalapeño was co-developed from initial design to manufacturing tape-out in just nine months,
+        and the custom AI accelerator program represents what we believe to be the fastest ASIC
+        development cycle ever achieved in high-performance advanced semiconductors.
+      openai_models_used_in_design: true   # OpenAI says it used its own models to accelerate design/optimization
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+      - https://www.engadget.com/2201045/openai-broadcom-jalapeno-inference-processor-ai-accelerator/
+
+  package_and_die:
+    confidence: medium              # THIRD-PARTY ESTIMATE from released photography, not a vendor spec
+    evidence_class: journalist_photo_inference
+    facts:
+      compute_chiplet_dims_mm: "25.46 x 33"
+      compute_chiplet_area_mm2: 840
+      euv_reticle_limit_mm2: 858
+      hbm_stacks: 6
+      io_chiplets: 1
+      structural_dummy_dies: 2
+      package_type: multi_die       # compute chiplet + I/O chiplet + HBM + dummies; NOT monolithic
+      wafer_floorplan: "very regular, repeated, columnar — consistent with a tiled/systolic accelerator"
+      vendor_disclosed: false
+    sources:
+      - https://www.tomshardware.com/tech-industry/artificial-intelligence/broadcom-and-openai-unveil-custom-built-jalapeno-inference-processor-openais-first-chip-is-a-massive-reticle-sized-asic-built-in-an-ultra-fast-nine-month-development-cycle
+
+  partners:
+    confidence: high
+    facts:
+      celestica:
+        role: >-
+          chip implementation, board, rack system integration, high-performance networking,
+          and scalable production systems
+        new_since_baseline: true
+      broadcom:
+        role: silicon implementation + networking technologies
+        networking_silicon_named: Tomahawk
+      microsoft:
+        role: named gigawatt-scale deployment partner
+        quote: >-
+          we are enabling the deployment of gigawatt scale data centers with Microsoft and other
+          partners beginning in 2026
+        attributed_to: Hock Tan (Broadcom CEO)
+        new_since_baseline: true
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+      - https://finance.yahoo.com/technology/ai/articles/openai-broadcom-unveil-llm-optimized-130000020.html
+
+  networking_disposition:
+    confidence: high
+    facts:
+      tomahawk: confirmed          # UPGRADED from inferred
+      tomahawk_quote: >-
+        Broadcom's silicon implementation and networking technologies, including Tomahawk networking
+        silicon, help bring the platform to large-scale production.
+      jericho4: inferred_not_confirmed   # not mentioned anywhere in the announcement
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+
+  deployment_timeline:
+    confidence: high                # confirmed as a TARGET, not an achieved milestone
+    facts:
+      initial_deployment: "by the end of 2026"
+      quote: "designed for initial deployment by the end of 2026 and expanding in the years ahead"
+      is_achieved_milestone: false
+      program_scale: 10 GW
+      program_completion: "2029"
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+      - https://www.engadget.com/2201045/openai-broadcom-jalapeno-inference-processor-ai-accelerator/
+
+  performance:
+    confidence: vendor_claim_unquantified
+    facts:
+      quantitative_data_disclosed: none
+      claims:
+        - "performance per watt substantially better than current state-of-the-art"
+        - "realized utilization much closer to theoretical peak"
+      technical_report: "promised in the coming months"
+      mlperf_submission: none
+      third_party_benchmark: none
+      excluded_noise:
+        - claim: "50% cheaper than Nvidia"
+          why: absent from all primary sources; aggregator-only (tech-insider.org, 2026-07-25)
+    sources:
+      - https://finance.yahoo.com/technology/ai/articles/openai-broadcom-unveil-llm-optimized-130000020.html
+      - https://techcrunch.com/2026/06/24/openai-unveils-its-first-custom-chip-built-by-broadcom/
+      - https://www.engadget.com/2201045/openai-broadcom-jalapeno-inference-processor-ai-accelerator/
+
+  model_scope:
+    confidence: high
+    facts:
+      statement: "designed with flexibility to work with all LLMs; built from the ground up for current and future LLMs across the industry"
+      interpretation: architecture_flexibility_statement
+      third_party_sales_commitment: none      # DO NOT infer sellability from the above
+    sources:
+      - https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+
+  scheduled_disclosure:
+    confidence: high                # the SCHEDULING is confirmed; the CONTENT does not exist yet
+    facts:
+      conference: Hot Chips 38
+      conference_dates: "2026-08-23 to 2026-08-25"
+      openai_talk:
+        title: "You Can Just Build Things … Chips"
+        speakers: [Richard Ho, Ravi Narayanaswami, Chris Leary]
+        session: "AI 2 (chair: Brucek Khailany)"
+        when: "2026-08-25, 4:45-6:15 PM PDT"
+      broadcom_talk:
+        title: "Thor Ultra: An Ethernet NIC Chip Optimized for AI & HPC"
+        speaker: Hemal Shah
+        when: "2026-08-25"
+        stated_link_to_jalapeno: none
+      content_status: "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public"
+      follow_up_action: "re-scan after 2026-08-25"
+    sources:
+      - https://www.hotchips.org/advance-program/
+
+  sourcing_note:
+    confidence: high
+    facts:
+      openai_page_status: "HTTP 403 to automated fetch"
+      wayback_status: "web.archive.org unreachable from scanning environment"
+      durable_primary_source: "Broadcom IR / Nasdaq press release"
+      recovered_via: "Yahoo Finance verbatim carry; corroborated by Broadcom IR, Nasdaq, Engadget, TechCrunch, CNBC, Forbes"
+
+corrections_applied_2026_08_08:
+  - field: codename
+    was: "Project Titan (presented as internal codename)"
+    now: unsourced
+    reason: no primary source; aggregator/SEO sites only
+  - field: process.gen1.node
+    was: "N3 (stated as fact)"
+    now: not_disclosed / reported_not_confirmed
+    reason: node was not disclosed at unveiling; N3 is prior reporting
+  - field: process.gen2.node
+    was: "A16 (reported)"
+    now: unconfirmed_reporting
+    reason: 2nm/A16 element not corroborated in primary sources
+  - field: memory.type / memory.supplier
+    was: "HBM4 / Samsung (confirmed exclusive supply)"
+    now: not_disclosed / reported_not_confirmed
+    reason: HBM generation never stated by either company; HBM4 report is aggregator-sourced
+  - field: interconnect.scale_out.chip
+    was: inferred
+    now: confirmed (Tomahawk)
+    reason: explicitly named by OpenAI and Broadcom on 2026-06-24
+  - field: process.gen1.status
+    was: mass_production_H2_2026
+    now: sampling
+    reason: engineering samples in lab; production not reached
+
+key_sources:
+  - url: https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-unveil-llm-optimized-intelligence-processor
+    type: official_press_release
+    date: "2026-06-24"
+    notes: Durable primary source for the Jalapeño unveiling
+  - url: https://www.nasdaq.com/press-release/openai-and-broadcom-unveil-llm-optimized-intelligence-processor-2026-06-24
+    type: official_press_release_mirror
+    date: "2026-06-24"
+  - url: https://finance.yahoo.com/technology/ai/articles/openai-broadcom-unveil-llm-optimized-130000020.html
+    type: press_release_carry
+    notes: Full verbatim joint release text
+  - url: https://openai.com/index/openai-broadcom-jalapeno-inference-chip/
+    type: official_page
+    notes: HTTP 403 to automated fetch; title/snippet confirmed via search index only
+  - url: https://www.engadget.com/2201045/openai-broadcom-jalapeno-inference-processor-ai-accelerator/
+    type: news
+    notes: Independent — nine-month design, perf/W claim only, technical report promised
+  - url: https://techcrunch.com/2026/06/24/openai-unveils-its-first-custom-chip-built-by-broadcom/
+    type: news
+    notes: Independent — still in testing, "early results", no numbers
+  - url: https://www.cnbc.com/2026/06/24/openai-and-broadcom-reveal-jalapeno-first-ai-chip-in-partnership.html
+    type: news
+    notes: Name + date confirmation (body HTTP 403)
+  - url: https://www.forbes.com/sites/jonmarkman/2026/06/25/meet-jalapeo-openais-first-custom-ai-chip-built-with-broadcom/
+    type: news
+    notes: Independent confirmation of name, partnership, inference targeting
+  - url: https://www.tomshardware.com/tech-industry/artificial-intelligence/broadcom-and-openai-unveil-custom-built-jalapeno-inference-processor-openais-first-chip-is-a-massive-reticle-sized-asic-built-in-an-ultra-fast-nine-month-development-cycle
+    type: analysis
+    notes: Package/die photo analysis — ~840 mm2 compute chiplet, 6 HBM stacks, I/O chiplet, 2 dummy dies (medium confidence estimate)
+  - url: https://www.hotchips.org/advance-program/
+    type: conference_program
+    notes: Hot Chips 38 Aug 23-25 2026; OpenAI AI 2 talk 2026-08-25; content not yet public
+  - url: https://www.theinformation.com/articles/openai-working-softbanks-arm-broadcom-ai-chip-effort
+    type: news
+    notes: Arm server CPU rumor; unnamed sources; date unverified; never confirmed by Arm/OpenAI/Broadcom
+  - url: https://openai.com/index/openai-and-broadcom-announce-strategic-collaboration/
+    type: official_press_release
+  - url: https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-announce-strategic-collaboration-deploy-10
+    type: official_press_release
+  - url: https://www.trendforce.com/news/2026/01/15/news-openai-reportedly-to-deploy-custom-ai-chip-on-tsmc-n3-by-end-2026-second-gen-planned-for-a16/
+    type: industry_report
+    notes: N3 gen1 / A16 gen2 roadmap
+  - url: https://tech-insider.org/openai-titan-chip-samsung-hbm4-custom-ai-chip-2026/
+    type: news
+    notes: Samsung HBM4 exclusive supply agreement
+  - url: https://www.tomshardware.com/tech-industry/artificial-intelligence/openai-and-broadcom-to-finalize-custom-ai-processor-in-the-coming-months-say-industry-sources
+    type: news
+    notes: Systolic array architecture, TSMC 3nm, HBM, networking confirmed

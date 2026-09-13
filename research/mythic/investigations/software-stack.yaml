@@ -1,0 +1,236 @@
+chip: mythic
+as_of: "2026-04-05"
+last_updated: "2026-08-08"
+device_class: Analog In-Memory Compute
+
+sdk_name: MAPP (Mythic AI Processing Platform)
+sdk_open_source: false
+sdk_languages: [Python]
+
+pipeline:
+  - stage: framework_import
+    tools: [PyTorch, TensorFlow, ONNX, TensorRT (optional front-end)]
+    notes: ONNX is primary interchange; TorchScript also supported
+  - stage: quantization
+    tool: Mythic Optimization Suite
+    method: Post-Training Quantization (PTQ)
+    target_dtype: [INT8, INT4]
+    notes: Analog range fitting to NOR flash conductance dynamic range; calibration dataset required
+  - stage: graph_compilation
+    tool: Mythic Graph Compiler
+    outputs:
+      - flash_programming_binary
+      - per_tile_risc_v_executables
+      - host_driver_metadata
+    features:
+      - layer_to_tile_partitioning
+      - weight_packing_to_flash_cell_addresses
+      - activation_noc_routing_schedule
+      - risc_v_code_generation
+      - simd_schedule_nonlinear_ops
+      - equivalence_checking_digital_reference
+      - cycle_accurate_performance_simulation
+  - stage: flash_programming
+    tool: MAPP Runtime
+    trigger: model_load_time
+    method: PCIe DMA → AMP flash controller → NOR flash cells
+    frequency: once_per_model_swap
+  - stage: inference_execution
+    tool: MAPP Runtime
+    method: Host sends activation via PCIe; tiles run RISC-V programs; analog MACs in ACE; ADC readback
+
+software_layers:
+  framework_integration:
+    tools: [PyTorch, TensorFlow, ONNX, TensorRT]
+    open: true  # standard OSS frameworks used as front-ends
+    notes: No model code changes for supported ops
+  compiler_quantization:
+    tool: Mythic Optimization Suite
+    open: false
+    precision: INT8 primary; INT4 aggressive
+    analog_range_calibration: true
+  compiler_graph:
+    tool: Mythic Graph Compiler
+    open: false
+    ir: internal_only
+    outputs: [flash_binary, risc_v_tile_programs, simd_schedule]
+  op_library:
+    analog_linear: [GEMM, MVM, FC, Conv2D-via-im2col, attention_projections]
+    digital_nonlinear: [ReLU, GELU, Tanh, Sigmoid, Softmax, LayerNorm, BatchNorm, residual_add, pooling]
+    user_programmable: false
+  kernel_library:
+    exists: false
+    notes: No user kernel API; compiler generates all low-level code
+  runtime:
+    tool: MAPP Runtime
+    open: false
+    functions: [flash_programming, activation_transfer_PCIe, tile_orchestration, ADC_collection, multi_chip_dispatch]
+  driver_firmware:
+    open: false
+    components: [PCIe_BAR_management, NOR_flash_write_controller, temperature_calibration_firmware]
+  isa:
+    analog_compute: none  # ACE has no user ISA; weights are conductance, inputs are voltages
+    risc_v_per_tile: RV32I_plus_custom_SIMD_extensions
+    user_visible: false  # compiler-internal only
+
+supported_model_types:
+  - CNNs (ResNet, EfficientDet, MobileNet)
+  - Object detection (YOLOv3, YOLOv5, EfficientDet)
+  - Pose estimation (OpenPose Body25)
+  - Transformers (via FC layer decomposition)
+  - LLMs 1T+ params (2026+ roadmap)
+
+supported_frameworks_input: [PyTorch, TensorFlow, ONNX, TensorRT]
+supported_host_platforms: [x86 Linux, ARM (NVIDIA Jetson)]
+
+debugging_tools:
+  - name: Cycle-accurate simulator
+    purpose: Performance estimation before hardware
+    analog_noise_model: true
+  - name: Equivalence checker
+    purpose: Compare quantized/analog vs. floating-point reference; flag precision loss
+  - name: Analog noise model
+    purpose: Predicts accuracy degradation from flash noise and temperature drift
+
+programming_model: compiler_managed_dataflow
+user_kernel_api: false
+custom_isa: false
+notes: >
+  Mythic's stack is opaque at the hardware level — the user interacts only
+  with Python/MAPP at the ONNX/PyTorch level. All analog compute is hidden
+  behind the compiler. This is similar to Lightmatter (Idiom SDK) and
+  d-Matrix (Aviator) — no user-programmable ISA or kernel language exists.
+  Hedged 2026-08-08: see update_2026_08_08 below — the acquired Videantis
+  v-MP6000UDX is a programmable VLIW+SIMD core with its own pre-acquisition
+  toolchain, but Mythic has published nothing about a merged SDK/ISA/compiler,
+  so the developer-facing story is unchanged today.
+
+# ============================================================================
+# Software-stack update — appended 2026-08-08
+# Change class: roadmap. NO change to any shipping Mythic software component.
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: roadmap
+  shipping_software_changed: false
+  trigger: >
+    Mythic acquired Videantis GmbH (announced 2026-05-19, closed), bringing in the
+    v-MP6000UDX programmable VLIW+SIMD processor IP and its pre-acquisition toolchain.
+    Separately (backfill, predates the 2026-04-05 baseline), Honda R&D licenses
+    Mythic's Analog Processing Unit (APU) technology.
+
+  fact_groups:
+
+    - group: acquired_toolchain_ip
+      confidence: high
+      basis: vendor_press_release
+      facts:
+        ip_block: v-MP6000UDX
+        ip_type: licensable digital processor IP (soft IP for chip makers)
+        microarchitecture: "VLIW + SIMD array of identical cores"
+        vendor_software_claim: >
+          "decade-hardened unified software stack" covering deep-learning inference,
+          classical computer vision, signal/image processing, and video encode/decode
+          on one architecture. Vendor marketing; independently unverified.
+        sdk_name: not_disclosed
+        compiler_name: not_disclosed
+        isa_documentation_public: false
+        note: >
+          videantis.com's own technology page confirms a licensable processor platform
+          but does not name v-MP6000UDX or any SDK.
+      sources:
+        - title: "Mythic Acquires Videantis press release"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+        - title: "videantis technology page"
+          url: "https://www.videantis.com/technology.html"
+        - title: "Taylor Wessing advisory notice, 2026-06-02 (closing confirmation; HTTP 403, read via snippet)"
+          url: "https://www.taylorwessing.com/en/insights-and-events/news/media-centre/press-releases/2026/06/mythic-inc-acquires-videantis"
+
+    - group: merged_stack_status
+      confidence: high
+      basis: absence_of_primary_source
+      facts:
+        merged_sdk: not_disclosed
+        merged_ir: not_disclosed
+        merged_isa: not_disclosed
+        kernel_api: not_disclosed
+        unified_simulator: not_disclosed
+        mapp_targeting_digital_core: not_disclosed
+        scheduling_across_analog_and_digital: not_disclosed
+        practical_developer_story_2026_08_08: >
+          Unchanged from the 2026-04-05 baseline: closed MAPP SDK, Python entry at
+          the ONNX/PyTorch level, compiler-generated RISC-V and SIMD code, no user
+          kernel API, no user-visible ISA for the analog path.
+        hedging_instruction: >
+          Hedge the standing "No user-visible ISA or kernel API exists" line rather
+          than rewriting it. The acquisition is NOT evidence that a user-visible ISA
+          now exists.
+      sources:
+        - title: "Mythic what's-new index — no software or SDK announcement"
+          url: "https://mythic.ai/whats-new/"
+
+    - group: implied_digital_op_surface
+      confidence: medium
+      basis: vendor_stated_rationale_only
+      facts:
+        digital_backbone_workloads_named_in_release:
+          - control flow
+          - attention
+          - non-max suppression
+          - SLAM
+          - video codecs
+        published_op_list: none
+        interpretation: >
+          The acquisition rationale implies an expanded digital op surface beyond the
+          current per-tile SIMD nonlinear set, but no op library, coverage matrix, or
+          performance figure has been published.
+      sources:
+        - title: "Mythic Acquires Videantis press release"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+
+    - group: apu_licensing_to_honda
+      confidence: high
+      basis: mythic_release_plus_honda_primary
+      facts:
+        licensee: Honda R&D
+        licensed_technology: "Mythic Analog Processing Unit (APU) technology"
+        mythic_announcement: "2026-02-06"
+        honda_announcement: "2026-02-04"
+        honda_release_content: >
+          Qualitative SoC co-development for software-defined vehicles citing
+          neuromorphic / analog compute-in-memory. No numbers, no timeline.
+        licensee_facing_sdk_or_docs: not_disclosed
+        software_implication: >
+          A third party programming Mythic analog IP implies some licensee-facing
+          toolchain, but none has been published, named, or documented.
+      sources:
+        - title: "Honda global newsroom, 2026-02-04 (primary)"
+          url: "https://global.honda/en/topics/2026/c_2026-02-04eng.html"
+        - title: "Mythic release, 2026-02-06"
+          url: "https://mythic.ai/whats-new/honda-and-mythic-announce-joint-development-of-100x-energy-efficient-analog-ai-chip-for-next-generation-vehicles/"
+
+    - group: terminology_drift
+      confidence: high
+      basis: vendor_press_release_boilerplate
+      facts:
+        apu: "Analog Processing Unit — Mythic's 2026 umbrella term, supersedes 'AMP' in current copy; no software documentation published"
+        starlight: "Starlight — sensor-embedded analog co-processors; no software documentation published"
+        mapp: "MAPP (Mythic AI Processing Platform) remains the only named Mythic SDK in the public record"
+      sources:
+        - title: "Mythic Acquires Videantis press release (boilerplate)"
+          url: "https://www.videantis.com/mythic-acquires-videantis.html"
+
+  evidence_quality_caveat: >
+    Nearly all acquisition coverage is verbatim republication of one BusinessWire
+    release; the only independent confirmation located is the Taylor Wessing advisory
+    notice (HTTP 403 to direct fetch, read via search snippet). Nothing in this update
+    is a measured or documented software capability.
+
+  update_sources:
+    - https://www.videantis.com/mythic-acquires-videantis.html
+    - https://www.videantis.com/technology.html
+    - https://www.taylorwessing.com/en/insights-and-events/news/media-centre/press-releases/2026/06/mythic-inc-acquires-videantis
+    - https://global.honda/en/topics/2026/c_2026-02-04eng.html
+    - https://mythic.ai/whats-new/honda-and-mythic-announce-joint-development-of-100x-energy-efficient-analog-ai-chip-for-next-generation-vehicles/
+    - https://mythic.ai/whats-new/

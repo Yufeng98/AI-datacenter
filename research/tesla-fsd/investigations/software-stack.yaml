@@ -1,0 +1,111 @@
+chip: tesla-fsd
+investigation: software-stack
+date: "2026-04-05"
+last_updated: "2026-08-08"   # see update_2026_08_08 at end of file
+confidence: medium  # proprietary stack, limited public detail
+
+layers:
+  framework:
+    name: PyTorch
+    usage: training_only
+    public: true
+  compiler:
+    name: Tesla NN Compiler
+    public: false
+    passes: [coarse_topology_mapping, fine_quantization_pruning]
+    output: static_schedule_binary
+    layer_fusion: [conv, scale, activation, pooling]
+  runtime:
+    name: NPU static microcode
+    public: false
+    scheduling: static
+    dispatch: compile_time
+  os:
+    name: embedded Linux
+    target: ARM Cortex-A clusters
+  deployment:
+    method: OTA
+    model_format: proprietary_binary
+    chip_specific: true  # HW3 and HW4 binaries differ
+
+precision:
+  training: FP32/BF16
+  inference: INT8
+
+inference_pipeline:
+  model_count: 48
+  input: "8 cameras (Tesla Vision)"
+  stages:
+    - vision_engine_feature_extraction
+    - bev_occupancy_network
+    - ego_motion_trajectory
+    - decision_network
+
+openness: closed_proprietary
+
+sources:
+  - https://fuse.wikichip.org/news/2707/inside-teslas-neural-processor-in-the-fsd-chip/
+  - https://www.toolify.ai/gpts/revolutionizing-ai-pytorch-at-tesla-138832
+  - https://towardsai.net/p/l/how-tesla-has-been-optimizing-its-software-and-hardware-for-fsd-capabilities-and-a-hyper-efficient-robo-taxi-fleet
+
+# ============================================================================
+# 2026-08-08 update — software stack status
+# Net result: NO software-stack change disclosed. The 2026 Tesla disclosures
+# (AI4.5, AI4.1/AI4 Plus, AI5 tape-out, Samsung 2nm leg) are hardware and
+# business disclosures only.
+# ============================================================================
+update_2026_08_08:
+  date: "2026-08-08"
+
+  disclosed_changes: none
+  openness: closed_proprietary   # reaffirmed, unqualified
+
+  negative_findings:
+    # each of these is an explicit "not disclosed", not an omission
+    compiler_disclosure_for_new_generations: not_disclosed
+    runtime_or_driver_disclosure: not_disclosed
+    firmware_disclosure: not_disclosed
+    isa_for_ai45_ai41_ai5: not_disclosed
+    public_sdk: false
+    public_api_or_docs: false
+    open_source_release: false
+    mlperf_submission: false
+    hot_chips_38_talk: false
+    hot_chips_38_note: "no Tesla entry in the advance program (conference 2026-08-23 to 2026-08-25); Waymo holds the autonomous-driving keynote and the automotive SoC slot"
+    confidence: high
+    sources:
+      - https://www.hotchips.org/advance-program/
+      - https://electrek.co/2026/04/15/tesla-ai5-chip-taped-out-musk-ai6-dojo3/
+      - https://electrek.co/2026/04/23/tesla-hw4-plus-upgrade-will-hw4-follow-hw3/
+
+  software_adjacent_inferences:
+    # NOT disclosed software facts — inferences from hardware statements.
+    # Recorded so a later scan can distinguish "Tesla said this" from
+    # "this follows from what Tesla said".
+    disclosed_by_tesla: false
+    inferences:
+      - inference: "compiler must target at least four binary variants (HW3, AI4, AI4.5, later AI4.1/AI5)"
+        basis: "existing chip-specific-binary OTA model + AI4.5 as a distinct field part number 2261336-02-A"
+        confidence: medium
+      - inference: "AI5's on-die PCIe implies a host-attached programming model absent from HW3/HW4"
+        basis: "Musk statement that AI5 integrates the Arm CPU cores and PCIe blocks"
+        confidence: low_medium
+      - inference: "an Optimus/datacenter-first AI5 would be served by Tesla-internal inference infrastructure rather than the vehicle OTA path"
+        basis: "Musk, Q1 2026 earnings call, on AI5 target markets"
+        confidence: low
+        caveat: "AI5 target market is itself unresolved; sources conflict"
+      - inference: "AI4.1 requires recompilation, not retargeting"
+        basis: "Musk described only newer RAM and ~10% compute/bandwidth; no ISA or dtype change stated"
+        confidence: low_medium
+    sources:
+      - https://electrek.co/2026/04/23/tesla-hw4-plus-upgrade-will-hw4-follow-hw3/
+      - https://electrek.co/2026/01/26/tesla-quietly-starts-shipping-model-y-with-new-ai4-5-computer/
+
+  training_side:
+    framework: PyTorch          # unchanged
+    training_silicon_line: Dojo # unchanged
+    dojo_3:
+      status: "named as 'in work' 2026-04-15; no node, no schedule, no architecture, no software statement"
+      confidence: high   # that it was named; nothing else exists
+    sources:
+      - https://electrek.co/2026/04/15/tesla-ai5-chip-taped-out-musk-ai6-dojo3/

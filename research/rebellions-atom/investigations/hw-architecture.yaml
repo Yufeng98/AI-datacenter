@@ -1,0 +1,306 @@
+chip: rebellions-atom
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"  # generations/rack_systems/corporate below were established at this date
+confidence: medium  # based on public disclosures; die-level microarchitecture not fully published
+
+generations:
+  atom:
+    process: Samsung 5nm
+    architecture: CGRA (Coarse-Grained Reconfigurable Array)
+    neural_engines: 8
+    peak_fp16_tflops: 32
+    peak_int8_tops: 128
+    on_chip_sram_mb: 64
+    sram_management: software-managed (compiler)
+    off_chip_memory:
+      type: GDDR6
+      capacity_gb: 16
+      bandwidth_gbs: 256
+    host_interface:
+      type: PCIe Gen5 x16
+      card: RBLN-CA12
+      form_factor: FHFL single-slot
+      tdp_w_min: 60
+      tdp_w_max: 130
+    multi_instance: 16 hardware-isolated instances
+    deployments:
+      - KT Cloud (Korea, 2023)
+      - SK Telecom AI services
+      - Japan, Saudi Arabia, US
+
+  atom_max:
+    process: Samsung 5nm
+    architecture: CGRA + Neural Engines (boosted clocks)
+    note: Higher TDP variant of ATOM for large-scale inference
+
+  rebel_single:
+    process: Samsung 4nm
+    architecture: Neural Cores (evolved CGRA)
+    neural_cores: 16
+    cores_per_cluster: 8
+    cluster_interconnect: mesh (through SRAM blocks)
+    on_chip_sram_mb: 128  # 64 MB L1 distributed + 64 MB L2 shared
+    l1_sram_mb: 64  # per-core distributed
+    l2_sram_mb: 64  # shared
+    isa: custom RISC ISA for Neural Engines
+    target: frontier-scale MoE, peta-scale inference
+
+  rebel_quad:
+    aka: Rebel100
+    announced: Hot Chips 2025 (August 2025)
+    presented_at: ISSCC 2026
+    process: Samsung 4nm (per ASIC die)
+    chiplet_config:
+      compute_dies: 4
+      compute_die_area_mm2: 320
+      hbm3e_stacks: 4
+      isc_capacitors: 4
+    die_to_die_interconnect:
+      standard: UCIe-Advanced
+      speed_gbps: 16
+      aggregate_bw_tbs: 4.0
+      note: World's first AI accelerator with UCIe-Advanced
+    memory:
+      type: HBM3e (12Hi)
+      per_stack_gb: 36
+      total_gb: 144
+      aggregate_bw_tbs: 4.8
+    compute:
+      peak_fp8_tflops: 2048
+    package_tdp_w: 600
+    form_factor: PCIe card (not OAM/SXM)
+    reference_design: 8 cards per air-cooled node
+    performance_vs_gpu:
+      throughput_multiplier: 1.6x  # vs top-tier GPU, Llama 3.3 70B FP8
+      power_reduction_pct: 50
+      tps_per_watt_multiplier: 3.2x
+    ocp_listing: https://www.opencompute.org/chiplets/76/rebel-quad-ai-accelerator-ai-soc
+
+rack_systems:
+  rebelrack:
+    nodes: 4
+    accelerators_per_node: 8
+    total_accelerators: 32
+    networking: quad-400 Gbps per node
+    peak_fp8_pflops: 64
+    total_hbm3e_tb: 4.6
+    aggregate_memory_bw_tbs: 153.6
+    # Re-graded 2026-08-08: no primary-source corroboration.
+    confidence: low-secondary
+    sourcing_note: >-
+      Rebellions' own 2026-03-30 launch release for RebelRack/RebelPOD published no
+      technical specifications. All figures above derive from secondary coverage and
+      remain uncorroborated by any Rebellions primary source as of 2026-08-08.
+    sources:
+      - https://www.theregister.com/2026/03/30/rebellions_ai_rackscale/
+      - https://rebellions.ai/newsroom/rebellions-closes-400-million-pre-ipo-and-launches-rebelrack-and-rebelpod-to-accelerate-global-expansion/  # primary; no specs
+
+  rebelpod:
+    nodes_range: "8–128"
+    accelerators_per_node: 8
+    networking: 800 Gbps Ethernet
+    confidence: low-secondary
+    sources:
+      - https://www.theregister.com/2026/03/30/rebellions_ai_rackscale/
+
+corporate:
+  founded: 2020
+  ceo: Park Sung-hyun
+  country: South Korea
+  merger:
+    partner: SAPEON Korea (SK Telecom spinoff)
+    completed: "2024-12-02"
+    equity_ratio: "2.4:1 (Rebellions:SAPEON)"
+    combined_value_usd_m: 927.9
+  fab_partner: Samsung Electronics
+  investors:
+    - Samsung Electronics
+    - KT (Korea Telecom)
+    - SK Telecom (via Sapeon merger)
+    - Arm
+    - Samsung Ventures
+    - SoftBank Ventures
+  funding_rounds:
+    - round: Series C
+      date: "2024-01"
+      amount_usd_m: 124
+    - round: Series D
+      date: "2025"
+      amount_usd_m: 250
+      lead_investors: [Arm, Samsung Ventures]
+    - round: Pre-IPO
+      date: "2026-03"
+      amount_usd_m: 400
+      valuation_usd_b: 2.3
+
+# =====================================================================
+# UPDATE 2026-08-08 — window 2026-04-06 to 2026-08-08
+# Facts added below are grouped with per-group confidence and sources.
+# Nothing above was deleted; the rebelrack/rebelpod groups were re-graded in place.
+# =====================================================================
+update_2026_08_08:
+
+  no_new_silicon:
+    confidence: high
+    statement: >-
+      No new chip generation was announced in the window. No REBEL Gen-3; no tape-out,
+      sampling, or spec disclosure for REBEL-IO or REBEL-CPU; no cancellation or delay
+      signal for ATOM, ATOM-Max, or REBEL-Quad/Rebel100. No die-level or package-level
+      figure in this file was revised — all REBEL-Quad numbers still trace to
+      Hot Chips 2025 and ISSCC 2026.
+    mlperf_training_v6_0:
+      published: "2026-06-16"
+      rebellions_submitted: false
+      submitter_count: 24
+    mlperf_inference_v6_0:
+      published: "2026-04-01"
+      rebellions_submitted: false
+    hot_chips_38:
+      dates: "2026-08-23 to 2026-08-25"
+      status: FUTURE — program public, no slides/abstracts/specs exist
+      rebellions_talk: none
+      note: >-
+        Arm has an AGI CPU talk on the HC38 program ("Arm AGI: A Disaggregated,
+        Chiplet-Based Server SoC...", Monday CPU 2 session). Disclosure scheduled,
+        Hot Chips 38, Aug 2026 — content not yet public. Not usable as a source.
+    sources:
+      - https://mlcommons.org/2026/06/mlperf-training-v6-0-results/
+      - https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/
+      - https://hotchips.org/
+
+  rebelcard:
+    announced: "2026-04-10"
+    confidence: high  # for existence and the disclosed attributes; specs themselves are absent
+    type: module-type accelerator card
+    silicon: Rebel100 ("four NPU chiplets")
+    memory: '"5th-generation HBM" (HBM3E)'
+    memory_capacity_gb: not disclosed
+    memory_bandwidth: not disclosed
+    tdp_w: not disclosed
+    peak_compute: not disclosed
+    cooling: air-cooled (vendor statement)
+    host_cpu:
+      name: Arm AGI CPU
+      basis: Arm Neoverse CSS V3
+      vendor_description: '"the first Arm-designed data center CPU"'
+    status: >-
+      MOU-stage co-development (Rebellions + SK Telecom + Arm); validation planned in
+      SK Telecom's AI datacenter, then global telecom/public-sector expansion.
+      Not a design win, not sampling to customers, not shipping.
+    ship_date: not disclosed
+    refuted_claims:
+      - claim: "RebelCard releases Q3 2026"
+        verdict: NOT CONFIRMED — aggregator-only
+        detail: >-
+          The primary Rebellions release contains no launch date at all; the Q3 2026
+          date could not be corroborated in any primary source. Do not record it.
+    vendor_performance_claim: >-
+      "comparable to current flagship GPUs" with better power efficiency —
+      no TFLOPS, benchmark, or power figure given (marketing claim, not measured)
+    sources:
+      - https://rebellions.ai/newsroom/rebellions-collaborates-with-sk-telecom-and-arm-targeting-sovereign-ai-and-telecom-infrastructure/
+
+  rebelserver:
+    first_named: "2026-07-23"
+    confidence: high  # for the run happening; all quantitative attributes are absent
+    type: single-server product built on Rebel100
+    accelerators_per_server: not disclosed
+    peak_compute: not disclosed
+    memory: not disclosed
+    networking: not disclosed
+    largest_model_run:
+      model: SK Telecom "A.X K1" (sovereign LLM)
+      parameters: 500B+
+      architecture: Mixture-of-Experts
+      configuration: single server
+      workload: concurrent real-time requests behind a map-based agent service
+      latency: not disclosed
+      throughput: not disclosed
+      tps_per_watt: not disclosed
+      batch_size: not disclosed
+      device_count: not disclosed
+      vendor_claim: >-
+        serving efficiency "on par with global high-performance GPU servers" —
+        unquantified marketing claim
+    other_production_workload: >-
+      SK Telecom "A. Phone Call Summary" high-traffic production service,
+      run for approximately one year (Rebellions statement)
+    sources:
+      - https://rebellions.ai/newsroom/rebelserver_run_k1/
+      - https://en.sedaily.com/technology/2026/07/23/rebellions-runs-skts-sovereign-model-ax-k1-on-npu-server
+
+  oem_channel:
+    giga_computing_mou:
+      date: "2026-06-17"
+      confidence: high
+      counterparty: Giga Computing (GIGABYTE server arm)
+      scope: co-develop AI servers and rack-scale systems around RebelCard / Rebel100
+      signatories: Marshall Choy (Rebellions CBO), Vincent Wang (Giga Computing CCO)
+      venue: reported as signed at Computex 2026, Taipei
+      timeline: not disclosed
+      specs: not disclosed
+      sku: not disclosed
+      status: MOU — intent to co-develop, not a design win, not a shipping product
+      sources:
+        - https://rebellions.ai/newsroom/rebellions-and-giga-computing-sign-mou-to-develop-next-generation-ai-server-and-rack-scale-solutions/
+
+  corporate_update:
+    confidence: medium  # IPO timing is volatile and has moved more than once
+    acquisition:
+      target: SqueezeBits
+      date: "2026-06-30"
+      structure: all-stock swap; SqueezeBits becomes a 100%-owned subsidiary
+      cash_terms: not disclosed
+      target_financials_prior_year:
+        revenue_krw_b: 2.646
+        operating_profit_krw_m: 897
+        total_assets_krw_b: 5.3
+      confidence: high
+      sources:
+        - https://rebellions.ai/newsroom/rebellions_squeezebits_acquisition_260630/
+        - https://www.thelec.net/news/articleView.html?idxno=11826
+    funding_reconciliation:
+      statement: >-
+        The KRW and USD figures describe the SAME March 2026 pre-IPO round, not separate
+        tranches. KRW 640B is the won expression of the ~$400M raise; KRW 3.4T is the won
+        expression of the ~$2.3-2.5B post-money valuation. The spread is FX drift across
+        reporting dates (~1,450-1,600 KRW/USD). No discrepancy exists.
+      total_funding_usd_m: 850
+      named_participants:
+        - National Growth Fund (KRW 250B)
+        - Korea Development Bank (KRW 50B)
+        - Mirae Asset Group (KRW 300B)
+      investors_to_add_to_baseline_list:
+        - Aramco
+        - SK hynix
+      confidence: high
+      sources:
+        - https://en.sedaily.com/technology/2026/04/06/rebellions-gears-up-for-kospi-ipo-as-ai-chip-listing-race
+        - https://www.cnbc.com/2026/07/08/rebellions-ipo-south-korea-ai-chips.html
+    ipo:
+      venue: KOSPI (CEO leaning KOSPI over KOSDAQ, per 2026-07-08 Reuters/CNBC interviews)
+      preliminary_review_filing_target: "within 2026 (previously August 2026)"
+      filing_target_note: >-
+        Seoul Economic Daily reported 2026-05-27 that Rebellions pushed the preliminary-review
+        filing from August to within the year. Do NOT write "August 2026" — that is the
+        superseded April-2026 reporting. TheBell (Feb 2026) had earlier assumed a June filing
+        on KOSDAQ, so both venue and date have moved more than once.
+      listing_target: H1 2027
+      possible_later_us_listing: true
+      underwriter: J.P. Morgan
+      revenue_2025_krw_b: 32
+      confidence: medium  # volatile
+      sources:
+        - https://www.reuters.com/world/asia-pacific/s-koreas-rebellions-targets-ipo-next-year-followed-by-potential-us-listing-ceo-2026-07-08/
+        - https://www.cnbc.com/2026/07/08/rebellions-ipo-south-korea-ai-chips.html
+        - https://www.sedaily.com  # 2026-05-27 filing-date change
+
+  open_items:
+    - item: RebelCard "Q3 2026" release date
+      status: NOT CONFIRMED — aggregator-only, absent from primary release
+    - item: device/card count and any quantitative metric for RebelServer or the A.X K1 run
+      status: not disclosed
+    - item: RebelRack spec row (32 accel / 64 PFLOPS / 4.6 TB / 153.6 TB/s)
+      status: secondary-sourced only; no Rebellions primary source
+    - item: UPI 2026-08-07 "SK Telecom, Rebellions expand Korean AI chip infrastructure"
+      status: unverified — HTTP 403 on fetch; last ~week of the window uncovered

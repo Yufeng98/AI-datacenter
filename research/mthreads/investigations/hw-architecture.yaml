@@ -1,0 +1,302 @@
+chip: mthreads
+resource: hw-architecture
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+status: completed
+# NOTE: keys below baseline_as_of reflect the 2026-04-05 baseline and contain
+# generation-numbering errors corrected in update_2026_08_08 at the end of this
+# file. Read update_2026_08_08.corrections_2026_08_08 before using them.
+device_class: "GPU (China, 摩尔线程)"
+
+die_generations:
+  - name: Sudijia (苏堤甲)
+    generation: 1
+    process: TSMC 12nm
+    products: [MTT S60, MTT S2000]
+    tensor_cores: false
+    musa_version: v1
+
+  - name: Chunxiao (春晓)
+    generation: 2
+    process: TSMC 12nm
+    transistors_B: 22
+    products: [MTT S80, MTT S3000, MTT S4000]
+    tensor_cores: 128
+    musa_version: v3
+    sp_count: 4096
+    texture_units: 256
+    rop_count: 256
+    l2_cache_MB: 4
+    clock_GHz: 1.8-1.9
+    local_shmem_per_mp_KB: 28
+
+  - name: Huashan (华山)
+    generation: 3
+    architecture: "Flower Harbor (华港 / Huagang)"
+    process: undisclosed
+    products: [Huashan AI GPU]
+    expected: 2026
+    hbm_sites: 8
+    chiplets: 2
+    target_vs_nvidia: "between Hopper and Blackwell (claimed)"
+    new_formats: [MTFP6, MTFP4, FP4]
+    fp64: true
+    dx12_ultimate: true
+
+mtt_s4000:
+  die: Chunxiao
+  transistors_B: 22
+  process: TSMC 12nm
+  tdp_W: 450
+  form_factor: PCIe FHFL dual-slot
+  host_interface: PCIe Gen5 x16
+  l2_cache_MB: 4
+  compute:
+    sp_count: 4096
+    tensor_cores: 128
+    peak_fp32_TFLOPS: 25
+    peak_tf32_TFLOPS: 50
+    peak_fp16_bf16_TFLOPS: 200
+    peak_int8_TOPS: 200
+  memory:
+    type: GDDR6
+    capacity_GB: 48
+    bus_width_bit: 384
+    bandwidth_GBps: 768
+    speed_Gbps: 16
+
+scale_up:
+  technology: MTLink 1.0
+  bandwidth_per_gpu_GBps: 240
+  max_gpus_per_server: 8
+  server_model: "KUAE D800 / MCCX D800"
+  max_cluster_gpus: 10000
+  scale_out: "Standard Ethernet / RoCE"
+
+key_limitations:
+  - "4 MB L2 cache is very small vs NVIDIA A100 (~40 MB) and Biren BR100 (300 MB)"
+  - "GDDR6 only (no HBM) on Chunxiao generation"
+  - "US export controls restrict EDA tools and advanced process nodes"
+  - "MUSA ecosystem significantly less mature than CUDA"
+  - "No FP64 support on Chunxiao (added in Flower Harbor Gen 3)"
+
+# ============================================================================
+# UPDATE 2026-08-08 — MTT S5000 (PH100 / PingHu, Gen 4) and MTT C256 supernode
+# Appended, not merged: the die_generations block above mislabels Huagang as
+# "Gen 3" and omits PingHu entirely. See corrections_2026_08_08 below.
+# ============================================================================
+update_2026_08_08:
+  as_of: "2026-08-08"
+  investigator_note: >-
+    Vendor page is authoritative for chip identity and data types only; it
+    carries no specification table. All capacity/bandwidth/throughput figures
+    below are media-reported and must not be upgraded to vendor-confirmed.
+
+  corrections_2026_08_08:
+    - claim: "Huashan / Huagang (Flower Harbor) is Gen 3"
+      corrected_to: "Huagang is Gen 5; Huashan (AI) and Lushan (graphics) are its two chips"
+      confidence: high
+      sources:
+        - "https://en.mthreads.com/product/S5000"
+        - "Chinese coverage mapping Sudi=1, Chunxiao=2, Quyuan=3, PingHu=4, Huagang=5"
+    - claim: "Chunxiao is Gen 2/3"
+      corrected_to: "Chunxiao is Gen 2 only"
+      confidence: high
+      sources: ["West Lake architecture naming sequence (Chinese tech media)"]
+    - claim: "The Gen-3 chip shipped as MTT S5000; 平湖/PH100 vs 华山/花港 is a naming conflict"
+      corrected_to: >-
+        No conflict. S5000 = PH100 = PingHu = Gen 4, shipping. Huashan = Huagang
+        = Gen 5, announced 2025-12-20 at MDC 2025, forthcoming. Two different
+        chips one generation apart.
+      confidence: high
+      sources:
+        - "https://en.mthreads.com/product/S5000"
+        - "MDC 2025 coverage (2025-12-20) announcing 花港 architecture with 华山 + 庐山 only"
+    - claim: "MTT S5000 launched 2025-12-20"
+      corrected_to: >-
+        No source shows an S5000 launch at MDC 2025. Detailed specifications
+        became public around 2026-02-11/12; GLM-5 Day-0 adaptation 2026-02-12.
+      confidence: medium-high
+      sources: ["https://cloud.tencent.com/developer/news/3588420"]
+    - claim: "S5000 is 7nm with 22 billion transistors"
+      corrected_to: "not disclosed — the figure duplicates the S4000 Chunxiao transistor count and is suspect"
+      confidence: high
+      sources: ["low-quality aggregators only; contradicted by absence from vendor page"]
+
+  die_generations_corrected:
+    confidence: high
+    sources:
+      - "https://en.mthreads.com/product/S5000"
+      - "https://www.mthreads.com/product/S5000"
+      - "MDC 2025 coverage 2025-12-20"
+    generations:
+    - generation: 1
+      name: "苏堤 Sudi (Sudijia 苏堤甲)"
+      process: TSMC 12nm
+      products: [MTT S10, MTT S30, MTT S50, MTT S1000, MTT S60, MTT S2000]
+      confidence: high
+    - generation: 2
+      name: "春晓 Chunxiao"
+      process: TSMC 12nm
+      products: [MTT S70, MTT S80, MTT S2000, MTT S3000, MTT S4000]
+      confidence: high
+    - generation: 3
+      name: "曲院 Quyuan"
+      process: not_disclosed
+      products: []
+      note: "Named generation; no datacenter product tracked in this survey"
+      confidence: medium
+    - generation: 4
+      name: "平湖 PingHu"
+      chip: PH100
+      process: not_disclosed
+      products: [MTT S5000]
+      status: "shipping — accelerated mass production 2026"
+      musa_platform_generation: 4
+      confidence: high
+    - generation: 5
+      name: "花港 Huagang (Flower Harbor)"
+      process: not_disclosed
+      products: ["华山 Huashan (AI GPU)", "庐山 Lushan (graphics GPU)"]
+      announced: "2025-12-20 (MDC 2025)"
+      status: "announced; 2026 mass production target"
+      confidence: high
+
+  mtt_s5000:
+    vendor_published:
+      chip: PH100
+      architecture: "PingHu (平湖)"
+      musa_platform_generation: 4
+      data_types: "full precision FP8 to FP64"
+      form_factors:
+        - "OAM compute module (liquid-cooled variant)"
+        - "OAM compute module (air-cooled variant)"
+        - "MTT MGX — 8-GPU modular platform, 8 OAM modules over MTLink"
+        - "MTT SGX5000 server — 8x MTT S5000"
+      spec_table_present: false
+      confidence: high
+      sources:
+        - "https://en.mthreads.com/product/S5000"
+        - "https://www.mthreads.com/product/S5000"
+
+    media_reported_only:
+      memory_capacity_GB: 80
+      memory_type: "implied HBM; HBM generation NOT confirmed"
+      memory_bandwidth_TBps: 1.6
+      card_to_card_bandwidth_GBps: 784
+      peak_fp8_dense_TFLOPS: 1000
+      confidence: medium
+      caveat: >-
+        Corroboration is across aggregators with a likely single common origin;
+        this is not vendor confirmation. Do not label as confirmed.
+      sources:
+        - "https://baike.baidu.com/item/MTT%20S5000/67553280"
+        - "https://cloud.tencent.com/developer/news/3588420"
+        - "https://www.eet-china.com/mp/a474853.html"
+
+    not_disclosed:
+      confidence: high
+      sources: ["absence from https://en.mthreads.com/product/S5000"]
+      fields:
+        - tdp_W
+        - process_node
+        - transistor_count
+        - mp_sp_count
+        - tensor_core_count
+        - clock_GHz
+        - l2_cache_MB
+        - on_chip_sram
+        - host_pcie_generation
+        - packaging
+        - mtlink_generation_number
+
+    do_not_attribute:
+      confidence: high
+      sources: ["https://www.mthreads.com/product/S5000"]
+      figures:
+        - value: "3.35 TB/s"
+          actually: "NVIDIA H100 SXM comparison baseline footnote (dense FP16 989 TFLOPS, 3.35 TB/s)"
+        - value: "4.0 TB/s"
+          actually: "H20-class comparison baseline footnote (dense FP16 148 TFLOPS, 4.0 TB/s)"
+
+    vendor_marketing_claims:
+      prefill_tokens_per_s_per_gpu: ">= 4000"
+      decode_tokens_per_s_per_gpu: ">= 1000"
+      prefill_vs_leading_international_flagship_16k_seq: "2.5x"
+      llama3_70b_mfu: "> 60%"
+      deepseek_236b_mfu: "> 40%"
+      cluster_linearity_10k_gpu: "95%"
+      deepseek_236b_relative_precision_deviation_10k_gpu: "0.6%"
+      confidence: "vendor claim — not independently confirmed"
+      sources: ["https://en.mthreads.com/product/S5000"]
+
+    media_reported_benchmarks:
+      - claim: "thousand-card S5000 cluster training loss differed from an H100 cluster by 0.62% on BAAI RoboBrain 2.5"
+        confidence: low-medium
+        caveat: >-
+          Media report dated 2026-02-13; test date not separable from report
+          date; not independently reproduced. Distinct from the vendor's own
+          0.6% DeepSeek-236B figure — do not conflate.
+        sources: ["https://cloud.tencent.com/developer/news/3588420"]
+
+    deployment:
+      status: "accelerated mass production (已进入加速规模化量产阶段)"
+      clusters: "10,000-card clusters reported in commercial service"
+      notable_workload: "BAAI / Zhiyuan (智源研究院) RoboBrain 2.5 trained on a thousand-card S5000 cluster"
+      confidence: medium
+      caveat: "media-reported, vendor-corroborated; not independently audited"
+      sources: ["https://www.ithome.com/0/978/856.htm"]
+
+  mtt_c256_supernode:
+    status: "announced / first publicly demonstrated (首次公开展示)"
+    first_shown: "2026-07-17 (WAIC 2026; coverage 2026-07-17 to 2026-07-20)"
+    confirmed_claims:
+      single_layer_scale_up_network: "claimed industry first (首创单层Scale-up网络); breaks the prevailing 64-card single-layer limit"
+      gpus_per_cabinet: 128
+      gpus_two_cabinets: 256
+      card_to_card_latency: "sub-microsecond (亚微秒级)"
+      node_form_factor: "2U; compatible with existing datacenter hardware and software"
+      positioning: "building block for 10,000- to 100,000-card clusters"
+      confidence: high
+      sources:
+        - "https://www.ithome.com/0/978/856.htm"
+        - "https://finance.sina.com.cn/tech/roll/2026-07-19/doc-iniiiwhz3402415.shtml"
+    not_disclosed:
+      confidence: high
+      fields:
+        - per_link_mtlink_bandwidth
+        - mtlink_generation_number
+        - aggregate_supernode_bandwidth
+    not_confirmed:
+      confidence: high
+      note: "circulate in secondary write-ups; absent from the primary coverage retrieved"
+      items:
+        - "high-efficiency liquid cooling"
+        - "three-way blind-mate connectors"
+        - "comprehensive RAS"
+        - "shipping / pricing / customer deployment"
+    implication:
+      claim: "scale-up domain grows from 8 GPUs/server to a claimed 128-256 cards (~32x)"
+      confidence: "announced capability — must stay hedged, not delivered"
+
+  waic_2026_positioning:
+    three_ai_factories:
+      - "model factory — pretraining, post-training, RL"
+      - "token factory — native MoE support, million-token ultra-long-context inference"
+      - "agent factory — high concurrency, claimed > 100 tokens/s per user"
+    confidence: high
+    sources: ["https://finance.sina.com.cn/tech/roll/2026-07-19/doc-iniiiwhz3402415.shtml"]
+    unverified:
+      - claim: "theme slogan 'Token Era, Intelligence for All Things'"
+        confidence: "not confirmed — not found in coverage retrieved"
+
+  open_items:
+    - "No MLPerf Training or Inference submission found"
+    - "No Hot Chips 2026 or ISCA 2026 Moore Threads paper found (searched, not exhaustively). Hot Chips 38 runs 2026-08-23 to 25, after this investigation date"
+    - "Lushan gaming GPU 2026 status unverified"
+    - "MTLink generation number for S5000 and C256 undisclosed"
+    - "S5000 memory type / HBM generation, TDP, process node, transistor count undisclosed by vendor"
+
+  key_limitations_update:
+    - "The '4 MB L2' and 'GDDR6 only / no HBM' limitations recorded above apply to the Chunxiao generation and are no longer the flagship's constraints if the media-reported 80 GB / 1.6 TB/s S5000 figures hold"
+    - "'No FP64 support (added in Flower Harbor Gen 3)' is wrong twice over: FP64 arrives in PingHu (Gen 4, shipping), and Flower Harbor is Gen 5"

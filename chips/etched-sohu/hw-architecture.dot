@@ -1,0 +1,172 @@
+digraph etched_sohu_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.55;
+    nodesep=0.4;
+
+    labelloc="t";
+    fontname="Helvetica-Bold";
+    fontsize=14;
+    label="Etched — HW Architecture (as_of 2026-08-08)\nGen 1 = Sohu, 2024 disclosures (solid clusters). Gen 2 = A0 silicon / 'frontier inference cluster', 2026 (dotted cluster, vendor claims only).";
+
+    // ===================== TRANSFORMER PIPELINE (GEN 1) =====================
+    subgraph cluster_pipeline {
+        label="GEN 1 (Sohu, 2024) — Hardwired Transformer Pipeline (Fixed Silicon — Not Programmable)\n[unverified for 2026 A0 silicon]";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        prenorm [label="Pre-Norm Block\nLayer Norm / RMS Norm\nDedicated normalization hardware\n(no programmable kernel)", fillcolor="#FFCDD2"];
+        attention [label="Attention Engine (Proprietary Non-GEMM)\nQKV projection — dedicated matrix units\nAttention dot product (QKᵀ) — custom hardware\n(NOT a GEMM engine — uses less silicon per FLOP)\nsoftmax — dedicated hardware\nOutput projection — dedicated matrix units\nSupports MHA / GQA / MQA", fillcolor="#FFCDD2"];
+        residual1 [label="Residual Add ALU\nElement-wise add\n(skip connection post-attention)", fillcolor="#FFCDD2"];
+        postnorm [label="Post-Attn Norm Block\nLayer Norm / RMS Norm\n(pre-FFN normalization)", fillcolor="#FFCDD2"];
+        ffn [label="FFN Engine\nLinear 1: W₁x + b₁ — dedicated matrix pipeline\nActivation: GELU / SiLU — hardwired\nLinear 2: W₂x + b₂ — dedicated matrix pipeline\n(dominant FLOP operation at large batch)", fillcolor="#FFCDD2"];
+        residual2 [label="Residual Add ALU\nElement-wise add\n(skip connection post-FFN)", fillcolor="#FFCDD2"];
+        noprog [label="NO Programmable Execution Infrastructure\n-- No warp scheduler / warp dispatch\n-- No instruction fetch / decode\n-- No cache hierarchy (L1/L2)\n-- No memory arbiter\n-- No branch predictor\n(All replaced by fixed hardware pipeline)", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== FLOPS UTILIZATION =====================
+    subgraph cluster_flops {
+        label="FLOPS Utilization Argument";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        utilization [label="Claimed 90%+ FLOPS Utilization\nvs ~30-40% on GPU transformer inference\n→ 2-3× more effective compute per transistor\nSource of the 20× tok/s advantage over H100\n(Unverified — no third-party benchmarks)", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP SRAM =====================
+    subgraph cluster_onchip {
+        label="On-chip Logic (No SRAM Cache Described)";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        nocache [label="No Described On-chip SRAM Cache Hierarchy\nNo L1 / L2 / shared memory\nFixed pipeline reads weights directly from HBM3E\nPipeline timing governed by hardware dataflow\n(No cache miss possible — pipeline is the schedule)", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="GEN 1 Off-chip Memory (2024 disclosure)";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hbm [label="144 GB HBM3E per chip\n~4-5 TB/s bandwidth (multi-stack)\n1.8× H100 capacity | 0.75× B200 capacity\nSufficient for LLaMA 70B FP16 (~140 GB) + KV-cache\nCoWoS 2.5D integration", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== PROCESS / PACKAGE =====================
+    subgraph cluster_package {
+        label="GEN 1 Process / Package (2024 disclosure)";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pkg [label="TSMC 4nm (N4)\nReticle-limit single die (~800 mm²)\n~80-100B transistors (estimated)\nSingle monolithic die\n(B200 comparison: 2 dies at reticle limit)", fillcolor="#E1BEE7"];
+        host [label="Host Interface\n(PCIe — not disclosed)\nStandard server form factor assumed", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP =====================
+    subgraph cluster_scaleup {
+        label="GEN 1 Scale-up: 8× Sohu Server (2024 disclosure)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        server [label="8× Sohu Server\n500,000+ tok/s on Llama 70B (claimed)\n~22× faster than 8× H100 (claimed)\n~11× faster than 8× B200 (claimed)\nEquivalent to 160 H100 GPUs (claimed)\nInter-chip protocol: not disclosed", fillcolor="#B2DFDB"];
+        moe [label="MoE Variant\nSeparate Sohu config for MoE routing\nSparse expert selection (top-K gating)\nDetails not publicly disclosed", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== GEN 2 (2026) — VENDOR CLAIMS ONLY =====================
+    subgraph cluster_gen2 {
+        label="GEN 2 — A0 silicon / 'Frontier Inference Cluster' (announced 2026-06-30)\nALL VENDOR MARKETING CLAIMS — no absolute numbers, no third-party analysis";
+        style="rounded,dotted";
+        color="#AD1457";
+        fontcolor="#AD1457";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        g2_silicon [label="A0 Silicon (first tapeout revision)\nReturned from TSMC in H1 2026\nNode: TSMC N4P — VENDOR-STATED ONLY\n(TechCrunch confirms TSMC made the chip,\nnames no node)\nDie size / die count / transistors: not disclosed\nTDP: not disclosed", fillcolor="#F8BBD0"];
+
+        g2_lvi [label="Low Voltage Inference (LVI) — VENDOR CLAIM\nMath blocks at 'under half the voltage\nof most AI chips'\n'Multiple times the FLOPs density of AI chips today'\n'Trillion-param sparse MoEs at 80%+ Peak FLOPs\nwithout thermal throttling'\nNO voltage / FLOPS / perf-per-W figure disclosed", fillcolor="#F8BBD0"];
+
+        g2_pdn [label="LVI Enablers (named, not specified)\n-- Splittable math arrays\n-- New PDN / VRM architecture\n-- Advanced packaging (type not identified)\n-- Cold plates", fillcolor="#F8BBD0"];
+
+        g2_csm [label="Cluster Scale Memory (CSM) — VENDOR CLAIM\nHBM / SRAM hybrid on package\n'Solves both memory capacity and mem2mem latency'\nHBM generation: not disclosed\nPer-chip capacity: NOT DISCLOSED\nSRAM capacity: not disclosed\nBandwidth: not disclosed", fillcolor="#F8BBD0"];
+
+        g2_fabric [label="Proprietary Scale-up Interconnect — VENDOR CLAIM\n'Ultra-low-latency, high-bandwidth'\nCreates a SHARED MEMORY POOL across\nthe scale-up domain\nTarget: 'SRAM-level decode speeds'\nProtocol / topology / BW / latency: not disclosed\nPositioned against SRAM-only, 3D DRAM, optics", fillcolor="#F8BBD0"];
+
+        g2_domain [label="Scale-up Domain\n'Thousand-chip scale-up domains'\n(directional vendor signal from hiring copy,\nNOT A SPEC)\nRack-scale product; chips/rack not disclosed\nRack power / cooling: not disclosed", fillcolor="#F8BBD0"];
+
+        g2_workload [label="Target Workloads (2026 framing)\nBoth PREFILL and DECODE\nMany-trillion-parameter sparse MoEs\nLong context; agentic workloads\n(Gen 1 'transformer-only' framing no longer\nrestated by Etched — not confirmed abandoned)", fillcolor="#F8BBD0"];
+
+        g2_status [label="Status 2026-08-08\nA0 silicon back; rack-scale product in\nCUSTOMER VALIDATION; production started\nNOT SHIPPING; no named customer\n~$1B booked orders (company-originated figure)\nNo third-party benchmark exists", fillcolor="#F8BBD0"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Pipeline flow
+    prenorm -> attention [label="normalized\nactivations"];
+    attention -> residual1 [label="attended\noutput"];
+    residual1 -> postnorm;
+    postnorm -> ffn [label="normalized\nactivations"];
+    ffn -> residual2 [label="FFN\noutput"];
+    residual2 -> prenorm [label="next\nlayer", style=dashed, color="#D32F2F"];
+
+    // FLOPS utilization argument
+    noprog -> utilization [label="eliminates\noverhead", style=dashed, color="#E65100"];
+
+    // Memory → pipeline
+    hbm -> attention [label="stream weights\n~4-5 TB/s", color="#2E7D32"];
+    hbm -> ffn [label="stream weights", color="#2E7D32"];
+
+    // No cache → memory
+    nocache -> hbm [label="reads directly\nfrom HBM3E", style=dashed, color="#1565C0"];
+
+    // Package → pipeline
+    pkg -> prenorm [style=dashed, color="#6A1B9A"];
+    host -> pkg [style=invis];
+
+    // Scale-up
+    server -> hbm [label="8× chips = 8×144 GB\n= 1.152 TB aggregate", style=dashed, color="#00695C"];
+
+    // ---- Gen 2 internal edges ----
+    g2_pdn -> g2_lvi [label="enables\nlow-V operation", color="#AD1457"];
+    g2_lvi -> g2_silicon [label="on-die\nmath blocks", color="#AD1457"];
+    g2_csm -> g2_silicon [label="on-package\nHBM + SRAM", color="#AD1457"];
+    g2_csm -> g2_fabric [label="pooled across\nchips", color="#AD1457"];
+    g2_fabric -> g2_domain [label="shared memory\nsemantics", color="#AD1457"];
+    g2_silicon -> g2_domain [label="chips per\nscale-up domain", color="#AD1457"];
+    g2_domain -> g2_workload [label="prefill + decode\nMoE serving", color="#AD1457"];
+    g2_workload -> g2_status [style=dotted, color="#AD1457"];
+
+    // ---- Gen 1 -> Gen 2 supersession (documentation edges, not dataflow) ----
+    hbm -> g2_csm [label="SUPERSEDED AS THE\nARCHITECTURAL STORY\n(no Gen 2 capacity disclosed —\ndo NOT carry 144 GB forward)", style=dotted, color="#AD1457", fontcolor="#AD1457"];
+    server -> g2_domain [label="8-chip server ->\nrack-scale cluster", style=dotted, color="#AD1457", fontcolor="#AD1457"];
+    pkg -> g2_silicon [label="TSMC 4nm (2024) ->\nTSMC N4P (vendor-stated, 2026)", style=dotted, color="#AD1457", fontcolor="#AD1457"];
+    utilization -> g2_lvi [label="different metric:\nGen 1 = % of peak util.\nGen 2 = FLOPs density at low V", style=dotted, color="#AD1457", fontcolor="#AD1457"];
+    moe -> g2_workload [label="MoE moves from side\nvariant to headline workload", style=dotted, color="#AD1457", fontcolor="#AD1457"];
+}

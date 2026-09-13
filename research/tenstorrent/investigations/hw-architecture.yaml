@@ -1,0 +1,317 @@
+chip: tenstorrent
+investigation: hw-architecture
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+devices: [wormhole, blackhole, galaxy-blackhole, quasar]
+status: complete
+
+compute_engine:
+  tensix_core:
+    risc_v_baby_cores: 5
+    core_names: [BRISC, NCRISC, TRISC0 (Unpack), TRISC1 (Math), TRISC2 (Pack)]
+    l1_sram_mb: 1.5
+    matrix_unit: "FPU: 32x32 tile matmul; BF16/FP16/FP8(E4M3,E5M2)/INT8"
+    vector_unit: "SFPU: 32-lane SIMD; Exp/Log/Sqrt/Tanh/GeLU/custom"
+    native_tile: "32x32"
+  wormhole:
+    tensix_cores: 80
+    active_cores_n150: 72
+    process: "GlobalFoundries 12nm"
+    die_size_mm2: 670
+    peak_tops_fp8: 328
+    big_risc_v: 0
+  blackhole:
+    tensix_cores: 140          # full-die figure; SUPERSEDED for shipping SKUs — see updates[0].blackhole_pcie_skus (120 cores)
+    process: "TSMC 6nm"
+    peak_tops_fp8: 745         # full-die figure; SUPERSEDED for shipping SKUs — see updates[0].blackhole_pcie_skus (664 TFLOPS BLOCKFP8)
+    big_risc_v: 16
+    big_risc_v_desc: "64-bit dual-issue in-order; can run Linux (4 clusters of 4)"
+
+noc:
+  topology: "2D torus, wraparound"
+  noc_count: 2
+  noc0_direction: "east + south"
+  noc1_direction: "west + north"
+  link_width_bytes: 32
+  data_movement: explicit
+  cache_hierarchy: none
+  wormhole_grid: "10x12 = 120 tiles (80T + 6D + 16E + 1A + 1P)"
+
+on_chip_memory:
+  type: software-managed scratchpad (no hardware cache)
+  per_tensix_mb: 1.5
+  total_wormhole_n150_mb: 108
+  total_blackhole_mb: 210
+  sharding_modes: [height, width, block]
+
+off_chip_memory:
+  type: GDDR6
+  wormhole_capacity_gb: 12
+  wormhole_bandwidth_gbs: 336
+  wormhole_controllers: 6
+  blackhole_capacity_gb: 32
+  blackhole_bandwidth_gbs: 512
+  blackhole_controllers: 24
+  rationale: "GDDR6 chosen over HBM for supply chain flexibility and cost"
+
+host_interface:
+  wormhole: "PCIe 4.0 x16 (~64 GB/s bidir)"
+  blackhole: "PCIe 5.0"
+
+scale_up:
+  type: Ethernet (commodity)
+  wormhole_per_chip_gbps: 1600
+  wormhole_link_count: 16
+  wormhole_link_speed: "100 Gbps each"
+  blackhole_per_chip_gbps: 4000
+  blackhole_link_count: 10
+  blackhole_link_speed: "400 Gbps each"
+  blackhole_external_ports: "4x QSFP-DD (800 Gbps each)"
+  key_property: "Ethernet tiles appear in NoC grid; cross-chip NoC ops use same API as intra-chip"
+
+scale_out:
+  type: "Commodity 400G/800G Ethernet switches"
+  blackhole_galaxy: "32 chips in 4x8 mesh"
+  blackhole_galaxy_aggregate_SUPERSEDED: "1 TBps aggregate — WRONG; see updates[0].galaxy_blackhole (11.2 TB/s vendor / 5.6 TB/s unidirectional)"
+  no_proprietary_switching: true
+
+key_insights:
+  - "No hardware cache hierarchy above 1.5MB L1 SRAM per core"
+  - "All data movement is explicit via NoC API (noc_async_read/write)"
+  - "GDDR6 not HBM: lower peak BW but no supply chain dependence"
+  - "Ethernet interconnect: commodity switches, no NVLink/proprietary fabric"
+  - "Blackhole = standalone AI computer with integrated Linux-capable RISC-V host"
+  - "ISA fully documented and open-source (tt-isa-documentation)"
+
+confidence: confirmed
+sources:
+  - url: https://docs.tenstorrent.com/aibs/blackhole/specifications.html
+  - url: https://docs.tenstorrent.com/aibs/wormhole/specifications.html
+  - url: https://hc2024.hotchips.org/assets/program/conference/day1/88_HC2024.Tenstorrent.Jasmina.Davor.v7.pdf
+  - url: https://asplos.dev/wordpress/wp-content/uploads/2025/09/TT_bench-1.pdf
+  - url: http://riscv.epcc.ed.ac.uk/assets/files/hpcasia25/Tenstorrent.pdf
+
+# ============================================================================
+# Update appended 2026-08-08 — Galaxy Blackhole GA, shipping-SKU correction,
+# Quasar. Facts above (as_of 2026-04-05) are retained; where the two disagree,
+# the 2026-08-08 block supersedes. Each fact group carries its own confidence
+# and sources.
+# ============================================================================
+
+updates:
+  - update_as_of: "2026-08-08"
+    change_class: major
+    devices_added: [galaxy-blackhole, blackhole-p100a, blackhole-p150a, blackhole-p150b, quasar]
+
+    galaxy_blackhole:
+      status: "GA 2026-04-28 — sold at list price, deployed with named partners"
+      status_wording_note: >-
+        Vendor text is "announces today general availability of Tenstorrent Galaxy Blackhole
+        deployed at scale". The phrases "volume production" / "shipping in volume" appear in
+        no retrieved primary source and must not be used. "Production commenced January 2026"
+        traces only to an aggregator blog (ai2.work), not to Tenstorrent.
+      announcement_date: "2026-04-28"
+      downstream_coverage_dates: ["2026-05-01 (HPCwire/AIwire)", "2026-05-04 (TT-Deploy event)"]
+      form_factor: "6U rackmount, air-cooled"
+      accelerators: 32
+      accelerator_type: "Blackhole ASIC"
+      peak_pflops_block_fp8: 23
+      accelerator_sram_gb: 6.2
+      accelerator_sram_bandwidth_pbs: 2.9
+      gddr6_capacity_tb: 1
+      gddr6_bandwidth_tbs: 16
+      fabric_links_per_asic: "10 x 400 GbE"
+      fabric_bandwidth_vendor_tbs: 32
+      fabric_bandwidth_unidirectional_tbs: 16
+      scaleout_ports: "up to 56 x 800 GbE QSFP-DD"
+      scaleout_bandwidth_vendor_tbs: 11.2
+      scaleout_bandwidth_unidirectional_tbs: 5.6
+      bandwidth_note: >-
+        Vendor fabric/scale-out figures are bidirectional. 32 x 10 x 400 Gb/s = 128 Tb/s =
+        16 TB/s each way; 56 x 800 Gb/s = 44.8 Tb/s = 5.6 TB/s each way. The Register quotes
+        ~100 Tbps aggregate intra-node Ethernet, which does not reconcile cleanly with
+        128 Tb/s; discrepancy unexplained in public material.
+      host_cpu: "1 x AMD EPYC 9004 (Zen 4), up to 32 cores, <=280 W TDP"
+      host_memory: "up to 576 GB (6 x 96 GB) DDR5-4800 ECC RDIMM"
+      power: "8-10 kW average; 12 kW max; max system power configurable up to 14.5 kW"
+      power_wording_note: >-
+        Vendor labels 12 kW as "max"; do not restate it as "standard" with 14.5 kW as the max.
+      weight: "262 lbs / 119 kg"
+      max_system_scale_vendor: "144 nodes / >4,000 chips"
+      largest_public_deployment_description: "36-Galaxy supercluster networked as one computer (TT-Deploy, 2026-05-04)"
+      list_price_usd_from: 110000
+      supercluster_4node_price_usd_from: 440000
+      galaxy_wormhole_price_usd_from: 70000
+      ga_named_partners: [Prodia, Equinix, OrionVM, BetterBrain, "Virtu Financial", Turiyam, Cirrascale, "ai&"]
+      per_asic_configuration: not_disclosed
+      per_asic_arithmetic_note: >-
+        23 PFLOPS / 32 ~= 719 TFLOPS per ASIC and 6.2 GB / 1.5 MB / 32 ~= 129 Tensix cores per
+        ASIC (repo arithmetic, not vendor-stated) — both between the 120-core shipping card and
+        the 140-core full die. Tenstorrent has not published the Galaxy ASIC binning.
+      confidence: confirmed
+      sources:
+        - url: https://tenstorrent.com/en/hardware/galaxy
+        - url: https://tenstorrent.com/en/newsroom/tenstorrent-enables-ai-at-scale-with-industry-leading-performance
+        - url: https://www.theregister.com/software/2026/04/28/tenstorrents-galaxy-blackhole-ai-servers-are-finally-out/5229759
+        - url: https://docs.tenstorrent.com/systems/galaxy-blackhole/index.html
+          note: "Galaxy Blackhole User Guide v1.6, dated 2026-08-04"
+        - url: https://docs.tenstorrent.com/_downloads/3086863c42126fd0d63b01baccf8432e/galaxy-blackhole.pdf
+        - url: https://tenstorrent.com/en/newsroom/tt-deploy
+        - url: https://www.hpcwire.com/aiwire/2026/05/01/tenstorrent-announces-general-availability-of-galaxy-blackhole-ai-system/
+
+    blackhole_pcie_skus:
+      correction_of: "prior repo entry '140 Tensix cores / 745 TOPS FP8' — that is the full-die figure, not a shipping SKU"
+      full_die_reference:
+        tensix_cores: 140
+        peak_tops_fp8: 745
+        on_chip_sram_mb: 210
+      shipping:
+        - sku: p100a
+          tensix_cores: 120
+          big_risc_v: 16
+          on_chip_sram_mb: 180
+          gddr6_gb: 28
+          gddr6_bandwidth_gbs: 448
+          peak_tflops_blockfp8: 664
+          host_interface: "PCIe 5.0 x16"
+          tdp_w: 300
+          cooling: active
+          external_ports: none
+          price_usd: 999
+        - sku: p150a
+          tensix_cores: 120
+          big_risc_v: 16
+          on_chip_sram_mb: 180
+          gddr6_gb: 32
+          gddr6_bandwidth_gbs: 512
+          peak_tflops_blockfp8: 664
+          host_interface: "PCIe 5.0 x16"
+          tdp_w: 300
+          cooling: active
+          external_ports: "4 x QSFP-DD 800G"
+          price_usd: 1399
+        - sku: p150b
+          tensix_cores: 120
+          big_risc_v: 16
+          on_chip_sram_mb: 180
+          gddr6_gb: 32
+          gddr6_bandwidth_gbs: 512
+          peak_tflops_blockfp8: 664
+          host_interface: "PCIe 5.0 x16"
+          tdp_w: 300
+          cooling: passive
+          external_ports: "4 x QSFP-DD 800G"
+          price_usd: 1399
+      delisted:
+        - sku: p300
+          note: "dual-die 140x2 / 64 GB; no longer listed on the Blackhole product page as of 2026-08-08; retained in repo tables as architectural history"
+      confidence: confirmed
+      sources:
+        - url: https://tenstorrent.com/en/hardware/blackhole
+
+    superseded_repo_figures:
+      items:
+        - field: "Galaxy peak compute"
+          was: "~25 PFLOPS FP8 (summary.md) / ~24 PFLOPS (hw-architecture.md)"
+          now: "23 PFLOPS Block FP8"
+        - field: "Galaxy accelerator SRAM"
+          was: "~6.7 GB"
+          now: "6.2 GB @ 2.9 PB/s"
+        - field: "Galaxy scale-out bandwidth"
+          was: "~1 TBps aggregate (layer-table.md, hw-architecture.md, hw-architecture.dot)"
+          now: "11.2 TB/s vendor / 5.6 TB/s unidirectional over 56 x 800 GbE QSFP-DD"
+        - field: "Blackhole PCIe SKU compute"
+          was: "140 Tensix cores / 745 TOPS FP8"
+          now: "120 Tensix cores / 664 TFLOPS BLOCKFP8 (full-die 140/745 kept as reference)"
+      confidence: confirmed
+      sources:
+        - url: https://tenstorrent.com/en/hardware/galaxy
+        - url: https://tenstorrent.com/en/hardware/blackhole
+
+    quasar:
+      status: "next-generation bring-up target in the open-source stack; no product, no spec sheet"
+      first_public_code: "tenstorrent/tt-llk PR #593 'feat: initial commit of Quasar LLK', 2025-08-15"
+      merged_into_tt_metal: "2025-08-17"
+      commit_counts:
+        tt_metal_quasar_commits: 662
+        tt_llk_quasar_commits: 85
+      misdating_warning: >-
+        Quasar support did NOT newly land in the Apr-Aug 2026 window. It predates the repo's
+        2026-04-05 baseline by roughly eight months. The v0.75.0 and Aug-2026 dev-build entries
+        are incremental bring-up, not a milestone.
+      v0_75_0_and_dev_items:
+        - "Enable trace capture and replay on Quasar"
+        - "Enabling DFBs in Quasar fast-dispatch flow"
+        - "Add Quasar fast dispatch stress tests"
+        - "Fix Quasar unicast and iDMA VC assignments"
+        - "make Quasar-unsupported APIs fail at compile time"
+        - "Quasar unary and binary SFPU performance tests"
+        - "Quasar LLK perf matmul coverage"
+        - "Enable Quasar selection in LLK ttsim regression script"
+      process_node: "Samsung Foundry SF4X (4 nm-class), Taylor, Texas"
+      process_node_confidence: medium
+      process_node_caveat: >-
+        Announced October 2023 for the "Quasar" low-cost low-power ML chiplet. Tenstorrent has
+        not restated the node for the 2025-26 tt-metal Quasar architecture target, so it is not
+        confirmed that they are the same silicon. Do NOT record "no process node disclosed" —
+        that was an error in the raw scan.
+      core_count: not_disclosed
+      sram_config: not_disclosed
+      memory_config: not_disclosed
+      peak_throughput: not_disclosed
+      data_types: not_disclosed
+      packaging: not_disclosed
+      ship_date: not_disclosed
+      isa_documentation: "absent — tt-isa-documentation top level contains only WormholeB0 and BlackholeA0"
+      product_listing: "absent — docs.tenstorrent.com/aibs lists only Wormhole and Blackhole cards plus Wormhole/Blackhole QuietBox, LoudBox and Galaxy systems"
+      confidence: "confirmed (existence, timeline, commit counts); medium (process node); not_disclosed (all specs)"
+      sources:
+        - url: https://api.github.com/search/commits?q=repo:tenstorrent/tt-llk+Quasar&sort=committer-date&order=asc
+        - url: https://api.github.com/search/commits?q=repo:tenstorrent/tt-metal+Quasar&sort=committer-date&order=asc
+        - url: https://api.github.com/repos/tenstorrent/tt-metal/releases/tags/v0.75.0
+        - url: https://api.github.com/repos/tenstorrent/tt-isa-documentation/contents/
+        - url: https://docs.tenstorrent.com/aibs/
+        - url: https://www.theregister.com/on-prem/2023/10/04/samsung-to-fab-risc-v-chips-for-tenstorrent/
+        - url: https://www.inkl.com/news/tenstorrent-to-use-samsung-s-sf4x-for-quasar-low-cost-ai-chiplet
+
+    adjacent_products:
+      tt_ascalon_s:
+        launch_date: "2026-06-30"
+        type: "RISC-V CPU IP (not a datacenter accelerator)"
+        target: "mixed, branch-heavy, tool-connected agentic workloads"
+        area_vs_ascalon_x: "~50%"
+        perf_per_mm2_vs_ascalon_x: "~140%"
+        process_node: not_disclosed
+        confidence: confirmed
+        sources:
+          - url: https://tenstorrent.com/en/newsroom/tenstorrent-sets-new-performance-records-launches-tt--ascalon-s
+          - url: https://www.miragenews.com/tenstorrent-breaks-records-unveils-tt-ascalon-s-1701731/
+          - url: https://www.morningstar.com/news/accesswire/1183834msn/tenstorrent-sets-new-performance-records-launches-tt-ascalon-s-and-expands-across-japan
+      japan_expansion:
+        date: "2026-06-30"
+        ai_and_galaxy_systems: "120+"
+        ai_and_claim: "largest scale of sovereign AI compute in Japan (not 'in the region')"
+        turing: "demonstrated Blackhole in vehicles"
+        rapidus: "RISC-V CPU chiplet contribution to Japan's national 2 nm program"
+        osaka_datacenter: "active"
+        hiring_plan: "up to 200 Japanese silicon engineers into design teams"
+        confidence: confirmed
+        sources:
+          - url: https://tenstorrent.com/en/newsroom/tenstorrent-sets-new-performance-records-launches-tt--ascalon-s
+          - url: https://www.morningstar.com/news/accesswire/1183834msn/tenstorrent-sets-new-performance-records-launches-tt-ascalon-s-and-expands-across-japan
+      out_of_window:
+        - item: "Tenstorrent / Infinia Technologies sovereign-AI partnership"
+          date: "2026-01-27"
+          note: "predates the repo's 2026-04-05 baseline; not part of this update"
+
+    not_confirmed:
+      - claim: "Tenstorrent talk at Hot Chips 38 (Aug 23-25, 2026)"
+        finding: "confirmed ABSENT from the HC38 advance program"
+        source: https://hotchips.org/advance-program/
+      - claim: "Tenstorrent MLPerf Inference v6.0 or Training submission"
+        finding: "none found"
+        source: https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/
+      - claim: "LG deal"
+        finding: "not confirmed in this scan window"
+      - claim: "Galaxy 'volume production'"
+        finding: "not vendor wording; appears in no retrieved primary source"

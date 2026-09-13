@@ -1,0 +1,205 @@
+chip: groq-lpu
+investigation: software-stack
+date: "2026-04-05"
+last_updated: "2026-08-08"
+confidence: high
+
+framework_integration:
+  primary: PyTorch (via GroqFlow groqit())
+  secondary:
+    - ONNX (direct)
+    - TensorFlow (via ONNX export)
+    - CoreML (via ONNX export)
+  cloud_sdk:
+    name: groq-python
+    openai_compatible: true
+    install: pip install groq
+    url: https://github.com/groq/groq-python
+
+compiler:
+  name: Groq Compiler (groq-devtools)
+  approach: AOT_static_spatial_scheduling
+  ir_pipeline:
+    - torch-MLIR or ONNX-MLIR frontend
+    - Groq GTen dialect lowering
+    - Op fusion (automatic, no custom kernels)
+    - Spatial placement (physical unit assignment)
+    - Cycle-exact scheduling
+    - SRAM address assignment
+    - Inter-chip routing schedule (multi-chip)
+  output_format: .iop (Instruction Operation Program)
+  custom_kernel_authoring: false  # intentional design choice
+  mlir_based: true
+  assembler: available for bare-metal/research
+
+op_library:
+  applicable: false
+  reason: "All fusion handled by Groq Compiler on GTen dialect ops; no separate dispatch library"
+
+kernel_library:
+  applicable: false
+  reason: "No user-facing kernel library; hardware execution is statically pre-scheduled"
+
+runtime:
+  name: groq-runtime
+  type: minimal_static_replay
+  features:
+    - load .iop binary to hardware
+    - one-time SRAM weight loading
+    - deterministic execution replay
+  no_dynamic_scheduling: true
+  groqflow:
+    url: https://github.com/groq/groqflow
+    license: Apache-2.0
+    one_liner: "groqit(model, inputs)"
+
+communication:
+  type: compiler_scheduled_plesiosynchronous
+  no_nccl: true
+  cloud_api: HTTPS REST
+
+driver:
+  type: pcie_kernel_module
+  no_on_chip_firmware_rm: true  # unlike NVIDIA GSP
+
+isa:
+  user_visible: false
+  no_ptx_equivalent: true
+  binary_format: .iop (proprietary)
+
+performance_2025:
+  llama3_70b_tokens_per_sec: "~900 (standard), >1660 (speculative decoding)"
+  llama3_8b_tokens_per_sec: ">1000"
+
+# SUPERSEDED 2026-08-08 -- retained for history. Every field below is corrected
+# in update_2026_08_08.lpx_platform_corrected. Do not cite this block.
+post_acquisition_2026:
+  superseded_by: update_2026_08_08.lpx_platform_corrected
+  superseded_on: "2026-08-08"
+  chip: NVIDIA Groq 3 LPX (LP30)
+  sram_per_die_mb: 512          # WRONG -> 500
+  sram_bandwidth_tbs: 150
+  chips_per_rack: 256
+  rack_aggregate_bandwidth: "40 PB/s"
+  role_in_vera_rubin: "decode-phase co-processor (prefill to Rubin GPU, decode to LPX)"  # WRONG split
+  throughput_gain_vs_gpu_decode: "35x per megawatt"  # vendor marketing, unaudited
+  process: Samsung 4nm          # NOT CONFIRMED -> not disclosed
+  ship_date: "Q3 2026"          # analyst inference -> H2 2026 partner availability guidance
+
+sources:
+  - https://github.com/groq/groqflow
+  - https://console.groq.com/docs/overview
+  - https://github.com/groq/groq-python
+  - https://groq.com/meet-groq-compiler-solutions-for-a-symbiotic-software-hardware-ecosystem/
+  - http://pkamath.com/publications/papers/tsp-isca20.pdf
+  - https://hc34.hotchips.org/assets/program/conference/day2/Machine%20Learning/HotChips34%20-%20Groq%20-%20Abts%20-%20final.pdf
+  - https://developer.nvidia.com/blog/inside-nvidia-groq-3-lpx-the-low-latency-inference-accelerator-for-the-nvidia-vera-rubin-platform/
+
+# =====================================================================
+# UPDATE 2026-08-08 — software/SDK/corporate corrections and new facts.
+# Each fact group carries its own confidence and sources.
+# =====================================================================
+update_2026_08_08:
+
+  corporate_structure_affects_stack_ownership:
+    confidence: confirmed
+    facts:
+      deal_type: non_exclusive_inference_technology_licensing_agreement
+      announced: "2025-12-24"
+      acquisition: false
+      groq_independent: true
+      groqcloud_uninterrupted: true
+      stack_ownership: "GroqFlow, GroqWare (groq-devtools + groq-runtime), GTen dialect, .iop format, groq-python and GroqCloud remain Groq's; NVIDIA holds a non-exclusive license to the inference technology"
+      reported_value_usd: "~20 billion (CNBC 2025-12-24); NOT confirmed by NVIDIA or Groq; no SEC filing found"
+      ceo_2026_08: "Adam Winter (groq.com/about-us, 'became CEO in 2026'; some outlets say interim)"
+      prior_ceo: "Simon Edwards, CEO from Dec 2025, left April 2026 for Bloom Energy"
+    sources:
+      - https://groq.com/newsroom/groq-and-nvidia-enter-non-exclusive-inference-technology-licensing-agreement-to-accelerate-ai-inference-at-global-scale
+      - https://groq.com/about-us
+      - https://www.bloomenergy.com/team/simon-edwards/
+
+  lpx_software_stack:
+    confidence: not_disclosed
+    finding: "NVIDIA has published NO compiler, runtime, SDK, container, driver or ISA documentation for LP30 / Groq 3 LPX as of 2026-08-08. The two primary artifacts (developer blog 2026-03-16, nvidia.com LPX product page) are hardware-only."
+    open_questions:
+      - "Is Groq's compiler / .iop toolchain retained on NVIDIA LP30 silicon?"
+      - "What layer performs GPU/LPU work partitioning within decode?"
+      - "Is there a CUDA-ecosystem bridge, and of what form?"
+    retracted_claim:
+      text: "NVIDIA NIM (Inference Microservice) routing layer dispatches prefill to Rubin, decode to Groq LPX; NIM bridges CUDA ecosystem to LPX"
+      status: not_confirmed
+      reason: "Not described in NVIDIA's developer blog or LPX product page; and the prefill/decode framing it rests on is itself incorrect."
+    sources:
+      - https://developer.nvidia.com/blog/inside-nvidia-groq-3-lpx-the-low-latency-inference-accelerator-for-the-nvidia-vera-rubin-platform/
+      - https://www.nvidia.com/en-us/data-center/lpx/
+
+  lpx_platform_corrected:
+    confidence: confirmed  # vendor-published (NVIDIA primary)
+    supersedes: post_acquisition_2026
+    facts:
+      chip: "NVIDIA Groq 3 LPX (LP30)"
+      sram_per_die_mb: 500
+      sram_bandwidth_tbs: 150
+      fp8_pflops_per_chip: 1.2
+      chips_per_rack: 256
+      trays_per_rack: 32
+      tray: "1U liquid-cooled, 8 LPUs"
+      rack_sram_gb: 128
+      rack_aggregate_sram_bandwidth: "40 PB/s"
+      rack_scaleup_bandwidth_tbs: 640
+      rack_ddr5_tb: 12
+      role_in_vera_rubin: "latency-sensitive decode co-processor -- Rubin GPUs take throughput-bound full-context attention over the accumulated KV cache; LPX takes latency-sensitive decode work such as sparse MoE expert FFNs"
+      status_verb: ANNOUNCED
+      announced: "2026-03-16 (GTC 2026)"
+      availability: "no LPX-specific ship date; NVIDIA guides Vera Rubin partner availability to H2 2026"
+      process: not_disclosed
+      tdp: not_disclosed
+      non_fp8_throughput: not_disclosed
+    vendor_marketing_unaudited:
+      - "up to 35x higher inference throughput per megawatt"
+      - "315 PFLOPS per rack (does not reconcile with 9.6 PFLOPS FP8/tray x 32 = 307.2 PFLOPS)"
+    sources:
+      - https://developer.nvidia.com/blog/inside-nvidia-groq-3-lpx-the-low-latency-inference-accelerator-for-the-nvidia-vera-rubin-platform/
+      - https://www.nvidia.com/en-us/data-center/lpx/
+      - https://nvidianews.nvidia.com/news/nvidia-vera-rubin-platform
+      - https://www.storagereview.com/news/nvidia-groq-3-lpx-everything-we-know
+
+  groqcloud_2026:
+    confidence: confirmed
+    facts:
+      platform_post: "GroqCloud: Expanding to Meet Demand (2026-02-16)"
+      developers: ">5 million"
+      data_centers: 13
+      regions: [North America, Europe, Middle East, APAC]
+      capacity_target: "toward 200 MW by end of 2027"
+      funding: "$650M on 2026-06-22, led by Disruptive and Infinitum; valuation not disclosed"
+      fleet_direction: "Groq will fit out its footprint 'with Groq's latest inference technology, including the new LPX system from NVIDIA' -- implies a heterogeneous GroqCloud fleet (Groq LPU + NVIDIA LPX) behind one OpenAI-compatible API"
+      serving_layer_targeting_lpx: not_disclosed
+    sources:
+      - https://groq.com/newsroom/groq-raises-usd650m-to-scale-its-ai-inference-cloud-business
+      - https://groq.com/blog
+      - https://www.datacenterdynamics.com/en/news/groq-secures-650m-in-new-growth-capital-for-ai-cloud-expansion/
+
+  no_new_sdk_release:
+    confidence: confirmed
+    facts:
+      window: "2026-04 to 2026-08"
+      new_groqflow_groqware_or_compiler_release_documented: false
+      note: "The stack described in the body of this file remains the current public picture."
+    sources:
+      - https://groq.com/blog
+      - https://github.com/groq/groqflow
+
+  scheduled_disclosure_hot_chips_38:
+    confidence: scheduled_not_yet_public
+    facts:
+      conference: "Hot Chips 38"
+      session: "AI 1, Tuesday 2026-08-25, 2:15-4:15 PM PDT"
+      title: "Think Fast: LPU Accelerator for Heterogeneous Compute"
+      presenters: ["Igor Arsovski (NVIDIA)", "Santosh Raghavan (NVIDIA)"]
+      status: "disclosure scheduled, Hot Chips 38, Aug 2026 -- content not yet public as of 2026-08-08"
+      relevance_to_software: "the 'heterogeneous compute' framing suggests the GPU/LPU work-partitioning mechanism may be described -- the largest gap in the LPX software picture"
+      do_not: "cite the talk title as the source of any spec"
+      rescan_after: "2026-08-25"
+    sources:
+      - https://hotchips.org/advance-program/

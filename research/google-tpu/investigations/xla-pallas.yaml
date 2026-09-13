@@ -1,0 +1,166 @@
+chip: google-tpu
+investigation: xla-pallas
+as_of: "2026-04-05"
+components_covered:
+  - XLA (Accelerated Linear Algebra compiler)
+  - HLO (High Level Operations IR)
+  - StableHLO (MLIR portability layer)
+  - Pallas (JAX kernel DSL)
+  - Mosaic (TPU kernel compiler backend)
+  - GSPMD (legacy SPMD partitioner)
+  - Shardy (MLIR-based SPMD partitioner, GSPMD successor)
+
+layer_mappings:
+  - layer: Compiler / IR
+    components: [XLA, HLO, StableHLO, LLO]
+    confidence: confirmed
+    summary: >
+      XLA is the primary compiler for Google TPUs. It consumes StableHLO (a versioned MLIR
+      opset) emitted by JAX, PyTorch/XLA, and TensorFlow, and lowers it through HLO to
+      hardware-specific VLIW instruction bundles via LLO. Key optimization passes include
+      operator fusion (eliminates intermediate HBM roundtrips), layout assignment (maps
+      tensor layouts to MXU-optimal formats), memory space assignment (HBM↔VMEM scheduling),
+      and buffer assignment (peak memory minimization). The full chain is:
+      Python → jaxpr → StableHLO → HLO → Optimized HLO → LLO → VLIW bundles.
+      As of March 2026, Shardy is the only SPMD partitioner in JAX, replacing GSPMD.
+    sources:
+      - title: "OpenXLA/XLA Repository"
+        url: "https://github.com/openxla/xla"
+      - title: "StableHLO Specification"
+        url: "https://openxla.org/stablehlo/spec"
+      - title: "From JAX to VLIW: Tracing a Computation Through the TPU Compiler Stack"
+        url: "https://patricktoulme.substack.com/p/from-jax-to-vliw-tracing-a-computation"
+      - title: "JAX JIT Compilation"
+        url: "https://docs.jax.dev/en/latest/jit-compilation.html"
+
+  - layer: Kernel Library
+    components: [Pallas, Mosaic]
+    confidence: confirmed
+    summary: >
+      Pallas is JAX's kernel DSL, analogous to Triton for NVIDIA GPUs. Pallas kernels
+      are grid-based Python functions using JAX/NumPy semantics; each grid point processes
+      one VMEM-resident tile of the output. Kernels are lowered via Mosaic, a dedicated
+      TPU compiler that tiles operations for the MXU, schedules DMA pipelines for
+      HBM→VMEM prefetch (double-buffering), and emits VLIW instruction packets.
+      Pallas kernels appear as custom_call HLO ops embedded in the main XLA program.
+      Key memory spaces: VMEM (per-TensorCore vector scratchpad), SMEM/CMEM (scalar memory
+      for indices and metadata). MaxText, Tokamax, and FlaxAttention use Pallas for
+      custom attention and MoE kernels.
+    sources:
+      - title: "Pallas Design Document — JAX Documentation"
+        url: "https://docs.jax.dev/en/latest/pallas/design/design.html"
+      - title: "Writing TPU kernels with Pallas — JAX Documentation"
+        url: "https://docs.jax.dev/en/latest/pallas/tpu/details.html"
+      - title: "The Rise of Pallas: Unlocking TPU Potential with Custom Kernels"
+        url: "https://towardsdatascience.com/the-rise-of-pallas-unlocking-tpu-potential-with-custom-kernels-67be10ab846a/"
+      - title: "Optimizing with Pallas kernels — MaxText Documentation"
+        url: "https://maxtext.readthedocs.io/en/latest/guides/optimization/pallas_kernels_performance.html"
+
+key_abstractions:
+  - name: HLO (High Level Operations)
+    description: >
+      XLA's primary SSA graph IR. Every operation in a JAX program is represented as an
+      HLO node (dot_general, reduce, broadcast, custom_call, etc.). XLA's optimization
+      passes consume and transform the HLO graph before lowering to LLO for the target
+      hardware. HLO is the stable internal representation; StableHLO is its externally
+      versioned MLIR encoding.
+    layers_involved: [Compiler / IR]
+
+  - name: StableHLO
+    description: >
+      An MLIR operation set (~100 ops) providing a backward-compatible portability layer
+      between ML frameworks and XLA-based compilers. Frameworks serialize to StableHLO;
+      the compiler deserializes and ingests it. StableHLO provides both backward and
+      forward compatibility windows, decoupling framework and compiler release cadences.
+      It is the ML ecosystem's equivalent of ONNX but with formal semantics and MLIR
+      infrastructure.
+    layers_involved: [Compiler / IR]
+
+  - name: Shardy
+    description: >
+      MLIR-based tensor partitioning system that replaced GSPMD as of March 2026 in JAX.
+      Accepts axis-based sharding annotations on StableHLO ops and propagates them through
+      the computation graph, inserting AllGather, AllReduce, AllToAll, and CollectivePermute
+      collective ops at boundaries where sharding changes. Shardy's mesh-axis representation
+      offers more predictable shard propagation and better debuggability than GSPMD.
+    layers_involved: [Compiler / IR, Communication]
+
+  - name: Pallas / pallas_call
+    description: >
+      JAX's kernel programming extension. pallas_call is the entry point: it takes a Python
+      kernel function, a grid spec (tile dimensions over the output space), BlockSpec objects
+      (defining how inputs tile across the grid), and memory space annotations. The kernel
+      body receives VMEM-resident references (not HBM pointers) and uses jax.numpy ops.
+      Mosaic compiles the kernel body; pallas_call embeds the result as an XLA custom_call.
+    layers_involved: [Kernel Library]
+
+  - name: Mosaic (TPU kernel compiler backend)
+    description: >
+      The compiler that translates Pallas IR (jaxpr of the kernel body) to TPU VLIW instruction
+      bundles. Mosaic maps BlockSpec tile dimensions to MXU input requirements, generates
+      DMA commands for HBM→VMEM data movement with N-stage double-buffering, schedules
+      VLIW instruction slots for MXU + VPU + DMA + scalar units in parallel, and emits LLO.
+      Mosaic makes TPU-specific features (VMEM tiling, pipeline scheduling, CMEM scalar
+      storage) accessible to kernel authors without knowledge of the TPU ISA.
+    layers_involved: [Kernel Library, Compiler / IR]
+
+  - name: Operator Fusion (XLA)
+    description: >
+      XLA's highest-impact optimization pass. Merges adjacent element-wise operations
+      (activations, biases, norms), reductions, and broadcasts into the output of matrix
+      multiplies or convolutions. Fusion eliminates HBM roundtrips for intermediate tensors,
+      increasing arithmetic intensity and moving fused kernels from memory-bound to
+      compute-bound execution. Bounded by VMEM capacity for intermediate tensor storage.
+    layers_involved: [Compiler / IR]
+
+framework_integrations:
+  - framework: JAX
+    integration_point: "jax.jit → jaxpr → StableHLO → XLA"
+    description: >
+      JAX is the primary entry point for XLA on TPU. jax.jit traces Python functions to
+      jaxpr, which is lowered to StableHLO and passed to XLA. Sharding annotations
+      (jax.sharding) are propagated by Shardy at the StableHLO level. Pallas custom kernels
+      are embedded as custom_call ops in the same HLO program.
+    notes: "libtpu.so packages XLA compiler + TPU driver on every Cloud TPU VM"
+
+  - framework: PyTorch
+    integration_point: "torch.compile / PyTorch/XLA → XLA"
+    description: >
+      PyTorch/XLA bridges PyTorch programs to XLA via the torch_xla backend. With
+      torch.compile, PyTorch's Dynamo traces the graph and TorchInductor (or torch_xla
+      directly) hands an XLA-compatible computation to XLA for TPU execution.
+      Pallas kernels are callable from PyTorch/XLA via the pallas_call API.
+    notes: "TorchTPU initiative aims to make TPUs feel native to PyTorch (2025 roadmap)"
+
+  - framework: TensorFlow
+    integration_point: "TF SavedModel → StableHLO → XLA"
+    description: >
+      TensorFlow on TPU (via tf2xla) is supported up to TPU v6e. TF is not supported on
+      TPU v7 (Ironwood) and later; new workloads on v7 must use JAX or PyTorch/XLA.
+    notes: "TF support ends at TPU v6e per Cloud TPU documentation"
+
+compiler_pipeline_stages:
+  - stage: jaxpr
+    description: "JAX functional IR; produced by jax.jit tracing the Python function with abstract values"
+  - stage: StableHLO
+    description: "MLIR opset; versioned portability layer; jaxpr is lowered here; Shardy partitioning annotations propagated"
+  - stage: HLO
+    description: "XLA-internal SSA graph; imported from StableHLO; optimization passes applied here"
+  - stage: Optimized HLO
+    description: "Fused, tiled, layout-assigned, memory-scheduled HLO; ready for TPU backend lowering"
+  - stage: LLO
+    description: "Low Level Operations; TPU-specific IR bridging HLO to VLIW; both XLA and Mosaic emit to LLO"
+  - stage: VLIW bundles
+    description: "Final TPU machine code; 8-operation-per-cycle VLIW instruction packets loaded by libtpu onto the TPU"
+
+hardware_features_exploited:
+  - feature: MXU systolic array (128×128 or 256×256)
+    mechanism: "XLA tiles GEMM K-dimension to match MXU width; Mosaic maps pl.dot to MXU compute slots"
+  - feature: VMEM (per-TensorCore scratchpad)
+    mechanism: "XLA memory space assignment schedules HBM→VMEM prefetch; Mosaic double-buffers VMEM tiles"
+  - feature: CMEM (scalar memory)
+    mechanism: "Mosaic places loop indices, DMA metadata, and small tables in CMEM to avoid VMEM bandwidth contention"
+  - feature: VLIW instruction issue (8 ops/cycle)
+    mechanism: "Mosaic and XLA TPU backend pack MXU + VPU + DMA + scalar ops into same VLIW packet"
+  - feature: ICI collective communication
+    mechanism: "Shardy inserts AllReduce / AllGather / AllToAll ops; XLA schedules them during HBM DMA windows"

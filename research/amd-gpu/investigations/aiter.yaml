@@ -1,0 +1,171 @@
+resource: aiter
+url: https://github.com/ROCm/aiter
+type: github_repo
+as_of: "2026-04-05"
+commit_sha: e742eeb
+doc_version: null
+chip: amd-gpu
+device_class: GPU
+
+layer_mappings:
+  - layer: Kernel Library
+    component: AITER
+    confidence: confirmed
+    sources:
+      - aiter/__init__.py
+      - aiter/ops/attention.py
+      - aiter/ops/moe_op.py
+      - aiter/ops/gemm_op_a8w8.py
+      - aiter/ops/mha.py
+      - README.md
+  - layer: Kernel Library
+    component: CK (Composable Kernel)
+    confidence: confirmed
+    sources:
+      - 3rdparty/composable_kernel/  # git submodule
+      - csrc/ck_gemm_a8w8/
+      - csrc/ck_tile_gemm_moe_2stages/
+      - aiter/ops/mha.py  # CK codegen via cmdGenFunc_mha_fwd
+      - csrc/include/mha_fwd.h  # fmha_fwd_traits inherits from CK-Tile
+  - layer: Kernel Library
+    component: CK-Tile
+    confidence: confirmed
+    sources:
+      - csrc/include/ck_tile/
+      - csrc/include/mha_fwd.h  # fmha_fwd_traits
+      - csrc/ck_tile_gemm_moe_2stages/
+      - csrc/cktile_gemm_a8w8_bpreshuffle/
+  - layer: Kernel Library
+    component: Hand-written Assembly (HSACO)
+    confidence: confirmed
+    sources:
+      - hsa/gfx942/fmha_v3_fwd/
+      - hsa/gfx942/fmoe/
+      - hsa/gfx942/bf16gemm/
+      - hsa/gfx950/fmha_v3_fwd/
+      - csrc/cpp_itfs/mha_fwd.cu  # use_ext_asm flag selects .co path
+  - layer: Compiler / JIT
+    component: AITER JIT (compile_ops)
+    confidence: confirmed
+    sources:
+      - aiter/jit/core.py
+      - aiter/jit/utils/cpp_extension.py
+  - layer: Compiler / AOT
+    component: Triton AOT
+    confidence: confirmed
+    sources:
+      - aiter/aot/triton/decode_mla.py
+      - aiter/aot/triton/norm.py
+  - layer: Runtime
+    component: ROCm HIP Runtime
+    confidence: confirmed
+    sources:
+      - csrc/cpp_itfs/mha_fwd.cu  # hipLaunchKernelGGL / hipModuleLaunchKernel
+      - aiter/jit/utils/chip_info.py  # rocminfo detection
+  - layer: Communication
+    component: Iris (Triton-based GPU-initiated comms)
+    confidence: confirmed
+    sources:
+      - aiter/ops/communication.py
+      - docs/triton_comms.md
+      - requirements-triton-comms.txt
+  - layer: Communication
+    component: Custom All-Reduce
+    confidence: confirmed
+    sources:
+      - aiter/ops/custom_all_reduce.py
+      - aiter/dist/device_communicators/custom_all_reduce.py
+  - layer: ISA
+    component: CDNA3 MFMA (gfx942)
+    confidence: confirmed
+    sources:
+      - aiter/jit/utils/chip_info.py  # GFX_MAP gfx942
+      - hsa/gfx942/  # gfx942-targeted HSACO blobs
+  - layer: ISA
+    component: CDNA4 MFMA (gfx950)
+    confidence: confirmed
+    sources:
+      - aiter/jit/utils/chip_info.py  # GFX_MAP gfx950
+      - hsa/gfx950/  # gfx950-targeted HSACO blobs
+  - layer: Framework Integration
+    component: vLLM / PyTorch custom ops
+    confidence: confirmed
+    sources:
+      - csrc/cpp_itfs/torch_utils.py  # direct_register_custom_op
+      - aiter/ops/attention.py  # torch.library integration
+      - csrc/include/torch/
+
+framework_integrations:
+  - framework: PyTorch
+    integration_point: >
+      Custom ops registered via torch.library using direct_register_custom_op()
+      (csrc/cpp_itfs/torch_utils.py). Python stubs decorated with @compile_ops
+      compile HIP extensions and bind via pybind11 or ctypes.
+  - framework: vLLM
+    integration_point: >
+      Primary consumer of AITER ops (paged attention, FMHA, FusedMoE, GEMM,
+      KV-cache). AITER replaces vLLM's own custom CUDA kernels on AMD hardware.
+  - framework: Triton
+    integration_point: >
+      AITER ships Triton-based kernels in aiter/ops/triton/ and aiter/aot/triton/
+      for operators where Triton provides competitive performance (normalization,
+      decode MLA, communication). CK is preferred for compute-bound ops.
+  - framework: FlyDSL
+    integration_point: >
+      Optional DSL for mixed-precision MoE (A4W4). Installed separately; AITER
+      auto-detects and uses FlyDSL kernels for ops like Kimi-K2.5 MoE on MI355X,
+      falling back to CK when unavailable.
+  - framework: Iris
+    integration_point: >
+      GPU-initiated Triton-based communication library for reduce-scatter and
+      all-gather. Enables compute-communication overlap in tensor-parallel inference.
+
+key_abstractions:
+  - name: "@compile_ops decorator"
+    description: >
+      Universal lazy-compile wrapper in aiter/jit/core.py that turns Python
+      stub functions into JIT-compiled HIP operator dispatchers. Supports pybind11
+      and ctypes FFI modes, CSV-based config lookup, and per-operator code-generation
+      functions (gen_func) that select the right CK or ASM backend at call time.
+
+  - name: "HSACO .co Pre-compiled Assembly Blobs"
+    description: >
+      Hand-written AMDGPU assembly kernels in hsa/gfx942/ and hsa/gfx950/, compiled
+      to HSA Code Objects (.co files). Selected at runtime by the HIP C++ interface
+      layer (e.g., mha_fwd.cu) based on arch_id, dtype, head-dim, and mask type.
+      Represent the highest-performance path for FMHA, FusedMoE, and GEMM on MI300X/MI350.
+
+  - name: "CK-Tile Python Code Generator"
+    description: >
+      CK's generate.py script (under 3rdparty/composable_kernel/example/ck_tile/)
+      is invoked at JIT-compile time with a filter string produced by cmdGenFunc_*
+      to emit HIP C++ files instantiating the correct CK-Tile template kernel
+      (FmhaFwdKernel, GemmKernel, etc.) for the exact dtype/feature combination.
+
+  - name: "mha_fwd_traits / fmha_fwd_traits"
+    description: >
+      C++ traits structs (csrc/include/mha_fwd.h, inheriting from CK-Tile) that
+      encode all compile-time policy choices for the MHA forward pass: head-size,
+      dtype, masking mode, bias type, LSE, dropout, quantization scale type, and
+      use_ext_asm flag (routes to HSACO vs. CK-Tile path).
+
+  - name: "Tuned CSV Configuration Files"
+    description: >
+      Per-(op, shape) CSV files in aiter/configs/ storing the best-performing kernel
+      tile configuration (tile sizes, splitK, block schedule) for each matrix shape
+      measured on real MI300X/MI350 hardware via the CI autotuning pipeline. Loaded
+      at startup by jit/core.py via AITER_CONFIGS and consulted at dispatch time.
+
+  - name: "chip_info / GFX_MAP"
+    description: >
+      Runtime GPU architecture detection (aiter/jit/utils/chip_info.py) using
+      rocminfo subprocess. Maps GFX ISA strings (gfx942, gfx950, etc.) to integer
+      indices, detects MI300 vs. MI308 via PCI chip-id, and exposes CU count.
+      Used by every operator to gate architecture-specific kernel registration.
+
+  - name: "FusedMoE 2-Stage Pipeline"
+    description: >
+      MoE implementation combining token routing (topk_softmax + moe_align_block_size
+      sorting) with a 2-stage fused GEMM kernel (csrc/ck_tile_gemm_moe_2stages/,
+      hsa/gfx942/fmoe_2stages/). Supports FP8/INT8/INT4 weights with per-block
+      scaling, covering DeepSeek V2/V3 and Kimi-K2.5 MoE architectures.

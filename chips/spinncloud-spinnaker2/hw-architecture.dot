@@ -1,0 +1,153 @@
+digraph spinncloud_spinnaker2_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    label="SpiNNcloud SpiNNaker2 — 22nm FDSOI, 102 mm², 152 ARM Cortex-M4F PEs, 19.8 MB SRAM, 0.24–2.2 W\nas_of 2026-08-08 · all figures from IEEE OJCAS 2026 (arXiv:2607.24396) unless noted";
+    labelloc="t";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== CHIP =====================
+    subgraph cluster_chip {
+        label="SpiNNaker2 Chip — GF 22FDX, 102 mm², 266 M gate equivalents, ABX adaptive body biasing";
+        style="rounded,dashed";
+        color="#1A237E";
+        fontcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.8;
+
+        // ---------- Quad / PE ----------
+        subgraph cluster_qpe {
+            label="38 QuadPEs × 4 = 152 PEs (148 usable by applications)";
+            style="rounded,filled";
+            fillcolor="#EBF3FB";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            pe_core [label="ARM Cortex-M4F\nARMv7E-M / Thumb-2 + DSP\nFPv4-SP single-precision FPU\n150 MHz @0.5V / 300 MHz @0.8V\n45 IRQ sources, 3 timers", fillcolor="#BBDEFB"];
+            mla [label="ML Accelerator (MLA)\n16 × 4 output-stationary MAC\n= 64 MACs/PE, 8b signed/unsigned\n(2 cells fuse → 16b), 24b accum\n2-D matmul + 2-D conv, ReLU fusable", fillcolor="#BBDEFB"];
+            numacc [label="Numerical Accelerator\nIterative exp / natural log\ns16.15, s0.31, FP32\n7–22 cycles, 1–2 ulp\n4.4–5.7× vs ARM core", fillcolor="#BBDEFB"];
+            rndacc [label="Rounding Accelerator\nInt round + saturate 64/32/16b\nFP → BFloat16\nStochastic rounding (PRNG)\n4 threads, 3–4 cycles", fillcolor="#BBDEFB"];
+            rng [label="PRNG per PE\nMARS KISS64, 32 bit/cycle\n(+ 1 global TRNG from\nADPLL bang-bang jitter)", fillcolor="#BBDEFB"];
+            evh [label="Event Handler (spDMA)\n2 configurable HW filters\nPackets → SRAM-mapped FIFO\nwithout interrupting the ARM core", fillcolor="#BBDEFB"];
+            pe_sram [label="PE-local SRAM — 128 kB\n4 banks · NO HARDWARE CACHE\n≈32 kB ITCM (code)\n≈96 kB DTCM (host-allocated)\nlinker + host managed", fillcolor="#90CAF9"];
+            quad_sram [label="Quad-shared SRAM\n4 × 128 kB = 512 kB\naddressable by all 4 PEs\nin synchronous mode", fillcolor="#90CAF9"];
+        }
+
+        // ---------- Interconnect ----------
+        subgraph cluster_noc {
+            label="On-chip Interconnect — two NoCs + event router";
+            style="rounded,filled";
+            fillcolor="#F3E5F5";
+            color="#6A1B9A";
+            fontcolor="#6A1B9A";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            dnoc [label="Data NoC (DNoC)\n2-D mesh, 192-bit flit\n300 MHz · 5 cycles/hop\nBisection 307.2 Gbit/s\nXY routing or 64-entry LUT", fillcolor="#E1BEE7"];
+            cnoc [label="Config NoC (CNoC)\n32-bit flit, wormhole\n100 MHz reference clock\nalive before any PLL\nboot / registers / test", fillcolor="#E1BEE7"];
+            router [label="SpiNNaker Event Router\nDie centre, area of 2 Quads\n400 MHz · 6 NoC ports\n3 parallel routing engines\n16,384 multicast TCAM entries\n1,843.2 Gbit/s to PEs\n460.8 Gbit/s to external links", fillcolor="#CE93D8"];
+        }
+
+        // ---------- Periphery ----------
+        subgraph cluster_periph {
+            label="Periphery";
+            style="rounded,filled";
+            fillcolor="#E8F5E9";
+            color="#2E7D32";
+            fontcolor="#2E7D32";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            mgmt [label="Management Cortex-M4\n(the \"153rd core\")\nNo FPU, no accelerators\n100 MHz · 128 kB ECC SRAM\nBoot + code broadcast to PEs", fillcolor="#C8E6C9"];
+            eth [label="Ethernet — 1 Gbit/s\nSGMII 625 MHz DDR\nUDP + UDT reliability\nEthernet↔NoC bridge\nNO PCIe · NO kernel driver", fillcolor="#C8E6C9"];
+            gpio [label="27 GPIO @ 1.8 V\n4× UART · QSPI 200 Mbit/s\nI²C 1 Mbit/s · 13 PWM\n(sensor / robot integration)", fillcolor="#C8E6C9"];
+            dvfs [label="DVFS + ADPLL\n4 performance levels per PE\n0.5 V/150 MHz · 0.8 V/300 MHz\nGALS · per-PE power domains\nQuad semaphores vs IR droop", fillcolor="#C8E6C9"];
+        }
+
+        // ---------- Memory interface ----------
+        subgraph cluster_dram {
+            label="Off-chip Memory Interface";
+            style="rounded,filled";
+            fillcolor="#FFF3E0";
+            color="#E65100";
+            fontcolor="#E65100";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            lpddr [label="2 × LPDDR4 @ 800 MHz\nUniquify PHY + controller\n25.6 Gbit/s raw per interface\n= 6.4 GB/s aggregate raw\nSustained BW: not disclosed", fillcolor="#FFE0B2"];
+            dram_dma [label="Per-interface DMA controller\ndram_dma_rd / dram_dma_wr\n16-byte alignment\nKeeps bulk traffic off the NoC", fillcolor="#FFE0B2"];
+        }
+
+        // ---------- Links ----------
+        links [label="6 Chip-to-Chip Event Links\nHexagonal grid → 48-chip torus\nShort-range: 0.5 V low-swing,\n6 lanes DDR @500 MHz = 6 Gbit/s, CRC-12\nLong-range: LVDS 1 GHz DDR = 2 Gbit/s, 8b10b\nAggregate per chip: not disclosed", fillcolor="#FFCDD2", color="#B71C1C"];
+    }
+
+    // ===================== OFF-CHIP =====================
+    subgraph cluster_system {
+        label="System — SpiNNode (1 chip) · 48-node board · racks";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        dram_chips [label="LPDDR4 DRAM\n2 GB per chip (1 GB per interface)\nStatically partitioned by the host:\nglobal config │ layer configs │ data area", fillcolor="#EEEEEE"];
+        board48 [label="48-node board\n48 chips, toroidal mesh\nSTM32 + 2 MB flash (SPI chain + I²C)\nGbE on chip 43 only\n7,104 usable cores\nBoard power / cooling: not disclosed", fillcolor="#EEEEEE"];
+        host [label="Host — userspace process\nUDP (+UDT) over 1 GbE\nExperimentRunner / SpiNNMan2\nNO PCIe · NO /dev node · NO ioctl", fillcolor="#EEEEEE"];
+        systems [label="Systems as built\nSandia NERL Braunfels: 175 M neurons\n(delivered March 2025)\nTU Dresden: ~35,000 chips / 5 M cores\n\"10 B neurons\" = OFFERED config, not built", fillcolor="#EEEEEE"];
+    }
+
+    // ===================== EDGES =====================
+
+    // PE internals
+    pe_core -> mla [label="MMIO config\n(mlacc_params)", fontsize=8];
+    pe_core -> numacc [style=dashed, fontsize=8];
+    pe_core -> rndacc [style=dashed, fontsize=8];
+    pe_core -> rng [style=dashed, fontsize=8];
+    pe_core -> pe_sram [dir=both, label="ITCM fetch /\nDTCM load-store", fontsize=8];
+    mla -> pe_sram [dir=both, label="operands", fontsize=8];
+    evh -> pe_sram [label="event FIFO\n(no IRQ to core)", fontsize=8];
+    evh -> pe_core [style=dashed, label="fill-level IRQ", fontsize=8];
+    pe_sram -> quad_sram [style=dashed, label="sync mode", fontsize=8];
+
+    // NoC
+    pe_sram -> dnoc [dir=both, label="dma_rd / dma_wr\nPE↔PE", fontsize=8];
+    mla -> dnoc [style=dashed, label="NoC operand\nprefetch", fontsize=8];
+    dnoc -> router [dir=both, label="event packets", fontsize=8];
+    cnoc -> pe_core [style=dashed, label="boot / registers", fontsize=8];
+    router -> evh [label="multicast spikes\nto destination PEs", fontsize=8];
+
+    // Memory path
+    dnoc -> dram_dma [dir=both, label="SRAM ↔ DRAM", fontsize=8];
+    dram_dma -> lpddr;
+    lpddr -> dram_chips [dir=both, label="6.4 GB/s raw", fontsize=8];
+
+    // Periphery
+    mgmt -> cnoc [label="boot, config,\ncode broadcast", fontsize=8];
+    eth -> dnoc [dir=both, label="Ethernet↔NoC bridge", fontsize=8];
+    dvfs -> pe_core [style=dashed, label="performance level", fontsize=8];
+    gpio -> cnoc [style=dashed];
+
+    // Scale-up / out
+    router -> links [dir=both, label="460.8 Gbit/s\nto external links", fontsize=8];
+    links -> board48 [dir=both, label="48-chip torus", fontsize=8];
+    eth -> host [dir=both, label="UDP + UDT", fontsize=8];
+    board48 -> systems [style=dashed];
+    host -> board48 [style=dashed, label="static memory map\nwritten before run", fontsize=8];
+}

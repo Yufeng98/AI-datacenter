@@ -1,0 +1,116 @@
+digraph xiwang_hw_architecture {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.4;
+
+    // ===================== PRODUCT GENERATIONS =====================
+    subgraph cluster_products {
+        label="Product Generations";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        s1 [label="S1  (DSA, ~2019)\nCloud + Edge Inference\nProcess: NOT PUBLIC\nMemory: NOT PUBLIC\nSales: >20K units\nArch: DSA (not GPGPU)", fillcolor="#D6E4F0"];
+        s2 [label="S2  (GPGPU, volume production)\nInference + fine-tuning (2026 positioning)\nTSMC 7nm CoWoS\n64 GB, type NOT DISCLOSED\n350–450W TDP · PCIe Gen5 x16\nWarp size 32 (FlagTree)\nFP32 > A100 (claimed)\nBF16 ≈ H100 (claimed)\nCards: 智望 S2-X1 PCIe / S2-M1 OAM", fillcolor="#AED6F1"];
+        s3 [label="S3  (Inference GPU, announced Jan 2026)\nANNOUNCED ONLY — no public tape-out\nProcess / TDP: NOT DISCLOSED\nLPDDR6 (back-compat LPDDR5X)\nPCIe Gen6\nFP32/FP16/FP8/INT8/FP4\nFP4 peak: 'P 级' only — no TFLOPS\n−90% per-token cost (claimed)\n'5×' single-chip perf (claimed;\nwas '3×+' in Dec 2025)", fillcolor="#85C1E9", style="rounded,filled,dashed"];
+        s4s5 [label="S4 (2027, high-performance)\nS5 (2028, security chip)\nUNVERIFIED Jan-2026 exec statement", fillcolor="#EAF2F8", style="rounded,filled,dotted"];
+    }
+
+    // ===================== S2 COMPUTE =====================
+    subgraph cluster_s2_compute {
+        label="S2 Compute Engine  [Details NOT PUBLIC]";
+        style="rounded,dashed";
+        color="#1A237E";
+        fontcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        simt [label="SIMT Compute Units\n(count NOT PUBLIC)\nFully self-developed arch.\nTensor units: present (inferred)\nWarp size: 32\nISA triple: stcu-unknown-tang\nPrecision: FP32/TF32/BF16/FP16/INT8", fillcolor="#D5D8DC"];
+        onchip [label="On-Chip SRAM\nCapacity: NOT PUBLIC\nType (cache vs scratchpad): NOT PUBLIC", fillcolor="#D5D8DC"];
+    }
+
+    // ===================== S3 COMPUTE =====================
+    subgraph cluster_s3_compute {
+        label="S3 Compute Engine  [Details NOT PUBLIC]";
+        style="rounded,dotted";
+        color="#1A237E";
+        fontcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        s3simt [label="Inference-Optimized Compute\n(unit count NOT PUBLIC)\nISA triple: stcuv2 (+ *_S3.bc libdevice)\nPrecision: FP32/FP16/FP8/INT8/FP4\nFP8 exposed in Triton: fp8e5 (E5M2)\nOperator eff. 99% GEMM / 98% FA\n(仿真实测 — SIMULATION, not silicon)", fillcolor="#D5D8DC", style="rounded,filled,dashed"];
+    }
+
+    // ===================== MEMORY =====================
+    subgraph cluster_memory {
+        label="Memory";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hbm [label="Off-Chip Memory (S2)\n64 GB\nType: NOT DISCLOSED\n(CoWoS suggests HBM — never vendor-stated)\nBW: NOT PUBLIC\n('higher than A100 2.0 TB/s' qualitative only)", fillcolor="#EFEBE9"];
+        lpddr [label="Off-Chip Memory (S3)\nLPDDR6  (back-compat LPDDR5X)\n★ NOT HBM — sidesteps HBM export controls\nCapacity: NOT DISCLOSED\nBandwidth: NOT DISCLOSED", fillcolor="#D7CCC8", style="rounded,filled,dashed"];
+    }
+
+    // ===================== PACKAGING =====================
+    subgraph cluster_pkg {
+        label="Package / Interconnect";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        cowos [label="2.5D CoWoS Packaging (S2)\n(TSMC; die count not public)\nDie area: NOT PUBLIC\nTransistors: NOT PUBLIC\nS3 packaging: NOT DISCLOSED", fillcolor="#FFE0CC"];
+        pcie [label="PCIe Gen5 x16\n128 GB/s host BW (S2)", fillcolor="#FFE0CC"];
+        pcie6 [label="PCIe Gen6 (S3)\n'100% host-device BW improvement'\n(vendor claim; lane count not stated)", fillcolor="#FFE0CC", style="rounded,filled,dashed"];
+        scaleup [label="SRLink  (S2 scale-up)\nProprietary (自研)\nBandwidth / topology: NOT PUBLIC\nCollectives: PCCL", fillcolor="#FFE0CC"];
+        superpod [label="寰望 SC3-256 SuperPOD  (S3 rack-scale)\nLiquid-cooled · PD-disaggregated · large-EP\nTarget: trillion-param+ multimodal MoE\nCHIP COUNT NOT STATED by vendor\n(256 is only in the product name)\nLink tech: NOT DISCLOSED\n'>20x throughput' = vendor lab data", fillcolor="#FFE0CC", style="rounded,filled,dashed"];
+    }
+
+    // ===================== FOUNDRY / RISK =====================
+    subgraph cluster_risk {
+        label="Foundry / Export Risk";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        foundry [label="Foundry: TSMC\nNode: 7nm (S2)\nCoWoS advanced packaging\n⚠ US export control risk\n(CoWoS + HBM scrutiny)\nS3 foundry/node: NOT DISCLOSED\nS3 LPDDR6 avoids HBM restrictions\nEntity List: NOT listed (as of 2026-08-08)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== EDGES =====================
+    s1 -> s2 [label="GPU pivot (2023)", fontsize=8, color="#4A90D9"];
+    s2 -> s3 [label="S3 roadmap\n(Jan 2026 announce)", fontsize=8, color="#4A90D9", style=dashed];
+    s3 -> s4s5 [label="unverified roadmap", fontsize=8, color="#4A90D9", style=dotted];
+
+    s2 -> simt;
+    s3 -> s3simt [style=dashed];
+    simt -> onchip [label="SRAM access", fontsize=8];
+    onchip -> hbm [label="load/store", fontsize=8];
+    s3simt -> lpddr [label="load/store", fontsize=8, style=dashed];
+    hbm -> cowos [style=dashed, color="#795548"];
+    cowos -> pcie;
+    cowos -> scaleup;
+    lpddr -> pcie6 [style=dashed, color="#795548"];
+    pcie6 -> superpod [style=dashed, label="S3 rack-scale", fontsize=8];
+    scaleup -> superpod [style=dotted, label="SRLink carry-forward\nNOT CONFIRMED for S3", fontsize=8];
+    cowos -> foundry [style=dashed, color="#EA4335", label="manufactured at", fontsize=8];
+}

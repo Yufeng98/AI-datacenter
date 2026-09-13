@@ -1,0 +1,170 @@
+digraph hygon_dcu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.cuda (→ torch.hip)\nDTK ROCm compat\nDDP + RCCL", fillcolor="#D6E4F0"];
+        paddle [label="PaddlePaddle\nFirst-class DCU support\nFleet distributed\nMixed precision", fillcolor="#D6E4F0"];
+        vllm [label="vLLM / GPUStack\nLLM inference\nK100_AI backend\nDeepSeek/Qwen/LLaMA", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hipcc [label="hipcc (DTK LLVM)\nHIP C++ → amdgcn IR\n→ DCU ISA binary\nOpenMP/OpenACC", fillcolor="#E4DEFF"];
+        hipify [label="hipify-perl/clang\nCUDA → HIP translation\n~90-95% automated\nMigration path", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hipdnn [label="hipDNN / MIOpen\nConv, BN, Pooling\nAttention, LSTM\ncuDNN analog", fillcolor="#D4EDDA"];
+        hipblas [label="hipBLAS / hipSPARSE\nGEMM + BLAS L1-3\nSparse BLAS\ncuBLAS analog", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LIBRARY =====================
+    subgraph cluster_kernel {
+        label="Kernel Library";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hipthrust [label="hipThrust / hipCUB\nrocPRIM / rocBLAS\nReduce, Scan, Sort\nParallel primitives", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hiprt [label="HIP Runtime (hiprt)\nhipMalloc/Free/MemcpyAsync\nhipStream, hipEvent\nhipMallocManaged", fillcolor="#F8D7DA"];
+        rocr [label="ROCr / HSA Runtime\nHSA agent model\nAQL packet dispatch\nLow-level context mgmt", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="DCU Kernel Driver (.ko)\nPCIe BAR + MMIO\nIOCTL + DMA\nPropriety (not open-source)", fillcolor="#E0E0E0"];
+        hami [label="HAMi dcu-vgpu-plugin\nK8s device resource\nvGPU sharing\nMemory + core quotas", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        rccl [label="RCCL (DTK port)\nAllReduce/AllGather\nBroadcast/ReduceScatter\nxGMI intra + RoCE inter", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        dcuisa [label="DCU ISA (GCN/Vega-derived)\n64-thread wavefront\nv_ VGPR / s_ SGPR / ds_ LDS\nNot publicly published", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Hygon DCU Hardware (K100_AI / Z100-class, China, 海光)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        cu [label="Compute Units (CU)\n~60-64 CUs @ 1.7 GHz\n4× SIMD16 per CU (64 FP32/CU)\n64-thread wavefront | FP64/FP32/FP16/BF16/INT8\n深算二号: 90 TFLOPS FP32 / 180 TFLOPS FP16", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nVGPR 64KB/SIMD | LDS 64KB/CU (SW-managed)\nL2 ~4-8MB (HW) | HBM2e 64GB @ ~1.2 TB/s (K100_AI)\nHBM2 32GB @ 1 TB/s (Z100/Y100)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect\nxGMI 184 GB/s (scale-up, AMD Infinity Fabric compat)\nPCIe Gen4 x16 (host)\nRoCE/Ethernet via host NIC (scale-out)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> hipcc [style=dashed, color="#AAAAAA"];
+    paddle -> hipcc [style=dashed, color="#AAAAAA"];
+    hipify -> hipcc [label="CUDA→HIP", fontsize=8];
+
+    // Framework -> Op (direct)
+    pytorch -> hipdnn [style=dashed, color="#AAAAAA", label="ops", fontsize=8];
+    pytorch -> hipblas [style=dashed, color="#AAAAAA", label="matmul", fontsize=8];
+    paddle -> hipdnn [style=dashed, color="#AAAAAA"];
+
+    // Compiler -> ISA
+    hipcc -> dcuisa [label="compile", fontsize=8];
+
+    // Op -> Kernel
+    hipdnn -> hipthrust [style=dashed, color="#AAAAAA"];
+
+    // Kernel -> Runtime
+    hipthrust -> hiprt;
+    hipdnn -> hiprt;
+    hipblas -> hiprt;
+
+    // Runtime chain
+    hiprt -> rocr;
+    rocr -> kmod;
+    hami -> kmod [style=dashed];
+
+    // ISA chain
+    dcuisa -> cu;
+
+    // Communication
+    rccl -> hiprt [style=dashed];
+    rccl -> interconnect [style=dashed, color="#283593"];
+
+    // Hardware internal
+    cu -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    kmod -> cu [style=dashed, color="#283593"];
+}

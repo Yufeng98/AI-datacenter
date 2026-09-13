@@ -1,0 +1,519 @@
+chip: google-tpu
+investigation: hw-architecture
+as_of: "2026-08-08"
+architectures_covered:
+  - name: TPU v4
+    codename: ~
+    mxu_size: "128x128"
+    hbm_gen: HBM2e
+    hbm_capacity_GB: 32
+    hbm_bw_TBps: 1.2
+    ici_topology: "3D torus + OCS"
+    ici_bw_Gbps_per_chip: 600
+    pod_scale_chips: 4096
+    tensorcore_count: 1
+    sparsecore_count: 1
+  - name: TPU v5e
+    codename: ~
+    mxu_size: "128x128"
+    hbm_gen: HBM2e
+    hbm_capacity_GB: 16
+    hbm_bw_GBps: 819
+    ici_topology: "2D torus"
+    ici_bw_Gbps_per_chip: ~
+    pod_scale_chips: 256
+    tensorcore_count: 1
+    sparsecore_count: 0
+  - name: TPU v5p
+    codename: ~
+    mxu_size: "128x128"
+    hbm_gen: HBM2e
+    hbm_capacity_GB: 95
+    hbm_bw_GBps: 2765
+    ici_topology: "3D torus"
+    ici_bw_Gbps_per_chip: 4800
+    pod_scale_chips: 8960
+    tensorcore_count: 1
+    sparsecore_count: 1
+  - name: TPU v6e (Trillium)
+    codename: Trillium
+    mxu_size: "256x256"
+    hbm_gen: HBM3
+    hbm_capacity_GB: 144
+    hbm_bw_TBps: 1.6
+    ici_topology: "2D torus"
+    ici_bw_Gbps_per_chip: ~4800
+    pod_scale_chips: 256
+    tensorcore_count: 1
+    sparsecore_count: 2
+    notes: "MXU expanded to 256x256, quadrupling MACs/cycle vs v5e"
+  - name: TPU v7 (Ironwood)
+    codename: Ironwood
+    mxu_size: "256x256"
+    hbm_gen: HBM3e
+    hbm_capacity_GB: 192
+    hbm_bw_TBps: 7.4
+    ici_topology: "3D torus"
+    ici_bw_Gbps_per_chip: 9600
+    ici_links_per_chip: 4
+    pod_scale_chips: 9216
+    tensorcore_count: 2
+    sparsecore_count: 4
+    fp8_support: true
+    peak_flops_fp8_TFLOPS: 4614
+    peak_flops_pod_ExaFLOPS: 42.5
+    hbm_total_superpod_PB: 1.77
+  - name: TPU v8t (Sunfish)
+    codename: Sunfish
+    workload: training
+    design_partner: "not disclosed by Google (Broadcom press-reported, unconfirmed)"
+    process: "not disclosed by Google (TSMC 2nm press-reported, unconfirmed)"
+    mxu_size: "256x256 (assumed; not stated by Google for v8)"
+    hbm_gen: HBM3e
+    hbm_capacity_GB: 216
+    hbm_bw_GBps: 6528
+    on_chip_sram_MB: 128
+    ici_topology: "3D torus + Virgo scale-out"
+    ici_bw_Tbps_per_chip: 19.2
+    pod_scale_chips: 9600
+    multi_dc_max_chips: 1000000
+    scaleout_fabric: "Virgo Network (optical)"
+    tensorcore_count: 2
+    sparsecore_count: "not published (SparseCore listed for 8t, count not disclosed)"
+    specialized_blocks: ["SparseCore (Embeddings)", "LLM Decoder Engine (function not disclosed)"]
+    fp4_support: true
+    fp8_support: "not disclosed (deep-dive discusses FP4 only; assumed carried over from v7)"
+    peak_flops_fp4_PFLOPS: 12.6
+    peak_flops_pod_fp4_ExaFLOPS: 121
+    hbm_total_superpod_PB: 2.0
+    perf_w_vs_v7: 2.0
+    price_perf_train_vs_v7: 2.7
+    availability_status: "announced 2026-04-22; vendor-stated GA target calendar 2026; not available to customers as of 2026-08-08"
+    cooling_gen: 4
+    host_cpu: "Google Axion (Arm Neoverse-V2)"
+    announce_date: "2026-04-22"
+  - name: TPU v8i (Zebrafish)
+    codename: Zebrafish
+    workload: inference
+    design_partner: "not disclosed by Google (MediaTek press-reported, unconfirmed)"
+    process: "not disclosed by Google (TSMC 2nm press-reported, unconfirmed)"
+    mxu_size: "256x256 (assumed; not stated by Google for v8)"
+    hbm_gen: HBM3e
+    hbm_capacity_GB: 288
+    hbm_bw_GBps: 8601
+    on_chip_sram_MB: 384
+    ici_topology: "Boardfly (high-radix)"
+    ici_bw_Tbps_per_chip: 19.2
+    network_diameter_hops_1024chip: 7
+    network_diameter_hops_3D_torus_1024chip: 16
+    pod_scale_chips_physical: 1152
+    pod_scale_chips_active: 1024
+    pod_structure: "36 groups of 8 boards"
+    hbm_total_pod_TB: 331.8
+    tensorcore_count: 2
+    sparsecore_count: "not attributed to 8i by Google"
+    specialized_blocks: ["CAE (Collectives Acceleration Engine), on separate chiplet die"]
+    packaging: "chiplet: 2 TensorCore on-core dies + 1 CAE chiplet die per chip"
+    fp4_support: true
+    fp8_support: "not disclosed (deep-dive discusses FP4 only; assumed carried over from v7)"
+    peak_flops_fp4_PFLOPS: 10.1
+    peak_flops_pod_fp4_ExaFLOPS: 11.6
+    cae: "Collectives Acceleration Engine (5x lower on-chip collective latency)"
+    perf_w_vs_v7: 2.0
+    price_perf_infer_vs_v7: 1.8
+    cooling_gen: 4
+    host_cpu: "Google Axion (Arm Neoverse-V2)"
+    announce_date: "2026-04-22"
+    availability_status: "announced 2026-04-22; vendor-stated GA target calendar 2026; not available to customers as of 2026-08-08"
+
+layer_mappings:
+  - layer: Compute Engine
+    confidence: confirmed
+    summary: >
+      TPU compute is organized around TensorCores containing MXU systolic arrays and VPUs.
+      MXU is weight-stationary: weights are loaded into systolic cells and held while
+      activations stream through rows. MACs/cycle: 16,384 (128x128, v4/v5) or 65,536
+      (256x256, v6e/v7). TPU v7 Ironwood has 2 TensorCores per chip = 131,072 MACs/chip.
+      FP8 hardware support added in v7. SparseCore (4 per v7 chip) accelerates embedding
+      table lookups for recommendation systems.
+    key_specs:
+      mxu_array_sizes: ["128x128 (v4/v5e/v5p)", "256x256 (v6e/v7)"]
+      macs_per_cycle: [16384, 65536]
+      tensorcore_per_chip: {v4_v5: 1, v7: 2}
+      sparsecore_per_chip: {v4: 1, v6e: 2, v7: 4}
+      data_types_v7: [FP8, BF16, FP16, INT8, FP32 accumulation]
+      peak_tflops_fp8_v7: 4614
+    sources:
+      - title: "TPU v7 (Ironwood) Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/tpu7x"
+      - title: "Inside the Ironwood TPU Codesigned AI Stack"
+        url: "https://cloud.google.com/blog/products/compute/inside-the-ironwood-tpu-codesigned-ai-stack"
+      - title: "Google TPU Architecture: 7 Generations Explained"
+        url: "https://introl.com/blog/google-tpu-architecture-complete-guide-7-generations"
+
+  - layer: Data Path
+    confidence: confirmed
+    summary: >
+      TPU uses a VLIW (Very Long Instruction Word) execution model with 8-op/cycle instruction
+      packets. All scheduling is static (compiler-determined); no dynamic branch prediction,
+      out-of-order execution, or warp schedulers. Functional units (MXU, VPU, DMA read, DMA
+      write, scalar ALU, scalar LD/ST) are independently slotted per VLIW packet. Weight-
+      stationary dataflow: HBM → VMEM (DMA, overlapped with compute via double-buffering) →
+      MXU (weights stationary, activations stream through rows) → VMEM → HBM.
+    key_specs:
+      execution_model: VLIW
+      vliw_ops_per_cycle: 8
+      functional_units: [MXU, VPU, DMA-read, DMA-write, scalar-ALU, scalar-LD/ST]
+      dataflow: weight-stationary systolic
+      scheduling: static (compiler-determined)
+    sources:
+      - title: "TPU Architecture Overview — Google Cloud Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm"
+      - title: "TPU v4 Whitepaper — arXiv:2304.01433"
+        url: "https://arxiv.org/abs/2304.01433"
+      - title: "From JAX to VLIW: Tracing a Computation Through the TPU Compiler Stack"
+        url: "https://patricktoulme.substack.com/p/from-jax-to-vliw-tracing-a-computation"
+
+  - layer: On-chip Memory
+    confidence: confirmed
+    summary: >
+      Per-TensorCore VMEM (vector scratchpad SRAM): ~16 MB (v4/v5), ~32 MB (v6e), increased
+      on v7. Compiler-managed, not hardware-cached. CMEM (scalar memory): small fast SRAM for
+      loop counters, DMA descriptors, small LUTs. No L1/L2 cache hierarchy — all memory
+      management is explicit and compiler-driven. VMEM is the dominant performance bottleneck:
+      workloads that spill from VMEM to HBM lose ~100x effective bandwidth.
+    key_specs:
+      vmem_per_tensorcore_MB: {v4_v5: 16, v6e: 32, v7: ">32"}
+      management: explicit (compiler-managed)
+      cache_hierarchy: none
+      cmem_purpose: [loop counters, DMA metadata, scalar LUTs, ICI control registers]
+    sources:
+      - title: "TPU Architecture Overview — Google Cloud Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm"
+      - title: "Pallas Memory Hierarchy Guide"
+        url: "https://docs.jax.dev/en/latest/pallas/tpu/details.html"
+      - title: "Writing TPU kernels with Pallas — JAX Documentation"
+        url: "https://docs.jax.dev/en/latest/pallas/tpu/details.html"
+
+  - layer: Off-chip Memory
+    confidence: confirmed
+    summary: >
+      HBM stacks provide the main off-chip memory. Capacity has grown from 16 GB (v5e) through
+      95 GB (v5p), 144 GB (v6e), to 192 GB HBM3e (v7 Ironwood, 8 stacks, 7.4 TB/s).
+      v7 Ironwood superpod (9,216 chips): 1.77 PB total HBM. Weight-stationary design reduces
+      weight read amplification; inference KV caches and large model parameters are the primary
+      drivers of HBM capacity requirements.
+    key_specs:
+      v5e: {gen: HBM2e, GB: 16, GBps: 819}
+      v5p: {gen: HBM2e, GB: 95, GBps: 2765}
+      v6e: {gen: HBM3, GB: 144, TBps: 1.6}
+      v7: {gen: HBM3e, GB: 192, TBps: 7.4, stacks: 8}
+      v7_superpod: {chips: 9216, total_PB: 1.77}
+    sources:
+      - title: "TPU v7 (Ironwood) Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/tpu7x"
+      - title: "TPU v5p Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/v5p"
+      - title: "TPU v6e Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/v6e"
+      - title: "Tensor Processing Unit — Wikipedia"
+        url: "https://en.wikipedia.org/wiki/Tensor_Processing_Unit"
+
+  - layer: "Host Interface / Package"
+    confidence: confirmed
+    summary: >
+      TPU VM architecture: user Python/JAX code runs on a host VM co-located with the TPU
+      on the same board. libtpu.so (XLA compiler + TPU driver + ICI runtime) manages all
+      host-to-TPU communication. PCIe Gen 4 x16 (~64 GB/s) is the host-to-HBM transfer
+      path, used for model parameter loading at initialization. Runtime inference/training
+      operates entirely from HBM without returning to the host.
+    key_specs:
+      host_interface: PCIe Gen 4 x16
+      pcie_bw_GBps: 64
+      libtpu_components: [XLA compiler, TPU kernel driver, ICI runtime, HBM memory manager]
+      vm_architecture: TPU VM (co-located host CPU on TPU board)
+    sources:
+      - title: "TPU VM System Architecture"
+        url: "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm"
+      - title: "libtpu PyPI"
+        url: "https://pypi.org/project/libtpu/"
+
+  - layer: Scale-up Interconnect
+    confidence: confirmed
+    summary: >
+      ICI (Inter-Chip Interconnect) is Google's proprietary intra-pod chip-to-chip fabric.
+      v5p: 4,800 Gbps/chip 3D torus, 8,960 chips. v7 Ironwood: 9,600 Gbps/chip (1.2 TB/s)
+      3D torus, 9,216 chips in 4x4x4 cube racks (copper DAC intra-cube, optical inter-cube).
+      TPU v4 introduced OCS (optical circuit switches, 136x136 MEMS) for reconfigurable
+      3D torus topology, 40% power reduction vs electrical switches, enabling twisted torus
+      for 70% higher bisection bandwidth on certain collective patterns.
+    key_specs:
+      v4: {topology: "3D torus + OCS", bw_Gbps: 600, max_chips: 4096}
+      v5p: {topology: "3D torus", bw_Gbps: 4800, max_chips: 8960}
+      v6e: {topology: "2D torus", max_chips: 256}
+      v7: {topology: "3D torus", bw_Gbps: 9600, bw_TBps: 1.2, max_chips: 9216, links_per_chip: 4}
+      ocs_ports: 136
+      cube_size: "4x4x4 (64 chips)"
+      intra_cube_medium: copper DAC
+      inter_cube_medium: optical fiber
+    sources:
+      - title: "TPU v5p Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/v5p"
+      - title: "TPU v7 Ironwood Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/tpu7x"
+      - title: "TPU v4 Whitepaper — arXiv:2304.01433"
+        url: "https://arxiv.org/abs/2304.01433"
+      - title: "OCS Architecture — FiberMall"
+        url: "https://www.fibermall.com/blog/unveiling-google-tpu-architecture.htm"
+
+  - layer: Scale-out Interconnect
+    confidence: confirmed
+    summary: >
+      Multislice enables multi-pod training beyond a single ICI pod via datacenter network
+      (DCN). Up to 16 ICI pods per DCN aggregation block; 4 aggregation blocks support up to
+      147,456 chips (v7 scale). Titanium IPUs (Google in-house SmartNIC/IPU) offload DCN
+      AllReduce and RDMA operations, eliminating host CPU involvement in inter-pod gradient
+      synchronization. The AI Hypercomputer abstraction presents TPU pods + Titanium IPUs
+      + GCS as unified programmable infrastructure.
+    key_specs:
+      multislice_max_pods: 16
+      max_total_chips: 147456
+      inter_pod_network: DCN (datacenter network)
+      offload_asic: Titanium IPU
+      titanium_functions: [DCN AllReduce, RDMA, SDN management]
+    sources:
+      - title: "Multislice Training — Google Cloud Documentation"
+        url: "https://docs.cloud.google.com/tpu/docs/v5e-training"
+      - title: "AI Hypercomputer Overview — Google Cloud Blog"
+        url: "https://cloud.google.com/blog/products/compute/updates-to-ai-hypercomputer-software-stack/"
+      - title: "Introducing Trillium — Google Cloud Blog"
+        url: "https://cloud.google.com/blog/products/compute/introducing-trillium-6th-gen-tpus"
+
+key_abstractions:
+  - name: MXU (Matrix Multiply Unit)
+    description: >
+      The weight-stationary systolic array at the heart of every TPU. Weights are loaded into
+      systolic cells and held stationary; activations stream through rows. MACs/cycle: 16,384
+      (128x128, v4/v5) or 65,536 (256x256, v6e+). The MXU's tile dimensions directly constrain
+      XLA's GEMM tiling strategy — tiles must align to MXU width to avoid padding overhead.
+      The 128x128 → 256x256 transition in v6e forced XLA recompilation for all existing models.
+    layers_involved: [Compute Engine, Data Path]
+
+  - name: TensorCore (Google)
+    description: >
+      Google's full processing die unit within a TPU chip (distinct from NVIDIA Tensor Core).
+      Each TensorCore contains: MXU, VPU, ScalarCore, VMEM, and CMEM. TPU v7 Ironwood has
+      2 TensorCores per chip, enabling parallel matrix pipeline execution. Not to be confused
+      with NVIDIA's Tensor Core (a functional unit within an SM).
+    layers_involved: [Compute Engine, On-chip Memory]
+
+  - name: VMEM (Vector Memory)
+    description: >
+      Per-TensorCore SRAM scratchpad; the only explicitly managed on-chip memory tier.
+      No hardware cache: all data movement to/from VMEM is compiler-scheduled via DMA.
+      Capacity: ~16–32 MB (current gen). The primary performance bottleneck — workloads
+      that exceed VMEM capacity suffer catastrophic HBM spills. XLA's operator fusion pass
+      exists specifically to keep intermediate tensors in VMEM.
+    layers_involved: [On-chip Memory, Data Path]
+
+  - name: ICI (Inter-Chip Interconnect)
+    description: >
+      Google's proprietary intra-pod chip-to-chip fabric. Implements 3D torus (v4/v5p/v7)
+      or 2D torus (v5e/v6e) topology. v7: 9,600 Gbps/chip, 9,216-chip pod. Carries XLA
+      collective communication (AllReduce, AllGather, AllToAll). On v4, powered by OCS
+      optical circuit switches for topology reconfigurability.
+    layers_involved: [Scale-up Interconnect]
+
+  - name: SparseCore
+    description: >
+      A dedicated on-chip accelerator for sparse embedding table lookups (gather/scatter).
+      Addresses the fundamental mismatch between the MXU's dense systolic dataflow and
+      the irregular, random-access patterns of embedding lookups in recommendation systems.
+      v7 Ironwood has 4 SparseCores per chip, supporting financial and scientific sparse
+      workloads in addition to traditional recommendation systems.
+    layers_involved: [Compute Engine]
+
+  - name: OCS (Optical Circuit Switch)
+    description: >
+      MEMS-based optical switches used in TPU v4 to implement the 3D torus ICI topology.
+      Each OCS is 136×136 ports (128 active + 8 spare). OCS reconfigurability enables
+      different 3D torus logical shapes from the same physical hardware, and twisted torus
+      configurations that improve bisection bandwidth. ~40% power reduction vs electrical
+      switching equivalents.
+    layers_involved: [Scale-up Interconnect]
+
+# ============================================================================
+# Dated investigation pass — 2026-08-08
+# Window 2026-04-27 -> 2026-08-08. No new TPU silicon; v8 spec corrections.
+# ============================================================================
+update_2026_08_08:
+  window: "2026-04-27 to 2026-08-08"
+  headline: >
+    No new TPU silicon in the window. v8t (Sunfish) / v8i (Zebrafish) remain the newest
+    generation. No TPU v9 information, no v8 pricing, no TPU-attributable MLPerf result.
+    Output of this pass is a set of corrections to v8 figures already carried by the repo,
+    plus two previously unrecorded v8 facts (LLM Decoder Engine on 8t; v8i chiplet packaging).
+
+  fact_groups:
+
+    - id: v8-onchip-sram
+      layer: On-chip Memory
+      confidence: confirmed
+      corrects_prior_repo_error: true
+      facts:
+        v8t_onchip_sram_vmem_MB_per_chip: 128
+        v8i_onchip_sram_vmem_MB_per_chip: 384
+        v8_per_tensorcore_split: "not disclosed"
+        three_x_claim_applies_to: "TPU 8i only"
+        v7_reference_MB_per_chip: 128
+      prior_repo_value: "384 MB/chip for BOTH v8t and v8i; 192 MB per TensorCore"
+      note: >
+        Google's v8 spec table gives On-Chip SRAM (Vmem) = 128 MB (8t) and 384 MB (8i).
+        The announcement post attaches "3x more than the previous generation" to 8i alone.
+        Consistent with the repo's own v7 figure (~128 MB/chip): 8i triples v7, 8t is flat.
+        The 192 MB/TensorCore figure was an unsupported division of a per-chip number.
+      sources:
+        - title: "TPU 8t and TPU 8i technical deep dive — Google Cloud Blog (2026-04-22)"
+          url: "https://cloud.google.com/blog/products/compute/tpu-8t-and-tpu-8i-technical-deep-dive"
+        - title: "Our eighth generation TPUs: two chips for the agentic era — Google Blog (2026-04-22)"
+          url: "https://blog.google/innovation-and-ai/infrastructure-and-cloud/google-cloud/eighth-generation-tpu-agentic-era/"
+
+    - id: v8-specialized-blocks
+      layer: Compute Engine
+      confidence: confirmed
+      corrects_prior_repo_error: true
+      facts:
+        v8t_specialized_features: "SparseCore (Embeddings) & LLM Decoder Engine"
+        v8i_specialized_features: "CAE (Collectives Acceleration Engine)"
+        v8_sparsecore_count: "not published"
+        v8i_sparsecore: "not attributed by Google"
+        llm_decoder_engine_function: "not disclosed"
+      prior_repo_value: "4 SparseCores on both v8t and v8i; LLM Decoder Engine absent"
+      sources:
+        - title: "TPU 8t and TPU 8i technical deep dive — Google Cloud Blog (2026-04-22)"
+          url: "https://cloud.google.com/blog/products/compute/tpu-8t-and-tpu-8i-technical-deep-dive"
+
+    - id: v8i-chiplet-packaging
+      layer: "Host Interface / Package"
+      confidence: confirmed
+      new_fact: true
+      facts:
+        v8i_die_organization: "2 TensorCore on-core dies + 1 CAE chiplet die per chip"
+        first_tpu_generation_with_described_chiplet_organization: true
+      quote: >
+        "For each TPU 8i chip, there are two Tensor Cores (TC) on-core dies and one CAE
+        on the chiplet die."
+      sources:
+        - title: "TPU 8t and TPU 8i technical deep dive — Google Cloud Blog (2026-04-22)"
+          url: "https://cloud.google.com/blog/products/compute/tpu-8t-and-tpu-8i-technical-deep-dive"
+
+    - id: v8-hbm-bandwidth-exact
+      layer: Off-chip Memory
+      confidence: confirmed
+      facts:
+        v8t_hbm_bw_GBps: 6528
+        v8i_hbm_bw_GBps: 8601
+      note: "Repo's rounded ~6.5 TB/s and 8.6 TB/s were correct; these are Google's exact figures."
+      sources:
+        - title: "TPU 8t and TPU 8i technical deep dive — Google Cloud Blog (2026-04-22)"
+          url: "https://cloud.google.com/blog/products/compute/tpu-8t-and-tpu-8i-technical-deep-dive"
+
+    - id: v8-pod-and-perf-figures
+      layer: "Scale-up Interconnect / Compute Engine"
+      confidence: confirmed
+      corrects_prior_repo_error: true
+      facts:
+        v8i_pod_chips_connected: 1152
+        v8i_pod_chips_active: 1024
+        v8i_pod_structure: "36 groups of 8 boards; 7-hop worst-case diameter vs 16 on a 3D torus of the same size"
+        v8i_pod_peak_ExaFLOPS_FP4: 11.6
+        v8t_pod_peak_ExaFLOPS_FP4: 121
+        v8t_price_perf_training_vs_ironwood: 2.7
+        v8i_price_perf_inference_vs_ironwood: 1.8
+        both_perf_per_watt_vs_ironwood: 2.0
+      prior_repo_value: "2.8x training price/perf; v8i pod labeled '~11.6 FP8 ExaFLOPS'; pod = 1,152 only"
+      note: >
+        1,152 x 10.1 PFLOPS = 11.6 EFLOPS, but 10.1 PFLOPS is Google's peak FP4 figure, not FP8 —
+        the precision label was wrong. Keep 1,152 as the physical/aggregate count (it yields the
+        331.8 TB pod HBM total at 288 GB/chip) and record 1,024 as the active count.
+      sources:
+        - title: "TPU 8t and TPU 8i technical deep dive — Google Cloud Blog (2026-04-22)"
+          url: "https://cloud.google.com/blog/products/compute/tpu-8t-and-tpu-8i-technical-deep-dive"
+
+    - id: v8-fab-and-partners
+      layer: "Host Interface / Package"
+      confidence: press-reported (unconfirmed by vendor)
+      corrects_prior_repo_error: true
+      facts:
+        process_node_vendor_stated: "not disclosed"
+        design_partner_vendor_stated: "not disclosed; announcement credits design 'in partnership with Google DeepMind'"
+        press_reported_process: "TSMC 2nm"
+        press_reported_partners: {v8t: Broadcom, v8i: MediaTek}
+      prior_repo_value: "'Both v8 chips fabbed on TSMC 2nm; v8t designed with Broadcom; v8i designed with MediaTek' stated as fact"
+      note: >
+        None of Google's three Next '26 posts mentions a process node, TSMC, Broadcom, or MediaTek.
+        The attributions rest on a single Wccftech piece and are now hedged as press reporting.
+      sources:
+        - title: "Google Splits TPUv8 Strategy — Wccftech (press reporting)"
+          url: "https://wccftech.com/google-splits-tpuv8-strategy-two-chips-broadcom-training-mediatek-inference-duties/"
+        - title: "Our eighth generation TPUs: two chips for the agentic era — Google Blog (2026-04-22)"
+          url: "https://blog.google/innovation-and-ai/infrastructure-and-cloud/google-cloud/eighth-generation-tpu-agentic-era/"
+
+    - id: v8-availability
+      layer: "Product status"
+      confidence: confirmed
+      facts:
+        status: "announced; vendor-stated GA target of calendar 2026; not yet available to customers"
+        vendor_quote: "Both chips will be generally available later this year, and can be used as part of Google's AI Hypercomputer."
+        in_cloud_tpu_supported_version_list_2026_08_08: false
+        newest_generation_in_supported_version_list: "TPU7x (Ironwood)"
+        customer_preview_program: "none — the only 'preview' in Google's deep-dive is native PyTorch support on TPU"
+        late_2027_external_availability_claim: "rejected — traces to a URL returning HTTP 404; not recorded"
+      sources:
+        - title: "Our eighth generation TPUs: two chips for the agentic era — Google Blog (2026-04-22)"
+          url: "https://blog.google/innovation-and-ai/infrastructure-and-cloud/google-cloud/eighth-generation-tpu-agentic-era/"
+        - title: "Cloud TPU system architecture / supported versions (retrieved 2026-08-08)"
+          url: "https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm"
+        - title: "Cloud TPU release notes (retrieved 2026-08-08)"
+          url: "https://docs.cloud.google.com/tpu/docs/release-notes"
+
+    - id: hot-chips-38-scheduled
+      layer: "Scheduled disclosure — NOT evidence"
+      confidence: confirmed (event listing only)
+      facts:
+        conference: "Hot Chips 38, Stanford, 2026-08-24 to 2026-08-25"
+        session: "AI 2, Tue 2026-08-25, 4:45-6:15 PM PDT, chair Brucek Khailany"
+        talk: "The Eighth Generation TPU Family: Two Chips Optimized for Training and Serving in the Agentic Era"
+        speakers: ["Norman Jouppi", "Sridhar Lakshmanamurthy"]
+        status: "disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public"
+        slides_or_abstract_available: false
+        usable_as_spec_source: false
+        rescan_after: "2026-08-25"
+      sources:
+        - title: "Hot Chips 38 program (retrieved 2026-08-08)"
+          url: "https://hotchips.org/program/conference/"
+
+  not_disclosed:
+    - "Per-TensorCore Vmem split for v8t / v8i"
+    - "SparseCore counts for v8 (either chip)"
+    - "MXU dimensions for v8 — the deep-dive never states 256x256; repo value is a carried-forward assumption"
+    - "FP8 support on v8 — the deep-dive discusses FP4 only"
+    - "Process node, foundry, and ASIC design partners for v8 (vendor-side)"
+    - "v8 pricing"
+    - "Any TPU v9 information"
+    - "Function, count, and performance of the v8t LLM Decoder Engine"
+    - "Any TPU MLPerf Training v6.0 result — Google is 1 of 24 submitters (2026-06-16), but MLCommons does not attribute hardware per submitter"
+
+  scope_notes:
+    - id: anthropic-google-broadcom-capacity
+      date: "2026-04-06"
+      confidence: confirmed
+      summary: >
+        Anthropic / Google / Broadcom announced multiple gigawatts of next-generation TPU capacity
+        coming online starting 2027, vast majority sited in the US; Anthropic CFO Krishna Rao called
+        it the company's "most significant compute commitment to date". Builds on the Oct 2025
+        up-to-1M-TPU agreement. Predates this chip's 2026-04-27 refresh baseline and is a commercial
+        capacity fact, not a hardware or stack fact.
+      sources:
+        - title: "Anthropic / Google / Broadcom compute partnership (2026-04-06)"
+          url: "https://www.anthropic.com/news/google-broadcom-partnership-compute"

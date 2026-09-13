@@ -1,0 +1,343 @@
+chip: huawei-ascend
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"
+focus: software-stack
+
+framework_integration:
+  - name: MindSpore
+    type: Native Huawei AI framework
+    language: Python (C++ backend)
+    repo: https://gitee.com/mindspore/mindspore
+    license: Apache 2.0
+    differentiation: source-to-source (S2S), graph mode + pynative mode
+    compilation_target: MindIR -> GE -> CANN
+    features: [auto_parallelism, pipeline_parallel, tensor_parallel, MoE_expert_parallel]
+    ecosystem: [MindFormers, MindSpeed, ModelZoo]
+    confidence: confirmed
+  - name: torch_npu (PyTorch Ascend Adapter)
+    type: PyTorch backend plugin
+    language: Python + C++
+    repo: https://github.com/Ascend/pytorch
+    pypi: torch-npu
+    mechanism: PyTorch PrivateUse1 backend
+    device_string: npu
+    features: [torch.compile, FSDP, DTensor, torchtune_integration]
+    pytorch_versions: ["2.1", "2.3", "2.4", "2.5"]
+    confidence: confirmed
+  - name: ONNX Runtime CANN EP
+    type: Execution Provider
+    repo: https://onnxruntime.ai/docs/execution-providers/community-maintained/CANN-ExecutionProvider.html
+    confidence: confirmed
+  - name: OpenCV CANN Backend
+    type: Vision framework integration
+    repo: https://github.com/opencv/opencv/wiki/Huawei-CANN-Backend
+    confidence: confirmed
+
+compiler_ir:
+  - name: ATC (Ascend Tensor Compiler)
+    type: AOT offline model compiler
+    input_formats: [ONNX, TensorFlow_pb, Caffe, MindIR, JSON_single_op]
+    output_format: .om (Offline Model)
+    optimization_passes:
+      - operator_fusion
+      - int8_int4_quantization
+      - memory_layout_NC1HWC0
+      - AIPP_hardware_preprocessing
+      - SRAM_placement
+    command_line_tool: atc
+    doc: https://support.huawei.com/enterprise/en/doc/EDOC1100192457/2a40d134/atc-tool
+    confidence: confirmed
+  - name: MindSpore Graph Compiler + GE (Graph Engine)
+    type: JIT/AOT graph compiler
+    pipeline: [Python_trace, MindIR, GE_fusion, CANN_dispatch]
+    confidence: confirmed
+  - name: tilelang-ascend
+    type: MLIR-based tiled kernel DSL
+    repo: https://github.com/tile-ai/tilelang-ascend
+    confidence: confirmed
+
+op_library:
+  - name: CANN Standard Operator Library (Ascend OL)
+    type: Vendor op library
+    op_count: ">1000"
+    categories: [Conv2D, MatMul, BatchNorm, LSTM, Attention, Softmax, elementwise]
+    interface: called via AscendCL aclopExecute or via framework dispatch
+    doc: https://support.huawei.com/enterprise/en/ascend-computing/cann-pid-251168373
+    confidence: confirmed
+  - name: AIPP (AI Pre-Processing)
+    type: Hardware image preprocessing pipeline
+    operations: [YUV_to_RGB, NV12_to_RGB8, crop_resize, mean_normalization]
+    integration: baked into .om at ATC compile time
+    confidence: confirmed
+
+kernel_library:
+  - name: TBE-DSL (Tensor Boost Engine DSL)
+    type: High-level operator authoring DSL (Python)
+    scheduling: automatic (TBE compiler)
+    doc: https://support.huawei.com/enterprise/es/doc/EDOC1100192208/519412bd/implementation
+    confidence: confirmed
+  - name: TBE-TIK (Tensor Iterator Kernel)
+    type: Low-level operator authoring DSL (Python)
+    scheduling: explicit (developer specifies tiling, L1/UB, MTE calls)
+    primitives: [tik.Tensor, data_move, matmul, vconv, vadd]
+    doc: https://support.huawei.com/enterprise/en/doc/EDOC1100164820/83779921/tik-introduction
+    confidence: confirmed
+  - name: AscendC
+    type: C/C++-compatible kernel language
+    launched: 2023
+    hardware_control: [Cube_unit, Vector_unit, MTE1, MTE2]
+    key_abstractions: [GlobalTensor, LocalTensor, DataCopy, Matmul, EnQue, DeQue]
+    advantage: eliminates manual intra-core synchronization vs TIK
+    ref: https://www.huaweicentral.com/huawei-ascend-c-programming-language-launched/
+    confidence: confirmed
+  - name: Huawei-Ascend/samples
+    type: Official AscendCL sample code
+    repo: https://github.com/Huawei-Ascend/samples
+    confidence: confirmed
+
+runtime:
+  - name: AscendCL
+    type: C-language runtime API
+    analogous_to: CUDA Runtime + Driver API
+    key_apis:
+      device_mgmt: [aclrtCreateContext, aclrtSetDevice, aclrtDestroyContext]
+      memory: [aclrtMalloc, aclrtFree, aclrtMemcpy, aclrtMemset]
+      stream: [aclrtCreateStream, aclrtSynchronizeStream, aclrtCreateEvent]
+      model: [aclmdlLoadFromFile, aclmdlExecute, aclmdlUnload]
+      op: [aclopExecuteV2]
+    doc: https://developer.huawei.com/consumer/en/doc/hiai-guides/introduction-0000001051486804
+    confidence: confirmed
+
+driver_firmware:
+  - name: Ascend NPU Kernel Driver
+    type: Linux kernel module (PCIe device, BAR mapping, command queues)
+    notes: Not fully open-sourced (unlike nvidia.ko); bundled with CANN SDK
+    confidence: confirmed
+  - name: Ascend Firmware
+    type: On-chip firmware for resource management
+    notes: Closed; not publicly documented; TEE integration studied in Ascend-CC paper
+    ref: https://arxiv.org/html/2407.11888v1
+    confidence: inferred
+  - name: CANN Installer packages
+    type: Install bundle (driver + firmware + CANN runtime)
+    ref: https://github.com/hpcaitech/CANN-Installer
+    confidence: confirmed
+
+communication:
+  - name: HCCL (Huawei Collective Communications Library)
+    analogous_to: NCCL
+    operations: [AllReduce, AllGather, ReduceScatter, Broadcast, Send, Recv]
+    transports: [HCCS_intra_server, RoCE_v2_inter_server]
+    pytorch_backend: hccl
+    mindspore_backend: hccl
+    confidence: confirmed
+  - name: HCCS (Huawei Compute Communication System)
+    type: Proprietary scale-up interconnect fabric
+    scope: intra-server (8 NPUs per Atlas 800T)
+    future: HCCS 4.0 for 100K-chip clusters
+    confidence: confirmed
+  - name: CloudMatrix 384 Optical Fabric
+    type: Silicon photonic LPO scale-up
+    bandwidth_per_chip_tbps: 2.8
+    transceivers: "6912 x 400G OSFP SiPh LPO"
+    ref: https://newsletter.semianalysis.com/p/huawei-ai-cloudmatrix-384-chinas-answer-to-nvidia-gb200-nvl72
+    confidence: confirmed
+
+assembler_isa:
+  - name: CCE (Core Compute Engine) Instruction Set
+    type: Proprietary ISA for Da Vinci AI Cores
+    instruction_streams:
+      - Cube instructions (matrix ops)
+      - Vector instructions (element-wise, reductions)
+      - Scalar instructions (control flow, address calc)
+      - MTE1 instructions (input DMA)
+      - MTE2 instructions (output DMA)
+    scheduling: static (CCE compiler; no dynamic OoO)
+    public_documentation: partial (DaVinci architecture paper; no full ISA spec published)
+    ref: https://www.cmc.ca/wp-content/uploads/2020/03/Zhan-Xu-Huawei.pdf
+    confidence: confirmed
+  - name: AscendC / TBE-TIK ISA intrinsics
+    type: Software-visible ISA abstraction layer
+    access: via AscendC language primitives and TIK Python API
+    confidence: confirmed
+
+sources:
+  - url: https://support.huawei.com/enterprise/en/ascend-computing/cann-pid-251168373
+    title: CANN Documentation Portal (Huawei Support)
+  - url: https://support.huawei.com/enterprise/en/doc/EDOC1100192457/2a40d134/atc-tool
+    title: ATC Tool Documentation
+  - url: https://support.huawei.com/enterprise/en/doc/EDOC1100164820/83779921/tik-introduction
+    title: TBE-TIK Introduction
+  - url: https://www.huaweicentral.com/huawei-ascend-c-programming-language-launched/
+    title: AscendC Launch
+  - url: https://github.com/Ascend/pytorch
+    title: Ascend/pytorch (torch_npu)
+  - url: https://pytorch.org/blog/ascend-backend-w-torchtune/
+    title: PyTorch Torchtune + Ascend
+  - url: https://www.mindspore.cn/tutorials/en/master/beginner/introduction.html
+    title: MindSpore Overview
+  - url: https://gitee.com/mindspore/mindspore
+    title: MindSpore Source Repository (Gitee)
+  - url: https://onnxruntime.ai/docs/execution-providers/community-maintained/CANN-ExecutionProvider.html
+    title: ONNX Runtime CANN EP
+  - url: https://github.com/tile-ai/tilelang-ascend
+    title: tilelang-ascend
+
+# ---------------------------------------------------------------------------
+# Update appended 2026-08-08 — CANN 9.0.0 / MindSpore 2.9.0 / vllm-ascend /
+# CANN open-sourcing. Content above reflects the 2026-04-05 baseline, unchanged.
+# Confidence vocabulary:
+#   confirmed    = independently corroborated, or vendor primary (release notes)
+#   vendor_claim = stated by Huawei marketing; not independently measured
+#   single_source= one third-party analysis only; DO NOT cite as spec
+# ---------------------------------------------------------------------------
+update_2026_08_08:
+  as_of: "2026-08-08"
+  scan_window: "2026-04-05 to 2026-08-08"
+  supersedes_baseline_items:
+    - "driver_firmware note that CANN internals are closed -> userspace layers are now open-sourced on GitCode; kernel driver + firmware remain closed"
+    - "op_library / kernel_library 950 precision entries were 'inferred' -> now confirmed by CANN 9.0.0 release notes"
+
+  cann_9_0_0:
+    version: "9.0.0"
+    channel: commercial
+    released: "2026-05-09"
+    betas: ["2026-03-09", "2026-03-30"]
+    ascend_950_support:
+      verbatim_zh: "CANN新增适配Ascend 950PR（Atlas 350加速卡）"
+      translation: "CANN newly adds support for Ascend 950PR (Atlas 350 accelerator card)"
+    data_types_added: [FP8, MXFP8, MXFP4]
+    data_types_note: "HiF8 (Huawei-proprietary 8-bit) is part of the 950 precision set"
+    ascendc:
+      verbatim_zh: "AscendC支持SIMD+SIMT混合编程"
+      simt_api_entry_points: "~700"
+      simt_api_groups: [warp, atomic, math, type_conversion]
+      reg_based_programming: "register-level programming path exposed specifically on Ascend 950PR"
+      framing_note: >
+        Da Vinci 4.0's SIMD+SIMT hybrid execution model was ALREADY recorded in the repo at the
+        2026-04-05 baseline as an architectural fact. What is new is the software delivery of it in
+        CANN 9.0.0 - the API surface, not the architecture.
+    hccl:
+      batched_collective_merge: "HcclGroupStart() / HcclGroupEnd()"
+      ccu_acceleration_zh: "集合通信支持CCU通信加速"
+      ccu_note: "collective communication accelerated through the on-chip CCU, which also appears in the Ascend 950 STARS 2.0 scheduler arbitration list"
+    catlass:
+      upgraded_for: "950-series tensor/vector co-compute paths"
+      new_feature: "new Fixpipe move modes"
+      rationale: "consistent with the hardware AIC/AIV core split, where Cube and Vector are separate cores exchanging data explicitly"
+    packaging:
+      install_methods: [conda, yum, apt, pip]
+      added_in_9_0_0: [apt, pip]
+      unified_download_bundle: true
+      deployment_time_claim: "~2 h -> ~45 min"
+      deployment_time_confidence: vendor_claim
+    version_drift:
+      note: "vllm-ascend v0.23.0rc1 requires CANN 9.0.1 for Ascend 950 - CANN has already moved past 9.0.0 within this scan window"
+    confidence: confirmed
+    sources:
+      - https://www.hiascend.com/document/detail/zh/canncommercial/900/releasenote/release-notes.md
+
+  mindspore_2_9_0:
+    version: "2.9.0"
+    released: "2026-05-07"
+    paired_with: "CANN 9.0.0"
+    ascend_950pr_support: native
+    canonical_sources: [mindspore.cn, PyPI]
+    sourcing_caveat: >
+      The Gitee release list was stale at v2.7.2 (2026-01-16, paired with CANN 8.5.0). An earlier
+      internal note wrongly hedged 2.9.0 to medium confidence on that basis and dated it 2026-05-09
+      from a personal install blog. Prefer mindspore.cn / PyPI over the Gitee release list.
+    historical_note: >
+      MindSpore v2.7.2 notes record that the CANN 8.5.0 package completed an upgrade to an
+      open-source architecture, changing naming conventions and install directories.
+    confidence: confirmed
+    sources:
+      - https://www.mindspore.cn/docs/en/stable/RELEASE.html
+      - https://www.mindspore.cn/version-updates/en/2_9_en
+      - https://pypi.org/project/mindspore/
+      - https://gitee.com/mindspore/mindspore/releases
+      - https://www.donaldsebleung.com/blog/20260509-upgrading-to-mindspore-290-plus-cann-900-on-the-orangepiaipro-20t
+
+  vllm_ascend:
+    role: "fastest-moving Ascend software surface; where Ascend 950 enablement lands first"
+    repo_coverage_before_this_update: none
+    releases:
+      - version: v0.18.0
+        date: "2026-04-30"
+        notes: "baseline 950-era branch"
+      - version: v0.19.1rc1
+        date: "2026-04-30"
+        notes: "baseline 950-era branch"
+      - version: v0.20.2rc1
+        date: "2026-06-03"
+        notes: "upgrades to CANN 9.0.0; MXFP4 quantization on Ascend 950; DeepSeek-V4 DSA attention"
+      - version: v0.21.0rc1
+        date: "2026-06-16"
+        notes: "full end-to-end DeepSeek-V4 on Ascend 950; FULL_AND_PIECEWISE hybrid graph compilation mode"
+      - version: v0.22.1rc1
+        date: "2026-06-30"
+        notes: "Ascend 950 dynamic quantization; Mooncake connector for DeepSeek-V4 hybrid KV cache; HCCL weight transfer for RL"
+      - version: v0.23.0rc1
+        date: "2026-07-19"
+        notes: "aligns with upstream vLLM v0.23; W4A16 MXFP4 and all-gather-EP MXFP4; REQUIRES CANN 9.0.1 for Ascend 950"
+    survey_relevance: >
+      FULL_AND_PIECEWISE graph capture and the RL weight-transfer path show the Ascend serving stack
+      converging on the same hybrid-capture / disaggregated-KV patterns as the CUDA vLLM path rather
+      than diverging.
+    confidence: confirmed
+    sources:
+      - https://docs.vllm.ai/projects/ascend/en/latest/user_guide/release_notes.html
+      - https://github.com/vllm-project/vllm-ascend/releases
+
+  cann_open_source:
+    host: gitcode.com/cann
+    project_count: "~76"
+    activity: "actively committed through early August 2026"
+    repos:
+      operator_libraries: [ops-transformer, ops-math, ops-nn, ops-cv]
+      communication: [hccl, hcomm, shmem]
+      kernel_dev: [asc-devkit]
+      python_tooling: [pypto, pyasc]
+      runtime_graph: [runtime, ge, graph-autofusion]
+      recipes_bench: [cann-recipes-infer, cann-recipes-train, cann-bench]
+      quantization: [amct]
+    scope: "userspace layers only"
+    still_closed: [kernel driver, on-chip firmware]
+    supersedes: "the repo's note that CANN internals are closed (Op Library / Runtime / Communication layers)"
+    survey_impact: >
+      Operator libraries, collective library, graph engine, and runtime are now inspectable, moving
+      Ascend closer to the AMD ROCm end of the openness spectrum than the fully-closed position it
+      previously occupied.
+    confidence: confirmed
+    sources:
+      - https://gitcode.com/cann
+      - https://blog.csdn.net/gitblog_00311/article/details/160916818
+
+  programming_model_rationale_impact:
+    - item: "#1 Static CCE scheduling demands compiler-visible pipeline (EnQue/DeQue)"
+      status: stands
+      note: >
+        SIMT APIs are added alongside, not instead. A third-party analysis claims BufferID-based
+        synchronization replaces the EnQue/DeQue handshake on Da Vinci 4.0 - single_source and
+        unconfirmed, flagged but NOT applied.
+      confidence: single_source
+      sources:
+        - https://pillumina.github.io/posts/aiinfra/ascend-950-npu/
+    - item: "#2 5-level memory hierarchy constrains tile sizes"
+      status: partly_outdated_for_950
+      note: >
+        The 950 adds a 128 MB global L2 (a sixth level) and per-core buffer sizes are not disclosed.
+        The 16 KB L0A/L0B reasoning is 910-era and must be read as such.
+      confidence: confirmed
+    - item: "#3 ATC offline compilation decouples deployment from JIT"
+      status: unchanged
+    - item: "#4 MindSpore S2S AD enables cluster-aware optimization"
+      status: unchanged
+    - item: "#5 torch_npu PrivateUse1 is the ecosystem bridge"
+      status: extend
+      note: "vllm-ascend is now the highest-velocity consumer of that bridge"
+      confidence: confirmed
+    - item: "#6 CloudMatrix 384 all-optical fabric reflects HCCS bandwidth ceiling"
+      status: unchanged_for_910c
+      note: "the 950 generation's scale-up fabric is UnifiedBus / 灵衢 2.0"
+      confidence: confirmed

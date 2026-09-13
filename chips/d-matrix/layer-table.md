@@ -1,0 +1,30 @@
+# d-Matrix Corsair / Raptor — Layer Table
+
+*chip: d-matrix*
+*device_class: Digital In-Memory Compute (DIMC); 3D-DRAM In-Memory Compute (3DIMC, Raptor)*
+*as_of: 2026-08-08*
+
+| Layer | d-matrix |
+|-------|---------|
+| **Software** | |
+| Deployment / Orchestration | `not public` — **Wallaroo serving runtime + control plane** (acquired 2026-08-03): deploys models across heterogeneous hardware (x86, Arm, GPU) in cloud, on-prem, edge and air-gapped environments; supports vLLM and SGLang. First orchestration layer in the d-Matrix stack |
+| Framework Integration | *PyTorch (torch.nn.Module dispatch via Aviator); Triton DSL (custom kernel authoring); inference-only; no JAX/TF disclosed. External: Infinity "Ignition" agent auto-generates Corsair kernels (Qwen3 / Qwen3.5 / Gemma4 brought up end-to-end in 10 days at up to 92% of speed-of-light, per Infinity, 2026-07-22)* |
+| Compiler / IR | *Aviator Compiler (MLIR-based AOT; PyTorch graph → DIMC binary; tiles for 64×64 INT8 / 64×128 INT4 MAC arrays; not open-source). Raptor compiler/IR: not disclosed* |
+| Op Library | `not public` — Aviator Inference Engine handles op dispatch and fusion; no separately versioned op library |
+| Kernel Library | `not applicable` — no user-facing kernel library; DIMC MAC arrays are fixed-function; Triton DSL used for custom patterns; Infinity Ignition used as an external automated kernel-generation path |
+| Runtime | `not public` — Aviator Runtime (host↔Corsair PCIe Gen5; SRAM/LPDDR5X allocation; DMX Bridge card abstraction; multi-card dispatch) |
+| Driver / Firmware | `not public` — PCIe BAR management; Corsair card initialization firmware; no open-source kernel module disclosed |
+| Communication | *JetStream 400G (custom 400 Gbps Ethernet NIC PCIe card; scale-out); FabreX PCIe Gen5 memory fabric / SuperNODE (GigaIO assets acquired 2026-04-02; sub-200 ns cross-server memory access; up to 32 accelerators per SuperNODE; intra-rack scale-up); DMX Bridge card (dual-card merge; 512 GB/s card-to-card; passive)* |
+| Assembler / ISA | `not public` — DIMC-native binary (proprietary; no PTX/ISA equivalent published; Aviator Compiler owns full stack) |
+| **Hardware** | |
+| Compute Engine | *Corsair (in full production 2026-06-09): DIMC Core — 64×64 MAC array (INT8) / 64×128 (INT4) embedded in SRAM; 256 cores/chiplet (4 quads × 4 slices × 16 cores); 2,048 cores/card; 2,400 TOPS INT8; MXINT4/MXINT8/MXINT16; TSMC N6, Alchip design/production partner. **Raptor** (3DIMC, early silicon — ISCA 2026, pre-production): slice = 4×4 tensor-engine array + 1 SIMD core; 4 gangs × 4 slices per chiplet; 4 chiplets @ 1.2 GHz per MCM; up to 4 MCMs/card; TSMC N4P logic; peak TFLOPS/TOPS and numeric formats **not disclosed*** |
+| Data Path | *Weight-stationary: weights stored in SRAM DIMC cells; activations stream in; all 256 cores in a chiplet act as single logical unit via all-to-all intra-chiplet mesh; compiler-scheduled dataflow; no hardware cache. Raptor: each slice owns 16 private 3D-DRAM channels (256 channels per chiplet from 840 banks), giving per-slice memory-level parallelism* |
+| On-chip Memory | *Corsair: 2 GB integrated SRAM (Performance Memory) @ 150 TB/s per card; distributed across DIMC cores; weight-stationary; no eviction. Dual card 4 GB @ 300 TB/s; server (8 cards) 16 GB @ 1,200 TB/s; rack (64 cards) 128 GB @ 9.6 PB/s (vendor figures). Raptor on-die SRAM: **not disclosed*** |
+| Off-chip Memory | *Corsair: 256 GB LPDDR5X (Capacity Memory) @ ~400 GB/s per card (up to 512 GB dual card, 2 TB/server, 16.4 TB/rack); KV-cache and weights exceeding SRAM; no HBM (deliberate cost choice). **Raptor**: 3D-DRAM face-to-face bonded to the logic die at 36 µm µbump pitch — **~105 TB/s per card measured @ 700 MHz, 2.5 ns avg flit latency** (3D-DRAM capacity not disclosed) — plus 8 on-package LPDDR5X-9600 devices = 128 GB per MCM as a secondary tier* |
+| Host Interface / Package | *Corsair: PCIe Gen5 x16 (~64 GB/s); full-height half-length card; TSMC N6 multi-chiplet module on organic substrate, no CoWoS/HBM; DMX Link die-to-die @ ~1 TB/s (115 ns); DMX Bridge passive card for 2-card merge; 275 W @ 800 MHz / 550 W @ 1.2 GHz. **Raptor**: PCIe Gen7 host and inter-MCM; Gen-2 D2D @ 32 Gbps/lane; 9-4-9 organic substrate onto a 3D CoWoS interposer; ~422 W per MCM, Tj ≤ 105 °C* |
+| Scale-up Interconnect | *DMX Link (custom in-house, ~1 TB/s die-to-die, 115 ns); all-to-all chiplet mesh within card; DMX Bridge card @ 512 GB/s card-to-card merges 2 Corsair cards into a 4,096-core logical unit; FabreX PCIe Gen5 memory fabric / SuperNODE for intra-rack pooling. Rack blueprint: SquadRack (OCP Global Summit 2025-10-14, with Arista, Broadcom, Supermicro) — 8 servers × 8 cards = 64 cards. Raptor: PCIe Gen7 inter-MCM* |
+| Scale-out Interconnect | *JetStream 400G Ethernet NIC (400 Gbps; PCIe Gen5 full-height card; standard Ethernet; no proprietary switch ASIC required). Raptor scale-out: **not disclosed*** |
+
+---
+
+*Vendor-claim caveat: all TFLOPS, TOPS, tokens/s and ms/token figures above are vendor marketing numbers published without batch size, accuracy-vs-precision disclosure, or benchmark methodology. The single exception is Raptor's ~105 TB/s 3D-DRAM bandwidth and 2.5 ns flit latency, which are **measured on early silicon** and reported in the ISCA 2026 paper. No d-Matrix MLPerf Inference submission exists.*

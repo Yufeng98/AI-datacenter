@@ -1,0 +1,135 @@
+chip: rain-ai
+display_name: Rain AI (Rain Neuromorphics) D-IMC Accelerator
+as_of: "2026-08-08"
+device_class: Neuromorphic AI
+architecture_generation: Digital In-Memory Computing (D-IMC) + RISC-V (post-2023 pivot)
+company: Rain Neuromorphics Inc. (dba Rain AI)
+headquarters: Redwood City, CA, USA
+founded: 2017
+
+# ── Vendor Status ───────────────────────────────────────────────────────
+status: defunct
+vendor_status:
+  state: defunct_non_operating
+  status_change_date: "2025-10-23"  # USPTO recordation of patent assignments out of Rain
+  disclosure_date: "2026-08-06"     # The Information report; disclosure, NOT transaction date
+  commercial_product_shipped: false  # evaluation chips only, Oct 2024
+  ip_disposition:
+    patents_assigned_to: OpenAI Opco, LLC
+    uspto_recordation_date: "2025-10-23"
+    patent_count: not_disclosed
+    financial_terms: not_disclosed
+    verified_on:
+      - US20240281497A1  # SRAM Matrix Multiplication Network
+      - US20240143541A1  # Compute in-memory architecture for continuous on-chip learning
+      - US20250045224A1  # Tiled in-memory computing architecture
+  sdk_disposition:
+    ever_released: false
+    ever_open_sourced: false
+    survives: false
+    transferred_with_patents: not_disclosed
+  website: rain.ai resolves but dormant (last blog post 2024-06-27, footer (c) 2024); NOT evidence of operations
+  formal_dissolution: not_confirmable_from_public_records
+  primary_sources:
+    - https://patents.google.com/patent/US20240281497A1/en
+    - https://patents.google.com/patent/US20240143541A1/en
+    - https://patents.google.com/patent/US20250045224A1/en
+  secondary_sources:
+    - https://valueaddvc.com/pulse/openai-rain-ai-patents-altman-backed-chip-2026  # aggregator citing The Information, 2026-08-06
+
+# ── Compute Engine ──────────────────────────────────────────────────────
+compute_engine:
+  paradigm: Digital In-Memory Computing (D-IMC)
+  description: >
+    MAC operations performed inside SRAM arrays (digital, not analog).
+    Eliminated memory-to-compute data movement. Rain claimed the design was
+    production-scalable and supported both training and inference; neither claim
+    was independently verified, and the design never reached volume production.
+  host_core: Andes AX45MPV RISC-V (RV64GCV, out-of-order, RVV 1.0 vector)
+  custom_isa_extension: Andes ACE/COPILOT (proprietary D-IMC dispatch instructions)
+  d_imc_tile_dimensions: not_public
+  peak_tops_fp16: not_public
+  peak_tops_int8: not_public
+  peak_tflops_fp16: not_public
+
+# ── Process / Die ───────────────────────────────────────────────────────
+process:
+  node: not_public  # EDA tapeout via Synopsys Cloud; node not disclosed
+  foundry: not_public
+  die_area_mm2: not_public
+  transistor_count: not_public
+  tapeout_eda: Synopsys Cloud (Platform Architect, Custom Compiler, IC Validator)
+
+# ── On-chip Memory ──────────────────────────────────────────────────────
+on_chip_memory:
+  type: SRAM (compute-in-memory)
+  total_capacity: not_public
+  cache_hierarchy: not_public  # no L1/L2 cache described
+
+# ── Off-chip Memory ─────────────────────────────────────────────────────
+off_chip_memory:
+  type: not_public
+  capacity: not_public
+  bandwidth_gbs: not_public
+
+# ── Interconnect ────────────────────────────────────────────────────────
+on_chip_noc:
+  vendor: Arteris
+  product: FlexNoC 5 Physically Aware
+  topology: advanced mesh
+  announced: "2024-01"
+
+scale_up_interconnect: not_public
+scale_out_interconnect: not_public
+
+# ── Host Interface ──────────────────────────────────────────────────────
+host_interface: not_public  # PCIe / CXL not disclosed
+
+# ── Power ───────────────────────────────────────────────────────────────
+tdp_watts: not_public
+
+# ── Data Types ──────────────────────────────────────────────────────────
+data_types:
+  - INT8
+  - FP16  # inferred from RISC-V RVV; not explicitly confirmed for D-IMC tiles
+  # Exact numeric formats for D-IMC compute not disclosed
+
+# ── Key Partners ────────────────────────────────────────────────────────
+key_partners:
+  - name: Andes Technology
+    role: RISC-V core IP (AX45MPV) + ACE/COPILOT ISA customization
+    announced: "2024-06"
+  - name: Arteris
+    role: FlexNoC 5 on-chip NoC IP
+    announced: "2024-01"
+  - name: Synopsys
+    role: Cloud EDA tools (tapeout)
+
+# ── Legacy Analog Architecture (superseded) ─────────────────────────────
+legacy_analog_npu:
+  era: "2017-2023"
+  status: not_commercialized
+  compute_paradigm: Spiking Neural Network + ReRAM memristors
+  training_algorithm: Equilibrium Propagation
+  demo_chip_process: 180nm CMOS
+  demo_chip_neurons: 10000
+  demo_chip_tapeout_year: 2021
+  claimed_efficiency: 1000x vs GPU (unverified)
+  synapse_type: ReRAM (Resistive RAM) with 3D vertical bit-line integration
+
+# ── Funding & Corporate ─────────────────────────────────────────────────
+funding:
+  total_raised_usd: 146_220_000
+  series_a: 25_000_000  # 2022
+  series_b: collapsed  # $150M target; Q1 2025 failure -> wind-down
+  bridge: 3_000_000  # May 2025 (final round)
+  outcome: >
+    Funding exhausted after the Series B failure; effectively all staff shed. Whole-company
+    acquisition talks with OpenAI collapsed; OpenAI instead bought the patent portfolio
+    (USPTO-recorded 2025-10-23). No commercial product ever shipped.
+  notable_investors:
+    - OpenAI (non-binding $51M LOI for chip purchases, signed 2019)
+    - Sam Altman (personal investor >$1M)
+    - Prosperity7 Ventures (Saudi Aramco) — CFIUS-forced divestiture
+    - EPIC Ventures, OurCrowd, FOG Ventures, Grep VC
+  yc_batch: W19

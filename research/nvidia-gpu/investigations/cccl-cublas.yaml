@@ -1,0 +1,186 @@
+name: CCCL and cuBLAS
+version:
+  cccl: "3.4.0"
+  cublas: "13.2"
+investigated: "2026-04-05"
+source_repo: https://github.com/NVIDIA/cccl
+
+layer_mappings:
+  op_library:
+    - name: cuBLAS
+      description: GPU-accelerated BLAS — Level 1/2/3 + cublasLt flexible GEMM
+      api_layers:
+        - name: cuBLAS v2
+          entry_points: [cublasSgemm, cublasDgemm, cublasHgemm, cublasGemmEx, cublasSgemmBatched, cublasSgemmStridedBatched]
+          handle: cublasHandle_t
+        - name: cublasLt
+          entry_points: [cublasLtMatmul, cublasLtMatmulAlgoGetHeuristic]
+          handle: cublasLtHandle_t
+          supports_epilogue_fusion: true
+          epilogue_ops: [bias_add, relu, gelu]
+  kernel_library:
+    - name: CUB
+      description: CUDA-specific device-wide parallel primitives (reduce, scan, sort, histogram, etc.)
+      granularities: [thread, block, device]
+      device_primitives:
+        - DeviceReduce
+        - DeviceScan
+        - DeviceRadixSort
+        - DeviceSegmentedRadixSort
+        - DeviceMergeSort
+        - DeviceHistogram
+        - DevicePartition
+        - DeviceSelect
+        - DeviceTopK
+        - DeviceTransform
+        - DeviceMemcpy
+        - DeviceAdjacentDifference
+        - DeviceRunLengthEncode
+      tuning: architecture-aware dispatch layers per SM compute capability
+    - name: Thrust
+      description: High-level STL-like parallel algorithms with configurable backends
+      backends: [cuda, tbb, openmp, host]
+      relationship_to_cub: delegates CUDA backend to CUB device-wide primitives
+
+sub_libraries:
+  - name: libcu++
+    description: CUDA C++ Standard Library — host/device dual-sided STL + CUDA-specific extensions
+    key_namespaces: [cuda::std, cuda::]
+    cuda_extensions:
+      - cuda::atomic / cuda::atomic_ref
+      - cuda::barrier / cuda::semaphore
+      - cuda::pipeline
+      - cuda::access_property (cache control)
+      - cuda::tma (Tensor Memory Accelerator wrappers)
+      - cuda::ptx (inline PTX intrinsics)
+      - cuda::warp (warp-level primitives)
+
+framework_integrations:
+  - framework: PyTorch
+    version_note: "2.x+"
+    integration_points:
+      - op: torch.matmul / torch.mm / torch.bmm / torch.linalg.*
+        backend: cuBLAS v2 or cublasLt (selectable via TORCH_BLAS_PREFER_CUBLASLT or torch.backends.cuda.preferred_blas_library)
+      - op: torch.linalg.solve / torch.linalg.inv
+        backend: cuSOLVER (separate; toggled via TORCH_LINALG_PREFER_CUSOLVER=1)
+    notes: "PyTorch defaults to cuBLAS v2; cublasLt preferred for FP8/mixed-precision paths on Hopper"
+  - framework: TensorFlow
+    integration_points:
+      - op: tf.linalg.matmul / tf.keras Dense layers
+        backend: cuBLAS via XLA/cuDNN GEMM calls
+  - framework: JAX
+    integration_points:
+      - op: jax.numpy.matmul / jax.lax.dot_general
+        backend: cuBLAS / cublasLt via XLA HLO → CUDA GEMM lowering
+    notes: "JAX 26.03 container includes cuBLAS fix for concurrent cublasLtMatmul + TMA kernels on sm_100/sm_110"
+  - framework: cuDNN
+    integration_points:
+      - op: Convolution im2col GEMM paths, batch norm reductions
+        backend: cuBLAS GEMM + CUB DeviceReduce internally
+
+key_abstractions:
+  - name: cublasLtMatmulDesc_t
+    type: operation descriptor
+    description: >
+      Encodes a GEMM operation's full specification: compute type (FP16/TF32/FP32/FP64/FP8),
+      transpose modes for A/B, epilogue operator (none, bias, relu, gelu), and scaling factors.
+      Separating the descriptor from the data allows reuse across batches with identical shapes and types.
+    analogy: "like a cuFFT plan but for GEMM"
+
+  - name: cublasLtMatmulAlgoGetHeuristic
+    type: algorithm selection API
+    description: >
+      Queries the cuBLAS heuristics engine (nvMatmulHeuristics) to return a ranked list of
+      candidate CUTLASS kernel variants for a given (desc, layoutA, layoutB, layoutC, preference) tuple.
+      The recommender achieves ~93% accuracy in selecting the fastest kernel across a large problem space.
+      Applications can iterate the list and benchmark each candidate to find the optimal kernel for
+      their specific hardware and problem shape, then cache the result for subsequent calls.
+    use_pattern: "benchmark-then-cache for fixed shapes; heuristic-only for dynamic shapes"
+
+  - name: cub::DeviceRadixSort
+    type: device-wide sort primitive
+    description: >
+      Performs a full radix sort over an arbitrarily large device array using a two-pass API:
+      first call (d_temp_storage=nullptr) returns required scratch buffer size; second call performs sort.
+      Supports all built-in numeric types including __half, ascending and descending order,
+      key-only and key-value pairs. Internally uses a digit-histogram + scan + scatter pipeline
+      with architecture-tuned tile sizes and async-copy pipeline depth.
+    used_by: [cuDNN, higher-level sorting utilities, Thrust sort backend]
+
+  - name: thrust::execution_policy
+    type: backend selection abstraction
+    description: >
+      A tag type passed as the first argument to Thrust algorithms (e.g., thrust::cuda::par,
+      thrust::tbb::par) that selects the parallel execution backend at the call site.
+      Enables the same algorithm code to target GPU, multicore CPU (TBB), or OpenMP without
+      changing the algorithm logic. The CUDA backend dispatches to CUB device-level primitives.
+    example: "thrust::reduce(thrust::cuda::par, begin, end, init)"
+
+  - name: cuda::atomic_ref
+    type: libcu++ atomic wrapper
+    description: >
+      A non-owning reference to an existing storage location with atomic access semantics,
+      usable in both host and device code. Supports thread_scope_device, thread_scope_block,
+      and thread_scope_system scopes for cache-coherent access control.
+      Used in CUB device-wide reductions as the final accumulation step across thread blocks.
+    example: "cuda::atomic_ref<int, cuda::thread_scope_device> ref(result); ref.fetch_add(sum)"
+
+precision_stack:
+  - precision: FP4_E2M1
+    tensor_core: true
+    min_sm: 100
+    cublas_status: early_access
+    cublas_version: "13.x"
+  - precision: FP8_E4M3
+    tensor_core: true
+    min_sm: 89
+    cublas_status: stable
+    cublas_types: [CUDA_R_8F_E4M3, CUDA_R_8F_E5M2]
+  - precision: FP16
+    tensor_core: true
+    min_sm: 70
+    cublas_status: stable
+    compute_type: CUBLAS_COMPUTE_16F
+  - precision: BF16
+    tensor_core: true
+    min_sm: 80
+    cublas_status: stable
+    compute_type: CUBLAS_COMPUTE_32F_FAST_16BF
+  - precision: TF32
+    tensor_core: true
+    min_sm: 80
+    cublas_status: stable
+    compute_type: CUBLAS_COMPUTE_32F_FAST_TF32
+    override_env: NVIDIA_TF32_OVERRIDE
+  - precision: FP32
+    tensor_core: false
+    min_sm: 0
+    cublas_status: stable
+    compute_type: CUBLAS_COMPUTE_32F
+  - precision: FP64
+    tensor_core: true
+    min_sm: 80
+    cublas_status: stable
+    compute_type: CUBLAS_COMPUTE_64F
+
+internal_dependencies:
+  cublas_uses_cutlass: true
+  cutlass_version_note: "cuBLAS 13.x ships with CUTLASS 3.x kernels for sm80-sm90; CUTLASS 4.x for sm100+"
+  cub_used_by: [cuBLAS epilogue/reduction, cuDNN, Thrust CUDA backend, cuSPARSE]
+  thrust_delegates_to_cub: true
+
+references:
+  - url: https://github.com/NVIDIA/cccl
+    description: CCCL GitHub repository (CUB + Thrust + libcu++)
+  - url: https://docs.nvidia.com/cuda/cublas/
+    description: cuBLAS 13.2 official documentation
+  - url: https://docs.nvidia.com/cutlass/latest/overview.html
+    description: CUTLASS overview (kernel templates used internally by cuBLAS)
+  - url: https://developer.nvidia.com/blog/new-cublas-12-0-features-and-matrix-multiplication-performance-on-nvidia-hopper-gpus/
+    description: cuBLAS 12.0 Hopper features blog post
+  - url: https://developer.nvidia.com/blog/improving-gemm-kernel-auto-tuning-efficiency-on-nvidia-gpus-with-heuristics-and-cutlass-4-2/
+    description: GEMM auto-tuning heuristics with CUTLASS 4.2
+  - url: https://developer.nvidia.com/blog/introducing-grouped-gemm-apis-in-cublas-and-more-performance-updates/
+    description: Grouped GEMM APIs in cuBLAS
+  - url: https://docs.pytorch.org/docs/stable/backends.html
+    description: PyTorch backends documentation (BLAS library selection)

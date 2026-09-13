@@ -1,0 +1,168 @@
+digraph intel_gaudi_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    ranksep=0.5;
+    nodesep=0.4;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine (Dual Engine)";
+        style="rounded,dashed";
+        color="#D32F2F";
+        fontcolor="#D32F2F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        mme [label="MME (Matrix Multiplication Engine)\n8 MMEs total (4 per compute die)\n1835 BF16 TFLOPs (OAM)\nGEMM, Conv, Batched-GEMM, Attn dot-product\nFixed-function GEMM accelerator", fillcolor="#FFCDD2"];
+        tpc [label="TPC (Tensor Processing Core)\n64 TPCs total (32 per compute die)\nVLIW SIMD — 256-byte vector width\n4-slot: Vector / Scalar / Load / Store\nFP8 E4M3/E5M2, BF16, FP16, FP32, INT8\n5D tensor addressing in AGU", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pipeline [label="MME→SRAM→TPC Pipeline\nMME writes GEMM results to SRAM\nTPC reads for post-GEMM ops\nProducer-consumer without HBM round-trip", fillcolor="#FFE0B2"];
+        dma [label="Async DMA Engines\nHBM2e ↔ SRAM transfers\nDouble-buffering: compute/DMA overlap\nProgrammed by SynapseAI runtime", fillcolor="#FFE0B2"];
+        parallel [label="All-Parallel Execution\nMME + TPC + DMA + NIC\nIndependent command queues\nScheduled by SynapseAI graph compiler", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== ON-CHIP MEMORY =====================
+    subgraph cluster_onchip {
+        label="On-chip Memory";
+        style="rounded,dashed";
+        color="#1565C0";
+        fontcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sram [label="Shared SRAM Scratchpad\n96 MB total (48 MB per die)\n12.8 TB/s aggregate bandwidth\n3.5× higher BW than HBM2e\nSoftware-managed by SynapseAI compiler", fillcolor="#BBDEFB"];
+        tpc_local [label="TPC Local Scratchpad\nPer-TPC private memory\nFast access for TPC registers\nSmall capacity vs. shared SRAM", fillcolor="#BBDEFB"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_offchip {
+        label="Off-chip Memory (HBM2e)";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hbm [label="HBM2e\nGaudi 3: 128 GB, 3.7 TB/s (8 stacks)\nGaudi 2: 96 GB, 2.45 TB/s\nStores: weights, optimizer states,\nactivations, gradients", fillcolor="#C8E6C9"];
+        memctrl [label="HBM2e Controllers\nDMA source/target\nRDMA memory region registration\nSMMU address translation", fillcolor="#C8E6C9"];
+    }
+
+    // ===================== HOST INTERFACE / PACKAGE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        pcie [label="PCIe Gen5 x16\n~128 GB/s bidir (2× Gaudi 2 Gen4)\nCommand submission from host\nDMA descriptor programming", fillcolor="#E1BEE7"];
+        pkg [label="Package: Dual-Die (Gaudi 3)\n2 compute dies on-package\nEach: 4 MMEs + 32 TPCs + 48 MB SRAM\nShared HBM2e + NIC SerDes pool\nOAM (HL-325L): 8 cards per tray", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== SCALE-UP INTERCONNECT =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect (Integrated RoCE)";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        roce_up [label="21 × 200 GbE RoCE v2\nOn-die SerDes (112 Gbps PAM4)\n4.2 Tbps/card unidirectional\nDirect card-to-card or via Ethernet switch\nNo proprietary switching ASIC required", fillcolor="#B2DFDB"];
+        rdma_hbm [label="RDMA-to-HBM2e\nPeer card HBM2e as RDMA target\nNo CPU copy, no host DRAM bounce\nProgrammed by HCCL via habanalabs driver", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== SCALE-OUT INTERCONNECT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        roce_out [label="3 × 200 GbE RoCE v2\nSame on-die SerDes technology\nExternal Ethernet switches\n(Cisco Nexus, Arista, etc.)\nInter-rack multi-node clusters", fillcolor="#CFD8DC"];
+        host_nic [label="Host NIC (PCIe peer-direct GDR)\nOptional fallback for large clusters\nRDMA from host NIC to Gaudi HBM2e\nNo code changes required", fillcolor="#CFD8DC"];
+    }
+
+    // ===================== ROADMAP =====================
+    subgraph cluster_roadmap {
+        label="Roadmap (Post-Gaudi 3)";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        falcon [label="Falcon Shores\nCancelled — Jan 2025\nOriginally: Xe-HPC + Gaudi hybrid\nMulti-chiplet; was targeting late 2025\nNever shipped; internal test chip only", fillcolor="#EEEEEE", fontcolor="#9E9E9E", style="rounded,filled,dashed"];
+
+        crescent [label="Crescent Island (inference GPU)\nXe3P architecture (not Gaudi ASIC)\n160 GB LPDDR5X ref; up to 480 GB (partner)\nMemory bandwidth: not disclosed\nXMX engines: FP4 through FP64\n350 W air-cooled PCIe add-in card\nSoftware: oneAPI/SYCL + Level Zero (not SynapseAI)\nSampling H2 2026; GA 2027\n(Computex 2026 trade coverage; medium confidence)", fillcolor="#FFF9C4"];
+
+        jaguar [label="Jaguar Shores (~2027)\nGaudi-branded rack-scale platform\nIntel 18A (gate-all-around process)\nHBM4 / HBM4E (SK Hynix)\nQuad-tile, ~92.5×92.5 mm package\nSilicon photonics optical interconnects\nPairs with Diamond Rapids Xeon", fillcolor="#E8F5E9"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute -> Data Path
+    mme -> pipeline [label="writes GEMM\nresult to SRAM"];
+    tpc -> pipeline [style=dashed, label="reads/writes\nSRAM"];
+
+    // Data Path -> On-chip Memory
+    pipeline -> sram [label="primary\nscratchpad"];
+    dma -> sram [label="fill/drain"];
+    tpc -> tpc_local [label="local\nregs", style=dashed];
+
+    // On-chip -> Off-chip Memory
+    sram -> hbm [label="DMA spill\n(overflow)", style=dashed];
+    dma -> hbm [label="prefetch\nfrom HBM"];
+    hbm -> memctrl;
+
+    // Off-chip -> Host Interface
+    memctrl -> pcie [style=dashed, label="host\nDMA"];
+    memctrl -> pkg [style=dashed, label="on-package\nbandwidth"];
+
+    // Host Interface -> Scale-up
+    pcie -> roce_up [style=invis]; // layout only
+
+    // Scale-up internal
+    roce_up -> rdma_hbm [label="RDMA\noperations"];
+    rdma_hbm -> hbm [label="direct\nHBM2e access", color="#00695C"];
+
+    // Scale-up -> Scale-out
+    roce_up -> roce_out [label="cluster\nscale-out", style=dashed];
+    roce_out -> host_nic [label="optional\nfallback", style=dashed];
+
+    // NIC parallelism annotation
+    parallel -> mme [style=invis];
+    parallel -> roce_up [style=dashed, label="NIC + compute\nrun in parallel", color="#E65100"];
+
+    // Roadmap layout anchor
+    roce_out -> falcon [style=invis];
+
+    // Roadmap successor chain
+    falcon -> crescent [label="cancelled;\nreplaced by", style=dashed, color="#9E9E9E", fontcolor="#9E9E9E"];
+    crescent -> jaguar [label="then", style=dashed, color="#757575", fontcolor="#757575"];
+}

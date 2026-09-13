@@ -1,0 +1,113 @@
+chip: aws-neuron
+device_class: Systolic Array Accelerator
+investigation: communication
+date: 2026-04-05
+
+layer_mappings:
+  - layer: Collective Communication Runtime
+    components:
+      - name: NCCom (Neuron Collective Communication)
+        description: CPU-bypass collective runtime embedded in libnrt.so; dispatches AllReduce/AllGather/ReduceScatter/AllToAll/AllToAllV/Broadcast from NeuronCore programs directly to NeuronLink or EFA; automatic transport selection based on process group topology
+      - name: nki.collectives
+        description: NKI API module for issuing collectives inside a kernel function (all_reduce, all_gather, reduce_scatter, all_to_all, collective_permute, rank_id); enables fused compute+communication patterns without returning to framework layer; added Neuron 2.27
+
+  - layer: Intra-Node Interconnect
+    components:
+      - name: NeuronLink-v2 (Trainium1)
+        description: 768 GB/s bidirectional; 2D Torus topology; 16 chips per trn1.32xlarge; ring-AllReduce efficient; all-to-all O(sqrt(N)) hops
+      - name: NeuronLink-v3 (Trainium2)
+        description: 1 TB/s bidirectional; 4×4 2D Torus per node; 3D Torus in Trn2 UltraServer (64 chips, ~6,100 copper cables); EFA-bypass for intra-UltraServer collectives
+      - name: NeuronLink-v4 + NeuronSwitch-v1 (Trainium3)
+        description: 2.5 TB/s bidirectional; NeuronSwitch-v1 all-to-all switched fabric; O(1) hop for any-to-any collective; enables MoE expert parallelism at hardware speed; 64 chips (NL32×2) or 144 chips (NL72×2) per UltraServer domain
+
+  - layer: Inter-Node Interconnect
+    components:
+      - name: EFAv2 (Trn1)
+        description: Up to 1,600 Gbps per trn1 instance; SRD (Scalable Reliable Datagram) protocol; used for inter-node AllReduce (data parallelism gradient sync) and pipeline parallelism boundaries
+      - name: EFAv3 (Trn2/Trn3)
+        description: 3.2 Tbps per trn2 instance; 12.8 Tbps per Trn2 UltraServer; petabit-scale in UltraClusters; handles all inter-node collective traffic including DP gradient AllReduce and PP activation send/recv
+      - name: EC2 UltraClusters
+        description: Multiple UltraServers interconnected with petabit-scale EFA networking; enables scale-out to 500,000+ chips (AWS Project Rainier / Anthropic); inter-UltraServer data parallelism at planetary scale
+
+  - layer: Distributed Training Libraries
+    components:
+      - name: NxD Core (neuronx-distributed)
+        description: XLA-based PyTorch library for TP/PP/SP/DP/ZeRO-1 primitives; ColumnParallelLinear / RowParallelLinear for TP; NxDPPModel for pipeline stages; sequence_parallel_enabled for SP; maps TP ranks to NeuronLink-connected chips
+      - name: NxD Training (neuronx-distributed-training)
+        description: High-level 3D parallelism training library; NeMo compatibility; activation checkpointing; continuous batching; supports LLaMA-2/3, GPT pretraining; 3D parallelism via config
+      - name: neuronx-nemo-megatron
+        description: Neuron-adapted NeMo Megatron for GPT/LLaMA pretraining; 100B+ parameter scale; tensor/pipeline/data parallelism; AWS Project Rainier scale demonstrated
+      - name: NxD Inference (neuronx-distributed-inference)
+        description: Production inference library; continuous batching; speculative decoding; vLLM integration; tensor and pipeline parallelism for LLM serving on Trn2/Trn3
+
+key_abstractions:
+  - name: Two-Tier Collective Transport (NeuronLink + EFA)
+    description: NCCom implements automatic two-tier transport selection. Intra-node collectives (within a NeuronLink domain) are dispatched over NeuronLink at 768 GB/s–2.5 TB/s without touching the host CPU. Inter-node collectives use EFA at 1,600 Gbps–12.8 Tbps. The same NxD distributed training code runs efficiently at any scale because NCCom resolves transport at runtime based on process group topology, not user configuration.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/neuron-runtime/about/collectives.html
+
+  - name: NeuronLink Topology and Parallelism Strategy Co-Design
+    description: The NeuronLink topology directly determines which parallelism strategies are hardware-efficient. 2D/3D Torus (Trn1/Trn2) favors ring-AllReduce (linear bandwidth scaling for TP) but penalizes all-to-all (MoE dispatch requires full torus traversal). NeuronSwitch-v1 all-to-all fabric (Trn3) equalizes bandwidth for all collective patterns, making MoE expert parallelism hardware-efficient for the first time in the Neuron lineage. This drives the recommendation to use TP within a NeuronLink domain and place MoE parallelism within a NeuronSwitch domain.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trn3-arch.html
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/general/arch/neuron-hardware/trn1-arch.html
+
+  - name: NxD 3D Parallelism Process Group Hierarchy
+    description: "NxD Core models distributed training as a product of three orthogonal process groups: TP (within NeuronLink domain, fastest interconnect), PP (depth-wise stage splits, typically intra-node or EFA boundary), DP (gradient sync across nodes via EFA). Sequence parallelism (SP) extends TP by partitioning the sequence axis with AllGather before and ReduceScatter after each layer, reducing peak activation memory by a factor of TP degree."
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/libraries/neuronx-distributed/api_guide.html
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/general/appnotes/neuronx-distributed/introducing-nxdt-training.html
+
+  - name: CPU-Bypass Collective Execution
+    description: NCCom dispatches collective operations directly from NeuronCore programs to NeuronLink or EFA DMA engines without routing through the host CPU. This eliminates the PCIe round-trip latency of CPU-mediated MPI collectives and keeps the host CPU free for data preprocessing and scheduling. The result is significantly lower collective latency and higher compute utilization during AllReduce synchronization.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/v2.26.1/about-neuron/arch/neuron-features/collective-communication.html
+
+  - name: nki.collectives Kernel-Level Collective Fusion
+    description: NKI kernels can issue collectives (all_reduce, all_gather, reduce_scatter, all_to_all) directly within a kernel function using nki.collectives. This enables fused patterns where a custom attention or MoE routing kernel performs its cross-chip reduction without a framework-level collective call, enabling communication-compute overlap within the kernel's instruction schedule rather than only between framework-level operations.
+    source_refs:
+      - https://awsdocs-neuron.readthedocs-hosted.com/en/latest/nki/about/index.html
+      - https://aws.amazon.com/about-aws/whats-new/2025/12/announcing-aws-neuron-2-27/
+
+framework_integrations:
+  - framework: PyTorch (torch-neuronx / TorchNeuron)
+    mechanism: NxD Core parallel layers use NCCom for collective dispatch; xm.mark_step() or torch.compile triggers compilation of distributed graph; TorchNeuron (PrivateUse1) enables standard FSDP/DDP/DTensor without wrappers
+    collective_apis: NxD ColumnParallelLinear (AllGather/ReduceScatter), NxDPPModel (send/recv), ZeRO-1 optimizer sharding
+
+  - framework: JAX Neuron
+    mechanism: NxD Core JAX APIs provide pjit-compatible tensor parallel primitives; collective dispatch via NCCom through JAX custom_call layer
+    collective_apis: Sharding annotations → NCCom AllGather/ReduceScatter
+
+  - framework: NKI
+    mechanism: nki.collectives module; direct NCCom dispatch within kernel instruction stream; supports all major collective ops
+    collective_apis: all_reduce, all_gather, reduce_scatter, all_to_all, collective_permute, rank_id
+
+  - framework: NeMo Megatron (neuronx-nemo-megatron)
+    mechanism: Neuron-adapted Megatron-LM using NxD Core for TP/PP/DP; NCCom replaces NCCL for all collective traffic
+    collective_apis: Full 3D parallelism collectives at 100B+ parameter scale
+
+key_sources:
+  - title: Neuron Collective Communication
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/neuron-runtime/about/collectives.html
+  - title: Neuron Collective Communication (arch features)
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/v2.26.1/about-neuron/arch/neuron-features/collective-communication.html
+  - title: NxD Core Documentation
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/v2.26.1/libraries/neuronx-distributed/index.html
+  - title: Introducing NxD Training
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/general/appnotes/neuronx-distributed/introducing-nxdt-training.html
+  - title: NxD Distributed Strategies APIs
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/libraries/neuronx-distributed/api_guide.html
+  - title: Amazon EC2 Trn1 Architecture (NeuronLink-v2)
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/general/arch/neuron-hardware/trn1-arch.html
+  - title: Amazon EC2 Trn2 Instances (NeuronLink-v3)
+    url: https://aws.amazon.com/ec2/instance-types/trn2/
+  - title: Amazon EC2 Trn3 Architecture (NeuronSwitch-v1)
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/about-neuron/arch/neuron-hardware/trn3-arch.html
+  - title: aws-neuron/neuronx-distributed (GitHub)
+    url: https://github.com/aws-neuron/neuronx-distributed
+  - title: aws-neuron/neuronx-distributed-training (GitHub)
+    url: https://github.com/aws-neuron/neuronx-distributed-training
+  - title: Parallelism Techniques for LLM Inference
+    url: https://awsdocs-neuron.readthedocs-hosted.com/en/latest/libraries/nxd-inference/app-notes/parallelism.html
+  - title: Announcing AWS Neuron SDK 2.27.0
+    url: https://aws.amazon.com/about-aws/whats-new/2025/12/announcing-aws-neuron-2-27/

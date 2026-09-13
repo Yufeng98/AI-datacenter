@@ -1,0 +1,408 @@
+chip: xiwang
+device_class: "AI Accelerator (China, 曦望)"
+as_of: "2026-04-05"
+confidence: low  # Very limited public disclosure; emerging startup
+
+products:
+  - name: S1
+    type: DSA inference chip
+    status: production
+    tapeout_year: "~2019"
+    process: unknown
+    units_shipped: ">20,000 (cumulative, company claim)"
+    architecture: DSA (domain-specific; not GPGPU)
+    performance: unknown
+    memory_capacity: unknown
+    memory_type: unknown
+    memory_bandwidth: unknown
+    tdp: unknown
+    form_factor: unknown
+
+  - name: S2
+    type: GPGPU (training + inference)
+    status: mass_production  # UPDATED 2026-08-08: vendor claims 规模化量产 / 万片级量产 (10k-unit class); 1,000 units in 2024 near-term
+    tapeout_year: "2023"
+    first_light: "July 2023"
+    process: "TSMC 7nm"
+    packaging: "2.5D CoWoS"
+    transistors: unknown
+    die_area: unknown
+    compute_arch: "SIMT GPGPU (fully self-developed)"
+    architecture_brand: unknown
+    compute_units: unknown
+    tensor_units: present  # inferred from A100-class performance claim
+    precision_support:
+      - FP32
+      - TF32  # inferred
+      - BF16
+      - FP16
+      - INT8
+      - FP8: not_confirmed
+    isa: "Proprietary (not publicly documented)"
+    performance:
+      fp32_tflops: "exceeds A100 312 TFLOPS (company claim, unverified)"
+      bf16_tflops: "approaches H100 (company claim, unverified)"
+      int8_tops: unknown
+    memory_capacity_gb: 64
+    memory_type: "not_disclosed (REVISED 2026-08-08: the vendor has never stated S2 memory type; CoWoS is an inference basis, not a spec. Do not back-fill S3's LPDDR6 onto S2.)"
+    memory_bandwidth: "higher than A100 2.0 TB/s (qualitative claim only)"
+    on_chip_sram: unknown
+    host_interface: "PCIe Gen5 x16 (128 GB/s)"
+    scale_up_interconnect: "SRLink (proprietary, 自研; bandwidth and topology not disclosed) — UPDATED 2026-08-08"
+    tdp_w: "350-450"
+    form_factor: "PCIe FHFL"
+
+  - name: S3
+    type: "Inference-specialized GPU"
+    status: announced_development  # Announced Jan 2026; mass production target 2026
+    announcement_date: "January 2026"
+    process: not_disclosed
+    packaging: not_disclosed
+    precision_support:  # UPDATED 2026-08-08 — vendor-stated list; BF16 is NOT on it
+      - FP32
+      - FP16
+      - FP8
+      - INT8
+      - FP4
+    memory_type: "LPDDR6 (backward-compatible LPDDR5X) — NEW 2026-08-08"
+    host_interface: "PCIe Gen6 — NEW 2026-08-08"
+    performance_vs_s2:
+      inference_throughput: "'5x single-chip performance' (company claim, current site); was '+300%' / x3 倍+ on the 2025-12-11 snapshot — UPDATED 2026-08-08"
+      per_token_cost: "-90% (company claim)"
+    target_positioning: "百万Token一分钱 (1M tokens for ¥0.01)"
+    memory: "LPDDR6; capacity and bandwidth not_disclosed"
+    tdp: not_disclosed
+    mass_production_target: "unverified January 2026 executive statement (tape-out mid-2026, MP end-2026); no public evidence of tape-out as of 2026-08-08"
+
+company:
+  name: "杭州曦望芯科智能科技有限公司"
+  english_name: "Xiwang Sunrise"
+  founded: "late 2024 (spun out of SenseTime)"
+  origin: "SenseTime 商汤科技 large-chip R&D team"
+  founder: "Xu Bing (徐冰), SenseTime co-founder"
+  location: "Hangzhou, Zhejiang, China"
+  hq: Hangzhou
+
+funding:
+  total_raised_rmb: "~3 billion (CORRECTED 2026-08-08; was erroneously recorded as ~30 billion — a ~10x unit error)"
+  total_raised_usd_approx: "~$0.4B (CORRECTED 2026-08-08; was ~$4.1B)"
+  subsequent_round_h1_2026: ">1 billion RMB, announced H1 2026, exact date and cumulative total NOT CONFIRMED"
+  rounds:
+    - round: angel
+      date: "early 2025"
+      investors: ["SenseTime", "LianChuang Yongxuan (联创永宣)"]
+      amount_rmb: unknown
+    - round: A
+      date: "May 2025"
+      lead: "Beijing Lier (北京利尔)"
+      amount_rmb: "~250 million"
+    - round: pre-A
+      date: "June-July 2025"
+      amount_rmb: "~1 billion (¥10 亿)"
+      investors:
+        - "SANY Group Huaxu Fund (三一集团华旭基金)"
+        - "Fourth Paradigm (第四范式)"
+        - "Youzu Network (游族网络)"
+        - "Beijing Lier (北京利尔)"
+        - "Songhe Capital (松禾资本)"
+        - "Haitong Kaiyuan (海通开元)"
+    - round: subsequent_2025_2026
+      date: "H2 2025 - Jan 2026"
+      amount_rmb: "REMOVED 2026-08-08 — this row existed only to reconcile the erroneous ~30B total; no source supports a ~20B round"
+      investors: "not fully public"
+    - round: h1_2026
+      date: not_disclosed  # undated on the vendor news page; feed ordering implies H1 2026
+      amount_rmb: ">1 billion (超10亿元)"
+      headline: "推理 GPU 独角兽曦望再获超 10 亿元融资"
+      investors: not_disclosed
+
+data_confidence:
+  compute_units: not_public
+  transistor_count: not_public
+  memory_type: not_public  # S2 only; S3 confirmed LPDDR6 as of 2026-08-08
+  s3_memory_capacity_and_bandwidth: not_public
+  memory_bandwidth: not_public
+  isa: not_public
+  scale_up_interconnect: not_public
+  software_stack_details: "partially resolved 2026-08-08 — SIRE / TANG / TangRT / PCCL now named; see software-stack.yaml"
+
+# ============================================================================
+# Xiwang hardware update — appended 2026-08-08
+# Primary sources: sunrise-ai.com S2/S3 product pages (CMS republished 2026-08-06);
+# FlagTree third_party/sunrise (first third-party-inspectable architecture evidence)
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: major
+  supersedes_baseline: "2026-04-05"
+  trigger: >
+    Vendor site rebuild disclosing S3 LPDDR6 memory, PCIe Gen6, the FP4 precision list,
+    the SRLink scale-up name and the 寰望 SC3-256 rack-scale product; plus discovery of
+    the FlagTree third_party/sunrise Triton backend, which exposes the first
+    compiler-visible microarchitecture facts for this chip. Also corrects a ~10x
+    pre-existing funding error and removes an unsupported S2 memory-type inference.
+
+  fact_groups:
+
+    - group: s3_memory_and_host_interface
+      confidence: high
+      basis: vendor_stated_primary_product_page
+      facts:
+        memory_type: "LPDDR6"
+        memory_backward_compat: "LPDDR5X (LPDDR6/5X ... 向下兼容 LPDDR5X)"
+        memory_capacity: not_disclosed
+        memory_bandwidth: not_disclosed
+        host_interface: "PCIe Gen6"
+        host_interface_lanes: not_disclosed
+        vendor_claims:
+          - "国内首款挂载 LPDDR6 的 GPU (first domestic GPU to attach LPDDR6)"
+          - "国内首用 PCIe Gen6 的 GPU"
+          - "100% host-device interconnect bandwidth improvement"
+        significance: >
+          LPDDR6 rather than HBM is the defining S3 architecture choice: it serves the
+          per-token-cost positioning and removes dependence on export-restricted HBM.
+          The trade-off cannot be quantified because neither capacity nor bandwidth is
+          published. Applies to S3 ONLY.
+      sources:
+        - title: "曦望 S3 product page"
+          url: "https://sunrise-ai.com/products/s3-product"
+        - title: "sunrise-ai.com homepage"
+          url: "https://sunrise-ai.com/"
+
+    - group: s2_memory_type_correction
+      confidence: high
+      basis: absence_of_vendor_statement
+      corrects_preexisting_repo_error: true
+      facts:
+        memory_capacity_gb: 64
+        memory_type: not_disclosed
+        prior_repo_value: "likely HBM2e or HBM3 via CoWoS"
+        correction_note: >
+          CoWoS packaging is an inference basis, not a vendor statement. The vendor has
+          never named S2's memory type. Do not back-fill LPDDR6 (an S3-only disclosure)
+          onto S2 either.
+      sources:
+        - title: "曦望 S2 product page (no memory type stated)"
+          url: "https://sunrise-ai.com/products/s2-product"
+
+    - group: s3_precision_and_performance_claims
+      confidence: high
+      basis: vendor_stated_primary_product_page
+      facts:
+        precisions: ["FP32", "FP16", "FP8", "INT8", "FP4"]
+        bf16_note: >
+          BF16 is NOT on the vendor's S3 precision list. The baseline's "BF16 inferred"
+          should be dropped rather than carried forward.
+        peak_fp4: "'P 级' (petaFLOPS-class) — no TFLOPS figure published"
+        peak_any_format: not_disclosed
+        operator_efficiency_gemm: "~99%"
+        operator_efficiency_flashattention: "~98%"
+        operator_efficiency_provenance: "仿真实测 — SIMULATION-measured, not silicon measurement"
+        single_chip_perf_vs_s2_current: "'5X 单芯片性能提升' (company claim)"
+        single_chip_perf_vs_s2_dec2025: "推理性能 x3 倍+ (company claim; matches the repo baseline's +300%)"
+        claim_inflation_note: >
+          The vendor raised its own claim between the 2025-12-11 snapshot and the current
+          site. Record the change and its date; do not record either number as a fact.
+        per_token_cost_vs_s2: "-90% (company claim, unchanged since Dec 2025)"
+      sources:
+        - title: "曦望 S3 product page"
+          url: "https://sunrise-ai.com/products/s3-product"
+        - title: "Wayback snapshot 2025-12-11 sunrise-ai.com"
+          url: "http://web.archive.org/web/20251211220612id_/https://sunrise-ai.com/"
+
+    - group: scale_up_interconnect_srlink
+      confidence: medium-high
+      basis: vendor_stated_s2_page
+      facts:
+        name: "SRLink"
+        description: "自研 SRLink 等高速互联技术 — proprietary scale-up across cards and nodes"
+        applies_to: "S2 (vendor-stated); carry-forward to S3 NOT confirmed"
+        bandwidth: not_disclosed
+        topology: not_disclosed
+        prior_repo_value: "Scale-up interconnect: Not public"
+      sources:
+        - title: "曦望 S2 product page"
+          url: "https://sunrise-ai.com/products/s2-product"
+
+    - group: sc3_256_superpod
+      confidence: medium-high
+      basis: vendor_stated_primary_product_page
+      facts:
+        name: "寰望 SC3-256 超节点 / Rise SC3-256 SuperPOD"
+        base_chip: S3
+        cooling: liquid
+        serving_architecture: "PD-disaggregated (prefill/decode separation) + large Expert Parallel (EP)"
+        target_workload: "万亿乃至更大参数量 multimodal MoE (trillion-parameter and larger)"
+        chip_count: not_stated_by_vendor
+        chip_count_note: >
+          "256" appears only in the product name. Do NOT record "256 S3 chips" as a
+          specification — that is inference from branding.
+        link_technology: not_disclosed
+        vendor_claims:
+          tco: "down an order of magnitude at equal performance"
+          comms_latency: "down an order of magnitude"
+          throughput: ">20x advantage (footnoted 数据来源于曦望实验室 — vendor lab data)"
+        first_appearance: "present in site navigation as a placeholder link by 2026-05-21; full page by 2026-08"
+      sources:
+        - title: "曦望 S3 product page"
+          url: "https://sunrise-ai.com/products/s3-product"
+        - title: "Wayback snapshot 2026-05-21 sunrise-ai.com"
+          url: "http://web.archive.org/web/20260521020029id_/https://sunrise-ai.com/"
+
+    - group: compiler_visible_microarchitecture
+      confidence: high
+      basis: open_source_inspection_flagtree_sunrise_backend
+      note: >
+        First third-party-inspectable architecture evidence for this chip. Describes what
+        the open Triton path exposes — a lower bound on hardware capability, not a spec.
+      facts:
+        llvm_triple_s2: "stcu-unknown-tang"
+        llvm_triple_s3: "stcuv2"
+        s3_libdevice: "separate *_S3.bc bitcode (source comment: libdivice库,需要区分S2/S3)"
+        warp_size: 32
+        default_num_warps: 4
+        default_num_stages: 3
+        supported_fp8_dtypes: ["fp8e5 (E5M2)"]
+        min_dot_size_int8: "(8, 8, 16)"
+        min_dot_size_other: "(8, 8, 4)"
+        dot_input_precision: "ieee only"
+        device_math_library: "OCML-based (__ocml_* entry points, AMD-style)"
+        object_bundling: "clang-offload-bundler under /usr/local/tangrt/toolchains/llvm/prebuilt/linux-<arch>/"
+        interpretation: >
+          32-wide warps and ieee-only dot precision suggest an NVIDIA-style SIMT machine
+          despite the AMD-derived OCML math library. The INT8 min_dot_size K-depth of 16
+          versus 4 otherwise implies a matrix unit packing 4 INT8 operands per FP32-width
+          lane. INTERPRETATION from compiler constants, not a vendor statement.
+      sources:
+        - title: "FlagTree sunrise backend/compiler.py"
+          url: "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/backend/compiler.py"
+        - title: "FlagTree sunrise backend/driver.py"
+          url: "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/backend/driver.py"
+        - title: "FlagTree sunrise language/tang/libdevice.py"
+          url: "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/language/tang/libdevice.py"
+
+    - group: form_factors_and_systems
+      confidence: medium-high
+      basis: vendor_stated_s2_page
+      facts:
+        s2_cards:
+          - "智望 S2-X1 (PCIe FHFL)"
+          - "智望 S2-M1 (OAM module) — NEW to this repo"
+        servers_chenwang: ["A4-2N1", "A4-2N2", "N8-2G1", "N8-2G2", "A16-2G1"]
+        a16_2g1_claim: >
+          16-card server claimed to run full DeepSeek in a single node using a
+          计算感知通信拓扑 (compute-aware communication topology), claimed +400% vs
+          general-purpose platforms — UNVERIFIED company claim.
+        s2_positioning_2026: "inference + fine-tuning GPGPU (大模型推理 GPU), no longer marketed as a training part"
+        product_families:
+          gpus: "启望 (Qiwang) S1/S2/S3"
+          cards: "智望 (Zhiwang)"
+          servers: "辰望 (Chenwang), incl. AI-agent all-in-one appliance"
+          supernodes: "寰望 (Huanwang)"
+          workstations: "熙望 (Xiwang)"
+          software: "SIRE"
+      sources:
+        - title: "曦望 S2 product page"
+          url: "https://sunrise-ai.com/products/s2-product"
+        - title: "sunrise-ai.com homepage"
+          url: "https://sunrise-ai.com/"
+
+    - group: status_and_schedule
+      confidence: medium
+      basis: mixed_vendor_stated_and_unverified_executive_statement
+      facts:
+        s2_status: "volume production — 已实现规模化量产, 万片级量产 (10,000-unit class; company claim)"
+        s3_status: "announced only — no public evidence of tape-out, sampling or shipment"
+        s3_vendor_page_schedule: none_published
+        executive_statement:
+          attributed_to: "co-CEO 王勇"
+          date: "2026-01-28"
+          content: "S3 R&D complete; tape-out planned mid-2026; mass production by end-2026; S4 high-performance chip 2027; S5 security chip 2028"
+          verification: >
+            NOT independently verified — WeChat source pages are access-gated. No source
+            dated after April 2026 confirms the mid-2026 tape-out occurred. Roadmap-grade
+            only; do not upgrade S3 beyond "announced".
+      sources:
+        - title: "曦望 S3 product page (no schedule or status published)"
+          url: "https://sunrise-ai.com/products/s3-product"
+
+    - group: funding_correction
+      confidence: medium-high
+      basis: vendor_news_index_plus_source_title_reread
+      corrects_preexisting_repo_error: true
+      facts:
+        prior_repo_value: "~RMB 30 billion (~US$4.1B) cumulative"
+        corrected_value: "≈RMB 3 billion (~US$0.4B) cumulative as of January 2026"
+        error_size: "~10x in RMB and ~10x in USD (the raw scan called it 100x — also wrong)"
+        basis_note: >
+          The repo's own cited sources are titled 近30亿元融资 = nearly RMB 3 billion.
+          The vendor news index carries 曦望完成近30亿融资 (January 2026).
+        subsequent_round:
+          headline: "推理 GPU 独角兽曦望再获超 10 亿元融资 (>RMB 1 billion)"
+          date: not_disclosed
+          date_note: >
+            Undated on the vendor news page. Feed ordering places it between January 2026
+            and an April 2026 item, so H1 2026 is the most that can be said.
+          cumulative_total_after: not_confirmed
+        investors_corroborated:
+          - "Sany Group fund — 三一集团华胥基金 in 2026 reporting; the baseline records 三一集团华旭基金. Character discrepancy (胥 vs 旭) UNRESOLVED."
+          - "4Paradigm (第四范式)"
+          - "Youzu Network (游族网络)"
+          - "Beijing Lier (北京利尔)"
+          - "Songhe Capital (松禾资本)"
+          - "Haitong Kaiyuan (海通开元)"
+      sources:
+        - title: "sunrise-ai.com news index"
+          url: "https://sunrise-ai.com/news"
+        - title: "东方财富 — 曦望1年内累计获得近30亿元融资"
+          url: "https://caifuhao.eastmoney.com/news/20260123202536017296970"
+
+    - group: corporate_entity_open_question
+      confidence: low
+      basis: vendor_site_footer_only
+      facts:
+        footer_entity: "浙江曦望智能科技股份有限公司 (Zhejiang; joint-stock)"
+        icp_filing: "浙ICP备2025183180号-1"
+        repo_recorded_entity: "杭州曦望芯科智能科技有限公司"
+        flagtree_label: "曦望芯科"
+        resolution: >
+          A rename or restructuring is plausible but NO company-registry evidence was
+          obtained. Do not assert a rename.
+      sources:
+        - title: "sunrise-ai.com footer"
+          url: "https://sunrise-ai.com/"
+
+  still_not_disclosed:
+    - compute_unit_count_and_hierarchy
+    - transistor_count
+    - die_area
+    - on_chip_sram
+    - s2_memory_type
+    - s2_memory_bandwidth
+    - s3_memory_capacity
+    - s3_memory_bandwidth
+    - s3_process_node
+    - s3_foundry
+    - s3_packaging
+    - s3_tdp
+    - srlink_bandwidth_and_topology
+    - sc3_256_chip_count_and_link_technology
+    - any_flops_or_tops_figure_for_s3
+    - any_independent_or_third_party_benchmark
+
+  conference_and_benchmark_presence:
+    mlperf: none_found
+    hot_chips: "none — Hot Chips 38 (2026-08-23..25) has no scheduled Xiwang talk"
+    isca: none_found
+    isscc: none_found
+
+  dating_control:
+    - snapshot: "2025-12-11"
+      url: "http://web.archive.org/web/20251211220612id_/https://sunrise-ai.com/"
+      content: "no SIRE, no LPDDR6, no PCIe Gen6, no SC3-256; S3 claim was 推理性能 x3 倍+"
+    - snapshot: "2026-05-21"
+      url: "http://web.archive.org/web/20260521020029id_/https://sunrise-ai.com/"
+      content: "SC3-256 in navigation as placeholder link; still no SIRE, no LPDDR6, no Gen6"
+    - snapshot: "current (CMS assets republished 2026-08-06)"
+      content: "SIRE, LPDDR6, PCIe Gen6, FP4, SC3-256, 5X claim all present"

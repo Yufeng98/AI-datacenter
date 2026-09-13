@@ -1,0 +1,122 @@
+digraph d_matrix_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== DEPLOYMENT / ORCHESTRATION =====================
+    subgraph cluster_orchestration {
+        label="Deployment / Orchestration (Wallaroo, acquired 2026-08-03)";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        wallaroo_cp [label="Wallaroo Control Plane\nModel deployment + lifecycle\nCloud / on-prem / edge / air-gapped", fillcolor="#D7EFD9"];
+        wallaroo_rt [label="Wallaroo Serving Runtime\nHeterogeneous targets: x86, Arm, GPU, Corsair\nvLLM and SGLang support", fillcolor="#D7EFD9"];
+    }
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.nn.Module\nAviator dispatch", fillcolor="#D6E4F0"];
+        triton [label="Triton DSL\nCustom kernel authoring\nMLIR pipeline", fillcolor="#D6E4F0"];
+        infinity [label="Infinity 'Ignition' (external, 2026-07)\nAutomated kernel generation\nQwen3 / Qwen3.5 / Gemma4\nvendor-reported: up to 92% of\nspeed-of-light in 10 days", fillcolor="#EAF1F8"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        compiler [label="Aviator Compiler\nMLIR-based AOT\nPyTorch graph → DIMC binary\n64×64/64×128 MAC tiling", fillcolor="#E4DEFF"];
+        compressor [label="Aviator Compressor\nMXINT4/8/16 quantization\nBlock FP (OCP MX)", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime / Engine";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        infengine [label="Aviator Inference Engine\nDistributed exec across cards\nKV-cache placement\nTensor parallelism", fillcolor="#F8D7DA"];
+        runtime [label="Aviator Runtime\nPCIe Gen5 host↔Corsair\nSRAM/LPDDR5X alloc\nDMX Bridge abstraction", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        jetstream [label="JetStream 400G NIC\n400 Gbps Ethernet\nPCIe Gen5 card\nScale-out", fillcolor="#FFE0CC"];
+        dmxbridge [label="DMX Bridge Card\nDual-card merge\n4,096 cores logical\n4 GB SRAM unified", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="d-Matrix Corsair Hardware (TSMC N6, Alchip) - full production 2026-06-09";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        dimc [label="DIMC Cores\n64×64 MAC in SRAM bit-cells\n256 cores/chiplet (4Q×4S×16)\n2,048 cores/card\n2,400 TOPS INT8", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nSRAM (Performance): 2 GB @ 150 TB/s\nLPDDR5X (Capacity): 256 GB @ 400 GB/s\nWeight-stationary: weights in SRAM", fillcolor="#283593", fontcolor="white"];
+        dmxlink [label="DMX Link\nCustom die-to-die\n1 TB/s bandwidth\nAll-to-all chiplet mesh\n4 chiplets/chip × 2 chips", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Orchestration → Framework
+    wallaroo_cp -> wallaroo_rt [color="#2E7D32"];
+    wallaroo_rt -> pytorch [color="#2E7D32", label="model deploy", fontsize=8];
+    wallaroo_rt -> infengine [style=dashed, color="#2E7D32", label="serving dispatch", fontsize=8];
+
+    // Framework → Compiler
+    pytorch -> compiler;
+    pytorch -> compressor [style=dashed, color="#AAAAAA", label="weights", fontsize=8];
+    triton -> compiler;
+    infinity -> triton [style=dashed, color="#4A90D9", label="generated kernels", fontsize=8];
+
+    // Compiler → Runtime
+    compiler -> infengine [label="DIMC binary", fontsize=8];
+    compressor -> infengine [label="MX weights", fontsize=8];
+
+    // Runtime chain
+    infengine -> runtime;
+    runtime -> dimc [label="PCIe Gen5", fontsize=8];
+
+    // Communication
+    jetstream -> runtime [style=dashed];
+    dmxbridge -> dmxlink [style=dashed, label="card merge", fontsize=8];
+
+    // Hardware internal
+    dimc -> mem [color="#283593"];
+    dimc -> dmxlink [color="#283593"];
+    dmxlink -> dimc [color="#283593", style=dashed];
+}

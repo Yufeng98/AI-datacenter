@@ -1,0 +1,441 @@
+chip: nvidia-gpu
+investigation: hw-architecture
+as_of: "2026-08-08"
+architectures_covered:
+  - name: Hopper
+    skus: [H100 SXM5, H100 PCIe, H200 SXM5, GH200]
+    process: TSMC 4N (custom)
+    transistors_B: 80
+    die_config: monolithic
+  - name: Blackwell
+    skus: [B100, B200, GB200, GB200 NVL72]
+    process: TSMC 4NP (custom)
+    transistors_B: 208
+    die_config: dual-die chiplet (2 x ~800 mm²)
+  - name: Rubin
+    skus: [R100, Vera Rubin Superchip, Vera Rubin NVL72, Rubin CPX]
+    process: TSMC 3nm
+    transistors_B: not disclosed
+    die_config: not disclosed
+    status: "full production since 2026-05; production shipments stated to begin fall 2026; no customer shipments announced as of 2026-08-08"
+    disclaimer: "NVIDIA labels all Vera Rubin NVL72 figures 'Preliminary information. All values are up to and subject to change.'"
+
+layer_mappings:
+  - layer: Compute Engine
+    confidence: confirmed
+    summary: >
+      SM-based architecture. Each SM has 128 CUDA cores, 4 Tensor Cores (4th gen on Hopper,
+      5th gen on Blackwell), 256 KB register file, and 4 warp schedulers supporting up to 64
+      concurrent warps. H100 has 132 SMs; B200 has 148 SMs per die. 5th-gen Tensor Cores
+      add MXFP4 and MXFP6 microscaling formats. B200 peak: 20 PetaFLOPS FP4, 10 PFLOPS FP8,
+      5 PFLOPS FP16, 45 TFLOPS FP64.
+    key_specs:
+      cuda_cores_per_sm: 128
+      tensor_cores_per_sm: 4
+      register_file_per_sm_KB: 256
+      warp_schedulers_per_sm: 4
+      max_warps_per_sm: 64
+      sm_count:
+        H100: 132
+        B200_per_die: 148
+      data_types_hopper: [FP64, TF32, FP32, FP16, BF16, FP8_E4M3, FP8_E5M2, INT8]
+      data_types_blackwell: [FP64, TF32, FP32, FP16, BF16, FP8_E4M3, FP8_E5M2, MXFP6, MXFP4, INT8]
+    sources:
+      - title: "NVIDIA Blackwell Architecture Technical Overview"
+        url: "https://resources.nvidia.com/en-us-blackwell-architecture"
+      - title: "NVIDIA H100 Tensor Core GPU Architecture Whitepaper"
+        url: "https://www.advancedclustering.com/wp-content/uploads/2022/03/gtc22-whitepaper-hopper.pdf"
+      - title: "NVIDIA Hopper Architecture In-Depth — NVIDIA Technical Blog"
+        url: "https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/"
+
+  - layer: Data Path
+    confidence: confirmed
+    summary: >
+      SIMT execution model: warps of 32 threads execute one instruction in lock-step; from Volta
+      onward each thread has independent program counter (independent thread scheduling). 4 warp
+      schedulers per SM with dual-issue capability (2 independent instructions per warp per cycle
+      to separate functional units). In-order fetch/decode with out-of-order memory completion.
+      Hopper introduced Tensor Memory Accelerator (TMA) for asynchronous 5D tensor moves
+      between global and shared memory. Thread Block Clusters (Hopper+) allow cooperative groups
+      spanning up to 8 SMs with distributed shared memory.
+    key_specs:
+      warp_size_threads: 32
+      max_warps_per_sm: 64
+      max_threads_per_sm: 2048
+      dispatch_units_per_scheduler: 2
+      hopper_features: [TMA, Thread Block Clusters, async wgmma instructions]
+    sources:
+      - title: "NVIDIA Hopper Architecture In-Depth — NVIDIA Technical Blog"
+        url: "https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/"
+      - title: "NVIDIA Hopper Tuning Guide"
+        url: "https://docs.nvidia.com/cuda/hopper-tuning-guide/index.html"
+      - title: "CUDA SIMT and Warps — Cornell Virtual Workshop"
+        url: "https://cvw.cac.cornell.edu/gpu-architecture/gpu-characteristics/simt_warp"
+
+  - layer: On-chip Memory
+    confidence: confirmed
+    summary: >
+      Per SM: 256 KB register file; unified L1/SMEM pool configurable at kernel launch.
+      H100 supports up to 228 KB shared memory per SM (256 KB total pool), a 39% increase
+      over A100's 164 KB. Blackwell maintains 228 KB/SM for shared memory. L2 cache shared
+      across all SMs: 50 MB on H100 (1.25× A100's 40 MB); ~96–128 MB on Blackwell
+      (2–2.5× H100), with 4 L2 partitions vs 2 on Hopper. Hopper added L2 residency controls
+      for pinning frequently-accessed data.
+    key_specs:
+      register_file_per_sm_KB: 256
+      shared_memory_max_per_sm_KB:
+        A100: 164
+        H100: 228
+        B200: 228
+      l2_cache_total_MB:
+        A100: 40
+        H100: 50
+        B200_approx: 96
+      l2_partitions:
+        H100: 2
+        Blackwell: 4
+    sources:
+      - title: "NVIDIA Hopper Architecture In-Depth — NVIDIA Technical Blog"
+        url: "https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/"
+      - title: "NVIDIA Blackwell Tuning Guide"
+        url: "https://docs.nvidia.com/cuda/blackwell-tuning-guide/index.html"
+      - title: "Nvidia H100 Funny L2 and Tons of Bandwidth — Chips and Cheese"
+        url: "https://chipsandcheese.com/2023/07/02/nvidias-h100-funny-l2-and-tons-of-bandwidth/"
+
+  - layer: Off-chip Memory
+    confidence: confirmed
+    summary: >
+      All current-gen NVIDIA datacenter GPUs use HBM stacked on a 2.5D CoWoS interposer.
+      H100 SXM5: 80 GB HBM3 at 3.35 TB/s. H200 SXM5: 141 GB HBM3e at 4.8 TB/s (first GPU
+      with HBM3e). B200: 192 GB HBM3e at 8.0 TB/s — 2.4× H100 bandwidth. GB200 NVL72 (72 GPUs):
+      13.4 TB aggregate HBM3e. Blackwell dual-die uses NV-HBI (10 TB/s die-to-die) so both dies
+      share a unified 192 GB address space.
+    key_specs:
+      H100_SXM5:
+        hbm_gen: HBM3
+        capacity_GB: 80
+        bandwidth_TBps: 3.35
+      H200_SXM5:
+        hbm_gen: HBM3e
+        capacity_GB: 141
+        bandwidth_TBps: 4.8
+      B200:
+        hbm_gen: HBM3e
+        capacity_GB: 192
+        bandwidth_TBps: 8.0
+      GB200_NVL72_aggregate:
+        capacity_TB: 13.4
+        bandwidth_TBps_aggregate: 576
+      die_to_die_link_B200: "NV-HBI 10 TB/s"
+    sources:
+      - title: "NVIDIA H200 GPU Product Page"
+        url: "https://www.nvidia.com/en-us/data-center/h200/"
+      - title: "NVIDIA Blackwell Architecture Technical Overview"
+        url: "https://resources.nvidia.com/en-us-blackwell-architecture"
+      - title: "NVIDIA H200 vs B200 Comparison — vast.ai"
+        url: "https://vast.ai/article/nvidia-h200-vs-b200-comparing-datacenter-grade-accelerators"
+      - title: "Nvidia introduces Blackwell 800mm² N4P dies — SemiWiki"
+        url: "https://semiwiki.com/forum/threads/nvidia-introduces-blackwell-800mm2-reticle-limit-n4p-dies.19856/"
+
+  - layer: "Host Interface / Package"
+    confidence: confirmed
+    summary: >
+      PCIe Gen 5.0 x16 (~128 GB/s bidirectional) for standard form-factor GPUs (H100 PCIe,
+      B100 PCIe). SXM/HGX board configurations use NVLink as the primary data path between
+      GPUs in the same node. GH200 Grace Hopper and GB200 Grace Blackwell Superchips use
+      NVLink-C2C at 900 GB/s bidirectional coherent interface between Grace CPU and GPU —
+      7× faster than PCIe Gen 5. Blackwell uses TSMC CoWoS-L 2.5D packaging with two ~800 mm²
+      GB100 dies connected by 10 TB/s NV-HBI on the same interposer as HBM3e stacks.
+    key_specs:
+      pcie_gen5_BW_GBps_bidir: 128
+      nvlink_c2c_BW_GBps_bidir: 900
+      blackwell_die_size_mm2: 800
+      blackwell_packaging: "TSMC CoWoS-L 2.5D"
+      blackwell_die_to_die_BW_TBps: 10
+      process_node:
+        H100: "TSMC 4N custom"
+        B200: "TSMC 4NP custom"
+    sources:
+      - title: "NVIDIA Grace Hopper Superchip Product Page"
+        url: "https://www.nvidia.com/en-us/data-center/grace-hopper-superchip/"
+      - title: "Inside NVIDIA Blackwell Ultra — NVIDIA Technical Blog"
+        url: "https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/"
+      - title: "Nvidia goes MCM and announces Blackwell — igor'sLAB"
+        url: "https://www.igorslab.de/en/nvidia-goes-mcm-and-officially-announces-blackwell-at-gtc-2024-details-of-the-monster-chip/"
+
+  - layer: Scale-up Interconnect
+    confidence: confirmed
+    summary: >
+      NVLink is NVIDIA's proprietary GPU-to-GPU interconnect. 4th-gen (Hopper): 900 GB/s per
+      GPU. 5th-gen (Blackwell): 1.8 TB/s per GPU (2× Hopper). NVSwitch ASICs implement a
+      non-blocking all-to-all NVLink crossbar: 5th-gen NVSwitch has 64 ports and 7.2 TB/s
+      aggregate bandwidth per switch, scalable to 576 GPUs. GB200 NVL72 connects 72 Blackwell
+      GPUs and 36 Grace CPUs in a rack-scale liquid-cooled system with 130 TB/s total
+      GPU-to-GPU bandwidth and 13.4 TB aggregate HBM.
+    key_specs:
+      nvlink_gen4_per_gpu_GBps: 900
+      nvlink_gen5_per_gpu_TBps: 1.8
+      nvswitch_gen5_ports: 64
+      nvswitch_gen5_aggregate_TBps: 7.2
+      max_gpus_nvlink_fabric: 576
+      gb200_nvl72:
+        gpus: 72
+        grace_cpus: 36
+        total_bandwidth_TBps: 130
+        total_hbm_TB: 13.4
+    sources:
+      - title: "NVIDIA GB200 NVL72 Product Page"
+        url: "https://www.nvidia.com/en-us/data-center/gb200-nvl72/"
+      - title: "NVIDIA GB200 NVL72 Technical Blog"
+        url: "https://developer.nvidia.com/blog/nvidia-gb200-nvl72-delivers-trillion-parameter-llm-training-and-real-time-inference/"
+      - title: "NVIDIA GB200 Interconnect Architecture Analysis — NADDOD"
+        url: "https://naddod.medium.com/nvidia-gb200-interconnect-architecture-analysis-nvlink-infiniband-and-future-trends-91dc6ba49bf3"
+
+  - layer: Scale-out Interconnect
+    confidence: confirmed
+    summary: >
+      Inter-node GPU communication uses NVIDIA ConnectX-7 HCAs (NDR InfiniBand) at 400 Gb/s
+      per port (800 Gb/s dual-port). ConnectX-7 supports both IB and Ethernet (RoCE v2 at
+      400 GbE) on the same ASIC. GPUDirect RDMA allows the NIC to DMA directly to/from GPU
+      HBM, eliminating CPU bounce buffers. SHARP (in-network AllReduce on IB switches) reduces
+      GPU idle time during collective operations. Standard AI training cluster topology: NVLink
+      for intra-node (scale-up) + NDR InfiniBand fat-tree for inter-node (scale-out).
+    key_specs:
+      connectx7_ib_speed_Gbps: 400
+      connectx7_ethernet_speed_GbE: 400
+      connectx7_pcie_interface: "Gen 5.0 x16"
+      gpudirect_rdma: true
+      sharp_in_network_compute: true
+      roce_version: "RoCEv2"
+    sources:
+      - title: "NVIDIA ConnectX-7 400G Datasheet"
+        url: "https://www.nvidia.com/content/dam/en-zz/Solutions/networking/infiniband/connectx-7-datasheet.pdf"
+      - title: "NVIDIA ConnectX-7 NDR InfiniBand Adapter Card — NVIDIA"
+        url: "https://www.nvidia.com/content/dam/en-zz/Solutions/networking/infiniband-adapters/infiniband-connectx7-data-sheet.pdf"
+      - title: "GPUDirect RDMA deep-dive — QSysArch"
+        url: "https://qsysarch.com/posts/gpu-direct-from-rdma-from-pcie-to-using-doca/"
+
+key_abstractions:
+  - name: SM (Streaming Multiprocessor)
+    description: >
+      NVIDIA's fundamental compute unit. Each SM is an independent multithreaded processor
+      with its own warp schedulers, CUDA cores, Tensor Cores, register file, and L1/SMEM.
+      The GPU is composed of a grid of SMs sharing L2 cache and HBM. All CUDA programs express
+      parallelism in terms of thread blocks that map to SMs.
+    layers_involved: [Compute Engine, Data Path, On-chip Memory]
+
+  - name: Tensor Core
+    description: >
+      Specialized MMA (matrix-multiply-accumulate) unit inside each SM. Performs D = A×B + C
+      on small matrix tiles (e.g., 16×16 for FP16) in a single clock cycle with dramatically
+      higher throughput than scalar CUDA cores. Generations 1–5 have progressively added lower
+      precision formats (FP8, MXFP4) to trade dynamic range for compute density.
+    layers_involved: [Compute Engine, Data Path]
+
+  - name: Warp
+    description: >
+      The fundamental execution unit of NVIDIA's SIMT model: 32 threads that execute the same
+      instruction in lock-step. Warp schedulers select from resident warps each cycle, hiding
+      memory latency by switching to ready warps. All CUDA occupancy tuning, register
+      allocation, and shared memory sizing trade off against how many warps can be resident
+      simultaneously per SM.
+    layers_involved: [Compute Engine, Data Path]
+
+  - name: NVLink
+    description: >
+      NVIDIA's proprietary high-speed GPU interconnect, used both within a server (GPU-to-GPU
+      via NVSwitch) and for CPU-GPU coupling (NVLink-C2C in Grace Hopper / Grace Blackwell).
+      5th-gen NVLink delivers 1.8 TB/s per GPU, enabling tensor-parallel splits across GPUs
+      without host CPU involvement. NVSwitch extends NVLink into a non-blocking all-to-all
+      fabric scaling to 576 GPUs.
+    layers_involved: ["Scale-up Interconnect", "Host Interface / Package"]
+
+  - name: HBM (High Bandwidth Memory)
+    description: >
+      Stacked DRAM technology integrated on the same CoWoS 2.5D package as the GPU die.
+      HBM3 (H100: 3.35 TB/s) and HBM3e (H200: 4.8 TB/s; B200: 8.0 TB/s) provide the
+      main GPU frame buffer. The arithmetic intensity threshold for compute-bound vs
+      memory-bound kernel behavior scales with HBM bandwidth, making HBM generation a
+      primary determinant of software algorithm selection (e.g., FlashAttention vs naive
+      attention).
+    layers_involved: [Off-chip Memory]
+
+# ============================================================================
+# Rubin re-verification and corrections — appended 2026-08-08
+# Window scanned: 2026-04-05 -> 2026-08-08. No new silicon generation; no change
+# to any published Rubin number. Entries below are (a) re-verified facts, (b)
+# corrections to previously committed repo content, or (c) coverage gaps closed.
+# ============================================================================
+update_2026_08_08:
+  headline: >
+    No new NVIDIA silicon generation in the window and no change to any published Rubin
+    specification. The Vera Rubin NVL72 spec page was re-verified line-by-line against the
+    repo and matches. Corrections applied: production-status wording, the NVL576 domain
+    definition, and the seventh-chip name (Groq 3 LPX, not Groq 3 LPU).
+
+  fact_groups:
+
+    - group: rubin_specs_reverified
+      confidence: confirmed
+      note: >
+        NVIDIA-published preliminary figures. NVIDIA stamps the source table
+        "Preliminary information. All values are up to and subject to change."
+        The FP8-FP6 training figure was previously missing from the repo tables.
+      facts:
+        per_gpu:
+          nvfp4_inference_PFLOPS: 50
+          nvfp4_training_PFLOPS: 35
+          fp8_fp6_training_PFLOPS: 17.5
+          hbm_gen: HBM4
+          hbm_capacity_GB: 288
+          hbm_bandwidth_TBps: 22
+          nvlink_gen: 6
+          nvlink_per_gpu_TBps: 3.6
+          bf16_peak: not disclosed
+          fp64_peak: not disclosed
+        per_vera_cpu:
+          olympus_cores: 88
+          lpddr5x_TB: 1.5
+          nvlink_c2c_TBps: 1.8
+        per_vr_nvl72_rack:
+          nvfp4_inference_PFLOPS: 3600
+          hbm4_total_TB: 20.7
+          hbm_bandwidth_total_TBps: 1580
+          nvlink_switch_bandwidth_TBps: 260
+          cpu_cores_total: 3168
+          lpddr5x_total_TB: 54
+          total_chips: 1296
+      sources:
+        - title: "NVIDIA Vera Rubin NVL72 Product Page"
+          url: "https://www.nvidia.com/en-us/data-center/vera-rubin-nvl72/"
+
+    - group: production_status
+      confidence: confirmed
+      supersedes: "'in full production, with partner products shipping H2 2026'"
+      facts:
+        newsroom_dateline: "2026-05-31"
+        status: "ramps into full production"
+        shipment_quote: "Production shipments of Vera Rubin are set to begin starting this fall."
+        customer_shipments_announced_as_of_2026_08_08: false
+        vendor_claim_unverified: "10x agent throughput at scale vs previous-generation Grace Blackwell (no methodology published)"
+        adopters: [CoreWeave, Firmus, GMI Cloud, IBM Cloud, IREN, Lambda, Microsoft Azure, Nebius, Nscale, SpaceXAI, Vultr]
+        system_builders_count: 15
+        system_builders: [ASRock Rack, ASUS, Dell, Foxconn, GIGABYTE, HPE, IBM, Inventec, Lenovo, MSI, Pegatron, QCT, Supermicro, Wistron, Wiwynn]
+        not_an_adopter_in_this_release: [Oracle Cloud Infrastructure]
+      sources:
+        - title: "Vera Rubin Ramps Into Full Production — NVIDIA Newsroom"
+          url: "https://nvidianews.nvidia.com/news/vera-rubin-full-production-agentic-ai-factory"
+
+    - group: rubin_transformer_engine
+      confidence: confirmed_wording_undated_source
+      note: >
+        Verbatim product-page wording. No quantified figures published and the page is
+        undated, so there is no evidence this postdates the 2026-04-05 baseline. Recorded
+        as a coverage gap closed, not as a window development.
+      facts:
+        quote: "Vera Rubin NVL72 features a new Transformer Engine with adaptive compression to boost NVFP4 inference performance."
+        tensor_core_generation: 6
+        quantified_figures: not disclosed
+      sources:
+        - title: "NVIDIA Rubin Platform Page"
+          url: "https://www.nvidia.com/en-us/data-center/technologies/rubin/"
+
+    - group: nvlink_domain_ladder_correction
+      confidence: confirmed
+      note: >
+        Source is pre-baseline (2026-03-16) — a valid repo fix, not a window development.
+        Corrects 'NVL576 (576 GPUs/rack)' in chips/nvidia-gpu/summary.md and
+        'NVL576 systems with 144 quad-chiplet GPUs (576 compute chiplets per rack)' in
+        chips/nvidia-gpu/hw-architecture.md.
+      facts:
+        NVL72:
+          racks: 1
+          gpus: 72
+          vera_cpus: 36
+        Rubin_Ultra_NVL576:
+          racks: 8
+          gpus_per_rack: 72
+          gpus_total: 576
+          topology: "two-layer all-to-all NVLink across eight MGX NVL racks"
+        Kyber_NVL144:
+          racks: 1
+          gpus: 144
+          note: "Kyber doubles the NVLink domain per rack to 144 GPUs"
+        NVL1152:
+          racks: 8
+          gpus_total: 1152
+      sources:
+        - title: "NVIDIA Vera Rubin POD: Seven Chips, Five Rack-Scale Systems, One AI Supercomputer"
+          url: "https://developer.nvidia.com/blog/nvidia-vera-rubin-pod-seven-chips-five-rack-scale-systems-one-ai-supercomputer/"
+
+    - group: vera_rubin_rack_networking
+      confidence: confirmed
+      note: "Pre-baseline source (2026-03-16); coverage gap closed."
+      facts:
+        spectrum6_spx:
+          throughput_Tbps: 102.4
+          lanes: 512
+          optics: "200 Gb/s co-packaged optics"
+        connectx9_supernics_per_compute_tray: 8
+        connectx9_per_port_rate: not disclosed
+        bluefield4_dpus_per_compute_tray: 1
+        bluefield4_composition: "combines the Vera CPU and ConnectX-9 SuperNIC"
+      sources:
+        - title: "NVIDIA Vera Rubin POD: Seven Chips, Five Rack-Scale Systems, One AI Supercomputer"
+          url: "https://developer.nvidia.com/blog/nvidia-vera-rubin-pod-seven-chips-five-rack-scale-systems-one-ai-supercomputer/"
+
+    - group: seventh_chip_naming
+      confidence: confirmed
+      facts:
+        official_name: "NVIDIA Groq 3 LPX"
+        prior_repo_name: "Groq 3 LPU"
+        role: "SRAM-based low-latency inference accelerator, seventh chip of the Vera Rubin platform"
+        nvidia_framing: "combining Rubin GPUs for high-bandwidth memory (HBM) and LPUs for static random-access memory (SRAM)"
+        nvidia_efficiency_claim: "more tokens per watt and lower cost per token compared to the NVIDIA Blackwell architecture (unquantified)"
+        excluded_claim: "'up to 35x higher tokens per watt' — not traceable to any NVIDIA primary source; excluded"
+      sources:
+        - title: "NVIDIA Rubin Platform Page"
+          url: "https://www.nvidia.com/en-us/data-center/technologies/rubin/"
+
+    - group: mlperf_training_v6_0
+      confidence: confirmed
+      note: >
+        Blackwell / Blackwell Ultra results — no Rubin submission exists. Per-submitter
+        attribution requires the MLCommons results table, which was not opened.
+      facts:
+        published: "2026-06-16"
+        submitting_organizations: 24
+        new_benchmarks:
+          - name: DeepSeek-V3
+            params_total_B: 671
+            params_activated_B: 37
+            dataset: C4
+            target_log_perplexity: 3.6
+          - name: GPT-OSS 20B
+            params_total_B: 21
+            params_activated_B: 3.6
+        nvidia_headline_results:
+          deepseek_v3_671b: {minutes: 2.02, gpus: 8192, part: GB300}
+          llama_3_1_405b: {minutes: 7.07, gpus: 8192, part: GB200}
+          gpt_oss_20b: {minutes: 7.43, gpus: 512, part: GB300}
+          llama_3_1_8b: {minutes: 4.46, gpus: 1024, part: GB200}
+        software_stack: "NeMo container 26.06; full-iteration CUDA Graphs for token-dropless MoEs; Spectrum-X Ethernet Advanced Adaptive Routing"
+      sources:
+        - title: "MLPerf Training v6.0 Results — MLCommons"
+          url: "https://mlcommons.org/2026/06/mlperf-training-v6-0-results/"
+        - title: "NVIDIA Blackwell Tops MLPerf Training v6.0 — NVIDIA Technical Blog"
+          url: "https://developer.nvidia.com/blog/nvidia-blackwell-tops-mlperf-training-6-0-with-industry-leading-scale-and-performance/"
+
+  excluded:
+    - claim: "Kyber rack system slips to 2028 on manufacturing snags"
+      confidence: unsupported
+      reason: "SemiAnalysis via CNBC (2026-07-06); CNBC article returned HTTP 403; no NVIDIA statement either way. Third-party analyst speculation only."
+    - claim: "Any change to Rubin Ultra (H2 2027) or Feynman (2028) timing"
+      confidence: unsupported
+      reason: "No confirmation found in the window."
+    - claim: "NVLink Fusion developments"
+      confidence: unsupported
+      reason: "No news in the window."
+    - claim: "Anything from Hot Chips 38 (Aug 23-25, 2026)"
+      confidence: not_yet_public
+      reason: "Conference is 15 days in the future as of 2026-08-08 — disclosure scheduled, content not yet public."

@@ -1,0 +1,155 @@
+digraph sophgo_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    // ===================== CHIP FAMILIES =====================
+    subgraph cluster_tpu_family {
+        label="TPU Line — Inference (Gen 3/4) → Datacenter Large-Model (TPUv7)";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        subgraph cluster_bm1690 {
+            label="BM1690 / SG2260 'TPUv7' (Datacenter, added 2026-08-08)";
+            style="rounded,filled";
+            fillcolor="#FFF8E1";
+            color="#B26A00";
+            fontcolor="#B26A00";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            bm1690_cores [label="TPU Core × 8\n64 NPU lanes/core\n512-bit (64 B) EU width\nStatic compiler-scheduled\nNative FP8 (E5M2)", fillcolor="#FFECB3"];
+            bm1690_lmem [label="LMEM (per core)\n256 KB/lane × 16 banks\n= 16 MB/core\n128 MB across 8 cores\nCompiler-managed", fillcolor="#FFECB3"];
+            bm1690_l2 [label="L2 SRAM (chip-shared)\n128 MB (BM1690E: 16 MB)\nModeled max BW 128 GB/s\nNEW TIER vs BM1684X", fillcolor="#FFE082"];
+            bm1690_dram [label="Off-chip DRAM\n~128 GB per chip\n~546 GB/s (derived:\n8533 MT/s, 68.264 GB/s × 8 cores)\nType NOT confirmed\n(LPDDR5X is Baike-only)", fillcolor="#FFECB3"];
+            bm1690_riscv [label="On-die RISC-V core\nLong-tail operator\nfallback path", fillcolor="#FFECB3"];
+            bm1690_sort [label="Sort / Top-K units\nBillion-scale\nvector search", fillcolor="#FFECB3"];
+            bm1690_sglink [label="SG-Link\nProprietary scale-up fabric\nmulti-chip + multi-card\nBW / lanes / topology\nNOT DISCLOSED", fillcolor="#FFE082"];
+            bm1690_card [label="SC11 FP300 card\n2 × BM1690 (SOC_NUM 2)\n256 GB, >1.1 TB/s, 300 W\n>400 TOPS INT8/FP8\n(all VENDOR CLAIM, per card)", fillcolor="#FFE082"];
+            bm1690_domain [label="Scale-up domain (confirmed)\n8 cards = 16 chips = 2 TB\nin one 4U chassis\nThen ~1000-card clusters\nover commodity Ethernet", fillcolor="#FFECB3"];
+            bm1690_super [label="WAIC 2025 '超节点'\n128 × BM1690, 16/layer × 8\nANNOUNCED DEMO ONLY\n'8 TB' unverified\n(vs 16 TB implied)", style="rounded,filled,dashed", fillcolor="#FFF3E0"];
+        }
+
+        subgraph cluster_bm1684x {
+            label="BM1684X (Cloud/Edge, 4th Gen)";
+            style="rounded,filled";
+            fillcolor="#EBF3FB";
+            color="#1565C0";
+            fontcolor="#1565C0";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            tpu_core [label="TPU Core\nHigh Data-Width SIMD\n32 TOPS INT8 (35.2 Winograd)\n16 TFLOPS FP16/BF16\n2 TFLOPS FP32\nINT4/INT8/FP16/BF16/FP32", fillcolor="#BBDEFB"];
+            arm_cpu [label="ARM Cortex-A53 × 8\n@ 2.3 GHz\nSoC management CPU\nLinux OS host", fillcolor="#BBDEFB"];
+            dma [label="DMA Engine\nAsync LPDDR4X ↔ SRAM\nCompute-DMA double-buffer\nCompiler-scheduled", fillcolor="#BBDEFB"];
+            vpp [label="VPP + JPU\n32-ch HD decode\n12-ch HD encode\nH.264/H.265 HW", fillcolor="#BBDEFB"];
+            sram [label="On-chip SRAM\nCompiler-managed scratchpad\nNo HW data cache\n(capacity undisclosed)", fillcolor="#BBDEFB"];
+            lpddr [label="LPDDR4X\n16 GB / ~68 GB/s\n(SoC: 16 GB module\nCard: same)", fillcolor="#BBDEFB"];
+            pcie_bm1684x [label="PCIe Gen3/4 x16\nHost interface\nMulti-chip cards: SC7PRO (8),\nSC7FP150 (6), SC7HP75 (3),\nSC7HP75_1 (1)", fillcolor="#BBDEFB"];
+        }
+
+        subgraph cluster_bm1688 {
+            label="BM1688 / CV186X (Edge SoC)";
+            style="rounded,filled";
+            fillcolor="#E8F5E9";
+            color="#2E7D32";
+            fontcolor="#2E7D32";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            bm1688_tpu [label="TPU Core (Edge)\n16 TOPS INT8 / 32 TOPS INT4\n4 TFLOPS FP16/BF16\n0.5 TFLOPS FP32", fillcolor="#C8E6C9"];
+            bm1688_cpu [label="ARM Cortex-A53 × 8\n@ 1.6 GHz", fillcolor="#C8E6C9"];
+            bm1688_vpu [label="VPU\n16-ch 1080p30 decode\n10-ch 1080p30 encode", fillcolor="#C8E6C9"];
+            bm1688_mem [label="LPDDR4X 8 GB\n~34 GB/s", fillcolor="#C8E6C9"];
+        }
+    }
+
+    // ===================== RISC-V FAMILY =====================
+    subgraph cluster_riscv_family {
+        label="RISC-V Line — Compute-Focused";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        subgraph cluster_sg2042 {
+            label="SG2042 (64-core RISC-V Server CPU)";
+            style="rounded,filled";
+            fillcolor="#F3E5F5";
+            color="#6A1B9A";
+            fontcolor="#6A1B9A";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            sg2042_core [label="64 × T-Head C920 OoO RISC-V\n16 clusters × 4 cores\nL1-D/I: 64KB per core\n2 GHz / TSMC 6nm / 120W", fillcolor="#E1BEE7"];
+            sg2042_cache [label="L2: 1MB/cluster\nL3: 64MB system cache\nCCIX (2-chip scale-up)", fillcolor="#E1BEE7"];
+            sg2042_mem [label="DDR4-3200 × 4 controllers\nRDIMM/ECC/UDIMM\n32 × PCIe Gen4.0", fillcolor="#E1BEE7"];
+        }
+
+        subgraph cluster_sg2380 {
+            label="SG2380 / OASIS (16-core RISC-V + AI SoC)";
+            style="rounded,filled";
+            fillcolor="#FFF3E0";
+            color="#E65100";
+            fontcolor="#E65100";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            sg2380_cpu [label="12 × SiFive P670 OoO @ 2.5 GHz\n4 × eff cores @ 1.6 GHz\n(SiFive licensed IP)", fillcolor="#FFE0B2"];
+            sg2380_ai [label="Integrated AI Accelerator\n20 TOPS\n(architecture undisclosed)", fillcolor="#FFE0B2"];
+            sg2380_mem [label="Up to 96 GB RAM\n192-bit interface\nPCIe x16 / 25 GbE", fillcolor="#FFE0B2"];
+        }
+    }
+
+    // ===================== EDGES =====================
+
+    // BM1690 internal
+    bm1690_cores -> bm1690_lmem [label="compute read/write", fontsize=8];
+    bm1690_lmem -> bm1690_l2 [dir=both, label="DMA", fontsize=8];
+    bm1690_l2 -> bm1690_dram [dir=both, label="DMA", fontsize=8];
+    bm1690_riscv -> bm1690_dram [style=dashed, label="fallback ops", fontsize=8];
+    bm1690_sort -> bm1690_dram [style=dashed, label="top-K", fontsize=8];
+    bm1690_cores -> bm1690_sglink [label="C2C collectives", fontsize=8];
+    bm1690_sglink -> bm1690_card [style=dashed, label="2 chips/card", fontsize=8];
+    bm1690_card -> bm1690_domain [label="8 cards / 4U", fontsize=8];
+    bm1690_domain -> bm1690_super [style=dashed, label="unconfirmed scale", fontsize=8];
+
+    // BM1684X internal
+    tpu_core -> sram [label="compute read/write", fontsize=8];
+    dma -> sram [label="prefetch", fontsize=8];
+    dma -> lpddr [dir=both, label="DMA", fontsize=8];
+    arm_cpu -> lpddr [style=dashed, label="management", fontsize=8];
+    vpp -> lpddr [label="decoded frames", fontsize=8];
+    lpddr -> pcie_bm1684x [style=dashed];
+
+    // BM1688 internal
+    bm1688_tpu -> bm1688_mem [style=dashed];
+    bm1688_vpu -> bm1688_mem [style=dashed];
+    bm1688_cpu -> bm1688_mem [style=dashed];
+
+    // SG2042 internal
+    sg2042_core -> sg2042_cache;
+    sg2042_cache -> sg2042_mem;
+
+    // SG2380 internal
+    sg2380_cpu -> sg2380_ai [label="task offload", fontsize=8];
+    sg2380_cpu -> sg2380_mem;
+    sg2380_ai -> sg2380_mem [style=dashed];
+}

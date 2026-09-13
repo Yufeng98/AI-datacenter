@@ -1,0 +1,431 @@
+chip: lightmatter
+investigation: hw-architecture
+as_of: "2026-08-08"  # original investigation 2026-04-05; update_2026_08_08 block appended at end
+baseline_as_of: "2026-04-05"
+confidence: medium-high  # Nature paper provides architecture detail; some specs inferred
+device_class: "Photonic Interconnect + Optics (compute product no longer marketed)"
+device_class_previous: "Photonic Compute + Interconnect"
+
+compute_engine:
+  technology: photonic_mzi_array
+  core_type: Photonic Tensor Core (PTC)
+  core_array_size: 128x128  # MZI mesh per PTC
+  ptcs_per_package: 4
+  dci_chips_per_package: 2  # 12nm CMOS digital control interfaces
+  total_chips_per_package: 6
+  compute_format: ABFP16  # Adaptive Block Floating-Point 16-bit
+  peak_tops_per_package: 65.5  # ABFP16, from Nature 2025
+  electrical_power_per_package_W: 78
+  optical_power_per_package_W: 1.6
+  key_operation: matrix_vector_multiply  # MVM; GEMM via batched MVM
+
+envise_4s_server:
+  packages: 4
+  total_photonic_chips: 16
+  form_factor: 4U
+  host_cpu: "2x AMD EPYC"
+  system_dram_TB: 1
+  storage_TB: 3  # NVMe flash
+  system_power_kW: 3
+  inference_efficiency: "240 ResNet-50 inf/sec/W (reported)"
+
+mzi_physics:
+  mechanism: electro_optic_phase_shift
+  matrix_decomposition: SVD  # W = U * Sigma * V_dagger
+  unitary_matrix: MZI_mesh
+  diagonal_scaling: optical_attenuators
+  weight_encoding: "MZI phase voltages set per-layer"
+  input_encoding: "optical amplitude modulation (WDM, 512 channels)"
+  output_readout: "photodetector + ADC"
+
+electronic_photonic_interface:
+  dac_channels: 512  # per package (WDM)
+  adc_location: after_ptc_output
+  activation_functions: executed_on_12nm_DCI
+  layer_norm: executed_on_12nm_DCI
+  residual_add: executed_on_12nm_DCI
+
+supported_models:
+  - ResNet-50
+  - ResNet-101
+  - BERT-base
+  - BERT-large
+  - Deep Q-Network (Atari RL)
+  - Transformer inference (via Idiom partitioning)
+
+passage_interconnect:
+  products:
+    - name: Passage M1000
+      announced: "2025-03-31"
+      type: "3D multi-reticle active photonic interposer"
+      die_area_mm2: 4000+
+      total_bandwidth_Tbps: 114
+      fiber_count: 256
+      features:
+        - solid_state_optical_circuit_switching
+        - electro_optical_IO_any_surface
+        - 1500W_power_delivery
+    - name: Passage L200
+      announced: "2025-03-31"
+      type: "3D co-packaged optics (CPO)"
+      bandwidth_Tbps: [32, 64]
+      total_IO_per_package_Tbps: 200+
+      improvement_vs_existing: "5-10x"
+  vs_nvlink:
+    medium: photonic_vs_copper
+    topology: reconfigurable_OCS_vs_fixed_NVSwitch
+    placement: any_surface_vs_edge_only
+    scale: thousands_xpus_vs_576_gpus
+    power_efficiency_pJ_per_bit: "<1 vs ~5"
+
+key_papers:
+  - title: "Universal photonic artificial intelligence acceleration"
+    journal: Nature
+    date: "2025-04"
+    doi: "10.1038/s41586-025-08854-x"
+  - title: "An integrated large-scale photonic accelerator with ultralow latency"
+    journal: Nature
+    date: "2025"
+    doi: "10.1038/s41586-025-08786-6"
+
+# =====================================================================
+# Update appended 2026-08-08.
+# GLOBAL CAVEAT: nothing in this block has shipped. Passage L20 samples
+# from late 2026; Guide DR samples from Q4 2026; the vendor states only
+# that "Evaluation kits are sampling today." All performance figures are
+# vendor marketing claims carried by press release or product page and
+# are independently unverified. No third-party benchmark or deployment.
+# =====================================================================
+update_2026_08_08:
+
+  fact_groups:
+
+    - id: portfolio_repositioning
+      confidence: medium  # evidence of absence on a marketing site, not an announced EOL
+      status: announced_absence
+      summary: >
+        Lightmatter's public positioning has shifted from photonic compute to photonic
+        interconnect and optics. As of 2026-08-08 the homepage and /products/ page list
+        only Passage L200, Passage L20, Guide 1, Guide DR and four evaluation kits
+        (Passage M1000 EVK, Passage EVK100, Passage EVK50, Guide 1 EVK). Envise appears
+        nowhere in product navigation or descriptive content and survives only in the
+        footer trademark line. There is NO announced discontinuation, no EOL notice and
+        no press release. State this as "no longer marketed", NOT "discontinued".
+      facts:
+        envise_in_product_navigation: false
+        envise_in_footer_trademark_line: true
+        envise_discontinuation_announced: false
+        current_product_list:
+          - Passage L200
+          - Passage L20
+          - Guide 1
+          - Guide DR
+        current_evk_list:
+          - Passage M1000 EVK
+          - Passage EVK100
+          - Passage EVK50
+          - Guide 1 EVK
+        m1000_status: "repositioned as Passage M1000 EVK — rack-level reference/evaluation platform (114 Tbps), not a product tier"
+        nature_2025_result_status: "remains valid published science; retained as architectural history"
+        mlperf_status: not_applicable  # no marketed compute product exists to submit
+        device_class_change:
+          from: "Photonic Compute + Interconnect"
+          to: "Photonic Interconnect + Optics (compute product no longer marketed)"
+      sources:
+        - title: "Lightmatter homepage (fetched 2026-08-08)"
+          url: "https://lightmatter.co/"
+        - title: "Lightmatter Products page (fetched 2026-08-08)"
+          url: "https://lightmatter.co/products/"
+        - title: "The 10 Coolest Semiconductor Startups Of 2026 (So Far) — CRN, July 2026"
+          url: "https://www.crn.com/news/computing/2026/the-10-coolest-semiconductor-startups-of-2026-so-far"
+
+    - id: passage_l20
+      confidence: high  # vendor press release + product page + independent carry + The Register
+      status: announced_not_shipping
+      announced: "2026-03-11"
+      demoed: "OFC, Los Angeles, 2026-03-15/19"
+      availability: "sampling begins late 2026"
+      predates_repo_baseline: true  # repo miss, not new-window news
+      summary: >
+        Passage L20 is a NEW product tier: a unified optical engine for near-package
+        optics (NPO) and on-board optics (OBO), mounted adjacent to the switch ASIC on
+        the switch board, or on a flexible-PCB / mezzanine card for OBO (which adds a
+        retimer for extended reach). Bidirectional (BiDi) multiplexing carries upstream
+        and downstream traffic on a single fiber.
+      key_specs:
+        bandwidth_per_direction_Tbps: 6.4
+        bandwidth_aggregate_Tbps: 12.8
+        note_on_bandwidth: >
+          6.4 and 12.8 are the SAME figure (per-direction vs aggregate);
+          32 ports x 200 Gbps x 2 = 12.8 Tbps. This is NOT a vendor-vs-press
+          discrepancy and must not be presented as one.
+        optical_ports: 32
+        bidirectional: true
+        per_lane_Gbps: 200
+        serdes_line_rate_Gbps: 212.5  # PAM4
+        electrical_signaling: "IEEE 802.3dj-compliant"
+        max_tdp_W: 30
+        fiber_coupling: "Corning CPO FlexConnect"
+        thermal: "A2 ASHRAE-compliant cold plate"
+        deployment_modes: [NPO, OBO]
+        obo_note: "OBO uses a retimer for extended reach"
+      vendor_internal_inconsistencies:  # genuine; quote both with attribution
+        energy_efficiency_pJ_per_bit:
+          press_release: 3.0
+          product_page: 5
+        package:
+          press_release: "2000-pin BGA"
+          product_page: "1827-ball BGA, 37.5 x 26.4 mm"
+      vendor_claims:
+        fiber_count_reduction: "~50% vs duplex/unidirectional DR optics (BiDi)"
+        density: ["4x pluggable density", "88% smaller by volume compared to OSFP"]
+      third_party_claims:
+        - claim: "Just 16 L20s would be enough to replace 512, 200 Gbps pluggables in a 102.4 Tbps switch"
+          attribution: "The Register (2026-03-11) — NOT a vendor press-release claim"
+      roadmap_quote:
+        speaker: "Nick Harris, CEO"
+        outlet: "The Register"
+        text: >
+          I don't think that it's going to be a super-long roadmap for near package
+          optics, because, of course, CPO is coming, and we think that's like a 2028
+          high-volume ramp.
+        implication: "L20 is explicitly a bridge product ahead of a ~2028 CPO volume ramp"
+      sources:
+        - title: "Lightmatter Expands Photonic Interconnect Roadmap with Passage L20 (press release)"
+          url: "https://lightmatter.co/press-release/lightmatter-expands-photonic-interconnect-roadmap-with-passage-l20-unified-optical-engine-for-npo-and-obo-applications/"
+        - title: "Passage L20 product page (fetched 2026-08-08)"
+          url: "https://lightmatter.co/products/passage-l20/"
+        - title: "Photonics Online — independent carry of the 2026-03-11 press release"
+          url: "https://www.photonicsonline.com/doc/lightmatter-expands-photonic-interconnect-roadmap-with-passage-l-unified-optical-engine-for-npo-and-obo-applications-0001"
+        - title: "The Register — Lightmatter Passage L20 bidirectional fiber (2026-03-11)"
+          url: "https://www.theregister.com/2026/03/11/lightmatter_passge_l20_fiber/"
+
+    - id: guide_vlsp_light_engine
+      confidence: high  # vendor product page, fetched directly
+      status: announced_evk_sampling
+      announced: "2026-01-26/27"
+      predates_repo_baseline: true  # repo miss
+      summary: >
+        Guide 1 introduces an external light-source tier that this survey had not
+        previously modelled for Lightmatter. CPO/NPO/OBO need CW laser light supplied
+        from outside the ASIC package, conventionally from discrete ELSFP "laser farms".
+        Guide 1 integrates hundreds of lasers and photonic components on one chip.
+      key_specs:
+        optical_power_per_fiber_mW: "100+"
+        wavelengths: 16
+        wavelength_spacing_GHz: [100, 200, "400+"]
+        wavelength_roadmap: "4 to 64 wavelengths with zero increase in assembly complexity"
+        fabrication: "HVM CMOS fab with on-PIC wavelength tunability"
+        management: "CMIS-compliant telemetry, active stabilization, hyper-local thermal tuning"
+        wavelength_precision: "sub-GHz, without drift"
+        redundancy: "N+M — autonomously retunes a backup laser onto a failed wavelength"
+        replaces: "discrete ELSFP laser farms"
+        deployment_targets: [CPO, NPO, OBO]
+        fibers_per_unit: not_disclosed
+        aggregate_bandwidth: not_disclosed
+      ecosystem_collaborators: [Cadence, Synopsys, GUC]   # named at launch
+      separate_collaboration: [PHIX]
+      sources:
+        - title: "Lightmatter Guide product page (fetched 2026-08-08)"
+          url: "https://lightmatter.co/products/guide/"
+        - title: "Lightmatter news index (timeline: Converge Digest 2026-01-26, DigiTimes Asia 2026-01-27, Photonics Spectra 2026-01-28)"
+          url: "https://lightmatter.co/news/"
+
+    - id: guide_dr_laser_nic
+      confidence: high  # vendor press release via independent carry; corrects an earlier "not retrievable" finding
+      status: announced_not_shipping
+      announced: "2026-05-21"
+      availability: "sampling begins Q4 2026"
+      in_window: true
+      summary: >
+        Guide DR is billed by the vendor as the industry's first LIQUID-COOLED Laser NIC
+        (LNIC), an OCP NIC 3.0 in-chassis module for CPO scale-up with zero front-panel
+        footprint. Per-unit specs ARE publicly available; an earlier scan's "specs not
+        retrievable" conclusion was an HTTP-403 access artifact, not absence of evidence.
+      key_specs:
+        form_factor: "OCP NIC 3.0, in-chassis, zero front-panel footprint"
+        cooling: liquid
+        fibers_max: 64
+        optical_power_per_fiber_mW: 200
+        lanes: 256
+        lane_rate_Gbps: 200
+        aggregate_per_module_Tbps: 51.2
+        modules_per_1RU: 4
+        aggregate_per_1RU_Tbps: 204.8
+        rack_density_vs_elsfp: "~4x"
+        management: "CMIS 5.3 over I2C / I3C"
+        chassis_integration: "OCP MHS"
+        thermal_compliance: "ASHRAE A2"
+        wavelength_count: not_disclosed
+        electrical_power_draw: not_disclosed
+      caveat: "all figures are vendor marketing, independently unverified"
+      sources:
+        - title: "Electronic Design — independent carry of the Guide DR press release (2026-05-21)"
+          url: "https://www.electronicdesign.com/directory/semiconductors/power-semiconductors/press-release/55379808/"
+        - title: "Lightmatter Guide product page (lists Guide DR by name)"
+          url: "https://lightmatter.co/products/guide/"
+        - title: "Morningstar / BusinessWire carry (snippet-level only; full page returned 403) — 'will begin sampling in Q4 2026'"
+          url: "https://www.morningstar.com/news/business-wire/20260521715044/"
+
+    - id: vclick_dfau
+      confidence: high  # vendor product page, fetched directly
+      status: production_validated_no_ga_date
+      announced: "2026-03-11"
+      predates_repo_baseline: true  # repo miss
+      trademark_spelling: vClick   # not "vCLICK"
+      product_name: "vClick dFAU"
+      summary: >
+        A DETACHABLE fiber array unit (FAU) with vertical / expanded-beam coupling
+        engineered to survive advanced-packaging mold-and-grind flows. Detachability is
+        the headline property; describing it as a "surface-attach" array inverts the
+        point. It addresses optical-packaging yield, not bandwidth.
+      key_specs:
+        detachable: true
+        coupling: "vertical / expanded-beam"
+        packaging_compatibility: "survives mold-and-grind advanced-packaging flows"
+        alignment: passive
+        insertion_loss_dB: "< 1.5"
+        insertion_loss_note: "sustained across insertion AND reinsertion"
+        partner: "SENKO (SEAT and Metallic PIC Coupler integration)"
+        enables: "known-good optical engine verification at the wafer level, before final assembly"
+        ga_date: not_disclosed
+      sources:
+        - title: "Lightmatter vClick Optics product page (fetched 2026-08-08)"
+          url: "https://lightmatter.co/products/vclick-optics/"
+
+    - id: nvlink_fusion
+      confidence: high  # vendor press release fetched directly
+      announced: "~2026-06-03"
+      in_window: true
+      summary: >
+        Lightmatter announced joining NVIDIA's NVLink Fusion ecosystem in its own press
+        release. Stated role: deliver Passage CPO and NPO products optically and
+        electrically compatible with NVIDIA's optical and SerDes technologies for
+        semi-custom AI factories.
+      facts:
+        claimed_reduction: "~50% reduction in fiber and connector count"
+        products_named: [Passage CPO, Passage NPO]
+        ayar_labs_named_in_lightmatter_release: false
+        marvell_named_in_lightmatter_release: false
+      attribution_corrections:
+        - "IEEE Spectrum (2026-07-09) is downstream coverage, NOT the announcement — it postdates the release by over a month."
+        - "The 'Lightmatter alongside Ayar Labs and Marvell' grouping is IEEE Spectrum's framing, not the vendor's."
+        - "Ayar Labs is independently confirmed as a separate NVLink Fusion joiner (2026-06-02)."
+        - "Marvell's inclusion is NOT independently confirmed."
+        - "The Roy Kim 'packaging is no longer the bottleneck' remark and the 72 -> 576 GPU scale-up-domain figures are attributable to IEEE Spectrum only and were not independently verified."
+        - "The ~2028 high-volume optical scale-up expectation IS corroborated by Harris's own '2028 high-volume ramp' remark to The Register."
+      sources:
+        - title: "Lightmatter Joins NVIDIA NVLink Fusion (vendor press release, ~2026-06-03)"
+          url: "https://lightmatter.co/press-release/lightmatter-joins-nvidia-nvlink-fusion/"
+        - title: "IEEE Spectrum — NVLink Fusion optics (2026-07-09; downstream coverage)"
+          url: "https://spectrum.ieee.org/nvlink-fusion-optics"
+
+    - id: partner_ecosystem
+      confidence: mixed  # see per-partner status
+      summary: >
+        Confirmed manufacturing/packaging and design-ecosystem partners, plus two names
+        that must NOT be carried into the survey.
+      confirmed:
+        - name: GlobalFoundries
+          role: "foundry (long-standing, pre-baseline)"
+          confidence: snippet  # snippet-level corroboration only
+        - name: ASE
+          role: "assembly/packaging (long-standing, pre-baseline)"
+          confidence: snippet
+        - name: Amkor
+          role: "assembly/packaging (long-standing, pre-baseline)"
+          confidence: snippet
+        - name: GUC
+          role: "Guide/VLSP design ecosystem"
+          confidence: snippet
+        - name: Cadence
+          role: "Guide/VLSP design ecosystem"
+          confidence: snippet
+        - name: Synopsys
+          role: "Guide/VLSP design ecosystem"
+          confidence: snippet
+        - name: SENKO
+          role: "vClick dFAU (SEAT, Metallic PIC Coupler)"
+          confidence: high
+        - name: Corning
+          role: "CPO FlexConnect fiber coupling on Passage L20"
+          confidence: high
+        - name: PHIX
+          role: "stated collaboration"
+          confidence: snippet
+      not_confirmed:
+        - name: TSMC
+          status: NOT_CONFIRMED
+          note: >
+            No primary source in this window names TSMC as a Lightmatter manufacturing
+            partner (only a third-party LinkedIn post surfaced). The survey's generic
+            reference to TSMC silicon photonics as an industry-wide enabler must NOT be
+            upgraded to a stated partnership.
+        - name: Tower Semiconductor
+          status: REFUTED
+          note: >
+            No Lightmatter-Tower relationship found. The only Tower announcement in the
+            period is Tower Semiconductor + LightIC Technologies (an unrelated
+            FMCW-LiDAR silicon-photonics company, 2026-01-05), which appears to be the
+            origin of the conflation. Drop this name.
+          source_url: "https://towersemi.com/2026/01/05/01052026/"
+      sources:
+        - title: "Lightmatter Guide product page (Cadence / Synopsys / GUC named at launch)"
+          url: "https://lightmatter.co/products/guide/"
+        - title: "Lightmatter vClick Optics product page (SENKO)"
+          url: "https://lightmatter.co/products/vclick-optics/"
+        - title: "Passage L20 product page (Corning CPO FlexConnect)"
+          url: "https://lightmatter.co/products/passage-l20/"
+        - title: "Tower Semiconductor + LightIC announcement (source of the erroneous attribution)"
+          url: "https://towersemi.com/2026/01/05/01052026/"
+
+    - id: funding_and_standards
+      confidence: high
+      summary: >
+        Funding unchanged in the window. Standards footprint expanded with the 2026
+        product line.
+      facts:
+        total_raised_USD_M: 850
+        valuation_USD_B: 4.4
+        last_round: "Series D, $400M, October 2024 (T. Rowe Price-led)"
+        new_round_in_window: false
+        standards:
+          - "XPO MSA founding member (March 2026)"
+          - "IEEE 802.3dj — Passage L20 electrical signaling"
+          - "CMIS / CMIS 5.3 — Guide 1, Guide DR"
+          - "OCP NIC 3.0, OCP MHS — Guide DR"
+          - "ASHRAE A2 — Passage L20, Guide DR"
+        award: "AI Breakthrough 'AI Semiconductor Innovation', 2026-06-25 (marketing award, no technical content)"
+      sources:
+        - title: "CRN — The 10 Coolest Semiconductor Startups Of 2026 (So Far), July 2026"
+          url: "https://www.crn.com/news/computing/2026/the-10-coolest-semiconductor-startups-of-2026-so-far"
+        - title: "Lightmatter news index"
+          url: "https://lightmatter.co/news/"
+
+    - id: negatives_stated_correctly
+      confidence: high
+      facts:
+        mlperf: "NOT APPLICABLE — no marketed compute product exists to submit; do not record as 'no results'"
+        hot_chips_38:
+          dates: "2026-08-23/25"
+          venue: "Memorial Auditorium, Stanford, Palo Alto CA"
+          status: "HAS NOT YET OCCURRED as of 2026-08-08"
+          finding: "Lightmatter does not appear in the advance program"
+          instruction: "re-check after the conference; 'no Hot Chips 2026 talk' is a premature negative"
+        new_envise_silicon: none_found_in_window
+        nature_followup_paper: none_found_in_window
+        shipping_products: "none — L20 samples late 2026, Guide DR samples Q4 2026, only EVKs sampling today"
+      sources:
+        - title: "Lightmatter news index (no Envise, Hot Chips or MLPerf item anywhere in 2026)"
+          url: "https://lightmatter.co/news/"
+        - title: "Hot Chips 2026 program (hotchips.org returned 403; dates/scope obtained via search)"
+          url: "https://hotchips.org/"
+
+  methodological_caveat: >
+    The 2026-08-08 verification session's WebSearch quota was exhausted at the first
+    call; independent discovery used DuckDuckGo HTML/Lite result pages via WebFetch
+    followed by direct retrieval of primary pages. Converge Digest, Data Center
+    Dynamics, TechPowerUp, BusinessWire and hotchips.org returned 403 or timed out.
+    The Amkor, Morningstar, Tower/LightIC and funding datapoints rest partly on
+    search-result snippets rather than full-page retrieval and are marked
+    confidence: snippet above.

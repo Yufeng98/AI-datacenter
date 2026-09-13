@@ -1,0 +1,348 @@
+chip: xiwang
+device_class: "AI Accelerator (China, 曦望)"
+as_of: "2026-04-05"
+confidence: low  # Limited public disclosure; no open-source repos found
+
+stack_brand: unknown  # SUPERSEDED 2026-08-08 -> "SIRE (Sunrise Integrated Running Environment)"; see update_2026_08_08
+open_source_repos: []  # SUPERSEDED 2026-08-08 -> FlagTree third_party/sunrise, FlagCX (PCCL adaptor), vllm-plugin-FL; see update_2026_08_08
+
+layers:
+  framework_integration:
+    pytorch:
+      status: confirmed
+      device_name: unknown  # e.g., "torch.device('xw')" — not disclosed
+      training: confirmed
+      inference: confirmed
+      distributed: confirmed  # DeepSpeed mentioned
+      models_validated: ">90% of mainstream LLMs on ModelScope (company claim)"
+      specific_models:
+        - "DeepSeek R1/V3-class"
+        - "Qwen"
+        - "other standard transformer architectures"
+    huggingface_transformers:
+      status: claimed  # "compatible with HuggingFace model toolboxes"
+      detail: limited_public_info
+    deepspeed:
+      status: confirmed  # explicitly mentioned in company materials
+      zero_stages: unknown
+    tensorflow:
+      status: not_confirmed
+    paddlepaddle:
+      status: not_confirmed  # notable given Chinese market focus
+    vllm_or_serving:
+      status: implied  # inference cost focus implies serving stack
+      detail: not_public
+
+  compiler:
+    name: unknown
+    type: "Self-developed GPGPU compiler (CUDA C++ compatible)"
+    input_formats:
+      - "CUDA C++ (via compatibility/migration path)"
+      - "Native Xiwang kernel language (details not public)"
+    output: "Xiwang GPU ISA binary"
+    mlir_based: unknown
+    cuda_migration_tool: present  # claimed; depth unknown
+    inference_graph_compiler: assumed_present  # not publicly confirmed
+    triton_support: not_confirmed
+    open_source: false
+
+  op_library:
+    name: unknown  # cuDNN/cuBLAS analog
+    operations:
+      - GEMM: assumed_present
+      - Conv2D: assumed_present
+      - Attention: assumed_present
+      - RMSNorm: assumed_present
+      - RoPE: assumed_present
+      - Pooling: assumed_present
+      - Flash_Attention: not_confirmed
+    precisions: ["FP32", "BF16", "FP16", "INT8"]  # FP8 for S3
+    open_source: false
+
+  collective_comms:
+    name: unknown  # NCCL analog
+    nccl_compatible: assumed  # required for DeepSpeed
+    operations:
+      - AllReduce: assumed
+      - AllGather: assumed
+      - ReduceScatter: assumed
+    topology: unknown
+    open_source: false
+
+  runtime:
+    name: unknown  # cudart analog
+    cuda_api_compat: claimed  # "CUDA compatibility"
+    features:
+      - memory_alloc: assumed
+      - streams: assumed
+      - events: assumed
+      - kernel_launch: assumed
+      - async_memcpy: assumed
+    uvm_support: unknown
+    mig_virtualization: unknown
+
+  driver:
+    kernel_driver: present  # required for operation
+    open_source: unknown
+    firmware: assumed_present
+    k8s_device_plugin: not_confirmed
+
+  isa:
+    type: "Proprietary SIMT (fully self-developed)"
+    public_documentation: none
+    virtual_isa_ptx_analog: not_confirmed
+    assembler: assumed_present
+
+  tooling:
+    profiler: assumed_present
+    debugger: assumed_present
+    cuda_migration_tool: present  # claimed
+    developer_portal: "https://sunrise-ai.com/"
+    documentation_quality: limited
+
+modelscope_coverage: ">90% of mainstream architectures (company claim)"
+cuda_compat_level: "source-level (assumed); binary-level not confirmed"
+
+data_gaps:
+  - "Software stack brand name not public"
+  - "No open-source repositories identified"
+  - "Runtime API names/signatures not public"
+  - "Compiler IR/passes not documented"
+  - "Op library performance numbers not public"
+  - "ISA not documented"
+  - "Communication library name/bandwidth not public"
+
+# ============================================================================
+# Xiwang software-stack update — appended 2026-08-08
+# Largest correction in this chip's record: the stack is named (SIRE/TANG/TangRT/PCCL)
+# and is partly open source (FlagTree / FlagCX / vllm-plugin-FL), refuting two
+# baseline statements.
+# ============================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  change_class: major
+  supersedes_baseline: "2026-04-05"
+  refutes_baseline_statements:
+    - "The software stack name/brand is not publicly disclosed."
+    - "No open-source repositories identified / stack remains entirely proprietary."
+
+  fact_groups:
+
+    - group: stack_brand_and_layer_model
+      confidence: high
+      basis: vendor_stated_primary_site
+      facts:
+        stack_brand: "SIRE"
+        stack_brand_expansion: "Sunrise Integrated Running Environment"
+        tagline: "软硬协同 · 高度兼容 · 卓越效能"
+        status: "first-class product line in site navigation"
+        layers_top_to_bottom:
+          - "框架层与生态应用 (frameworks + ecosystem applications)"
+          - "编译器与算子库层 (compiler + operator libraries)"
+          - "驱动与运行时层 (driver + runtime)"
+          - "SoC 固件/系统软件层 (SoC firmware / system software)"
+        scope_tags:
+          - 基础工具链
+          - 编程接口
+          - 基础库
+          - 基础平台
+          - 模型引擎
+          - MaaS 服务能力
+          - IP 模块化
+      sources:
+        - title: "曦望 S3 product page (SIRE layer diagram)"
+          url: "https://sunrise-ai.com/products/s3-product"
+        - title: "sunrise-ai.com homepage / SIRE product line"
+          url: "https://sunrise-ai.com/"
+
+    - group: programming_model_and_runtime
+      confidence: high
+      basis: vendor_stated_plus_open_source_corroboration
+      facts:
+        programming_model: "TANG"
+        vendor_wording: "依托自研 TANG 编程模型及 SIRE 软件栈"
+        runtime: "TangRT (CUDA-runtime / cudart analog)"
+        runtime_libraries: ["libtang.so", "libtangrt_shared"]
+        default_install_root: "/usr/local/tangrt"
+        toolchain_path: "/usr/local/tangrt/toolchains/llvm/prebuilt/linux-<arch>/"
+        env_vars:
+          - "TRITON_LIBTANG_PATH"
+          - "TRITON_SUNRISE_LLD_PATH"
+          - "TRITON_SUNRISE_TRANSLATE_TRIPLE"
+        api_surface: not_disclosed
+      sources:
+        - title: "曦望 S2 product page"
+          url: "https://sunrise-ai.com/products/s2-product"
+        - title: "FlagTree sunrise backend/driver.py"
+          url: "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/backend/driver.py"
+        - title: "FlagTree sunrise backend/compiler.py"
+          url: "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/backend/compiler.py"
+
+    - group: collective_communications_pccl
+      confidence: high
+      basis: open_source_flagcx_readme_and_makefiles
+      corrects_baseline: "NCCL analog assumed present; library name not public"
+      facts:
+        name: "PCCL"
+        expansion: "Sunrise Collective Communications Library"
+        build_integration:
+          use_flag: "USE_SUNRISE=1"
+          device_home: "/usr/local/tangrt"
+          device_link: "-ltangrt_shared"
+          ccl_home: "/usr/local/pccl"
+          ccl_link: "-lpccl"
+          define: "-DUSE_SUNRISE_ADAPTOR"
+        supported_ops:
+          - send/recv
+          - broadcast
+          - reduce
+          - allreduce
+          - allgather
+          - reducescatter
+          - group_ops
+        supported_modes: ["homogeneous", "heterogeneous"]
+        unsupported_ops: ["gather", "scatter", "alltoall", "alltoallv"]
+        analysis_note: >
+          alltoall/alltoallv are the standard MoE expert-dispatch collectives, and the
+          SC3-256 SuperPOD is marketed for large-EP trillion-parameter MoE serving.
+          Either PCCL grows these ops or EP dispatch runs on another path. Gap to
+          re-check next scan; NOT evidence of a hardware limitation.
+        algorithms_topology_bandwidth: not_disclosed
+      sources:
+        - title: "FlagCX README (PCCL entry + support matrix)"
+          url: "https://raw.githubusercontent.com/FlagOpen/FlagCX/main/README.md"
+        - title: "FlagCX makefiles/sunrise.mk"
+          url: "https://raw.githubusercontent.com/FlagOpen/FlagCX/main/makefiles/sunrise.mk"
+
+    - group: open_source_presence
+      confidence: high
+      basis: open_source_repositories
+      corrects_preexisting_repo_error: true
+      facts:
+        prior_repo_value: "No open-source repos identified as of 2026-04-05"
+        correction_note: >
+          The FlagTree sunrise backend was public on 2026-01-23, BEFORE the 2026-04-05
+          baseline. This was a research miss, not a change in the world.
+        repositories:
+          - name: "FlagTree third_party/sunrise"
+            url: "https://github.com/FlagTree/flagtree"
+            role: "Triton backend (BAAI FlagOS unified Triton fork)"
+            vendor_table_label: "Sunrise（曦望芯科）"
+            changelog:
+              - date: "2026-01-23"
+                event: "sunrise backend added on Triton 3.4 with CI/CD"
+              - date: "2026-06-30"
+                event: "upgraded to Triton 3.6 with CI/CD"
+            wheels:
+              - "flagtree==0.4.0+sunrise3.4"
+              - "flagtree==0.6.0+sunrise3.6"
+            wheel_index: "https://resource.flagos.net/repository/flagos-pypi-hosted/simple"
+            openness: >
+              Shim only — links a closed-source sunriseTritonPlugin.so. Open integration
+              surface, closed compiler.
+            silicon_scope: "user manual states 'Available for S2'; S3 present only as compiler plumbing (stcuv2 triple, *_S3.bc libdevice)"
+          - name: "FlagCX"
+            url: "https://github.com/FlagOpen/FlagCX"
+            role: "PCCL adaptor"
+            changelog:
+              - date: "2026-06-01"
+                event: "[PAL] Add torch plugin support for Sunrise"
+              - date: "2026-06-10"
+                event: "runtime vendor detection replaces #ifdef USE_SUNRISE_ADAPTOR build-time switch"
+          - name: "vllm-plugin-FL"
+            url: "https://raw.githubusercontent.com/flagos-ai/vllm-plugin-FL/main/README.md"
+            role: "Sunrise listed as a supported chip vendor"
+            date: not_disclosed
+        overall_posture: "partially open — thin adaptors over closed binaries (sunriseTritonPlugin.so, libtang.so, libpccl)"
+      sources:
+        - title: "FlagTree repository and README vendor table"
+          url: "https://github.com/FlagTree/flagtree"
+        - title: "FlagTree sunrise user manual"
+          url: "https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-sunrise"
+        - title: "FlagCX commit history"
+          url: "https://github.com/FlagOpen/FlagCX/commits/main"
+        - title: "vllm-plugin-FL README"
+          url: "https://raw.githubusercontent.com/flagos-ai/vllm-plugin-FL/main/README.md"
+
+    - group: compiler_backend_parameters
+      confidence: high
+      basis: open_source_inspection
+      facts:
+        backend_name: "tang"
+        target_string: "tang:S2"
+        llvm_triple: "stcu-unknown-tang"
+        s3_triple: "stcuv2"
+        s3_libdevice: "*_S3.bc"
+        warp_size: 32
+        default_num_warps: 4
+        default_num_stages: 3
+        supported_fp8_dtypes: ["fp8e5"]
+        min_dot_size_int8: "(8, 8, 16)"
+        min_dot_size_other: "(8, 8, 4)"
+        dot_input_precision: "ieee"
+        device_math_library: "OCML (__ocml_*)"
+        linker: "LLD (TRITON_SUNRISE_LLD_PATH)"
+        bundler: "clang-offload-bundler"
+      sources:
+        - title: "FlagTree sunrise backend/compiler.py"
+          url: "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/backend/compiler.py"
+        - title: "FlagTree sunrise language/tang/libdevice.py"
+          url: "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/language/tang/libdevice.py"
+
+    - group: framework_support_vendor_stated
+      confidence: medium-high
+      basis: vendor_stated_primary_site
+      note: "baseline inferred these; they are now vendor-stated"
+      facts:
+        pytorch: "supported; vendor claims auto-tracking of latest upstream release"
+        serving_frameworks: ["vLLM", "SGLang", "LightLLM", "LightX2V"]
+        migration_claim: "零代码无缝迁移 (zero-code migration) from third-party GPGPU platforms — company claim, depth unverified"
+        model_coverage_claimed:
+          - DeepSeek
+          - Qwen
+          - Llama
+          - "SD / Flux / Wan / Seko / Hunyuan3D"
+          - CNNs
+          - speech models
+      sources:
+        - title: "曦望 S2 product page"
+          url: "https://sunrise-ai.com/products/s2-product"
+        - title: "sunrise-ai.com homepage"
+          url: "https://sunrise-ai.com/"
+
+    - group: unconfirmed_version_string
+      confidence: unresolved
+      basis: vendor_news_item_vs_flagos_org_page
+      facts:
+        vendor_news_item: "曦望全栈适配 FlagOS 2.1 (undated)"
+        conflict: "FlagOS organisation page advertises 'Latest Release v1.5'"
+        decision: "DO NOT publish the 'FlagOS 2.1' version string"
+      sources:
+        - title: "sunrise-ai.com news index"
+          url: "https://sunrise-ai.com/news"
+
+  still_not_disclosed:
+    - op_library_name_and_performance_data
+    - inference_graph_compiler_existence_and_name
+    - compiler_ir_and_pass_structure
+    - tangrt_api_surface
+    - pccl_algorithms_topology_bandwidth
+    - kernel_driver_details_and_openness
+    - kubernetes_device_plugin
+    - profiler_and_debugger_names
+    - isa_reference_documentation
+
+  update_sources:
+    - "https://sunrise-ai.com/products/s2-product"
+    - "https://sunrise-ai.com/products/s3-product"
+    - "https://sunrise-ai.com/"
+    - "https://github.com/FlagTree/flagtree"
+    - "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/backend/compiler.py"
+    - "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/backend/driver.py"
+    - "https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/language/tang/libdevice.py"
+    - "https://github.com/flagos-ai/FlagTree/wiki/User-manual-for-sunrise"
+    - "https://raw.githubusercontent.com/FlagOpen/FlagCX/main/README.md"
+    - "https://raw.githubusercontent.com/FlagOpen/FlagCX/main/makefiles/sunrise.mk"
+    - "https://github.com/FlagOpen/FlagCX/commits/main"
+    - "https://raw.githubusercontent.com/flagos-ai/vllm-plugin-FL/main/README.md"

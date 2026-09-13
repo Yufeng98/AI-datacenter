@@ -1,0 +1,217 @@
+chip: samsung-aquabolt-pim
+investigation: software-stack
+date: "2026-04-05"
+confidence: medium
+note: "Stack described at HC33 2021; no public SDK released; research-grade community tools only"
+
+open_source: false
+community_tools:
+  - name: PIMSys
+    url: "https://dl.acm.org/doi/10.1145/3695794.3695797"
+    type: "Virtual prototype (gem5 + DRAMSys + Rust)"
+    status: research
+
+layers:
+  framework_integration:
+    frameworks:
+      - name: TensorFlow
+        status: "not public"
+        notes: "Transparent PIM offload via Samsung PIM SW Stack"
+      - name: PyTorch
+        status: "not public"
+        notes: "Transparent PIM offload via Samsung PIM SW Stack"
+    approach: "Unmodified user code; interception at framework dispatch layer"
+
+  pim_blas_library:
+    status: "not public"
+    purpose: "BLAS Level 2 GEMV operations on PIM processors"
+    operations: ["GEMV", "dot_product", "elementwise_vector"]
+
+  pim_runtime:
+    status: "not public"
+    purpose: "Mode switching, micro-code loading, sync, memory allocation"
+    pim_modes: ["DRAM mode (standard)", "PIM compute mode"]
+
+  hardware_command_interface:
+    status: "not documented publicly"
+    notes: "Special mode enable sequence via HBM2 logic die"
+    jedec_compatible: true
+
+programming_model:
+  execution: "SIMD — all 128 processors execute same instruction"
+  data_model: "Weight matrix loaded into PIM DRAM; activation vectors streamed"
+  output: "Accumulated result vectors returned via standard HBM2 read"
+  suitable_for: ["GEMV", "dot products", "element-wise vector ops"]
+  not_suitable_for: ["control flow", "branching", "compute-bound ops"]
+
+deployment:
+  mode: "Drop-in HBM2 replacement in GPU/FPGA systems"
+  validated_hosts:
+    - "Xilinx Alveo U280 FPGA"
+    - "AMD MI60 GPU (inferred)"
+  training_support: false
+  inference_only: true
+  standalone: false
+
+productization_status:
+  shipped_product: false
+  prototype_status: "Research/prototype 2021; no commercial availability confirmed post-2021"
+
+# =====================================================================
+# UPDATE 2026-08-08 — LPDDR5X-PIM software stack ("PIM Kernel" layer)
+# Everything above describes the 2021 Aquabolt-XL HBM2-PIM stack and is unchanged.
+# =====================================================================
+
+update_2026_08_08:
+  date: "2026-08-08"
+  generation: "LPDDR5X-PIM (LP5X-PIM)"
+  scope: "Distinct software stack for Samsung's LPDDR5X-based PIM generation"
+  overall_confidence: high
+  overall_confidence_basis: >
+    Single vendor primary source (Samsung-authored arXiv note) read in full.
+    High confidence in what is stated; the paper's scope is the simulator, so
+    layers it does not mention are recorded as 'not disclosed', not 'absent'.
+
+  sources:
+    - id: arxiv_2606_00636
+      url: "https://arxiv.org/abs/2606.00636"
+      pdf: "https://arxiv.org/pdf/2606.00636"
+      type: vendor_primary_paper
+      title: "LP5X-PIM Sim: A High-Fidelity HW/SW Integrated Simulator for LPDDR5X-PIM"
+      affiliation: "Samsung Electronics"
+      date: "2026-05-30"
+    - id: pimsimulator_repo
+      url: "https://github.com/SAITPublic/PIMSimulator"
+      type: public_repository
+      title: "Samsung PIMSimulator (2023)"
+      note: "Public, but models an EARLIER Samsung PIM generation. Not LP5X-PIM Sim."
+    - id: hotchips_2026
+      url: "https://www.hotchips.org/"
+      type: conference_program
+      note: "Memory session, Tue 2026-08-25, Karam Hwang (Samsung). Talk not yet delivered as of 2026-08-08."
+
+  open_source: false
+
+  pim_kernel_layer:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    status: "not public"
+    name: "PIM Kernel"
+    structure: "Offline Data Mapper + runtime PIM Executor"
+
+    data_mapper:
+      phase: offline
+      status: "not public"
+      role: "PIM-aware placement of weights and scale factors into DRAM banks"
+      mechanism: "Predefined 'PIM Tile Configuration'"
+      key_property: "Preloaded — eliminates runtime data rearrangement"
+
+    pim_executor:
+      phase: runtime
+      status: "not public"
+      sub_components:
+        - name: "PIM Device Code Gen"
+          role: "Synthesizes IRF code and hardware configuration code from matrix shapes and data types"
+          note: "Runtime code generation, not ahead-of-time compilation; no published IR"
+        - name: "PIM Control"
+          role: "Manages Single-Bank (SB) <-> Multi-Bank (MB) mode transitions"
+        - name: "GEMV Kernel"
+          role: "Executes per-tile GEMV on a specialized PIM ISA; handles pipeline flush-out"
+
+  address_mapping_strategies:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    note: "Data placement is the published optimization surface for this generation"
+    strategies:
+      - name: "Vertical Mapping"
+        mechanism: "Rows interleaved across Channel / Rank / Bank Group / Bank"
+        purpose: "Spread a matrix across the device for parallelism"
+      - name: "Horizontal Mapping"
+        mechanism: "Adjacent sub-matrices placed in the same bank"
+        purpose: "Maximize row-buffer hits"
+      - name: "Reshape Optimization"
+        mechanism: "Column-based partitioning"
+        purpose: "Near-100% intra-PIM efficiency"
+        measured_gain: "up to an additional 1.65x for small matrices (W < 2048), in simulation"
+
+  framework_integration:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    status: "not disclosed"
+    note: >
+      Unlike the Aquabolt-XL stack, the LPDDR5X-PIM paper makes NO TensorFlow or PyTorch
+      claim. The described interface takes matrix shapes and dtypes. Record as
+      'not disclosed' (paper scope is the simulator), not as 'absent'.
+
+  isa:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    status: "not public"
+    exists: true
+    name: "specialized PIM ISA"
+    instruction_storage: "IRF (instruction register file); emitted as 'IRF code' by PIM Device Code Gen"
+    encoding_published: false
+    opcodes_published: false
+
+  simulator:
+    confidence: high
+    sources: [arxiv_2606_00636, pimsimulator_repo]
+    name: "LP5X-PIM Sim"
+    kind: "cycle-accurate HW/SW integrated simulator"
+    built_on: ["DRAMSim3", "Ramulator"]
+    open_source: "not confirmed"
+    repo_url: null
+    conflation_warning: >
+      Samsung's PIMSimulator (github.com/SAITPublic/PIMSimulator, 2023) IS public but is a
+      DIFFERENT tool modeling an earlier generation. Do not imply LP5X-PIM Sim is downloadable.
+
+  public_tooling_inventory:
+    confidence: high
+    sources: [arxiv_2606_00636, pimsimulator_repo]
+    entries:
+      - tool: "PIM SW Stack (TF/PyTorch interception)"
+        generation: "Aquabolt-XL"
+        status: "not public"
+      - tool: "PIM BLAS Library"
+        generation: "Aquabolt-XL"
+        status: "not public"
+      - tool: "PIM Runtime / Driver Library"
+        generation: "Aquabolt-XL"
+        status: "not public"
+      - tool: "PIMSys (gem5 + DRAMSys + Rust)"
+        generation: "community research tool"
+        status: "public (ACM MemSys 2024)"
+      - tool: "Samsung PIMSimulator"
+        generation: "earlier Samsung PIM"
+        status: "public"
+      - tool: "PIM Kernel layer (Data Mapper + PIM Executor)"
+        generation: "LPDDR5X-PIM"
+        status: "not public"
+      - tool: "LP5X-PIM Sim"
+        generation: "LPDDR5X-PIM"
+        status: "availability not confirmed"
+    net_assessment: >
+      Samsung's PIM toolchain remains closed. The only genuinely downloadable Samsung PIM
+      artifact is PIMSimulator (2023), which models an earlier generation.
+
+  programming_model:
+    confidence: high
+    sources: [arxiv_2606_00636]
+    execution: "Per-tile GEMV dispatched to per-bank PIM blocks; SB/MB mode-switched"
+    data_model: "Weights and scale factors preloaded into banks offline by the Data Mapper; per-tile GEMV at runtime"
+    published_operations: ["GEMV"]
+    not_published: ["GEMM", "attention", "end-to-end model results"]
+    optimization_surface: "Address mapping (Vertical / Horizontal / Reshape)"
+
+  deployment:
+    confidence: medium
+    sources: [arxiv_2606_00636, hotchips_2026]
+    shipped_product: false
+    status_verb: "announced / showcased"
+    sampling: "no evidence"
+    named_customers: none
+    pending_disclosure: >
+      Hot Chips 2026 Memory session, Tue 2026-08-25, 09:30-10:30, 'Samsung LPDDR5X-PIM:
+      World's First LPDDR based Processing in Memory (PIM) Solution for AI Inference',
+      Karam Hwang (Samsung) — disclosure scheduled, Hot Chips 38, Aug 2026; content not
+      yet public. Never cite the talk title as the source of a spec.

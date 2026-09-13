@@ -1,0 +1,178 @@
+digraph vastaitech_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.35;
+
+    labelloc="t";
+    label="VastaiTech (瀚博半导体) — VUCA datacenter cards, as_of 2026-08-08\nBold outline = confirmed · dashed = not disclosed";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== SILICON GENERATIONS =====================
+    subgraph cluster_silicon {
+        label="Silicon Generations — both 7 nm, FOUNDRY NOT DISCLOSED";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        sv100 [label="SV100 'DAJING' 达景\n(VA1 SKU = SV102)\nAI-inference DSA — NOT a GPGPU\n7 nm · tape-out 2021-03\nMP 2022-Q1", fillcolor="#BBDEFB"];
+        sg100 [label="SG100 'QIANYUAN' 乾元\nFull-function GPU\nDX11 / OpenGL / Vulkan + AI + video\nSR-IOV · 7 nm\nsilicon 2023-02 · MP 2023-04", fillcolor="#BBDEFB"];
+        gen3 [label="3rd generation\nReported in development\nEVERYTHING NOT DISCLOSED", style="rounded,filled,dashed", fillcolor="#ECEFF1"];
+        chipfam2026 [label="Chip family behind\nVA16 / VA10L / VA1L\nNOT DISCLOSED\n(node, family, foundry)", style="rounded,filled,dashed", fillcolor="#ECEFF1"];
+    }
+
+    // ===================== VUCA DIE =====================
+    subgraph cluster_die {
+        label="VUCA die — one AI domain + N VDSP + N codec MCUs, unified memory";
+        style="rounded,dashed";
+        color="#B26A00";
+        fontcolor="#B26A00";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        subgraph cluster_engines {
+            label="Compute engines (from the 2022 CEO interview + SDK telemetry)";
+            style="rounded,filled";
+            fillcolor="#FFF8E1";
+            color="#E65100";
+            fontcolor="#E65100";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+
+            ai_engine [label="AI ENGINE  (util.ai — SCALAR)\n高性能AI引擎\nmatmul / conv datapath\nONE AI domain per die\nMAC array / systolic-vs-SIMD /\nMACs-per-cycle NOT DISCLOSED\nOCLK 835–880 MHz", fillcolor="#FFE082"];
+            vdsp [label="VDSP × N  (util.vdsp[])\n可编程向量计算引擎\nProgrammable vector cores\nPreprocessing fusion ops\nCustom ops (prebuilt ELF)\nAlso runs VCCL gather\nCOUNT NOT DISCLOSED", fillcolor="#FFE082"];
+            compute_engine [label="High-performance\ncompute engine\n高性能计算引擎\n(no further detail public)", style="rounded,filled,dashed", fillcolor="#FFF3E0"];
+            vdmcu [label="Video DECODE MCUs × N\n(util.vdmcu[])\nH.264 / H.265 / AV1 / AVS2\nup to 8K · DCLK 650 MHz\nCOUNT NOT DISCLOSED", fillcolor="#FFECB3"];
+            vemcu [label="Video ENCODE MCUs × N\n(util.vemcu[])\nH.264 / H.265 / AV1\n8K 10-bit HDR · ECLK 200 MHz\nCOUNT NOT DISCLOSED", fillcolor="#FFECB3"];
+            gfx [label="Graphics render /\ndisplay cores  (SG100)\nDX11 / OpenGL / Vulkan\nSR-IOV virtualisation", fillcolor="#FFECB3"];
+        }
+
+        umm [label="Unified memory management\nCoherent interfaces\nLow-latency interconnect\nNoC TOPOLOGY + BANDWIDTH\nNOT DISCLOSED", fillcolor="#FFE082"];
+        sram [label="On-chip SRAM / scratchpad\nCAPACITY + BANDWIDTH\nNOT DISCLOSED\nInferred SOFTWARE-MANAGED\n(compiler places tensors:\noutput_ddr / insert_odma /\nmem_inplace / data_transport_mode)", style="rounded,filled,dashed", fillcolor="#FFF3E0"];
+        regfile [label="Register file\nNOT DISCLOSED", style="rounded,filled,dashed", fillcolor="#ECEFF1"];
+        vdsp_buf [label="Per-VDSP local buffer\nNOT DISCLOSED but BOUNDED\nplanar_argmax op documents\n'channels <= 96' (fp16 planar)", style="rounded,filled,dashed", fillcolor="#FFF3E0"];
+    }
+
+    // ===================== DIE MEMORY =====================
+    subgraph cluster_mem {
+        label="Off-chip memory — capacity known, EVERYTHING ELSE NOT DISCLOSED";
+        style="rounded,dashed";
+        color="#2E7D32";
+        fontcolor="#2E7D32";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        diemem [label="Device memory, PER DIE\n8 GB (VA1-16G)\n32 GB (VA16, VA10L)\n\nMEMORY TYPE NOT DISCLOSED\n(HBM? GDDR? LPDDR? DDR?)\nBANDWIDTH NOT DISCLOSED\n— no figure exists in any language —", fillcolor="#C8E6C9"];
+        memmodel [label="Runtime memory model\nExplicit H2D / D2H only\nContext::CPU() vs Context::VACC(id)\nfrom_numpy / as_numpy / Clone\nNO unified/managed memory", fillcolor="#DCEDC8"];
+    }
+
+    // ===================== CARD =====================
+    subgraph cluster_card {
+        label="Card = N INDEPENDENT DIES — the key structural fact";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        card_model [label="vsx::Card::GetAllDies()\nEach die = its own device_id\nand its own memory pool\nVACC_VISIBLE_DEVICES,\n--llm_devices, --tensor-parallel-size\nALL SELECT DIES, NOT CARDS", fillcolor="#E1BEE7"];
+        d2d [label="Die-to-die (within a card)\nEXISTS BY CONSTRUCTION\nFabric name / protocol /\ntopology / bandwidth\nALL NOT DISCLOSED\nNo NVLink/xGMI/SG-Link analogue\nnamed anywhere", style="rounded,filled,dashed", fillcolor="#F3E5F5"];
+        va1_card [label="载天 VA1  (SV102)\n2 DIES × 8 GB (VA1-16G SKU)\n32 GB at launch\n>200 TOPS INT8\n70 W (page) / 75 W (launch)\nHHHL single-width, no aux power\nPCIe 4.0 x16 · 120 ch 1080p30", fillcolor="#E1BEE7"];
+        va10_card [label="载天 VA10\n400 TOPS INT8 · 150 W\nFH 3/4-length PCIe\n240 ch 1080p30 decode\nMemory + PCIe gen NOT DISCLOSED", fillcolor="#E1BEE7"];
+        va16_card [label="载天 VA16  — 2026 FLAGSHIP\n128 GB = 4 DIES × 32 GB\nFP4 + FP8 supported (2026)\n'训推一体' per OEM certification\nTOPS / TFLOPS / TDP /\nform factor / PCIe gen /\nprocess node ALL NOT DISCLOSED", fillcolor="#CE93D8"];
+        va10l_card [label="载天 VA10L\n128 GB = 4 DIES × 32 GB\nEVERYTHING ELSE NOT DISCLOSED", fillcolor="#E1BEE7"];
+        legacy_cards [label="SG100-generation cards (WAIC 2023)\nVA1L: 200 TOPS INT8 / 72 TFLOPS FP16, 64 GB\nVA12: 512 TOPS INT8 / 160 TFLOPS FP16, 250 W\n南禺 VG1600 / VG1800 / VG14 graphics\n— all VG specs NOT DISCLOSED", fillcolor="#EDE7F6"];
+    }
+
+    // ===================== SYSTEM =====================
+    subgraph cluster_system {
+        label="System scale — no named fabric beyond PCIe";
+        style="rounded,dashed";
+        color="#C62828";
+        fontcolor="#C62828";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        host [label="Host: x86_64 / aarch64\nValidated: Ubuntu 22.04.3 +\nHygon C86-4G\nPCIe 4.0 x16 (VA1 confirmed)\nPCI device ID 0x0100\nPCIe gen for VA16/VA10L/VA1L\nNOT DISCLOSED", fillcolor="#FFCDD2"];
+        server [label="Single VA16 server\n8 cards × 4 dies = 32 devices\nDeepSeek-V3 671B FP8 at TP=32\nTP32-PP2 for 128K context\nCard-to-card FABRIC NOT NAMED\nNo proprietary switch evidenced", fillcolor="#EF9A9A"];
+        vccl [label="VCCL (NCCL analogue)\nVisible only via env vars:\nVCCL_SOCKET_IFNAME (default 'lo')\nVCCL_MODEL_SYNC\n+ compile flag\ngather_data_vccl_dsp_enable\nOps / algorithms / bandwidth / API\nALL NOT DISCLOSED", style="rounded,filled,dashed", fillcolor="#FFEBEE"];
+        appliance [label="VGX VA16 appliances\n8-card = 1 TB · 16-card = 2 TB\nClaimed: 405B fine-tuning,\ntrillion-param MoE inference\n(VENDOR CLAIM)", fillcolor="#FFCDD2"];
+        scaleout [label="Scale-out\nPP supported (--pipeline-parallel-size 2)\nDATA PARALLELISM UNSUPPORTED\nNIC / RDMA / inter-node VCCL\nNOT DISCLOSED", style="rounded,filled,dashed", fillcolor="#FFEBEE"];
+    }
+
+    // ===================== EVIDENCE ANCHORS =====================
+    subgraph cluster_evidence {
+        label="Measured (vendor's own samples, PER DIE) and vendor-published counter-evidence";
+        style="rounded,dashed";
+        color="#37474F";
+        fontcolor="#37474F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        measured [label="PER-DIE measured (VastStreamX samples)\nH.264 1080p decode 1547 fps @DCLK 650\nH.265 1080p decode 1861 fps @DCLK 650\nResNet-50 INT8 3231 qps (b8) @880 MHz\nMobileViT 43.9 qps (b1)\n=> 51-62 ch/die x 2 dies ~ 120 ch\ncross-checks VA1 = 2 dies", fillcolor="#CFD8DC"];
+        omnidoc [label="Vendor-published OmniDocBench (GLM-OCR)\nH800 BF16 TP1: 95.391 in 15.5 min\nVA16 BF16 TP1: 95.647 in 13 h 26 min\nVA16 BF16 TP4: 95.635 in 6 h 33 min\n=> accuracy on par, ~50x / ~25x slower\nCaveat: 1 workload, OCR VLM,\nlayout on CPU, TP1 = ONE die vs whole H800", fillcolor="#B0BEC5"];
+    }
+
+    // ===================== EDGES =====================
+
+    // silicon -> die
+    sv100 -> ai_engine [style=dashed, label="gen 1 DSA", fontsize=8];
+    sg100 -> gfx [style=dashed, label="gen 2 adds graphics", fontsize=8];
+    sg100 -> ai_engine [style=dashed];
+    chipfam2026 -> ai_engine [style=dashed, label="unknown mapping", fontsize=8];
+    gen3 -> chipfam2026 [style=dashed];
+
+    // engines -> memory management
+    ai_engine -> sram [label="compute r/w", fontsize=8];
+    vdsp -> sram [label="compute r/w", fontsize=8];
+    vdsp -> vdsp_buf [label="local", fontsize=8];
+    compute_engine -> sram [style=dashed];
+    ai_engine -> regfile [style=dashed];
+    sram -> umm [dir=both, label="compiler-placed DMA", fontsize=8];
+    vdmcu -> umm [label="decoded frames", fontsize=8];
+    vemcu -> umm [dir=both, label="frames", fontsize=8];
+    gfx -> umm [style=dashed];
+
+    // die -> memory
+    umm -> diemem [dir=both, label="DMA — bandwidth NOT DISCLOSED", fontsize=8];
+    diemem -> memmodel [style=dashed];
+
+    // die -> card
+    diemem -> card_model [label="one pool per die", fontsize=8];
+    card_model -> d2d [style=dashed, label="N dies on one board", fontsize=8];
+    d2d -> va1_card [style=dashed, label="2 dies", fontsize=8];
+    d2d -> va16_card [label="4 dies", fontsize=8];
+    d2d -> va10l_card [label="4 dies", fontsize=8];
+    d2d -> va10_card [style=dashed];
+    d2d -> legacy_cards [style=dashed];
+
+    // card -> system
+    va16_card -> server [label="8 cards", fontsize=8];
+    va1_card -> host [style=dashed, label="PCIe 4.0 x16", fontsize=8];
+    server -> host [dir=both, label="PCIe", fontsize=8];
+    server -> vccl [label="TP=32 collectives", fontsize=8];
+    vccl -> vdsp [style=dashed, label="gather on VDSP", fontsize=8];
+    server -> appliance [label="1 TB / 2 TB", fontsize=8];
+    server -> scaleout [style=dashed];
+
+    // evidence
+    vdmcu -> measured [style=dashed, label="per-die decode", fontsize=8];
+    ai_engine -> measured [style=dashed, label="per-die ResNet", fontsize=8];
+    measured -> va1_card [style=dashed, label="confirms 2 dies", fontsize=8];
+    va16_card -> omnidoc [style=dashed, label="vendor's own H800 comparison", fontsize=8];
+}

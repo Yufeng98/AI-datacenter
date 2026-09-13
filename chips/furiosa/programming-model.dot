@@ -1,0 +1,177 @@
+digraph furiosa_npu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.55;
+    nodesep=0.35;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ntorch.export() / torch.onnx.export()\n(AOT-only; no eager backend)", fillcolor="#D6E4F0"];
+        hf [label="HuggingFace Transformers\nfuriosa-llm (RNGD)\nLLaMA/Mistral/EXAONE/Gemma", fillcolor="#D6E4F0"];
+        furiosa_models [label="furiosa-models\nModel Zoo (ResNet50, YOLO, SSD)\nBuilt-in pre/post-processing", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== KERNEL LANGUAGE (NEW, SDK 2026.3) =====================
+    subgraph cluster_kernel {
+        label="Kernel Language — NEW in SDK 2026.3 (2026-06-30)";
+        style="rounded,dashed";
+        color="#B26A00";
+        fontcolor="#B26A00";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        tcl [label="TCL — Tensor Contraction Language\nDeclarative Python eDSL; @tcl.kernel functions\nAuthor states WHAT to compute; compiler owns\ntiling / scheduling / fusion / hardware mapping\nPadding, sharding, multi-chip collectives at language level", fillcolor="#FFE8CC"];
+        fkernels [label="furiosa-kernels\nReusable TCL blocks (RMSNorm, Linear, MLP)\nPyPI 2026.3.0 — LicenseRef-Proprietary\nNo public reference documentation (as of 2026-08-08)", fillcolor="#FFE8CC"];
+        tcl_note [label="Supersedes the pre-2026.3 claim that FuriosaAI has\nno kernel library and users never write kernels.\nDeclarative (no user-specified schedule) — a different\ndesign point from Triton's explicitly-tiled imperative model.", shape=note, fillcolor="#FFF0DB", fontsize=9];
+        tcl -> fkernels [label="ships as"];
+        tcl_note -> tcl [style=invis];
+    }
+
+    // ===================== VIRTUAL ISA =====================
+    subgraph cluster_visa {
+        label="Virtual ISA";
+        style="rounded,dashed";
+        color="#9E9E9E";
+        fontcolor="#9E9E9E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        fvisa [label="FVISA — \"Furiosa Virtual ISA\"\nNamed publicly at RENEGADE Summit 2026 (2026-05-13)\nNO technical detail, NO documentation,\nNO user-facing tooling disclosed", fillcolor="#EEEEEE"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR — furiosa-compiler (AOT, proprietary binary)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        onnx_ir [label="ONNX Graph\n(canonical intermediate representation)", fillcolor="#E4DEFF"];
+        fcompiler [label="furiosa-compiler\nGraph opt (const fold, dead code, op fusion)\nQuant lowering (INT8/INT4/FP8)\nMemory planning (256 MB SRAM tiling, HBM3 alloc)\nTCP mapping: tensor indices → PE/slice axes (RNGD)\nLLM passes: KV-cache, attn fusion, RoPE\n2026.3: emits FXB portable executable bundles", fillcolor="#E4DEFF"];
+        quantizer [label="furiosa-quantizer\nINT8/INT4/FP8 PTQ\nGPTQ-style LLM block quant", fillcolor="#E4DEFF"];
+        binary [label=".enf binary (Warboy)\nRNGD binary / FXB bundle (2026.3+)\n(proprietary; compiled TCP schedule)", fillcolor="#E4DEFF"];
+        onnx_ir -> fcompiler [label="compile"];
+        fcompiler -> binary [label="emit"];
+    }
+
+    // ===================== LLM INTERFACE =====================
+    subgraph cluster_llm {
+        label="LLM Interface — furiosa-llm (RNGD)";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        furiosa_llm [label="furiosa-llm (2026.3.0, Apache 2.0)\nLLM(), SamplingParams()\nStreaming generation / continuous batching\nOverlap scheduling; chunked-prefill multimodal serving\nScoring-based data-parallel routing\nQwen3-VL, gpt-oss-120b, Solar-Open-100B,\nQwen3-30B-A3B, K-EXAONE-236B-A23B", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime — furiosa-runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        fruntime [label="furiosa-runtime\nSync + async session.run([input])\nPCIe DMA for tensor I/O\nNPU partition selection 2/4/8 vNPUs (RNGD)\nKV-cache management (RNGD)\nContinuous batching (RNGD)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== SERVING =====================
+    subgraph cluster_serving {
+        label="Serving";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        fserving [label="furiosa-serving\nOpenAI Chat Completions (/v1/chat/completions)\nTriton-compatible REST API", fillcolor="#FFE0CC"];
+        tgi [label="HuggingFace TGI\nBackend Plugin (RNGD)\nDocker deployment", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== DRIVER =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        driver [label="furiosa-npu.ko (Linux kernel module)\napt install furiosa-driver\nPCIe BAR MMIO + DMA channel mgmt\nNPU partition management (RNGD)\n(No op scheduling — compiler-determined)", fillcolor="#E0E0E0"];
+        fw [label="On-chip microcontroller\nDVFS / thermal / PCIe link mgmt\n(NOT a scheduler — all scheduling is AOT)", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="FuriosaAI NPU Hardware";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        compute [label="Compute Engine\nWarboy: PE Array (Samsung 14nm, 64 TOPS INT8 @ 2.0 GHz)\nRNGD: Tensor Contraction Processor (TSMC 5nm)\n  8 PEs × 64 slices = 512 slices\n  512 TFLOPS FP8 (64 TFLOPS FP8 × 8 PEs) @ 1.0 GHz\n  TCP: GEMM + Attention + Conv via single hardware path\nMulti-tenancy: 2/4/8 hardware-isolated vNPUs (RNGD)\nGen 3 (announced): 2nm chiplet + HBM4/4E + Broadcom\n  Ethernet scale-up fabric — specs NOT DISCLOSED", fillcolor="#283593", fontcolor="white"];
+
+        mem [label="Memory Hierarchy\nWarboy: 32 MB SRAM | 16 GB LPDDR4X @ 66 GB/s\nRNGD: 256 MB SRAM @ 384 TB/s | 48 GB HBM3 @ 1.5 TB/s\n(2 HBM3 stacks, CoWoS-S; no caches; compiler-managed)", fillcolor="#283593", fontcolor="white"];
+
+        host_if [label="Host Interface / Package\nWarboy: PCIe Gen4 x8 | Samsung 14nm (via SemiFive) | ~50W\nRNGD: PCIe Gen5 x16 (P2P) | TSMC 5nm | 180W (docs: 150W)\nNXT RNGD Server: up to 8 cards, 3 kW class\n(vs DGX H100: >10 kW for comparable LLM throughput)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Kernel language → Compiler
+    tcl -> fcompiler [label="TCL kernels", color="#B26A00"];
+    fkernels -> furiosa_llm [style=dashed, color="#B26A00", label="reusable blocks"];
+    fcompiler -> fvisa [style=dashed, color="#9E9E9E", label="lowers via (detail n/d)"];
+    fvisa -> binary [style=dashed, color="#9E9E9E"];
+
+    // Framework → Compiler
+    pytorch -> onnx_ir [label="ONNX export"];
+    furiosa_models -> onnx_ir [style=dashed];
+    hf -> furiosa_llm [label="LLM API"];
+    quantizer -> onnx_ir [label="quant ONNX", style=dashed];
+
+    // Compiler → Binary
+    // (internal edges defined above)
+
+    // LLM → Runtime
+    furiosa_llm -> fruntime [label="runtime calls"];
+
+    // Binary → Runtime
+    binary -> fruntime [label="load binary"];
+
+    // Runtime → Serving
+    fruntime -> fserving [label="inference sessions"];
+    furiosa_llm -> tgi [style=dashed, label="TGI backend"];
+
+    // Runtime → Driver
+    fruntime -> driver [label="ioctl / DMA"];
+
+    // Driver → Hardware
+    driver -> compute [label="PCIe dispatch"];
+    driver -> mem [label="DMA weight load", style=dashed];
+    fw -> compute [style=dashed, color="#757575", label="DVFS", fontsize=8];
+
+    // Hardware internal
+    compute -> mem [label="load weights\n@ 1.5 TB/s (RNGD)", color="#283593"];
+    mem -> host_if [style=dashed, color="#283593"];
+}

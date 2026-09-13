@@ -1,0 +1,166 @@
+digraph xiwang_gpu_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nCustom device backend (SIRE)\nAuto-tracks latest upstream (vendor claim)\nDeepSpeed dist. training\n>90% ModelScope models", fillcolor="#D6E4F0"];
+        huggingface [label="Hugging Face\ntransformers compat.\n(claimed; details not public)", fillcolor="#D6E4F0", style="rounded,filled,dashed"];
+        serving [label="Inference Serving (vendor-stated)\nvLLM · SGLang · LightLLM · LightX2V\nvllm-plugin-FL lists Sunrise\nS3: 百万Token/分钱 target", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kernelcompiler [label="Self-Developed Kernel Compiler\n(nvcc analog; brand name not public)\nCUDA C++ migration path\nFully self-developed ISA chain", fillcolor="#E4DEFF"];
+        flagtree [label="FlagTree third_party/sunrise  [OPEN SOURCE]\nTriton backend, backend_name='tang'\ntarget 'tang:S2'  ·  Triton 3.4 (2026-01-23)\n→ Triton 3.6 (2026-06-30)\nwheels flagtree==0.4.0+sunrise3.4 / 0.6.0+sunrise3.6\nManual: 'Available for S2'", fillcolor="#C9F7C9"];
+        plugin [label="sunriseTritonPlugin.so  [CLOSED]\nProprietary compiler core\nFlagTree is a shim around this", fillcolor="#E4DEFF"];
+        infcompiler [label="Inference Graph Compiler\n(TensorRT analog; assumed)\nFP8/FP4 for S3\nGraph fusion + quant", fillcolor="#E4DEFF", style="rounded,filled,dashed"];
+        cudamigrate [label="CUDA Migration Tool\n(source-level; depth not public)", fillcolor="#E4DEFF", style="rounded,filled,dashed"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        dllib [label="DL Library\n(cuDNN+cuBLAS analog; name NOT DISCLOSED)\nGEMM, Attention, Norm, Pool\nFP32/BF16/FP16/INT8\nFP8/FP4 (S3)\nmin_dot_size (8,8,16) INT8 / (8,8,4)\ndot input precision: ieee only", fillcolor="#D4EDDA"];
+        ocml [label="Device Math Library\nOCML-based (__ocml_* entry points)\nAMD-style; visible via FlagTree", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        collcomms [label="PCCL\n'Sunrise Collective Communications Library'\nsend/recv, broadcast, reduce, allreduce,\nallgather, reducescatter, group ops\n(homogeneous + heterogeneous)\nNO gather/scatter/alltoall/alltoallv\nScale-up fabric: SRLink (BW NOT PUBLIC)", fillcolor="#FFE0CC"];
+        flagcx [label="FlagCX sunrise adaptor  [OPEN SOURCE]\nUSE_SUNRISE=1 · CCL_HOME=/usr/local/pccl\n-lpccl · -DUSE_SUNRISE_ADAPTOR\n2026-06-01 torch plugin\n2026-06-10 runtime vendor detection", fillcolor="#C9F7C9"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        runtime [label="TangRT  (cudart analog)\nlibtangrt_shared · root /usr/local/tangrt\nAlloc/Free, Streams, Events\nKernel launch", fillcolor="#F8D7DA"];
+        driverapi [label="libtang.so  (driver-level library)\nTRITON_LIBTANG_PATH\nAPI surface not public", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        kmod [label="PCIe Kernel Driver\n(Linux; details not public)", fillcolor="#E0E0E0"];
+        fw [label="On-Chip Firmware\n(resource mgmt; assumed)\nDetails not public", fillcolor="#E0E0E0", style="rounded,filled,dashed"];
+    }
+
+    // ===================== ASSEMBLER / ISA =====================
+    subgraph cluster_isa {
+        label="Assembler / ISA";
+        style="rounded,dashed";
+        color="#795548";
+        fontcolor="#795548";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        isa [label="Proprietary SIMT ISA  (TANG programming model)\nLLVM triple stcu-unknown-tang  (S3: stcuv2)\nWarp size 32 · num_warps=4 · num_stages=3\nFP8 exposed: fp8e5 (E5M2) only\nLLD linker · clang-offload-bundler\nNo ISA manual · no PTX-equivalent", fillcolor="#EFEBE9"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Xiwang GPU Hardware (S2 / S3)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        compute [label="SIMT Compute Engine\nFully self-developed GPGPU · warp size 32\nUnit count: NOT PUBLIC\nTensor units: present (inferred)\n(S2: TSMC 7nm CoWoS | S3: node NOT DISCLOSED)", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory Hierarchy\nOn-chip SRAM: NOT PUBLIC\nS2 off-chip: 64 GB, type NOT DISCLOSED\nS3 off-chip: LPDDR6 (back-compat LPDDR5X)\nCapacity/BW: NOT DISCLOSED\n2.5D CoWoS packaging (S2)", fillcolor="#283593", fontcolor="white"];
+        interconnect [label="Interconnect\nHost: PCIe Gen5 x16 (S2) | PCIe Gen6 (S3)\nScale-up: SRLink (BW/topology NOT PUBLIC)\nRack-scale: 寰望 SC3-256 SuperPOD (S3)\nScale-out: std Ethernet/IB (assumed)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework -> Compiler
+    pytorch -> kernelcompiler;
+    pytorch -> infcompiler [style=dashed, color="#AAAAAA"];
+    huggingface -> kernelcompiler [style=dashed, color="#AAAAAA"];
+    serving -> infcompiler [style=dashed, color="#AAAAAA"];
+    cudamigrate -> kernelcompiler [style=dashed, color="#AAAAAA"];
+
+    // Compiler -> Op Library
+    infcompiler -> dllib;
+    kernelcompiler -> isa;
+    flagtree -> plugin [label="links", fontsize=8];
+    plugin -> isa;
+    flagtree -> ocml [style=dashed, color="#AAAAAA"];
+    ocml -> dllib [style=dashed, color="#AAAAAA"];
+    pytorch -> flagtree [style=dashed, color="#AAAAAA", label="Triton kernels", fontsize=8];
+    serving -> flagtree [style=dashed, color="#AAAAAA"];
+
+    // Framework -> Op (direct)
+    pytorch -> dllib [style=dashed, color="#AAAAAA", label="dispatch", fontsize=8];
+
+    // Op -> Runtime
+    dllib -> runtime;
+
+    // Communication
+    collcomms -> runtime [style=dashed];
+    flagcx -> collcomms [label="adaptor", fontsize=8];
+    pytorch -> flagcx [style=dashed, color="#AAAAAA", label="torch plugin (2026-06)", fontsize=8];
+    pytorch -> collcomms [style=dashed, color="#AAAAAA", label="distributed", fontsize=8];
+
+    // Runtime chain
+    runtime -> driverapi;
+    driverapi -> kmod;
+    kmod -> fw [style=dashed];
+
+    // ISA chain
+    isa -> compute;
+
+    // Hardware internal
+    compute -> mem [color="#283593"];
+    mem -> interconnect [style=dashed, color="#283593"];
+
+    // Driver -> Hardware
+    fw -> compute [style=dashed, color="#283593"];
+}

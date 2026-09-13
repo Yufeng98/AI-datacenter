@@ -1,0 +1,147 @@
+digraph google_tpu_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.55;
+    nodesep=0.35;
+
+    // ===================== COMPUTE ENGINE =====================
+    subgraph cluster_compute {
+        label="Compute Engine";
+        style="rounded,dashed";
+        color="#B71C1C";
+        fontcolor="#B71C1C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mxu [label="MXU (Matrix Multiply Unit)\nWeight-stationary systolic array\n128×128 (v4/v5) → 256×256 (v6e/v7/v8)\n16,384 / 65,536 MACs/cycle per TensorCore\nv7/v8: 2 TensorCores = 131,072 MACs/chip\nFP4 (v8) / FP8 / BF16 / FP16 / INT8 / FP32-accum", fillcolor="#FFCDD2"];
+        vpu [label="VPU (Vector Processing Unit)\nElement-wise: ReLU, GELU, SiLU\nLayer norm, softmax partial\nResidual add, transcendentals\nConcurrent with MXU (separate VLIW slots)", fillcolor="#FFCDD2"];
+        sparsecore [label="SparseCore\nEmbedding table lookup (gather)\nSparse irregular access patterns\nv4: 1/chip | v6e: 2/chip | v7: 4/chip\nv8t: present, count not published\nv8i: not attributed by Google\nRecommendation, RAG, graph workloads", fillcolor="#FFCDD2"];
+        scalar [label="ScalarCore\nControl flow + loop iteration\nAddress generation\nDMA descriptor scheduling", fillcolor="#FFCDD2"];
+        llmdec [label="LLM Decoder Engine\n(v8t only)\nNamed block in Google's v8 spec table\nalongside SparseCore (Embeddings)\nFunction / count / perf: not disclosed", fillcolor="#FFE0B2"];
+        cae [label="CAE — Collectives Accel. Engine\n(v8i only — on a separate chiplet die)\nv8i chip = 2 TensorCore dies + 1 CAE die\nOn-chip tree-reduce silicon\nSmall-tensor 'cae_reduce' HLO\nUp to 5× lower collective latency\nfor autoregressive decode", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== DATA PATH =====================
+    subgraph cluster_datapath {
+        label="Data Path";
+        style="rounded,dashed";
+        color="#880E4F";
+        fontcolor="#880E4F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        vliw [label="VLIW Execution Model\n8 ops/cycle instruction packets\nStatic compiler-determined scheduling\nNo dynamic issue, branch pred, OoO\nSlots: MXU×2, VPU×2, DMA-R, DMA-W\nScalar ALU, Scalar LD/ST", fillcolor="#FCE4EC"];
+        dma [label="DMA Engines\nHBM ↔ VMEM async transfer\nDouble-buffering (N-stage prefetch)\nTile N+1 prefetch while tile N computes\nHides HBM latency (~100+ ns)", fillcolor="#FCE4EC"];
+    }
+
+    // ===================== ON-CHIP MEMORY =====================
+    subgraph cluster_onchip {
+        label="On-chip Memory";
+        style="rounded,dashed";
+        color="#1A237E";
+        fontcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        vmem [label="VMEM (Vector Memory / Scratchpad)\nPer-TensorCore SRAM\n~16 MB (v4/v5) | ~32 MB (v6e) | ~64 MB (v7)\nv8 published per chip only:\n128 MB/chip (v8t, flat vs v7)\n384 MB/chip (v8i, 3× v7)\nPer-TensorCore split for v8: not disclosed\nCompiler-managed — no hardware cache\nTB/s bandwidth to MXU\nSpill to HBM = ~100× bandwidth loss", fillcolor="#E8EAF6"];
+        cmem [label="CMEM (Control Memory / Scalar)\nSmall fast SRAM\nLoop counters, DMA descriptors\nActivation LUTs, quant scales\nICI control registers\nSeparate ports from VMEM", fillcolor="#E8EAF6"];
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_hbm {
+        label="Off-chip Memory (HBM)";
+        style="rounded,dashed";
+        color="#006064";
+        fontcolor="#006064";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        hbm [label="HBM (High Bandwidth Memory)\nv5e: HBM2e 16 GB, 819 GB/s\nv5p: HBM2e 95 GB, 2.77 TB/s\nv6e: HBM3 144 GB, ~1.6 TB/s\nv7 Ironwood: HBM3e 192 GB, 7.4 TB/s\nv8t Sunfish: HBM3e 216 GB, 6,528 GB/s\nv8i Zebrafish: HBM3e 288 GB, 8,601 GB/s\nv7 superpod: 1.77 PB | v8t superpod: 2 PB", fillcolor="#E0F7FA"];
+    }
+
+    // ===================== HOST INTERFACE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#33691E";
+        fontcolor="#33691E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pcie [label="PCIe Gen 4 x16\n~64 GB/s bidirectional\nModel loading at initialization\nlibtpu command queue via PCIe\nTPU VM: host CPU on same board\nv8t/v8i: Google Axion (Arm Neoverse-V2)", fillcolor="#F1F8E9"];
+        libtpu_hw [label="libtpu.so Interface\nXLA compiler (AOT/JIT)\nTPU kernel driver (DMA, IRQ, HBM mgr)\nICI runtime (AllReduce routing)\nContent-hash compilation cache", fillcolor="#F1F8E9"];
+    }
+
+    // ===================== SCALE-UP (ICI) =====================
+    subgraph cluster_ici {
+        label="Scale-up Interconnect (ICI)";
+        style="rounded,dashed";
+        color="#E65100";
+        fontcolor="#E65100";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        ici3d [label="ICI 3D Torus (v4/v5p/v7/v8t)\n6 neighbors per chip (±X, ±Y, ±Z)\nv7: 9.6 Tbps (1.2 TB/s)/chip, 4 links\nv8t: 19.2 Tbps (2.4 TB/s)/chip — 2× v7\nv7: 9,216 chips | v8t: 9,600 chips\nCopper DAC (intra-cube), Optical (inter-cube)", fillcolor="#FBE9E7"];
+        ocs [label="OCS — Optical Circuit Switches (v4, v8t)\n136×136 MEMS optical switches\nReconfigurable topology (10 ms)\nTwisted torus: +70% bisection BW\n~40% power vs electrical", fillcolor="#FBE9E7"];
+        ici2d [label="ICI 2D Torus (v5e/v6e)\n4 neighbors per chip (±X, ±Y)\n16×16 grid, 256 chips max\nSimpler routing, lower cost\nv6e: 2× v5e ICI bandwidth", fillcolor="#FBE9E7"];
+        boardfly [label="Boardfly (v8i, NEW)\nHigh-radix topology\nFully-connected boards aggregated\ninto board-of-boards groups\n7-hop diameter at 1,024 chips\n(vs 16 hops on 3D torus, ~56% reduction)\n19.2 Tbps/chip\npod = 1,152 connected / 1,024 active", fillcolor="#FFE0B2"];
+    }
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect (Multislice / Virgo)";
+        style="rounded,dashed";
+        color="#4A148C";
+        fontcolor="#4A148C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        multislice [label="Multislice (v4–v7)\nMultiple ICI pods via DCN\nUp to 16 pods/aggregation block\nMax ~147,456 chips (v7 scale)\nXLA schedules DCN AllReduce\nduring intra-pod compute windows", fillcolor="#F3E5F5"];
+        virgo [label="Virgo Network (v8t, NEW)\nOptical scale-out fabric\nReplaces DCN-routed Multislice\nUp to 134K chips per datacenter\nUp to ~1M chips multi-DC\nXLA: outermost mesh axis", fillcolor="#F3E5F5"];
+        titanium [label="Titanium IPU\nGoogle SmartNIC/DPU\nDCN/Virgo AllReduce offload\nRDMA inter-pod data movement\nSDN topology management\nAI Hypercomputer abstraction", fillcolor="#F3E5F5"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute internal
+    mxu -> vmem [label="output accum", fontsize=8, dir=both];
+    vpu -> vmem [label="read/write", fontsize=8, dir=both];
+    scalar -> cmem [label="LD/ST", fontsize=8, dir=both];
+    mxu -> vpu [style=dashed, color="#AAAAAA", label="VLIW concurrent", fontsize=8];
+    llmdec -> vmem [style=dashed, color="#B71C1C", label="v8t decode block\n(interface not disclosed)", fontsize=8];
+
+    // Data path
+    dma -> vmem [label="tile transfer", fontsize=8];
+    dma -> hbm [label="DMA read/write", fontsize=8, dir=both];
+    vliw -> mxu [label="dispatch", fontsize=8];
+    vliw -> vpu [label="dispatch", fontsize=8];
+    vliw -> dma [label="DMA cmds", fontsize=8];
+    vliw -> scalar [label="dispatch", fontsize=8];
+
+    // Memory
+    vmem -> mxu [label="feed activations\n+ load weights", fontsize=8];
+    hbm -> dma [style=invis];
+
+    // Host interface
+    pcie -> hbm [label="model load\n(one-time)", fontsize=8];
+    libtpu_hw -> pcie [label="cmd queue +\nbinary upload", fontsize=8];
+
+    // ICI
+    ici3d -> ocs [style=dashed, color="#E65100", label="v4 + v8t", fontsize=8];
+    ici3d -> hbm [style=dashed, color="#888888", label="AllReduce\ndata from HBM", fontsize=8];
+    ici2d -> hbm [style=dashed, color="#888888", label="AllReduce\ndata from HBM", fontsize=8];
+    boardfly -> hbm [style=dashed, color="#888888", label="AllReduce\ndata from HBM", fontsize=8];
+    boardfly -> cae [style=dashed, color="#E65100", label="small-tensor\nreductions", fontsize=8];
+
+    // Scale-out
+    multislice -> titanium [label="DCN AllReduce\noffload", fontsize=8];
+    multislice -> ici3d [label="inter-pod via\nDCN (v4–v7)", fontsize=8, style=dashed];
+    multislice -> ici2d [style=dashed, fontsize=8];
+    virgo -> titanium [label="cross-pod\nreduction offload", fontsize=8];
+    virgo -> ici3d [label="inter-pod (v8t)", fontsize=8, style=dashed];
+}

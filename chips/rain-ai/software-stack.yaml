@@ -1,0 +1,78 @@
+chip: rain-ai
+as_of: "2026-08-08"
+device_class: Neuromorphic AI
+
+# ── Vendor Status ───────────────────────────────────────────────────────
+# Rain Neuromorphics Inc. (dba Rain AI) is DEFUNCT / non-operating.
+# Patents assigned to OpenAI Opco, LLC; USPTO recordation date 2025-10-23
+# (US20240281497A1, US20240143541A1, US20250045224A1). Disclosed ~2026-08-06.
+# No part of the software stack below was ever released or open-sourced; none survives.
+vendor_status: defunct
+vendor_status_change_date: "2025-10-23"
+sdk_ever_released: false
+sdk_ever_open_sourced: false
+sdk_disposition_in_winddown: not_disclosed
+
+software_stack:
+  framework_integration:
+    status: not_public
+    description: >
+      Rain claimed the RISC-V ISA enabled "any operator, any model" compilation
+      (marketing claim, never demonstrated). No PyTorch/ONNX/JAX connector was
+      ever documented or released.
+    open_source: false
+
+  compiler_ir:
+    status: not_public
+    components:
+      - name: Rain Proprietary Compiler
+        description: Co-designed full-stack compiler targeting RISC-V + D-IMC tiles
+        open_source: false
+      - name: Andes ACE/COPILOT
+        description: >
+          Instruction customization framework (licensed from Andes Technology)
+          used to define custom RISC-V instructions that dispatch to D-IMC tiles
+        open_source: false
+        vendor: Andes Technology
+    ir_format: not_public
+    base_target: RISC-V RV64GCV (Andes AX45MPV)
+
+  op_library:
+    status: not_public
+    description: Proprietary; no operator library documented
+    open_source: false
+
+  kernel_library:
+    status: not_public
+    description: Proprietary D-IMC tile kernels; not released
+    open_source: false
+
+  runtime:
+    status: not_public
+    description: >
+      Proprietary Rain runtime co-designed with hardware and compiler.
+      Claimed to support training and inference. No public API.
+    open_source: false
+    ip_licensing: offered_never_consummated  # Rain offered the D-IMC tile + SW stack as licensable IP; no licensee ever announced
+
+  driver_firmware:
+    status: not_public
+    description: Host interface and kernel driver not documented
+    open_source: false
+
+  communication:
+    status: not_public
+    description: Multi-chip communication library not described
+
+  assembler_isa:
+    base_isa: RISC-V RV64GCV
+    base_isa_open: true
+    base_isa_vendor: Andes Technology (AX45MPV)
+    vector_extension: RVV 1.0
+    custom_extensions:
+      - name: D-IMC dispatch instructions
+        framework: Andes ACE/COPILOT
+        open_source: false
+        description: >
+          Proprietary instruction encodings for dispatching tensor workloads
+          from RISC-V cores into D-IMC compute tiles

@@ -1,0 +1,137 @@
+digraph hygon_dcu_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#555555", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.6;
+    nodesep=0.4;
+
+    // Title
+    labelloc="t";
+    label="Hygon DCU Hardware Architecture (K100_AI / Z100-class)\nas_of: 2026-04-05";
+    fontname="Helvetica-Bold";
+    fontsize=14;
+
+    // ===================== SCALE-OUT =====================
+    subgraph cluster_scaleout {
+        label="Scale-out Interconnect";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+        rccl_net [label="Standard Ethernet / RoCE v2\nRCCL collective library\nAllReduce / AllGather / Broadcast\nMulti-node training", fillcolor="#FFE0CC"];
+    }
+
+    // ===================== SCALE-UP =====================
+    subgraph cluster_scaleup {
+        label="Scale-up Interconnect";
+        style="rounded,dashed";
+        color="#C62828";
+        fontcolor="#C62828";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+        xgmi [label="xGMI (AMD Infinity Fabric compat)\n184 GB/s multi-card (Y100)\nPeer-to-peer HBM-to-HBM\nNo external switch ASIC", fillcolor="#FFCDD2"];
+    }
+
+    // ===================== HOST INTERFACE =====================
+    subgraph cluster_host {
+        label="Host Interface / Package";
+        style="rounded,dashed";
+        color="#6A1B9A";
+        fontcolor="#6A1B9A";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=1.5;
+        pcie [label="PCIe Gen4 x16\n~32 GB/s bidir\nFHFL dual-slot card\n2.5D interposer + HBM stacks", fillcolor="#E1BEE7"];
+    }
+
+    // ===================== DCU DIE =====================
+    subgraph cluster_die {
+        label="DCU Die (TSMC 7nm est.)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1565C0";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        // Compute Engine
+        subgraph cluster_compute {
+            label="Compute Engine";
+            style="rounded,filled";
+            fillcolor="#283593";
+            color="#90CAF9";
+            fontcolor="white";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            cus [label="~60-64 Compute Units (CUs)\n@ 1.7 GHz | 64-thread wavefront\nEach CU: 4× SIMD16 = 64 FP32/CU\nFP64 / FP32 / FP16 / BF16 / INT8\n深算二号: 90 TFLOPS FP32\n          180 TFLOPS FP16", fillcolor="#1E3A8A", fontcolor="white"];
+        }
+
+        // Data Path
+        subgraph cluster_datapath {
+            label="Data Path";
+            style="rounded,filled";
+            fillcolor="#283593";
+            color="#90CAF9";
+            fontcolor="white";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            dp [label="SIMT Pipeline\nWavefront scheduler (40 in-flight/CU)\nScalar Unit (branch, addr, control)\n4× SIMD16 vector ALU per CU\nLDS access | Global buffer_load/store", fillcolor="#1E3A8A", fontcolor="white"];
+        }
+
+        // On-chip Memory
+        subgraph cluster_onchip {
+            label="On-chip Memory";
+            style="rounded,filled";
+            fillcolor="#283593";
+            color="#90CAF9";
+            fontcolor="white";
+            fontname="Helvetica-Bold";
+            fontsize=11;
+            penwidth=1.5;
+            onchip [label="VGPR: 64 KB/SIMD (256 KB/CU)\n  256× 32-bit per thread max\nSGPR: ~16 KB/CU (wavefront-uniform)\nLDS: 64 KB/CU (SW-managed __shared__)\nL1: ~16-32 KB/CU (HW cache)\nL2: ~4-8 MB total (HW cache)", fillcolor="#1E3A8A", fontcolor="white"];
+        }
+    }
+
+    // ===================== OFF-CHIP MEMORY =====================
+    subgraph cluster_hbm {
+        label="Off-chip Memory";
+        style="rounded,filled";
+        color="#00695C";
+        fontcolor="white";
+        fillcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=11;
+        penwidth=2;
+        hbm [label="HBM2 / HBM2e (on 2.5D interposer)\nZ100: 16-32 GB HBM2 @ ~1.0 TB/s\nZ100L: 32 GB HBM2 @ ~1.0 TB/s\nK100_AI: 64 GB @ ~1.2 TB/s (est.)\n深算一号 (Y100): 32 GB @ 1.0 TB/s", fillcolor="#00796B", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Compute ↔ Data Path
+    cus -> dp [dir=both, color="#90CAF9", label="wavefront dispatch", fontsize=8, fontcolor="white"];
+
+    // Data Path ↔ On-chip Memory
+    dp -> onchip [dir=both, color="#90CAF9", label="LDS/VGPR/cache", fontsize=8, fontcolor="white"];
+
+    // On-chip ↔ HBM
+    onchip -> hbm [dir=both, color="#4DB6AC", penwidth=2, label="memory controller", fontsize=8];
+
+    // HBM ↔ Host (PCIe)
+    hbm -> pcie [dir=both, color="#CE93D8", penwidth=1.5, label="PCIe BAR/DMA", fontsize=8];
+
+    // Scale-up (xGMI) ↔ HBM
+    hbm -> xgmi [dir=both, color="#EF9A9A", penwidth=2, label="peer HBM access", fontsize=8];
+
+    // Scale-out ↔ PCIe
+    pcie -> rccl_net [dir=both, color="#FFCC80", label="via host NIC", fontsize=8];
+}

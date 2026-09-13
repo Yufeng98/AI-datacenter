@@ -1,0 +1,118 @@
+digraph meta_mtia_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK =====================
+    subgraph cluster_framework {
+        label="Framework";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\nEager mode + torch.compile\ntorch.export + vLLM", fillcolor="#D6E4F0"];
+        dist [label="Distributed training (MTIA 300)\nFSDP2 | DTensor | TorchRec | XFormers", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        dynamo [label="TorchDynamo\nTorch FX IR\nforward graph capture", fillcolor="#E4DEFF"];
+        aotautograd [label="AOTAutograd (MTIA 300)\nbackward graph generation\nfor training", fillcolor="#E4DEFF"];
+        inductor [label="TorchInductor\nMTIA graph compiler\noperator lowering + fusion\n+ ILP graph scheduling for peak memory\n+ activation rematerialization (MTIA 300)", fillcolor="#E4DEFF"];
+        triton_mtia [label="Triton-MTIA Compiler\nTriton DSL → MLIR\n→ MTIA native ISA\n+ RISC-V assembly", fillcolor="#E4DEFF"];
+        kernelevolve [label="KernelEvolve\nAgentic LLM kernel gen\nfor MTIA operators", fillcolor="#E4DEFF", style="rounded,dashed,filled"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        mtia_tensor [label="MTIATensor\nDevice memory allocator", fillcolor="#F8D7DA"];
+        streaming [label="MTIA Streaming Interface\nAsync dataflow scheduling\nDMA management\n+ CUDA-like runtime API (MTIA 300;\neager and graph modes)", fillcolor="#F8D7DA"];
+        hccl [label="HCCL — MTIA Collective Comms Library (MTIA 300)\nbuilds work packets + WQE subgraphs\n(SEND/RECV/WRITE/WAIT/SET/REDUCE)\nCPU-C dispatches to 16 Message Engines\nRDMA verbs: rdma_core / ibv_create_qp\ncollectives + compute in ONE captured graph\nWIP: dynamic-shape collectives,\ndevice-resident AllToAll w/ dynamic counts", fillcolor="#F8D7DA"];
+        driver [label="MTIA Firmware Driver\nv1: 8x PCIe Gen4 (16 GB/s)\nv2/2i: 8x PCIe Gen5 (32 GB/s)\nMTIA 300: 16x PCIe Gen5 (64 GB/s)", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Meta MTIA Hardware (v1: TSMC 7nm / v2 / 2i: TSMC 5nm)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        pe_grid [label="8x8 PE Grid (64 PEs)\nEach PE: 2x RISC-V cores + MMA FFU\n+ DMA + nonlinear unit\nv1: 128 KB | v2: 384 KB local SRAM/PE", fillcolor="#283593", fontcolor="white"];
+        sram [label="Shared On-Chip SRAM\nv1: 128 MB | v2: 256 MB\n2.7 TB/s bandwidth (2i)", fillcolor="#283593", fontcolor="white"];
+        noc [label="Network on Chip\nv2: 3.3x bandwidth over v1\nLow-latency PE coordination", fillcolor="#283593", fontcolor="white"];
+        lpddr [label="LPDDR5 DRAM\nv1: 64 GB, 176 GB/s\nv2: 128 GB, 204.8 GB/s\n(no HBM by design)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== MTIA 300 HARDWARE TARGET =====================
+    subgraph cluster_hw300 {
+        label="MTIA 300 Hardware (process node not disclosed)";
+        style="rounded,filled";
+        color="#004D40";
+        fontcolor="white";
+        fillcolor="#004D40";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        m300_grid [label="12x6 = 72 PE Grid (+1 redundant row)\n2x 64B RISC-V vector cores + Dot Product Engine\n+ Reduction Engine + SIMD/SFU per PE\n512 KB local memory/PE\n1120 TFLOP/s FP8 | 560 TFLOP/s FP16-BF16", fillcolor="#00796B", fontcolor="white"];
+        m300_me [label="16x Message Engine\nCPU-M + 256 KB context RAM + NMC\nup to 2.8 TB/s reductions", fillcolor="#00897B", fontcolor="white"];
+        m300_nic [label="2x Network Chiplet\n12x 800 Gbps RoCE NICs = 1.2 TB/s", fillcolor="#00897B", fontcolor="white"];
+        m300_mem [label="192 MB LLC @ 11.4 TB/s (R+W)\n216 GB HBM3E @ 6.1 TB/s (read OR write)", fillcolor="#00796B", fontcolor="white"];
+        m300_grid -> m300_mem [color="white"];
+        m300_me -> m300_nic [color="white"];
+        m300_me -> m300_mem [color="white"];
+    }
+
+    // ===================== NUMERICS NOTE =====================
+    numerics [label="MTIA 300 numerics: FP8 (S1E4M3 / S1E5M2), FP16, BF16, TF32, FP32 accum.\nINT8 GEMM removed (INT8 remains on RISC-V vector cores)\nMX4 / NVFP4 with row- or block-wise scaling NOT native -> falls back to RISC-V\nnative MX4 arrives in MTIA 400", shape=note, fillcolor="#FFF9C4", style="filled"];
+
+    // ===================== EDGES =====================
+    pytorch -> dynamo;
+    dist -> dynamo [style=dashed, label="sharded graphs", fontsize=8];
+    dynamo -> aotautograd [label="training", fontsize=8];
+    dynamo -> inductor;
+    aotautograd -> inductor [label="backward graph", fontsize=8];
+    inductor -> triton_mtia;
+    kernelevolve -> triton_mtia [style=dashed, label="generates kernels", fontsize=8];
+    triton_mtia -> streaming;
+    pytorch -> mtia_tensor [style=dashed];
+    mtia_tensor -> streaming;
+    dist -> hccl [style=dashed, label="collectives", fontsize=8];
+    inductor -> hccl [style=dashed, label="collectives captured\nin the same graph", fontsize=8];
+    streaming -> driver;
+    hccl -> driver;
+    driver -> pe_grid;
+    driver -> m300_grid [label="MTIA 300 target", fontsize=8];
+    hccl -> m300_me [label="WQE subgraphs via CPU-C", fontsize=8];
+    pe_grid -> noc;
+    pe_grid -> sram;
+    sram -> noc [style=dashed];
+    noc -> lpddr [style=dashed];
+    lpddr -> sram [label="load", fontsize=8];
+    triton_mtia -> numerics [style=dotted, arrowhead=none];
+}

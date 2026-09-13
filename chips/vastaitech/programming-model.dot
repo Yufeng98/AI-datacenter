@@ -1,0 +1,253 @@
+digraph vastaitech_pm {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    labelloc="t";
+    label="VastaiTech (瀚博) VACC software stack — as_of 2026-08-08\nTWO PARALLEL PATHS that share nothing above the driver · dashed = closed / not disclosed";
+    fontname="Helvetica-Bold";
+    fontsize=13;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        modelzoo [label="VastModelZOO  (Apache-2.0)\n1000+ models · 5 domains\n33 sub-categories · BOTH runtimes\nCompile YAMLs + deploy docs\n+ patched modeling_*_vacc.py", fillcolor="#D6E4F0"];
+        vllmvacc [label="vllm_vacc  [vLLM PATH]\nvLLM fork: 0.7.2 / 0.9.2 /\n0.11.0 / 0.17.0\nOpenAI server, tool calling,\nguided decoding, DeepSeek MTP\nCLOSED .whl + private harbor", style="rounded,filled,dashed", fillcolor="#C3D9EC"];
+        recipes [label="vllm-vacc.vastaitech.com\n31 recipes · vLLM 0.17.0\n'VA16 VA10L VA1L'\nTHE ONLY PLACE the current\ncards are documented", fillcolor="#D6E4F0"];
+        xinf [label="xinference_vacc  (Apache-2.0)\nLLM / Embedding / Rerank / VLM\nvLLM engine ONLY\nVACC_VISIBLE_DEVICES,\nVNNL_CONV1D_DLC=1", fillcolor="#D6E4F0"];
+        mineru [label="MinerU fork  (GPL-3.0)\nDocument-parsing VLM pipeline\nZero change to upstream 2.7.3\nUpstream OpenDataLab lists VastAI\n= only 3rd-party-hosted doc", fillcolor="#D6E4F0"];
+        vastgenx [label="VastGenX  [Build_In PATH]\nProprietary LLM/VLM serving\n--llm_devices / --vit_devices\n= DIES; VLM towers on\nDIFFERENT dies\nOpenAI API + webui", style="rounded,filled,dashed", fillcolor="#C3D9EC"];
+        vsxsamples [label="VastStreamX-Samples  (MIT)\n42 sample dirs, 20+ tasks\nVDSP ops, custom ops, codec,\ncard telemetry, measured perf", fillcolor="#D6E4F0"];
+        ffmpeg [label="FFmpeg + VAAPI plugins\nStandard media interface\nto the codec MCUs", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== GRAPH CAPTURE =====================
+    subgraph cluster_capture {
+        label="Graph Capture — invasive on Build_In, ABSENT on vLLM";
+        style="rounded,dashed";
+        color="#00838F";
+        fontcolor="#00838F";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        hfpatch [label="[Build_In] SOURCE-LEVEL PATCH + AOT trace\nEvery LLM except LLaMA needs:\nconfig_vacc.json with auto_map ->\nxxx_modeling_xxx_vacc.py,\n'_attn_implementation': 'eager',\n'insert_slice': true,\nplus a quantize() method\n=> the main PORTABILITY TAX", fillcolor="#B2EBF2"];
+        noeager [label="[vLLM] NO CAPTURE AT ALL\n--enforce-eager MANDATORY in\nEVERY documented command\nNo CUDA-Graph equivalent\nNo torch.compile equivalent\nFUSE_ALL_DECODER_LAYERS=0\nDISABLES the one fusion there is", style="rounded,filled,dashed", fillcolor="#E0F7FA"];
+    }
+
+    // ===================== GRAPH COMPILER =====================
+    subgraph cluster_compiler {
+        label="Graph Compiler — VAMC (Build_In path only)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        vamc [label="VAMC — Vastai Model Compiler\nvamc compile <config.yaml> / vamc quant\nCLOSED WHEEL (vamc-xxx.whl)\n\nBACKEND IS AN APACHE TVM DERIVATIVE\nbackend.type: tvm_vacc in ALL 344 configs\ndataset.type: tvm · artifact = TVM-style\ndeploy_weights/<name>/mod\nNOT MLIR — the most-missed fact here", fillcolor="#D6CEFF"];
+        vamc_tp [label="TP IS COMPILE-TIME\nmodel_kwargs.tp: 4\n+ static shapes + batch size\nbaked into the artifact\n(vLLM path takes --tensor-parallel-size\nat launch instead)", fillcolor="#E4DEFF"];
+        vamc_mem [label="COMPILER OWNS MEMORY PLACEMENT\noutput_ddr: [-1,1] (force to DDR)\nmem_inplace · data_transport_mode\ncluster_mode · output_layout\ngraph.extra_ops: insert_odma\n=> on-chip SRAM inferred\nSOFTWARE-MANAGED", fillcolor="#E4DEFF"];
+        vamc_quant [label="Quantisation\nFP16 / BF16 / INT8 PTQ per-channel\nW8A16-GPTQ / W4A16 / INT4\nFP8 · FP4 (VA16, 2026)\nCalib: kl_divergence | percentile | mse | max\nC4 / CEval / Alpaca / ImageNet\nGPTQ calib can run on device: cuda:5", fillcolor="#E4DEFF"];
+        vamc_frontends [label="Frontends accepted\nhuggingface · onnx · pytorch\nkeras (.h5 natively) · tensorflow\ndarknet · tvm relay", fillcolor="#E4DEFF"];
+        vamc_unknown [label="Flag SEMANTICS NOT DISCLOSED\ncluster_mode · data_transport_mode\ndata_type · opt_level · output_layout\nstream_mode · split_convergence_points\nrequant_suppress\n(values visible in 344 configs;\nmeanings only in the gated dev centre)", style="rounded,filled,dashed", fillcolor="#EDE7F6"];
+    }
+
+    // ===================== MODEL ARTIFACT =====================
+    subgraph cluster_binary {
+        label="Model Artifact";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        modartifact [label="deploy_weights/<name>/mod\nTVM-style module prefix\nNamed by dtype + calibration mode:\nresnet50-int8-percentile-1_3_224_224-vacc\nmask2former-fp16-none-1_3_1024_1024-vacc\nTP degree + shapes + batch BAKED IN", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== KERNEL LAYER =====================
+    subgraph cluster_kernel {
+        label="Kernel Layer — NO PUBLIC KERNEL COMPILER, NO KERNEL LANGUAGE";
+        style="rounded,dashed";
+        color="#F9A825";
+        fontcolor="#F9A825";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        elfops [label="VDSP custom ops = PREBUILT ELF\n/opt/vastai/vaststreamx/data/elf/<op>\nvsx::CustomOperator(op_name, elf_file)\n+ packed C struct of device addrs\nTHE TOOLCHAIN THAT BUILDS THESE\nIS NOT DISTRIBUTED", style="rounded,filled,dashed", fillcolor="#FFF9C4"];
+        fusionops [label="Built-in + FUSION ops (JSON-selected)\ncvtcolor, resize, scale, flip,\nwarpaffine, crop, copy_make_border,\nbatch_crop_resize\nFUSION_OP_RGB_LETTERBOX_CVTCOLOR_NORM_TENSOR\n(GetOpType() >= 100) · BERT_EMBEDDING_OP", fillcolor="#FFF9C4"];
+        vnnl [label="VNNL (INFERRED cuDNN analogue)\nVisible ONLY through env vars:\nVNNL_MODEL_SYNC\nVNNL_CONV1D_DLC=1\nNever mentioned by the vendor\nNo header, no docs", style="rounded,filled,dashed", fillcolor="#FFFDE7"];
+        nokernel [label="ABSENT vs peers:\nno Triton port · no TileLang\nno assembler · no intrinsics\nno disassembler\nA customer CANNOT write a new\nfused kernel for this hardware", style="rounded,filled,dashed", fillcolor="#FFFDE7"];
+    }
+
+    // ===================== TENSOR API =====================
+    subgraph cluster_tensor {
+        label="Tensor API";
+        style="rounded,dashed";
+        color="#00695C";
+        fontcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        vsx [label="VastStreamX (vsx) — release 26.04 (2026-05-09)\nvsx.Tensor / vsx.Image (pitch, NV12, planar)\nContext::CPU() vs Context::VACC(device_id)\nfrom_numpy / as_numpy / Clone / DataManager\nvsx::Model, ModelOperator, Operator,\nBuildInOperator, CustomOperator\nvsx::Graph + vsx::Stream (kBM_RUN)\nvsx.Card / vsx.Die telemetry\nSAMPLES MIT · LIBRARY CLOSED", fillcolor="#B2DFDB"];
+        nomanaged [label="NO unified / managed memory\nEvery H2D and D2H is an\nEXPLICIT user action", fillcolor="#E0F2F1"];
+        torchvacc [label="[vLLM] torch_vacc 1.3.0 -> 1.3.3\nOut-of-tree PyTorch device backend\ntorch.Tensor on the 'vacc' device\nPaired with a CPU torch build\n(torch==2.7.0+cpu / 2.8.0+cpu)\nPROPRIETARY", style="rounded,filled,dashed", fillcolor="#B2DFDB"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime — VastStream C SDK (five libraries) + the vLLM runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        vacl [label="VACL — 'Accelerate Language'\nThe inference API:\nload models, build a VDSPStream,\nrun the stream", style="rounded,filled,dashed", fillcolor="#F8D7DA"];
+        vace [label="VACE — Compute Engine\nOperator library; executes single ops\nby function call; loads and runs\nVDSP operators with VACL", style="rounded,filled,dashed", fillcolor="#F8D7DA"];
+        vacm [label="VACM — Common Lib\nDevice context management,\ntensor + memory management,\ndata management, log, OS abstraction", style="rounded,filled,dashed", fillcolor="#F8D7DA"];
+        vame [label="VAME — Media Engine\nMedia subsystem init,\ndecode / encode operations", style="rounded,filled,dashed", fillcolor="#F8D7DA"];
+        vaml [label="VAML — Management Library\nHardware monitoring, board status\nBacking library for VASMI\nand VAProfiler", style="rounded,filled,dashed", fillcolor="#F8D7DA"];
+        vllmrt [label="[vLLM] vllm_vacc + torch_vacc runtime\nVACC_VISIBLE_DEVICES (selects DIES)\nVACC_STACK_SIZE · VLLM_VACC_KVCACHE_SPACE\nLLM_MAX_PREFILL_SEQ_LEN · LLM_DEVICES\nFUSE_ALL_DECODER_LAYERS\n+ VASTAI_* per-operator switches\n(hand-managed op coverage)", style="rounded,filled,dashed", fillcolor="#F5C2C7"];
+        limits [label="SELF-DISCLOSED LIMITS\nmax-concurrency 4 for ESSENTIALLY\nEVERY model (DeepSeek-V3 671B\ndown to BGE-small)\nDATA PARALLELISM UNSUPPORTED\nEager mode mandatory\nmin_p sampling errors out", fillcolor="#EF9A9A"];
+        vamp [label="vamp — trtexec analogue\nvamp -m …/mod --vdsp_params …json\n-i 8 -p 1 -b 22 -s [3,224,224]\n--datalist … --path_output …", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== COLLECTIVES =====================
+    subgraph cluster_comm {
+        label="Collectives";
+        style="rounded,dashed";
+        color="#AD1457";
+        fontcolor="#AD1457";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        vccl [label="VCCL — NCCL analogue\nVisible ONLY through:\nVCCL_SOCKET_IFNAME (default 'lo')\nVCCL_MODEL_SYNC\ngather_data_vccl_dsp_enable\n=> gather can run ON THE VDSP\nOps / algorithms / bandwidth / API\nALL NOT DISCLOSED", style="rounded,filled,dashed", fillcolor="#F8BBD0"];
+        parallel [label="Parallelism supported\nTP: yes (dies, not cards)\nPP: yes (--pipeline-parallel-size 2)\nDP: NO\nDeepSeek-V3: TP32 -> 56K/64K + MTP\nTP32-PP2 -> 100K/128K", fillcolor="#FCE4EC"];
+    }
+
+    // ===================== MANAGEMENT =====================
+    subgraph cluster_mgmt {
+        label="Management and Orchestration";
+        style="rounded,dashed";
+        color="#5D4037";
+        fontcolor="#5D4037";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        vasmi [label="VASMI (vasmi) — nvidia-smi analogue\nvasmi list · setconfig dpm=enable\nsetcardmode\nDevice type, clock, temperature,\nper-process memory + codec cost", fillcolor="#D7CCC8"];
+        dcmgr [label="VastDCManager\nVAProfiler (runtime/hw cost)\nVASID (system integration diag)\nvalogger (logging daemon)", fillcolor="#D7CCC8"];
+        cloudnative [label="VastCloudNative\nKubernetes Operator\nDevice plugin (schedule + health-check)\nExporter -> Prometheus\nDocker via OCI plugin", fillcolor="#D7CCC8"];
+    }
+
+    // ===================== DRIVER + HARDWARE =====================
+    subgraph cluster_driver {
+        label="Driver";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+
+        kmod [label="vastai_pci  (kernel module)\n/dev/vastai0 · /dev/vastai0_version\nlspci -d:0100 (PCI device ID 0x0100)\nInstaller: vastai_driver_install_xxx.run\n--setkernelhook\nObserved: 00.25.12.30 … 20251230\nPROPRIETARY, OUT-OF-TREE,\nNOT UPSTREAMED", style="rounded,filled,dashed", fillcolor="#E0E0E0"];
+    }
+
+    subgraph cluster_hw {
+        label="VACC Hardware — VUCA dies (a card is N dies)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        hw_ai [label="AI engine (one domain per die)\n+ VDSP × N vector cores\nCounts NOT DISCLOSED\nMAC array internals NOT DISCLOSED", fillcolor="#283593", fontcolor="white"];
+        hw_codec [label="Video codec MCUs\nvdmcu × N decode (DCLK 650 MHz)\nvemcu × N encode (ECLK 200 MHz)\nH.264 / H.265 / AV1 / AVS2, 8K", fillcolor="#283593", fontcolor="white"];
+        hw_mem [label="Per-die memory\n8 GB (VA1-16G) / 32 GB (VA16, VA10L)\nMEMORY TYPE NOT DISCLOSED\nBANDWIDTH NOT DISCLOSED", fillcolor="#283593", fontcolor="white"];
+        hw_isa [label="ISA: NOT DISCLOSED\nNo manual, no assembler,\nno disassembler, no intrinsics\nNo ISCA / MICRO / Hot Chips /\nISSCC / arXiv paper exists", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Build_In path
+    modelzoo -> hfpatch [label="Build_In", fontsize=8];
+    hfpatch -> vamc [label="AOT trace", fontsize=8];
+    vamc_frontends -> vamc [style=dashed, color="#AAAAAA"];
+    vamc -> vamc_tp [style=dashed, color="#AAAAAA"];
+    vamc -> vamc_mem [style=dashed, color="#AAAAAA"];
+    vamc -> vamc_quant [style=dashed, color="#AAAAAA"];
+    vamc -> vamc_unknown [style=dashed, color="#AAAAAA"];
+    vamc -> modartifact [label="codegen (tvm_vacc)", fontsize=8];
+    modartifact -> vsx [label="vsx::Model load", fontsize=8];
+    modartifact -> vamp [style=dashed, label="profile", fontsize=8];
+    vastgenx -> modartifact [style=dashed, color="#AAAAAA", label="serve", fontsize=8];
+    vsxsamples -> vsx [style=dashed, color="#AAAAAA"];
+    ffmpeg -> vame [style=dashed, color="#AAAAAA", label="VAAPI", fontsize=8];
+
+    // vLLM path
+    modelzoo -> vllmvacc [label="vLLM", fontsize=8];
+    recipes -> vllmvacc [style=dashed, color="#AAAAAA"];
+    xinf -> vllmvacc [style=dashed, color="#AAAAAA"];
+    mineru -> vllmvacc [style=dashed, color="#AAAAAA"];
+    vllmvacc -> noeager [label="eager only", fontsize=8];
+    noeager -> torchvacc [label="op dispatch", fontsize=8];
+    torchvacc -> vllmrt;
+    vllmrt -> limits [style=dashed, color="#AAAAAA"];
+
+    // tensor api -> runtime
+    vsx -> nomanaged [style=dashed, color="#AAAAAA"];
+    vsx -> vacl [label="graph + stream", fontsize=8];
+    vacl -> vace;
+    vace -> elfops [style=dashed, label="load VDSP ELF", fontsize=8];
+    vace -> fusionops [label="built-in + fusion", fontsize=8];
+    vace -> vnnl [style=dashed, label="inferred", fontsize=8];
+    nokernel -> elfops [style=dashed, color="#AAAAAA"];
+    vacl -> vacm;
+    vame -> vacm;
+    vacm -> kmod;
+    vllmrt -> vnnl [style=dashed, color="#AAAAAA"];
+    vllmrt -> kmod;
+    vamp -> vacl [style=dashed, color="#AAAAAA"];
+
+    // collectives
+    vacl -> vccl [style=dashed, color="#AAAAAA"];
+    vllmrt -> vccl [style=dashed, color="#AAAAAA"];
+    vccl -> parallel [style=dashed, color="#AAAAAA"];
+
+    // management
+    vaml -> vasmi;
+    vaml -> dcmgr;
+    vaml -> kmod;
+    cloudnative -> kmod [style=dashed, color="#AAAAAA", label="device plugin", fontsize=8];
+
+    // driver -> hardware
+    kmod -> hw_ai [style=dashed, color="#283593", label="vastai_pci", fontsize=8];
+    kmod -> hw_codec [style=dashed, color="#283593"];
+    kmod -> hw_mem [style=dashed, color="#283593"];
+    hw_ai -> hw_isa [style=dashed, color="#283593"];
+    hw_ai -> hw_mem [color="#283593"];
+    hw_codec -> hw_mem [color="#283593"];
+    elfops -> hw_ai [style=dashed, color="#283593", label="runs on VDSP", fontsize=8];
+    vccl -> hw_ai [style=dashed, color="#283593", label="gather on VDSP", fontsize=8];
+}

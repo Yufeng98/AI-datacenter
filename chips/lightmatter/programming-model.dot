@@ -1,0 +1,169 @@
+digraph lightmatter_stack {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    newrank=true;
+    splines=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== FRAMEWORK INTEGRATION =====================
+    subgraph cluster_framework {
+        label="Framework Integration";
+        style="rounded,dashed";
+        color="#4A90D9";
+        fontcolor="#4A90D9";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        pytorch [label="PyTorch\ncustom dispatch backend\n(Idiom library import)", fillcolor="#D6E4F0"];
+        tensorflow [label="TensorFlow\ncustom op registration\n(Idiom library import)", fillcolor="#D6E4F0"];
+    }
+
+    // ===================== COMPILER / IR =====================
+    subgraph cluster_compiler {
+        label="Compiler / IR";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        idcompile [label="idCompile (Idiom Graph Compiler)\nmatmul → PTC | nonlinear → DCI\nABFP16 quantization\nPhase-voltage encoding\nMulti-blade partitioning\nAnalog noise calibration tables", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== OP LIBRARY =====================
+    subgraph cluster_oplib {
+        label="Op Library";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        photonic_ops [label="Photonic Linear Ops (PTC)\nGEMM / MVM via 128×128 MZI mesh\nBatched matrix-vector products\nConv (via im2col as GEMM)\nTransformer Q/K/V/O projections", fillcolor="#D4EDDA"];
+        electronic_ops [label="Electronic Nonlinear Ops (DCI)\nReLU, GELU, Tanh, Sigmoid\nSoftmax, LayerNorm\nResidual add, element-wise ops", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== RUNTIME =====================
+    subgraph cluster_runtime {
+        label="Runtime";
+        style="rounded,dashed";
+        color="#EA4335";
+        fontcolor="#EA4335";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        idiom_rt [label="Idiom Runtime\nDevice allocation + scheduling\nDAC/ADC transfer orchestration\nMulti-blade synchronization\nOptical phase drift correction\nPeriodic calibration cycles", fillcolor="#F8D7DA"];
+    }
+
+    // ===================== DEBUGGING / PROFILING =====================
+    subgraph cluster_tools {
+        label="Debug / Profile";
+        style="rounded,dashed";
+        color="#D4A017";
+        fontcolor="#D4A017";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        idbug [label="idBug (Debugger)\nInspect activations at\nelectronic-photonic boundary\nPhotonic vs digital reference", fillcolor="#FFF3CD"];
+        idprofiler [label="idProfiler (Profiler)\nPer-layer: PTC compute time\nDAC/ADC conversion time\nWeight-reload time\nData transfer time", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== DRIVER / FIRMWARE =====================
+    subgraph cluster_driver {
+        label="Driver / Firmware";
+        style="rounded,dashed";
+        color="#757575";
+        fontcolor="#757575";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        envise_driver [label="Envise Device Driver\nPCIe kernel driver\nPhase voltage DAC programming\nADC readback management\nOptical source control\nCalibration table management", fillcolor="#E0E0E0"];
+    }
+
+    // ===================== COMMUNICATION =====================
+    subgraph cluster_comm {
+        label="Communication (Passage Interconnect)";
+        style="rounded,dashed";
+        color="#FF6D01";
+        fontcolor="#FF6D01";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        passage_m1000 [label="Passage M1000\n3D Photonic Interposer\n114 Tbps total BW\n256 fiber connections\nSolid-state OCS (ns reconfig)\nAny-surface electro-optical I/O\n4,000+ mm²", fillcolor="#FFE0CC"];
+        passage_l200 [label="Passage L200\n3D Co-Packaged Optics\n32/64 Tbps versions | 112G PAM4\n>200 Tbps total I/O/package\n5–10× vs prior CPO", fillcolor="#FFE0CC"];
+        passage_l20 [label="Passage L20  (NEW 2026)\nNear-Package / On-Board Optics\n6.4 Tbps/dir | 12.8 Tbps aggregate\n32 BiDi fibers @ 200 Gbps/lane\n212.5G PAM4 | 30 W | 802.3dj\nSampling late 2026 — not shipping", fillcolor="#FFD0AA", penwidth=2, color="#FF6D01"];
+        guide_ls [label="Guide 1 / Guide DR  (NEW 2026)\nExternal light-source tier\nGuide 1: 100 mW+/fiber, 16λ (→64)\nGuide DR: OCP NIC 3.0 liquid-cooled LNIC\n64 fibers @ 200 mW | 51.2 Tbps/module\nGuide DR sampling Q4 2026", fillcolor="#FFF3CD", penwidth=2, color="#B8860B"];
+    }
+
+    // ===================== MODULE MANAGEMENT PLANE (NEW 2026) =====================
+    subgraph cluster_mgmt {
+        label="Module Management Plane (new 2026)";
+        style="rounded,dashed";
+        color="#B8860B";
+        fontcolor="#B8860B";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        cmis [label="CMIS Module Management\nGuide 1: CMIS telemetry, active stabilization,\nhyper-local thermal tuning (sub-GHz precision)\nGuide DR: CMIS 5.3 over I2C / I3C + OCP MHS\nFirst standards-based SW surface in the stack\n(no public SDK / driver / API released)", fillcolor="#FFF3CD"];
+    }
+
+    // ===================== HARDWARE =====================
+    subgraph cluster_hw {
+        label="Lightmatter Hardware (Envise Package + Passage)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+        ptc [label="4× Photonic Tensor Core (PTC)\n128×128 MZI mesh (SVD decomposition)\nMatrix-vector product at speed of light\n~1 ns traversal | zero weight load BW\n65.5 TOPS (ABFP16) per package", fillcolor="#283593", fontcolor="white"];
+        dci [label="2× Digital Control Interface (DCI)\n12nm CMOS | DAC + ADC\n512-channel WDM modulator drive\nNonlinear activations + LayerNorm\nPhase calibration control", fillcolor="#283593", fontcolor="white"];
+        mem [label="Memory (per Envise 4S blade)\nMZI weight state: in-mesh (no BW during compute)\nDCI SRAM: inter-layer activation buffer\n1 TB DDR4 (host model weights)\n3 TB NVMe flash | 2× AMD EPYC host\n~3 kW system TDP", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== EDGES =====================
+
+    // Framework → Compiler
+    pytorch -> idcompile;
+    tensorflow -> idcompile;
+
+    // Compiler → Op dispatch
+    idcompile -> photonic_ops [label="matmul subgraphs", fontsize=8];
+    idcompile -> electronic_ops [label="nonlinear ops", fontsize=8];
+
+    // Op → Runtime
+    photonic_ops -> idiom_rt;
+    electronic_ops -> idiom_rt;
+
+    // Runtime → Driver
+    idiom_rt -> envise_driver;
+
+    // Tools annotation
+    idbug -> idiom_rt [style=dashed, label="inspect boundary", fontsize=8, color="#D4A017", fontcolor="#D4A017"];
+    idprofiler -> idiom_rt [style=dashed, label="profile", fontsize=8, color="#D4A017", fontcolor="#D4A017"];
+
+    // Driver → Hardware
+    envise_driver -> dci [label="phase voltage\nDAC programming", fontsize=8, color="#283593"];
+
+    // Hardware internal
+    dci -> ptc [color="white", label="512 WDM optical\nchannels (input)", fontcolor="#283593", fontsize=8];
+    ptc -> dci [color="white", label="photodetector\n→ ADC", fontcolor="#283593", fontsize=8, style=dashed];
+    dci -> mem [color="white", label="activation\nbuffer", fontcolor="#283593", fontsize=8];
+    mem -> dci [color="white", label="weight reload\n(per layer)", fontcolor="#283593", fontsize=8, style=dashed];
+
+    // Communication
+    passage_m1000 -> ptc [style=dashed, color="#FF6D01", label="die complex\nstacked on M1000", fontsize=8, fontcolor="#FF6D01"];
+    passage_l200 -> dci [style=dashed, color="#FF6D01", label="CPO I/O\nfor XPU designs", fontsize=8, fontcolor="#FF6D01"];
+    idiom_rt -> passage_m1000 [style=dashed, label="multi-blade\nactivation xfer", fontsize=8];
+
+    // 2026 interconnect/optics tiers — third-party switch/XPU path, no Idiom involvement
+    passage_l20 -> passage_l200 [style=dashed, color="#FF6D01", label="NPO/OBO bridge tier\n(bridge to ~2028 CPO ramp)", fontsize=8, fontcolor="#FF6D01"];
+    guide_ls -> passage_l20 [color="#B8860B", label="CW laser light", fontsize=8, fontcolor="#B8860B"];
+    guide_ls -> passage_l200 [color="#B8860B", label="CW laser light", fontsize=8, fontcolor="#B8860B"];
+    cmis -> guide_ls [style=dashed, color="#B8860B", label="telemetry + wavelength\ncontrol (host/switch SW)", fontsize=8, fontcolor="#B8860B"];
+}

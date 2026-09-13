@@ -1,0 +1,100 @@
+digraph samsung_aquabolt_pim_hw {
+    rankdir=TB;
+    bgcolor="white";
+    node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, margin="0.25,0.12"];
+    edge [color="#888888", arrowsize=0.7];
+    compound=true;
+    ranksep=0.5;
+    nodesep=0.3;
+
+    // ===================== HBM STACK =====================
+    subgraph cluster_stack {
+        label="HBM2 Stack (8 Dies, JEDEC Compatible)";
+        style="rounded,filled";
+        color="#1A237E";
+        fontcolor="white";
+        fillcolor="#1A237E";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        std_dies [label="Dies 4–7: Standard DRAM\n(4× Aquabolt HBM2 DRAM dies)\nStandard DRAM storage\nNo PIM compute", fillcolor="#283593", fontcolor="white"];
+
+        pim_dies [label="Dies 0–3: PIM-DRAM\n(4× custom PIM-DRAM dies)\n16 pseudo-channels per die\n= 32 FP16 SIMD procs/die\n128 total procs in stack\n~4.92 TB/s internal BW\n~1.2 TFLOPS FP16 peak", fillcolor="#283593", fontcolor="white"];
+
+        logic_die [label="Logic Die (base)\nJEDEC HBM2 controller\nDrop-in replacement interface\nExtended PIM command decoder", fillcolor="#283593", fontcolor="white"];
+
+        tsv [label="TSV + Silicon Interposer\nDie-to-die interconnect\nStandard HBM2 packaging\n16 GB total capacity (unchanged)", fillcolor="#283593", fontcolor="white"];
+    }
+
+    // ===================== PIM PROC DETAIL =====================
+    subgraph cluster_proc {
+        label="PIM Processor Unit (per pseudo-channel, ×128 total)";
+        style="rounded,dashed";
+        color="#7B61FF";
+        fontcolor="#7B61FF";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        proc [label="FP16 SIMD Processor\n2× FP16 multipliers\n2× FP16 adders\n3 register files\nControl unit\n(bank boundary placement)\nAll 128 execute same instruction", fillcolor="#E4DEFF"];
+    }
+
+    // ===================== BANDWIDTH =====================
+    subgraph cluster_bw {
+        label="Bandwidth";
+        style="rounded,dashed";
+        color="#34A853";
+        fontcolor="#34A853";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        bw [label="Internal BW: ~4.92 TB/s (PIM)\nExternal I/O: ~1.23 TB/s\nBW advantage: ~4×\n(all banks activate simultaneously)", fillcolor="#D4EDDA"];
+    }
+
+    // ===================== GEN 2: LPDDR5X-PIM (disclosed 2026) =====================
+    subgraph cluster_lp5x {
+        label="Gen 2: LPDDR5X-PIM (arXiv 2606.00636, 30 May 2026; Hot Chips 2026 talk 25 Aug 2026 — not yet public)";
+        style="rounded,filled";
+        color="#00695C";
+        fontcolor="white";
+        fillcolor="#00695C";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=2;
+
+        lp5x_dram [label="LPDDR5X-9600 Device\nJEDEC JESD209-5C compliant\n4 DRAM channels (all experiments)\nCapacity: not disclosed\nProcess node: not disclosed", fillcolor="#00897B", fontcolor="white"];
+
+        lp5x_banks [label="DRAM Banks\n(Channel / Rank / Bank Group / Bank)\nWeights + scale factors pre-placed\nby offline Data Mapper", fillcolor="#00897B", fontcolor="white"];
+
+        lp5x_pimblock [label="PIM Block — one per DRAM bank (1:1)\nInternal compute units + PIM registers\nIRF (instruction register file)\nSRF (source register file)\nMAC lanes/block: not disclosed\nPeak TFLOPS/TOPS: not disclosed", fillcolor="#00897B", fontcolor="white"];
+
+        lp5x_modes [label="Operating Modes\nSB = Single-Bank (standard DRAM)\nMB = Multi-Bank (parallel PIM)\nTransitions driven by PIM Control", fillcolor="#00897B", fontcolor="white"];
+
+        lp5x_fmt [label="Numeric Formats\nINT: W8A8, W4A4, W8A16, W4A8, W4A16\nFP: W8A8(FP), W8A16(FP)\n(vs. FP16-only in Aquabolt-XL)", fillcolor="#00897B", fontcolor="white"];
+    }
+
+    // ===================== LP5X SIMULATED PERFORMANCE =====================
+    subgraph cluster_lp5x_perf {
+        label="LPDDR5X-PIM performance — Samsung simulation, NOT silicon";
+        style="rounded,dashed";
+        color="#B26500";
+        fontcolor="#B26500";
+        fontname="Helvetica-Bold";
+        fontsize=12;
+        penwidth=1.5;
+        lp5x_perf [label="LP5X-PIM Sim (DRAMSim3 + Ramulator)\nbaseline: non-PIM sequential weight read, 4 channels\nGEMV @ tile dim 4096:\n  6.0x-6.2x (W8A8, W4A4, W8A8 FP)\n  5.7x-5.8x (W8A16, W4A16, W8A16 FP)\nwith 150 ns fence: >5.0x most, low 4.1x (W4A16)\nReshape opt: up to +1.65x for W < 2048\nSimulator open-source status: not confirmed", fillcolor="#FFE8CC"];
+    }
+
+    // ===================== EDGES =====================
+    std_dies -> tsv;
+    pim_dies -> tsv;
+    logic_die -> tsv;
+    pim_dies -> proc [label="bank boundary", fontsize=8, style=dashed];
+    proc -> bw [label="internal BW", fontsize=8];
+
+    lp5x_dram -> lp5x_banks;
+    lp5x_banks -> lp5x_pimblock [label="1 PIM block\nper bank", fontsize=8, style=dashed];
+    lp5x_pimblock -> lp5x_modes;
+    lp5x_pimblock -> lp5x_fmt [style=dashed];
+    lp5x_modes -> lp5x_perf [label="MB-mode GEMV", fontsize=8];
+}

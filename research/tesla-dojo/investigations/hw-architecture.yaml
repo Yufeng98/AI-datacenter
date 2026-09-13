@@ -1,0 +1,255 @@
+chip: tesla-dojo
+document: hw-architecture
+as_of: "2026-08-08"
+primary_source: "Hot Chips 34, August 2022"
+baseline_note: "All D1 / Training Tile / ExaPOD figures below are unchanged since the 2026-04-05 baseline. The 2026-08-08 update is roadmap context only (see roadmap_update_2026_08_08)."
+
+d1_chip:
+  process: "TSMC 7nm"
+  die_size_mm2: 645
+  transistors_B: 50
+  compute_nodes: 354
+  clock_ghz: 2.0
+  tdp_w: 400
+  compute:
+    bf16_tflops: 376
+    cfp8_tflops: 376
+    fp32_tflops: 22
+  on_chip_sram_mb: 440
+  per_node_sram_mb: 1.25
+  isa: "Custom 64-bit scalar + 64-byte SIMD vector; not publicly documented"
+  on_chip_mesh_bw_tbs: 10
+  c2c_serdes_lanes: 576
+  c2c_serdes_speed_gts: 112
+  c2c_aggregate_bw_tbs: 8
+
+training_tile:
+  d1_chips: 25
+  arrangement: "5x5 grid"
+  throughput_pflops_bf16: 9
+  sram_gb: 11
+  tdp_kw: 15
+  aggregate_bw_tbs: 36
+  hbm_bw_tbs: 13
+  host_bw_gbs: 160
+  dip_cards_per_edge: 5
+
+system_tray:
+  tiles: 6
+
+cabinet:
+  system_trays: 2
+  d1_chips: 300
+  compute_nodes: 106200
+
+exapod:
+  cabinets: 10
+  d1_chips: 3000
+  compute_nodes: 1062000
+  throughput_eflops_bf16: 1
+  total_sram_tb: 1.3
+  total_hbm_tb: 13
+
+scale_out_network:
+  protocol: "TTPoE (Tesla Transport Protocol over Ethernet)"
+  fabric: "Commodity Ethernet switches"
+  latency: "microsecond range (one-way)"
+  loss_model: "lossy, hardware retry"
+  nic: "Tesla custom Dumb-NIC, hardware offloaded"
+  open_source_repo: "https://github.com/teslamotors/ttpoe"
+  industry: "UltraEthernet Consortium (UEC)"
+
+project_status:
+  v1_production: "July 2023"
+  team_disbanded: "August 2025"
+  restart_announced: "January 2026"
+  status_as_of: "Dojo 3 program acknowledged (confirmed publicly 2026-01-19/20, restated 2026-04-15); no Dojo 3 hardware disclosed as of 2026-08-08. Tesla's near-term AI silicon is AI5 (Samsung Taylor 2nm) and AI6 (Samsung)."
+
+# ---------------------------------------------------------------------------
+# Roadmap update appended 2026-08-08. No D1-era hardware fact above changed.
+# ---------------------------------------------------------------------------
+roadmap_update_2026_08_08:
+
+  d1_spec_reverification:
+    bf16_cfp8_tflops: 376
+    retained: true
+    rejected_alternative_tflops: 362
+    rationale: "376 is the Hot Chips 34 primary figure and is independently corroborated; the 362 figure appears in a May 2026 secondary survey and is not adopted."
+    confidence: high
+    sources:
+      - "https://hc34.hotchips.org/assets/program/conference/day2/Machine%20Learning/HotChips_tesla_dojo_uarch.pdf"
+      - "https://www.tomshardware.com/tech-industry/semiconductors/custom-ai-asics-examined-from-broadcom-to-mtia"
+
+  dojo3_program:
+    exists: true
+    publicly_confirmed: "2026-01-19/20"
+    confirmed_by:
+      - "Bloomberg, 2026-01-17"
+      - "Teslarati, 2026-01-19 — 'Tesla confirms that work on Dojo 3 has officially resumed'"
+      - "TechCrunch, 2026-01-20"
+      - "Tom's Hardware, 2026-01-20"
+    predates_repo_baseline: true
+    baseline_date: "2026-04-05"
+    restatement:
+      date: "2026-04-15"
+      medium: "X post by Elon Musk"
+      quoted_text: "Congrats to the @Tesla_AI chip design team on taping out AI5! AI6, Dojo3 & other exciting chips in work."
+      is_status_upgrade: false
+      confidence: medium
+      caveat: "Post wording verified only through secondary outlets, not the post itself."
+    engineering_lead:
+      name: "Anant Nivarti"
+      event: "rejoined Tesla to lead silicon engineering, including AI6 and Dojo 3"
+      date: "2026-04-07"
+      confidence: medium
+      sources:
+        - "Data Center Dynamics, 2026-04-07"
+    confidence: high
+    sources:
+      - "https://techcrunch.com/2026/01/20/elon-musk-says-teslas-restarted-dojo3-will-be-for-space-based-ai-compute/"
+      - "https://www.tomshardware.com/tech-industry/supercomputers/elon-musk-restarts-dojo3-space-supercomputer-project-as-ai5-chip-design-gets-in-good-shape-will-be-first-tesla-built-supercomputer-to-feature-all-in-house-hardware-with-no-help-from-nvidia"
+      - "https://www.americanbazaaronline.com/2026/04/16/tesla-ai5-chip-elon-musk-confirms-progress-on-ai6-dojo3-systems/"
+
+  dojo3_architecture:
+    # Every field here is literally undisclosed. Do not populate with estimates.
+    process_node: "not disclosed"
+    die_size_mm2: "not disclosed"
+    transistors: "not disclosed"
+    compute_unit_type: "not disclosed"
+    compute_unit_count: "not disclosed"
+    clock: "not disclosed"
+    precisions: "not disclosed"
+    peak_throughput: "not disclosed"
+    on_chip_sram: "not disclosed"
+    memory_model: "not disclosed — no basis for assuming the D1 no-cache / no-virtual-memory model carries over"
+    off_chip_memory: "not disclosed"
+    scale_up_topology: "not disclosed — unknown whether the 5x5 Training Tile is retained or abandoned"
+    scale_out_fabric: "not disclosed — no statement that TTPoE is reused; no new TTPoE release since Hot Chips 36"
+    tape_out_date: "not disclosed"
+    performance_target: "not disclosed"
+    confidence: "not disclosed (no primary source exists as of 2026-08-08)"
+    sources: []
+
+  dojo3_stated_purpose:
+    current_statement: "space-based / orbital AI compute"
+    quote: "AI7/Dojo3 will be for space-based AI compute"
+    speaker: "Elon Musk"
+    date: "January 2026"
+    medium: "X post"
+    corroboration: >-
+      SpaceX Form S-1 (filed 2026-05-20): Terafab will support "two kinds of chips— one type
+      optimized for terrestrial edge and inference to be used primarily in Tesla's Optimus robots
+      and vehicles, and another type optimized for the space environment to be used in our orbital
+      compute infrastructure."
+    is_design_disclosure: false
+    confidence: high
+    sources:
+      - "https://techcrunch.com/2026/01/20/elon-musk-says-teslas-restarted-dojo3-will-be-for-space-based-ai-compute/"
+      - "https://www.sec.gov/Archives/edgar/data/1181412/000162828026036936/spaceexplorationtechnologi.htm"
+
+  dojo3_superseded_framing:
+    label: "Converged Dojo 3 / AI6 board — SUPERSEDED, do not present as current direction"
+    date: "2025-07-23 (Tesla Q2 2025 earnings call)"
+    verbatim: >-
+      Thinking about Dojo 3 and the AI6 inference chip, it seems like intuitively, we want to try to
+      find convergence there where it's basically the same chip, but it's used where, say, 2 of them
+      in a car or an Optimus and maybe a larger number on a board, kind of 5, 12 on a board or
+      something like that.
+    common_misquotes:
+      - "Bracketed insertions '[converged architecture designs]' and '[server]' are NOT in the transcript"
+      - "Paraphrases often drop Musk's characterization of AI6 as an *inference* chip"
+    interpretation: "Stated intent, not a design disclosure. Superseded by the January 2026 space-compute repositioning. Does not establish that Dojo 3 abandons the wafer-scale Training Tile topology."
+    confidence: high
+    sources:
+      - "https://www.insidermonkey.com/blog/tesla-inc-nasdaqtsla-q2-2025-earnings-call-transcript-1575336/"
+
+  adjacent_tesla_silicon:
+    ai5:
+      tape_out: "2026-04-15"
+      production: "reported in wafer production at Samsung Taylor, TX on 2nm (Electrek, 2026-07-13)"
+      production_caveat: "volume and qualification status unverified"
+      first_deployment_target: "Optimus and Tesla's supercomputer clusters; vehicles ~2027"
+      musk_quote: "AI4 is enough to achieve much better than human safety for FSD"
+      confidence: medium
+      sources:
+        - "Electrek, 2026-07-13"
+        - "https://www.notateslaapp.com/news/3974/musk-says-teslas-ai5-chip-is-done-not-coming-to-vehicles-first"
+        - "https://www.teslarati.com/tesla-finalizes-ai5-chip-design-elon-musk-makes-bold-claim-capability/"
+    ai6:
+      status: "in design"
+      tape_out_target: "December 2026 — Musk: Tesla 'might be able to tape out AI6 in December' (2026-03-19)"
+      workloads: "self-driving/FSD, Optimus, and datacenter — AI6 is NOT the chip that skips vehicles first (that is AI5)"
+      foundry: "Samsung, under the $16.5B agreement announced 2025-07-27/28 (pre-baseline)"
+      confidence: medium-high
+      sources:
+        - "Reuters, 2026-03-19"
+        - "https://www.teslarati.com/elon-musk-teases-expectations-tesla-ai6-self-driving-chip/"
+    megapod_trademark:
+      filing: "USPTO SN 99893717, filed ~2026-06-18"
+      goods: "computer servers, computer hardware for artificial intelligence processing, computer networking hardware, electrical power distribution units, and cooling systems, sold as a unit"
+      note: "Trademark filing only — no product, no chip, no specification disclosed"
+      confidence: medium
+      sources:
+        - "https://www.teslarati.com/tesla-just-trademarked-megapod-heres-what-it-is/"
+
+  terafab:
+    relevance: "Foundry/supply-chain context. No public source ties Terafab or Intel 14A to Dojo 3 specifically."
+    announced: "March 2026 (SpaceX-Tesla collaboration); Intel joined April 2026"
+    announcement_source_quote: "We announced a collaboration with Tesla in March 2026 to build the Terafab initiative with a long-term goal of producing one terawatt of compute hardware each year."
+    process: "Intel 14A — disclosed by Musk 2026-04-22/23"
+    site: "New greenfield SpaceX-led site, Grimes County near College Station, TX (confirmed 2026-08-06). NOT an existing SpaceX campus. A separate prototype 'Advanced Technology Fabrication' facility is at Tesla's Giga Texas."
+    capital_initial_usd_b: 16.8
+    capital_caveat: "$16.8B is the INITIAL capital investment announced 2026-08-06. SpaceX's own May 2026 Texas filings put phase one at ~$55B and total build-out at up to ~$119B."
+    manufacturing_space_sqft: "up to ~100 million"
+    tesla_commitment: "framework agreement only"
+    equipment: "ASML CEO Christophe Fouquet confirmed direct talks with Musk (2026-05-21, 2026-06-17); ASML CFO said guidance includes Terafab (Reuters, 2026-07-15)"
+    s1_mentions_dojo_ai5_ai6_or_14a: false
+    confidence: high
+    sources:
+      - "https://www.sec.gov/Archives/edgar/data/1181412/000162828026036936/spaceexplorationtechnologi.htm"
+      - "https://www.tomshardware.com/tech-industry/semiconductors/terafab-starts-to-take-shape-100-million-square-feet-of-manufacturing-space-and-usd16-8b-initial-capital-investment"
+      - "Reuters, 2026-04-22 (Intel 14A); Reuters, 2026-08-06 (site and $16.8B)"
+      - "https://en.wikipedia.org/wiki/Terafab"
+
+  terafab_risk_verbatim:
+    filing: "SpaceX Form S-1, CIK 0001181412, accession 0001628280-26-036936, filed 2026-05-20"
+    quotes:
+      - "While we expect to construct Terafab to address such supply constraints, Terafab may not be successful, in which case we may not have other sources of sufficient AI chips to meet our orbital AI compute demands."
+      - "While we have a framework agreement with Tesla, neither Tesla nor Intel are obligated to remain a part of the project, and we may not enter into any such definitive agreements."
+      - "Any specific projects undertaken pursuant to this framework will be subject to separate negotiations and agreements ... and have not yet been determined."
+    confidence: high
+    sources:
+      - "https://www.sec.gov/Archives/edgar/data/1181412/000162828026036936/spaceexplorationtechnologi.htm"
+
+  negative_findings:
+    hot_chips_38:
+      program_dates: "2026-08-23 to 2026-08-25"
+      tesla_or_dojo_talk: false
+      checked: "2026-08-08"
+      note: "Hot Chips 38 is in the future as of this writing; no slides or abstracts exist for any listed talk."
+      confidence: high
+      sources:
+        - "https://hotchips.org/advance-program/"
+    no_dojo3_tape_out: true
+    no_d2_or_d3_silicon_disclosure: true
+    no_new_ttpoe_release: true
+    methodology_note: "A publisher tag page showing no recent items is not valid evidence of absence and was not relied on."
+
+  pre_baseline_context:
+    shutdown_quote:
+      speaker: "Elon Musk"
+      date: "August 2025"
+      text: "once it became clear that all paths converged to AI6, I had to shut down Dojo and make some tough personnel choices"
+      confidence: high
+    peter_bannon_departure:
+      date: "2025-08-07 (reported)"
+      framing: "departed / team disbanded"
+      retired_framing_confirmed: false
+      confidence: medium
+      sources:
+        - "Bloomberg, 2025-08-07"
+        - "Reuters, 2025-08-07"
+    densityai:
+      detail: "~20 Dojo engineers left to found DensityAI"
+      date: "2025-08-07 (reported)"
+      confidence: medium

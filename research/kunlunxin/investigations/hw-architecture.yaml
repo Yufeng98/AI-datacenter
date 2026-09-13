@@ -1,0 +1,295 @@
+chip: kunlunxin
+investigation: hw-architecture
+as_of: "2026-04-05"
+confidence: medium-high
+sources:
+  - url: https://ieeexplore.ieee.org/document/9366056
+    title: "Kunlun: A 14nm High-Performance AI Processor for Diversified Workloads (Hot Chips 2020)"
+    type: conference_paper
+  - url: https://hc32.hotchips.org/assets/program/conference/day2/HotChips2020_ML_Inference_Baidu_Kunlun_v5.pdf
+    title: Baidu Kunlun Hot Chips 2020 Slides
+    type: conference_slides
+  - url: https://www.tomshardware.com/news/baidu-unveils-kunlun-ii-processor-for-ai
+    title: Baidu Unveils Kunlun II AI Chip — Tom's Hardware
+    type: news
+  - url: https://www.digitimes.com/news/a20250208PD210/baidu-ai-chip-chips-2024-production.html
+    title: Baidu expands AI compute with 3rd-gen Kunlun 10,000-GPU cluster — Digitimes
+    type: news
+  - url: https://www.trendforce.com/news/2025/11/13/news-baidu-rolls-out-kunlun-roadmap-m100-m300-ai-chips-arrive-2026-2027/
+    title: Baidu Rolls Out Kunlun Roadmap, M100 & M300 AI Chips Arrive 2026-2027
+    type: news
+  - url: https://www.kunlunxin.com/product/2873.html
+    title: 昆仑芯2代AI芯片 — 官网
+    type: product_page
+  - url: https://www.theriseunion.com/blog/HAMi-kunlunxin-p800-support.html
+    title: Kunlunxin P800 Virtualization Guide
+    type: technical_guide
+
+hardware:
+  execution_model: multi_core_simd_plus_systolic
+  scheduling: runtime_dispatched
+
+  compute_engines:
+    sdnn:
+      full_name: Spatial DNN accelerator
+      description: Systolic-array-style MAC array; optimized for GEMM, Conv, Deconv, elementwise
+    xvme:
+      full_name: XPU Vector Math Engine
+      description: General-purpose vector unit for activations, normalizations, reductions
+    cluster_based: true
+    spmd_execution: true
+
+  chips:
+    kunlun1_xpu_k:
+      generation: 1
+      released: 2019
+      process: Samsung 14nm
+      peak_int8_tops: 256
+      peak_fp16_tflops: 64
+      memory_type: HBM2
+      memory_gb: 16
+      memory_bw_gbs: 512
+      tdp_w: 160
+      package: Samsung I-Cube 2.5D (T variant)
+    kunlun2_r200_r300_xpu_r:
+      generation: 2
+      released: "2021-2022"
+      process: Samsung/TSMC 7nm
+      peak_int8_tops: 256
+      peak_fp16_tflops: 128
+      memory_type: GDDR6
+      memory_gb: 32
+      memory_bw_gbs: 512
+      tdp_w: ~250
+    p800_xpu_p:
+      generation: 3
+      released: "2024-2025"
+      process: 7nm
+      peak_fp16_tflops: 345
+      memory_type: HBM3
+      memory_gb: 96
+      memory_bw_tbs: ~1.6
+      tdp_w: ~350
+      key_feature: Single 8-card server runs DeepSeek V3/R1 671B full-power
+      cluster_deployed: 30000
+    m100:
+      generation: 4
+      target: large_scale_inference
+      status: announced_2025
+      launch: 2026
+    m300:
+      generation: 4
+      target: training_and_inference
+      status: announced_2025
+      launch: 2027
+
+  memory_hierarchy:
+    l1_sram:
+      description: Cluster-local SRAM scratchpad
+      management: software_managed
+    l2_sram:
+      description: Chip-shared SRAM
+      management: compiler_managed
+    off_chip:
+      gen1: HBM2 16GB 512 GB/s
+      gen2: GDDR6 32GB 512 GB/s
+      gen3: HBM3 96GB ~1.6 TB/s
+
+  precision_support:
+    fp32: true
+    fp16: true
+    bf16: true  # Gen 2+ confirmed
+    int8: true
+    int4: partial  # Gen 3+
+    fp8: planned
+
+  scale_up:
+    gen2:
+      interface: PCIe Gen4 x16
+      cards_per_server: 8
+      dedicated_fabric: false
+    gen3_p800:
+      xlink_bw_gbs: 200
+      cards_per_server: 8
+      tianchi_256_supernode:
+        cards: 256
+        availability: H1_2026   # SUPERSEDED — see updates[2026-08-08].scale_up_ladder
+        superseded_by: "updates.2026-08-08.scale_up_ladder.tianchi_256"
+      tianchi_512_supernode:
+        cards: 512
+        use_case: trillion_parameter_training
+        availability: H2_2026   # still the stated target; not shipped as of 2026-08-08
+        superseded_by: "updates.2026-08-08.scale_up_ladder.tianchi_512"
+
+  package:
+    kunlun1: Samsung I-Cube 2.5D HBM2 interposer
+    kunlun2: Standard BGA with discrete GDDR6
+    p800: Advanced package with integrated HBM3 stacks
+
+key_differentiators:
+  - P800 is first domestic chip running DeepSeek V3/R1 671B on single 8-card server
+  - 30,000-P800 cluster deployed by Baidu 2025 for LLM training
+  - HBM3 96GB capacity (2025 largest among China domestic chips)
+  - Tianchi 256/512 SuperNode roadmap for trillion-parameter scale
+  - IPO filed Hong Kong January 2026; China Mobile 10B RMB procurement 2025
+
+# =====================================================================
+# Dated update sections. Newest last. Prior content above is preserved
+# as the historical record; `superseded_by` pointers mark what moved.
+# =====================================================================
+updates:
+  - as_of: "2026-08-08"
+    window: "2026-04-01 .. 2026-08-08"
+    baseline: "2026-04-05"
+    method_caveat: >-
+      WebSearch quota exhausted before this pass; discovery via WebFetch against DuckDuckGo HTML
+      plus direct primary-source fetches. kunlunxin.com returns HTTP 403 to automated retrieval, so
+      NO vendor-primary spec page was obtainable. Every supernode performance number below is
+      Chinese-media transcription of Baidu executive remarks, not a retrieved vendor spec sheet.
+
+    scale_up_ladder:
+      confidence: medium          # vendor claims relayed by Chinese media; no independent benchmark
+      note: >-
+        Corrects the baseline, which recorded only "8 cards/server" plus two planned Tianchi fabrics.
+      sources:
+        - https://news.qq.com/rain/a/20260513A0688800
+        - https://news.qq.com/rain/a/20260722A04PTE00
+        - https://finance.sina.cn/tech/2026-07-22/detail-iniistty7951726.d.html
+        - https://finance.sina.com.cn/tech/2025-11-13/doc-infxfnye5573223.shtml
+      tiers:
+        conventional_server:
+          cards: 8
+          fabric: XLINK 200 GB/s per port
+          status: shipping
+        kunlun_super_node_cabinet:
+          cards: [32, 64]
+          launched: "2025-04"       # PRE-BASELINE — missed at first pass, not a 2026 development
+          in_window_event: "re-displayed at WAIC 2026 (2026-07-17..07-20)"
+          vendor_positioning: "国内率先实现量产交付的超节点产品之一 (among the first domestic supernodes in volume delivery)"
+          vendor_claims:
+            inter_card_bandwidth_vs_8card_server: 8x
+            single_card_inference_efficiency: 13x
+            moe_training_performance: "5-10x (a RANGE — '10x training' as a point value is overstated)"
+            cabinet_extensible_to_cards: 512
+        tianchi_256:
+          cards: 256
+          cards_type: P800 XPU
+          form_factor: single cabinet
+          milestone_lit_up: "2026-04"     # 点亮 = powered on / brought online, NOT "completed testing"
+          milestone_on_sale_stated: "2026-06"   # 正式上市 — forward-looking statement made 2026-05-13
+          stated_by: "Shen Dou 沈抖, Baidu EVP / president Baidu AI Cloud, at Baidu Create 2026 (2026-05-13, Shanghai)"
+          status_2026_08_08: "announced generally available June 2026; volume shipping NOT independently confirmed"
+          contradicting_evidence: >-
+            Tencent News WAIC wrap-up dated 2026-07-22 still describes both Tianchi 256 and 512 as
+            即将全面上市 (about to become fully available). No customer, deployment or unit volume found.
+          vendor_claims_new_2026_05_13:
+            throughput_vs_prior_gen: "+25%"
+            inference_efficiency: "+50%"
+            messaging_inconsistency: "WAIC-period coverage (2026-07-22) instead says 整体性能提升50% (overall performance +50%)"
+          vendor_claims_predating_baseline_2025_11_13:
+            total_inter_card_bandwidth: 4x
+            single_card_token_throughput_llm_inference: 3.5x
+            note: "Baidu World 2025 announcement figures — do NOT present as an April/June 2026 result"
+          adapted_models: [Wenxin 文心, DeepSeek, GLM, MiniMax]
+        tianchi_512:
+          cards: 512
+          announced: "2025-11-13"
+          target: H2_2026
+          shipped: false
+          vendor_claim: "trillion-parameter model training within a single supernode"
+          inter_card_bandwidth_vs_tianchi_256: not disclosed   # the circulating "~2x" is UNCONFIRMED — do not populate
+
+    xpu_link_fabric:
+      confidence: medium          # vendor claims, WAIC 2026 media coverage; no measurement published
+      disclosed: "2026-07-22 (WAIC 2026 coverage)"
+      sources:
+        - https://news.qq.com/rain/a/20260722A04PTE00
+        - https://finance.sina.cn/tech/2026-07-22/detail-iniistty7951726.d.html
+      facts:
+        protocol: XPU-Link (Baidu self-developed)
+        switching: programmable
+        cabling: self-designed copper
+        cooling: liquid-cooling CDU (self-designed)
+        claimed_measured_bandwidth_efficiency: "77% (vendor claim)"
+        roadmap_intent: "thousand-card and 4,000-card supernodes on the Kunlun M-series — NO timeline given"
+      related_vendor_claim:
+        wenxin_5_1_training_efficiency: "97% effective training efficiency on P800 ten-thousand-card clusters (Create 2026)"
+
+    m100_gen4:
+      confidence: high            # for the WAIC physical-appearance event itself
+      sources:
+        - https://news.qq.com/rain/a/20260720A03JPT00
+        - https://stock.10jqka.com.cn/20260717/c678258367.shtml
+        - https://xueqiu.com/2156146731/401079693
+      facts:
+        announced: "2025-11-13 (Baidu World 2025) — pre-baseline"
+        first_physical_public_appearance: "WAIC 2026, Shanghai, 2026-07-17 .. 2026-07-20"
+        official_materials_released: false     # 芯智讯: no official introduction materials at the booth
+        carrier_boards: "正在制作中 (still being made) as of 2026-07-20"
+        architecture: "self-developed XPU architecture, inference-optimised (vendor framing)"
+        supply_chain: "fully domestic (vendor framing)"
+        process_node: not disclosed
+        memory_type: not disclosed
+        memory_capacity: not disclosed
+        memory_bandwidth: not disclosed
+        peak_tflops: not disclosed
+        peak_tops: not disclosed
+        tdp: not disclosed
+      low_confidence_items:
+        - claim: "HBM capacity somewhat LOWER than NVIDIA H20; positioned against H20 on inference cost-per-token"
+          confidence: low
+          basis: "unattributed WAIC booth-staff commentary (芯智讯 report); the ONLY HBM-related statement that exists for M100"
+        - claim: "entered commercial ramp (商业放量期) in January 2026"
+          confidence: low
+          basis: "Baidu Baike (user-editable) + secondary Chinese media"
+          tension: "directly conflicts with 2026-07-20 show-floor reporting that carrier boards were still in development"
+          sources:
+            - https://baike.baidu.com/item/%E6%98%86%E4%BB%91%E8%8A%AFM100/66989616
+
+    m300_gen4:
+      confidence: medium
+      sources:
+        - https://www.datacenterdynamics.com/en/news/baidu-launches-kunlun-m100-and-m300-ai-chips/
+      facts:
+        target: training + multimodal
+        timing: early 2027
+        change_in_window: none
+
+    corporate_hk_ipo:
+      confidence: low-medium      # valuation/ownership figures are press leaks, not filed numbers
+      sources:
+        - https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0102/2026010200013.pdf
+        - https://ir.baidu.com/news-releases/news-release-details/baidu-announces-proposed-spin-and-separate-listing-kunlunxin/
+        - https://www.reuters.com/world/asia-pacific/baidus-ai-chip-unit-kunlunxin-targets-50-billion-hong-kong-ipo-information-2026-06-28/
+        - https://www.cnbc.com/2026/06/29/baidu-kunlunxin-hong-kong-ipo.html
+      filed_facts:
+        form_a1_confidential_submission: "2026-01-01"
+        baidu_spinoff_announcement: "2026-01-02"
+        hkexnews_doc: "2026010200013"
+        confidence: high
+      press_reported_only:
+        target_valuation_usd: "~50 billion (Reuters 2026-06-28, citing The Information)"
+        expected_listing: "around Q3 2026"
+        revenue_2025: "~RMB 3.5bn / ~USD 500M, at breakeven"
+        baidu_retained_stake: "~58%"
+        volatility_note: "at least one report notes the target rose from ~USD 14.7bn cited roughly two weeks earlier"
+        listed_as_of_2026_08_08: false
+        label_required: "press-reported target — NOT a filed figure"
+
+    not_confirmed_do_not_publish:
+      - "Tianchi 512 '~2x total inter-card bandwidth vs Tianchi 256' — found in no retrieved source"
+      - "Any M100 process node, HBM capacity, memory bandwidth, TFLOPS/TOPS or TDP"
+      - "'Tianchi 256 completed testing April 2026' — the statement was 点亮 (lit up / powered on)"
+      - "'Tianchi 256 reached market June 2026' as observed fact — it was a forward-looking statement made 2026-05-13"
+      - "'32/64-card supernode is a 2026 development' — it launched April 2025"
+      - "'10x training gain' for the 32/64-card supernode as a point value — sources say 5-10x"
+      - "USD 50B valuation as a filed or confirmed figure — it is a press leak (Reuters citing The Information)"
+      - "vLLM-Kunlun dev branch 'v0.25.1-dev' — unreliable; docs site says v0.15.1-dev; cite no dev version"
+
+    searched_and_absent:
+      confidence: high            # exhaustive search performed; record as absent, not as negative evidence
+      items:
+        - "No MLPerf Training v5.x or Inference v6.x submission by Kunlunxin or Baidu XPU"
+        - "No Hot Chips 2026, ISCA 2026 or ISSCC 2026 paper or talk on Kunlunxin (Hot Chips 38 runs 2026-08-23..08-25; no Kunlunxin session on program)"
+        - "No new public XRE / XTDK / XDNN / XTCL release notes in the window"
+        - "No published M100 specification of any kind"

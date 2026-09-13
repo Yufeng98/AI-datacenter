@@ -1,0 +1,195 @@
+chip: alibaba-t-head
+artifact: research/alibaba-t-head/investigations/software-stack.md
+investigated: "2026-04-05"
+status: completed
+
+stacks:
+  hgai_sdk:
+    target: Hanguang 800 NPU
+    access: Alibaba Cloud only (no public distribution)
+    frontend_frameworks: [TensorFlow, MXNet, Caffe, ONNX]
+    pipeline:
+      - Graph IR Conversion
+      - INT8 Quantization + sparse compression
+      - NPU Compilation (TE/PE/ME mapping, SRAM tiling)
+      - Hanguang Runtime (HGRT)
+    monitoring: NPUSMI
+    open_source: false
+
+  zhenwu_sw:
+    target: Zhenwu 810E PPU
+    access: Alibaba Cloud deployment
+    frontend_frameworks: [PyTorch, ONNX, TensorFlow]
+    compiler: proprietary (MLIR-based, inferred)
+    communication: ICN (7 links, 700 GB/s)
+    llm_optimized: [Qwen3, DeepSeek V3]
+    known_gaps: "operator coverage in complex RL workloads"
+    open_source: false
+
+  xuantie_toolchain:
+    target: Xuantie RISC-V CPUs
+    access: public open-source
+    repos:
+      - name: xuantie-gnu-toolchain
+        url: https://github.com/T-head-Semi/xuantie-gnu-toolchain
+        description: GCC + Binutils for Xuantie RISC-V
+      - name: newlib
+        url: https://github.com/T-head-Semi/newlib
+      - name: buildroot
+        url: https://github.com/T-head-Semi/buildroot
+      - name: riscv-aosp
+        url: https://github.com/T-head-Semi/riscv-aosp
+      - name: openc906
+        url: https://github.com/XUANTIE-RV/openc906
+    license: Apache 2.0
+    linux_support: true
+    android_support: true
+    ai_inference_c950: native LLM support (Qwen3, DeepSeek V3)
+
+maturity:
+  hanguang_800:
+    framework_frontend: "TF/MXNet/Caffe/ONNX"
+    compiler: proprietary
+    runtime: cloud-only
+    open_source: false
+    ecosystem: low
+  zhenwu_810e:
+    framework_frontend: "PyTorch/ONNX/TF"
+    compiler: proprietary
+    runtime: cloud-deployed
+    open_source: false
+    ecosystem: medium
+  xuantie_cpu:
+    framework_frontend: standard
+    compiler: GCC/LLVM upstream
+    runtime: standard Linux
+    open_source: true
+    ecosystem: medium-high
+
+key_findings:
+  - "HGAI SDK: proprietary, cloud-only, supports TF/MXNet/Caffe/ONNX → Hanguang 800"
+  - "Zhenwu 810E stack: PyTorch+ONNX frontend, proprietary compiler, no public SDK"
+  - "Xuantie toolchain: extensive open-source (Apache 2.0), GCC+binutils+RTL"
+  - "C950 integrates AI engine natively — no separate NPU SDK for LLM inference"
+  - "No CUDA equivalent; entirely proprietary inference APIs for cloud use"
+  - "Qwen LLM series as primary optimization target for Zhenwu stack"
+
+# ============================================================================
+# Investigation update — 2026-08-08 (window: 2026-04-05 baseline -> 2026-08-08)
+# Change class: major. The "no public SDK / fully proprietary" baseline is
+# superseded by the SAIL announcement, subject to the openness caveat below.
+# ============================================================================
+update_2026_08_08:
+  investigated: "2026-08-08"
+  status: completed
+  change_class: major
+
+  sail_stack:
+    name: SAIL
+    target: Zhenwu accelerator line
+    announced: "2026-07-18"
+    venue: WAIC Shanghai
+    announcement_type: open-sourcing of the full software stack
+    confidence: confirmed (that the announcement was made)
+    sources:
+      - https://www.t-head.cn/news/newsDetail?id=189
+      - https://www.scmp.com/tech/tech-war/article/3361048/alibaba-targets-nvidias-dominant-software-ecosystem-open-source-ai-stack
+      - https://thenextweb.com/news/alibaba-zhenwu-m890-t-head-china-ai-chip-nvidia
+      - https://www.nationpress.com/sciencetech/alibaba-t-head-open-sources-ai-chip-stack
+
+    openness:
+      public_git_repository_url: not confirmed
+      license: not confirmed
+      distribution: "T-Head developer community (not a GitHub organisation)"
+      assessment: "'open source' is vendor-asserted availability, NOT a verified public repo"
+      corollary: "The Xuantie RISC-V repos (Apache 2.0) remain the only confirmed-public T-Head code"
+      confidence: not_confirmed
+      sources:
+        - https://www.t-head.cn/news/newsDetail?id=189
+        - https://happyrock.cloud/blog/2026-07-18_t-head_sail_zhenwu_ai_chip_software_stack_opensource_deep_dive_en/
+
+    framework_compatibility:
+      claim: "260+ mainstream training and inference frameworks"
+      named: [PyTorch, TensorFlow, vLLM, SGLang]
+      confidence: vendor_claim
+      note: not independently benchmarked
+      sources:
+        - https://www.scmp.com/tech/tech-war/article/3361048/alibaba-targets-nvidias-dominant-software-ecosystem-open-source-ai-stack
+        - https://www.nationpress.com/sciencetech/alibaba-t-head-open-sources-ai-chip-stack
+
+    cuda_migration:
+      primary_claim: "fewer than seven days"
+      primary_claim_standing: "vendor statement, reported as such by SCMP"
+      alternative_claim: "migrate without modifying existing code"
+      alternative_claim_source: one technical deep-dive
+      reconciliation: "the two claims are not equivalent and have not been reconciled; no independent benchmark exists"
+      confidence: vendor_claim (contested wording)
+      sources:
+        - https://www.scmp.com/tech/tech-war/article/3361048/alibaba-targets-nvidias-dominant-software-ecosystem-open-source-ai-stack
+        - https://happyrock.cloud/blog/2026-07-18_t-head_sail_zhenwu_ai_chip_software_stack_opensource_deep_dive_en/
+
+    layer_decomposition:
+      settled: false
+      five_layer_description: [kernel drivers, compiler, high-performance operator + communication libraries, SDK/toolchain, performance-analysis/debug tools]
+      three_layer_description: [interface, SDK, OS]
+      note: "several outlets report five layers; at least one technical deep-dive reports three. Neither is asserted as fact."
+      confidence: contested
+      sources:
+        - https://www.nationpress.com/sciencetech/alibaba-t-head-open-sources-ai-chip-stack
+        - https://happyrock.cloud/blog/2026-07-18_t-head_sail_zhenwu_ai_chip_software_stack_opensource_deep_dive_en/
+        - https://developer.aliyun.com/article/1749891
+
+    os_integration:
+      kernel: OpenAnolis Anolis Cloud Kernel (ANCK)
+      detail: native driver adaptation
+      confidence: reported
+      sources:
+        - https://happyrock.cloud/blog/2026-07-18_t-head_sail_zhenwu_ai_chip_software_stack_opensource_deep_dive_en/
+        - https://developer.aliyun.com/article/1749891
+
+    not_disclosed:
+      - SAIL repository URL, license, version, release cadence
+      - compiler IR, pass pipeline, internal compiler name
+      - operator library coverage, op list, kernel authoring interface
+      - communication library API, collective coverage, NCCL-equivalence
+      - profiling/debug tool names and capabilities
+      - whether SAIL targets the M890 only or also the 810E and earlier parts
+      - any FP4 programming interface, despite the M890 hardware FP4 claim
+
+  serving_platform:
+    name: Alibaba Bailian model service platform
+    role: "serves the Panjiu AL128 supernode (128 accelerators)"
+    significance: "the only availability Alibaba asserts for the M890 generation; the chip itself carries no GA or mass-production claim"
+    confidence: confirmed
+    sources:
+      - https://www.alibabagroup.com/en-US/document-1994119844504535040
+
+  superseded_baseline_statements:
+    - statement: "No public SDK exists for either chip; access is exclusively through Alibaba Cloud's Model Studio API"
+      disposition: superseded by the SAIL announcement, subject to the openness caveat
+    - statement: "T-Head's compiler stack is fully proprietary"
+      disposition: superseded — SAIL is announced to include a compiler layer; IR and internal name remain not disclosed
+    - statement: "Both Hanguang and Zhenwu use proprietary closed-source PCIe/ICN drivers. Not open-sourced."
+      disposition: partially superseded for Zhenwu (SAIL kernel-driver layer with ANCK adaptation); Hanguang unchanged
+
+  refuted_or_withheld:
+    - claim: "SAIL is a five-layer stack (stated as fact)"
+      disposition: overstated
+      reason: "layer count is inconsistent across coverage; a technical deep-dive describes three layers"
+    - claim: "SAIL is available as a public open-source repository"
+      disposition: not_confirmed
+      reason: "no Git URL and no license could be confirmed from any retrieved source"
+
+  not_found_in_window:
+    - "No MLPerf submission using SAIL or any T-Head part"
+    - "No T-Head software presentation confirmed at ISCA 2026 or ISSCC 2026"
+    - "Hot Chips 38 runs 2026-08-23--25, after this investigation date; no T-Head talk confirmed and no content from that conference exists yet"
+    - "No change to the Xuantie GNU toolchain, OpenC906/OpenC910 RTL, or the C950 native-inference story"
+
+  key_findings:
+    - "SAIL announced open-sourced 2026-07-18 at WAIC Shanghai — first break in the closed Zhenwu software story, but no public repo URL or license could be confirmed"
+    - "Vendor claims 260+ frameworks (PyTorch, TensorFlow, vLLM, SGLang) and CUDA migration in '<7 days'; neither is independently benchmarked"
+    - "SAIL layer count is NOT settled: five-layer vs three-layer descriptions both circulate"
+    - "Native driver adaptation to the OpenAnolis Anolis Cloud Kernel (ANCK)"
+    - "Xuantie RISC-V repos remain the only confirmed-public T-Head code"
+    - "Bailian is the serving platform for the Panjiu AL128 supernode — the only asserted availability for the M890 generation"

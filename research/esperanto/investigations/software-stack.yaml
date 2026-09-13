@@ -1,0 +1,198 @@
+chip: esperanto
+resource: software-stack
+as_of: "2026-08-08"
+baseline_as_of: "2026-04-05"   # ET-SoC-1 software-stack facts below are unchanged from this baseline
+confidence: confirmed
+sources:
+  - url: "https://www.esperanto.ai/technology/"
+    title: "Esperanto Technology Page"
+    type: documentation
+  - url: "https://www.esperanto.ai/News/esperanto-technologies-launches-general-purpose-sdk/"
+    title: "SDK Launch Press Release (May 2023)"
+    type: press_release
+  - url: "https://www.esperanto.ai/blog/compiling-and-executing-small-language-models-with-onnxruntime-2/"
+    title: "Blog: Compiling SLMs with ONNXRuntime"
+    type: blog
+  - url: "https://medium.com/@EsperantoTech/adapting-whisper-models-to-et-soc-1-architecture-and-exporting-them-to-onnx-019de6a97921"
+    title: "Blog: Adapting Whisper to ET-SoC-1"
+    type: blog
+
+software_layers:
+  framework_integration:
+    - name: "PyTorch (via ONNX export)"
+      role: "Model training; export via torch.onnx.export()"
+      confidence: confirmed
+    - name: "TensorFlow (via tf2onnx → ONNX)"
+      role: "Alternative framework entry"
+      confidence: confirmed
+    - name: "ONNX (native first-class)"
+      role: "Primary model interchange format"
+      confidence: confirmed
+    - name: "ONNXRuntime Custom Execution Provider"
+      role: "Standard ONNX API; dispatches to ET-SoC-1 hardware"
+      confidence: confirmed
+
+  compiler_ir:
+    - name: "Meta Glow (open source)"
+      role: "Graph-level ML compiler; ONNX → RISC-V code"
+      url: "https://github.com/pytorch/glow"
+      confidence: confirmed
+    - name: "LLVM RISC-V backend"
+      role: "RISC-V code generation; extended for ET-Minion vector/tensor intrinsics"
+      confidence: confirmed
+    - name: "Primo AI/ML SDK"
+      role: "Wrapper SDK: model compilation, profiling, deployment to ET-SoC-1"
+      confidence: confirmed
+
+  op_library:
+    - name: "Not applicable — Glow compiler handles all op fusion"
+      role: "No separate cuDNN/MIOpen equivalent"
+      confidence: confirmed
+
+  kernel_library:
+    - name: "General Purpose HPC SDK (C/C++ for ET-Minion cores)"
+      role: "OpenMP parallelism; RISC-V vector intrinsics; math library"
+      confidence: confirmed
+      launched: "May 2023"
+
+  runtime:
+    - name: "ONNXRuntime ET-SoC-1 EP"
+      role: "Standard ONNXRuntime API; handles chip dispatch"
+      confidence: confirmed
+    - name: "Native RISC-V runtime"
+      role: "ET-Minion init, SRAM allocation, PCIe DMA, result collection"
+      confidence: confirmed
+    - name: "Linux on ET-Maxion (4 OoO cores)"
+      role: "OS; manages ET-Minion pool; enables standalone server mode"
+      confidence: confirmed
+
+  driver_firmware:
+    - name: "PCIe Linux kernel module"
+      role: "BAR mapping, DMA, interrupt handling"
+      confidence: confirmed
+    - name: "ET-Maxion Linux OS (no separate firmware RM)"
+      role: "Resource management; ET-Minion loader"
+      confidence: confirmed
+
+  communication:
+    - name: "Shared on-chip SRAM"
+      role: "Intra-chip ET-Minion coordination"
+      confidence: confirmed
+    - name: "Host PCIe (multi-chip on Glacier Point v2)"
+      role: "Chip-to-chip coordination via host; no dedicated fabric"
+      confidence: inferred
+    - name: "No collective library (no NCCL equivalent)"
+      role: "Multi-chip parallelism handled at Glow compiler graph-partition layer"
+      confidence: confirmed
+
+  isa_assembler:
+    - name: "RISC-V RV64GCV (base open standard)"
+      role: "Fully accessible; standard GCC/LLVM assembler"
+      confidence: confirmed
+    - name: "Esperanto custom vector/tensor ISA extensions"
+      role: "ET-Minion tensor instructions (32K ops/instruction); transcendental unit"
+      confidence: confirmed
+    - name: "No virtual ISA needed (RISC-V IS the virtual ISA)"
+      role: "RISC-V is portable; no PTX-equivalent abstraction required"
+      confidence: confirmed
+
+post_acquisition:
+  acquirer: "Ainekko (self-branded AiNEKKO; nekko.ai, ainekko.io)"
+  date: "2025-11-19"          # CORRECTED 2026-08-08 from "October 2025"
+  rtl_license: "Apache 2.0 (verbatim, core-et/LICENSE) — see license_discrepancy below"
+  software_transferred: true
+  platform: "Ainekko 'AI Foundry' — launched 2025-10-22, a SEPARATE event from the Esperanto acquisition"
+  next_silicon: "16nm tapeout in progress with integrated MRAM"   # SUPERSEDES "8 Esperanto cores + MRAM from Veevx startup"
+  superseded_values_2026_08_08:
+    date: "October 2025"
+    next_silicon: "8 Esperanto cores + MRAM from Veevx startup"
+
+# ============================================================
+# Appended 2026-08-08 — source release, license, governance
+# ============================================================
+
+source_release_2026:
+  repos:
+    - url: "https://github.com/openhwgroup/core-et"
+      created: "2026-04-20"
+      last_push: "2026-05-07"
+    - url: "https://github.com/openhwgroup/core-et-erbium"
+      created: "2026-04-20"
+      last_push: "2026-06-23"
+      size_mb: 4.9
+      stars: 3
+  host: "OpenHW Foundation GitHub organization (NOT Ainekko's own GitHub)"
+  not_the_code_host: "github.com/ainekko — unrelated personal User account, created 2023-08-15, 4 public repos, no company/website set"
+  what_it_is: >
+    A re-translation of the acquired IP into "clean SystemVerilog", self-described as an Ainekko project
+    for collecting hardware IP in a form that can be translated, verified, documented, and integrated by
+    AGENTIC HARDWARE-DEVELOPMENT WORKFLOWS. The original is kept on a separate branch. This is NOT
+    Esperanto's production ET-SoC-1 RTL; Esperanto lineage appears only indirectly, e.g.
+    docs/minion_vpu_standalone_plan.md referencing the "real-VPU Minion path".
+  et_soc_1_named_in_press_releases: false
+  confidence: confirmed
+  sources:
+    - "https://github.com/openhwgroup/core-et"
+    - "https://api.github.com/orgs/openhwgroup/repos?per_page=100&sort=created&direction=desc"
+    - "https://api.github.com/repos/openhwgroup/core-et-erbium"
+    - "https://api.github.com/users/ainekko"
+    - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+
+license_discrepancy:
+  checked_in_file: "core-et/LICENSE = verbatim Apache License 2.0"
+  press_release_2026_06_02: "Solderpad Hardware License v2.1 ('building on the well-known Apache 2.0 license')"
+  press_release_2025_11_19: "no license named; says only 'exploring foundation-based governance'"
+  status: "UNRESOLVED — both recorded, neither suppressed"
+  implication: "The repo's pre-existing 'Apache 2.0' claim is substantially correct; only its November-2025 date was wrong"
+  confidence: confirmed
+  sources:
+    - "https://raw.githubusercontent.com/openhwgroup/core-et/main/LICENSE"
+    - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+    - "https://www.globenewswire.com/news-release/2025/11/19/3191016/0/en/Ainekko-Acquires-Esperanto-Technologies-Intellectual-Property-to-Power-Open-Source-Edge-AI-Platform.html"
+
+governance:
+  project: "CORE-ET Silicon Platform (ETSP)"
+  home: "OpenHW Foundation"
+  accepted: "2026-06-02"
+  eclipse_relationship: >
+    OpenHW Foundation (formerly OpenHW Group; openhwgroup.org 302-redirects to openhwfoundation.org)
+    is "an Eclipse Foundation global initiative". Descriptions of the release as being "under the
+    Eclipse Foundation" are loose but not false; the precise home is the OpenHW Foundation.
+  ainekko_membership: "listed as an OpenHW member"
+  significance: "First foundation-governed home for any part of the Esperanto lineage; github.com/esperantotech was vendor-controlled"
+  confidence: confirmed
+  sources:
+    - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+    - "https://openhwfoundation.org/"
+
+etsp_software_stack:
+  sdk: "not disclosed"
+  compiler: "not disclosed"
+  runtime: "not disclosed"
+  driver: "not disclosed"
+  isa_documentation: "not disclosed"
+  glow_llvm_onnxruntime_carry_forward: "not disclosed — no statement either way"
+  primo_sdk_carry_forward: "not disclosed"
+  general_purpose_hpc_sdk_carry_forward: "not disclosed"
+  note: >
+    No SDK, compiler, runtime, framework integration, or programming model has been published or
+    announced for the 16nm CORE-ET Silicon Platform. ETSP software rows must read "not disclosed"
+    rather than inheriting the ET-SoC-1 stack. Esperanto's own blog, docs, and github.com/esperantotech
+    remain reachable only as archive material (esperanto.ai newest news item 2025-04-09).
+  confidence: not_disclosed
+  sources:
+    - "https://globenewswire.com/news-release/2026/06/02/3305225/0/en/ainekko-s-edge-ai-silicon-platform-is-now-an-openhw-foundation-open-source-project.html"
+    - "https://www.esperanto.ai/"
+
+vendor_only_software_claims:
+  note: "nekko.ai only; absent from every retrieved press release. Vendor self-description, not confirmed fact."
+  confidence: vendor_claim
+  sources:
+    - "https://nekko.ai/"
+  items:
+    - "'iRAM' brand for the MRAM tier"
+    - "'Erbium' design name (also only a repo name)"
+    - "Tagline 'Model-to-Silicon for Physical AI'"
+    - "'A tape-out every 9 months' via reusable platform blocks"
+    - "Manifesto 'The Next Thousand Chips', 2026-05-05, Tanya Dadasheva"
+    - "Douglas Smith as 'co-founder and Head of Silicon' / 'former Broadcom IP architect' — the 2026-01-29 release says only 'executive team member' who 'for many years managed the intellectual property at Broadcom'"

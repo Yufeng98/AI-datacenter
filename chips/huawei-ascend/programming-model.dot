@@ -1,0 +1,162 @@
+digraph huawei_ascend_software_stack {
+    graph [
+        label="Huawei Ascend Software Stack\n(CANN 9.0.0 + MindSpore 2.9.0 + torch_npu + vllm-ascend)\nas_of: 2026-08-08"
+        labelloc="t"
+        fontname="Helvetica"
+        fontsize=14
+        rankdir=TB
+        splines=ortho
+        nodesep=0.5
+        ranksep=0.7
+        bgcolor="#f8f9fa"
+    ]
+    node [fontname="Helvetica" fontsize=11 style="filled,rounded" shape=box]
+    edge [fontname="Helvetica" fontsize=9 color="#555555"]
+
+    // Framework Layer
+    subgraph cluster_framework {
+        label="Framework Integration"
+        style=filled
+        fillcolor="#e8f4fd"
+        color="#2196F3"
+        fontname="Helvetica Bold"
+        fontsize=12
+
+        mindspore [label="MindSpore 2.9.0 (2026-05-07)\n(S2S AD, GRAPH/PYNATIVE mode\nMindFormers, MindSpeed)\nnative Ascend 950PR support" fillcolor="#1565C0" fontcolor="white"]
+        torch_npu [label="torch_npu\n(PyTorch PrivateUse1 backend\ntorch.npu device)" fillcolor="#1565C0" fontcolor="white"]
+        onnxrt [label="ONNX Runtime\nCANN Execution Provider" fillcolor="#5C9BD6" fontcolor="white"]
+        vllm_ascend [label="vllm-ascend\n(serving; fastest-moving\nAscend 950 surface)\nMXFP4 quant, DeepSeek-V4\nv0.23.0rc1 needs CANN 9.0.1" fillcolor="#0D47A1" fontcolor="white"]
+    }
+
+    // Compiler Layer
+    subgraph cluster_compiler {
+        label="Compiler / IR"
+        style=filled
+        fillcolor="#e8f5e9"
+        color="#4CAF50"
+        fontname="Helvetica Bold"
+        fontsize=12
+
+        atc [label="ATC\n(Ascend Tensor Compiler)\nONNX/TF/Caffe/MindIR → .om" fillcolor="#2E7D32" fontcolor="white"]
+        ge [label="Graph Engine (GE)\nMindIR → CANN dispatch\nfusion + collective schedule" fillcolor="#388E3C" fontcolor="white"]
+        tilelang [label="TileLang-Ascend\n(MLIR tiled kernel DSL)" fillcolor="#66BB6A" fontcolor="#333333"]
+    }
+
+    // Op + Kernel Library
+    subgraph cluster_oplib {
+        label="Op Library + Kernel Library"
+        style=filled
+        fillcolor="#fff3e0"
+        color="#FF9800"
+        fontname="Helvetica Bold"
+        fontsize=12
+
+        cann_ol [label="CANN Operator Library\n(1000+ standard ops:\nConv2D, MatMul, BN, Attention)" fillcolor="#E65100" fontcolor="white"]
+        tbe_dsl [label="TBE-DSL\n(auto-scheduled op authoring)" fillcolor="#F57C00" fontcolor="white"]
+        tbe_tik [label="TBE-TIK\n(explicit L1/UB/Cube/Vector control)" fillcolor="#F57C00" fontcolor="white"]
+        ascendc [label="AscendC (CANN 9.0.0)\n(C/C++ kernel language\nGlobalTensor/LocalTensor\nEnQue/DeQue pipeline)\n+ SIMD+SIMT hybrid: ~700 new\nSIMT APIs (warp/atomic/math/cvt)\n+ Reg-based path on 950PR" fillcolor="#FF8F00" fontcolor="white"]
+        catlass [label="CATLASS templates\n(950 tensor-vector co-compute,\nnew Fixpipe move modes)" fillcolor="#FFA000" fontcolor="#333333"]
+        aipp [label="AIPP\n(Hardware image preprocessing\nbaked into .om at ATC time)" fillcolor="#FFB300" fontcolor="#333333"]
+    }
+
+    // Runtime
+    subgraph cluster_runtime {
+        label="Runtime (AscendCL)"
+        style=filled
+        fillcolor="#fce4ec"
+        color="#E91E63"
+        fontname="Helvetica Bold"
+        fontsize=12
+
+        ascendcl [label="AscendCL\n(aclrtSetDevice, aclrtMalloc\naclrtCreateStream\naclmdlExecute, aclopExecuteV2)" fillcolor="#880E4F" fontcolor="white"]
+    }
+
+    // Communication
+    subgraph cluster_comm {
+        label="Communication"
+        style=filled
+        fillcolor="#e8eaf6"
+        color="#3F51B5"
+        fontname="Helvetica Bold"
+        fontsize=12
+
+        hccl [label="HCCL\n(AllReduce, AllGather, ReduceScatter\nHCCS / UnifiedBus 2.0 + RoCE v2)\nCANN 9.0.0: HcclGroupStart/End\nbatched-collective merge;\nCCU collective acceleration" fillcolor="#1A237E" fontcolor="white"]
+    }
+
+    // Driver
+    subgraph cluster_driver {
+        label="Driver / Firmware"
+        style=filled
+        fillcolor="#f3e5f5"
+        color="#9C27B0"
+        fontname="Helvetica Bold"
+        fontsize=12
+
+        driver [label="Ascend NPU Kernel Driver\n(PCIe BAR, cmd queues, IRQ)\nSTILL CLOSED" fillcolor="#4A148C" fontcolor="white"]
+        firmware [label="Ascend Firmware\n(on-chip RM, TEE)\nSTILL CLOSED" fillcolor="#6A1B9A" fontcolor="white"]
+        gitcode [label="CANN open source (gitcode.com/cann)\n~76 repos, active Aug 2026:\nops-transformer/math/nn/cv, hccl,\nhcomm, shmem, asc-devkit, pypto,\npyasc, runtime, ge, cann-recipes-*\nUSERSPACE LAYERS ONLY" fillcolor="#AB47BC" fontcolor="white" style="dashed,rounded"]
+    }
+
+    // ISA
+    subgraph cluster_isa {
+        label="Assembler / ISA"
+        style=filled
+        fillcolor="#efebe9"
+        color="#795548"
+        fontname="Helvetica Bold"
+        fontsize=12
+
+        cce [label="CCE ISA\n(5 streams: Cube/Vector/Scalar\nMTE1/MTE2; static scheduling\n.om binary; no PTX equivalent)" fillcolor="#3E2723" fontcolor="white"]
+    }
+
+    // Hardware
+    subgraph cluster_hw {
+        label="Da Vinci AI Core Hardware"
+        style=filled
+        fillcolor="#eeeeee"
+        color="#607D8B"
+        fontname="Helvetica Bold"
+        fontsize=12
+
+        cube [label="Cube Unit\n16×16×16 FP16 systolic\n4096 MACs/cycle" fillcolor="#37474F" fontcolor="white"]
+        vector [label="Vector Unit\n128-lane FP16\n256-lane INT8" fillcolor="#455A64" fontcolor="white"]
+        mte [label="MTE1/MTE2\n(DMA engines)\ndouble-buffer pipeline" fillcolor="#546E7A" fontcolor="white"]
+        hbm [label="HBM\n32–128 GB\n800–1600 GB/s" fillcolor="#607D8B" fontcolor="white"]
+        l2 [label="L2 SRAM (32 MB)\n4 TB/s NoC" fillcolor="#78909C" fontcolor="white"]
+    }
+
+    // Edges — software flow
+    mindspore -> ge
+    mindspore -> hccl [label="distributed init\n(backend=hccl)"]
+    torch_npu -> ascendcl [label="aten dispatch"]
+    torch_npu -> hccl [label="torch.distributed\nbackend=hccl"]
+    onnxrt -> ascendcl
+    ge -> cann_ol
+    ge -> ascendcl
+    atc -> ascendcl [label=".om load"]
+    tilelang -> cce [style=dashed label="compiles to"]
+    cann_ol -> tbe_dsl
+    cann_ol -> tbe_tik
+    cann_ol -> ascendc
+    cann_ol -> catlass
+    catlass -> ascendc [label="templates" style=dashed]
+    vllm_ascend -> torch_npu [label="serving on\ntorch_npu"]
+    vllm_ascend -> hccl [label="EP / KV transfer"]
+    gitcode -> cann_ol [label="open-sourced" style=dashed color="#AB47BC"]
+    gitcode -> hccl [label="open-sourced" style=dashed color="#AB47BC"]
+    gitcode -> ascendcl [label="runtime, ge" style=dashed color="#AB47BC"]
+    tbe_dsl -> cce
+    tbe_tik -> cce
+    ascendc -> cce
+    aipp -> atc [label="config at compile time"]
+    ascendcl -> driver
+    hccl -> ascendcl
+    driver -> firmware
+    cce -> cube
+    cce -> vector
+    cce -> mte
+    mte -> l2
+    l2 -> hbm
+    cube -> l2
+    vector -> l2
+}
