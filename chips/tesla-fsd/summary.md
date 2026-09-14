@@ -4,7 +4,7 @@
 **Manufacturer:** Tesla (in-house design), fabricated by Samsung
 **Deployment:** Automotive edge (Tesla vehicles, Cybercab Robotaxi, Optimus robot)
 **Research date:** 2026-04-05
-**Last updated:** 2026-08-08 — see the "Tesla FSD 2026 Update" section at the end of this file
+**Last updated:** 2026-09-13 — see the "Tesla FSD 2026-09-13 Update" section at the end of this file (prior: "Tesla FSD 2026 Update", 2026-08-08)
 
 ---
 
@@ -104,9 +104,9 @@ bandwidth has been disclosed for AI5.** Where this section gives a number, it sa
 |---|---|---|---|---|
 | HW3 | Deployed since 2019; **declared insufficient for unsupervised FSD 2026-04-22** | — | Yes | Yes (~4M cars) |
 | HW4 / AI4 | Deployed since 2023; current shipping baseline | — | Yes | Yes |
-| AI4.5 / "AP45" | Shipping in some vehicles, **never formally announced by Tesla** | 2026-01-26 (Electrek, owner sightings) | Yes (part 2261336-02-A) | Yes (2026 Model Y, Fremont) |
+| AI4.5 / "AP45" | Shipping in some vehicles, **never formally announced by Tesla**. Update 2026-09-13: JPMorgan-via-Electrek attributes "~10% compute, ~2× memory" to "AI4.5" — thirdhand, possibly a mislabeling of AI4.1 (see below) | 2026-01-26 (Electrek, owner sightings) | Yes (part 2261336-02-A) | Yes (2026 Model Y, Fremont) |
 | AI4.1 / "AI4 Plus" | **Announced only**, no silicon | 2026-04-22 (Q1 2026 earnings call) | No | Target 2027 production |
-| AI5 | **Taped out; one packaged engineering sample shown** | 2026-04-15 (Musk X post) | Yes (engineering sample) | No — volume targeted 2027 |
+| AI5 | **Taped out; one packaged engineering sample shown; delayed to mid-2027 (reaffirmed 2026-08-20)** | 2026-04-15 (Musk X post) | Yes (engineering sample) | No — volume targeted mid-2027; Cybercab originally planned on AI4 |
 | AI6, Dojo 3 | Named as "in work"; nothing else public | 2026-04-15 (same X post) | Not disclosed | No |
 
 ### AI5 — tape-out announced 2026-04-15
@@ -245,3 +245,42 @@ Litigation followed: a US class action (2026-06-29) and a Dutch collective actio
 - https://www.morningstar.com/news/marketwatch/20260415530/mw-is-tesla-a-chip-stock-now-investors-are-cheering-a-semiconductor-milestone
 - https://hothardware.com/news/elon-musk-taps-samsung--tsmc-for-teslas-next-gen-ai5-chip
 - https://www.hotchips.org/advance-program/
+
+---
+
+## Tesla FSD 2026-09-13 Update — AI4.5 spec claim, AI5 delay, HW3 "v14 Lite"
+
+*Updated 2026-09-13. Scan window 2026-08-08 → 2026-09-13. Classification: **Major**, heavily hedged. WebSearch
+was unavailable this session (budget exhausted); this update relies on a single Electrek article (2026-08-20)
+reporting a JPMorgan analyst note (analyst Rajat Gupta) written after a Fremont factory visit/briefing — i.e.
+Tesla → JPMorgan → Electrek, thirdhand and not independently corroborated by a second outlet.*
+
+**AI4.5 — first figures attributed to this name, likely conflated with AI4.1.** Electrek, paraphrasing the
+JPMorgan note: *"Tesla is rolling out AI4.5, a new version of the chip with roughly 10% more compute and about
+twice the memory."* This wording is nearly identical to Musk's 2026-04-22 description of **AI4.1/"AI4 Plus"**
+("probably a 10% increase in compute and in memory bandwidth," 16→32 GB/SoC). This survey has tracked AI4.5/AP45
+and AI4.1/AI4-Plus as **separate** variants; the new figures may (a) be a genuine AI4.5 spec, or (b) be a
+mislabeling of the already-known AI4.1 figures by Electrek/JPMorgan. **Both readings are recorded; neither is
+adopted as a confirmed spec.**
+
+**AI5 delay to mid-2027 — reaffirmed, not new.** Electrek/JPMorgan: *"Tesla delayed its next-gen AI5 chip to
+mid-2027."* This matches Electrek's own April 2026 "mid-2027 for automotive" estimate already in this survey;
+the new element is the explicit "delay" framing, not a new date.
+
+**Cybercab hardware target — first explicit statement found.** Per the same note, Cybercab was **originally
+planned to launch on AI4** hardware — sharpening (not contradicting) the existing "AI5 near-term priority is
+Optimus/datacenter, automotive deferred" finding.
+
+**HW3 retrofit reality — new concrete detail.** HW3 vehicles now receive a stripped-down **"FSD v14 Lite"**
+release rather than full FSD, with reported **rising HW3 hardware failure rates**. This continues, with a new
+symptom, the 2026-04-22 "HW3 declared insufficient" finding already in this survey.
+
+**Context only:** Tesla told JPMorgan that FSD v15 is "a major jump in capability, built on seven 'core
+technologies,'" ~40% already operational in the Austin robotaxi fleet, and reasserted HW4/AI4 is sufficient for
+v15/unsupervised FSD — the same claim made and later walked back for HW3, a parallel Electrek itself draws.
+
+**Checked, no change found:** no primary Tesla source (earnings call, filing, datasheet) issued new AI4.5/AI5
+specs this window. Hot Chips 38 (Aug 23–25, 2026) fell within this window; the prior "no Tesla talk" finding was
+not re-verified against a post-event archive this cycle. No MLPerf submission, no public SDK, no ISA disclosure.
+
+Source: https://electrek.co/2026/08/20/tesla-jpmorgan-fremont-fsd-v15-hw4-optimus-2027/

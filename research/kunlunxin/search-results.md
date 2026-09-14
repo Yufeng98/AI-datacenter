@@ -1,6 +1,6 @@
 # Kunlunxin XPU Software Stack & Hardware Resources
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: kunlunxin*
 *device_class: AI Accelerator (百度昆仑芯)*
 *seeds: https://www.kunlunxin.com/, https://github.com/baidu/vLLM-Kunlun, https://www.paddlepaddle.org.cn/documentation/docs/zh/hardware_support/xpu/index_cn.html*
@@ -113,3 +113,21 @@ Recorded as **absent**, not as negative evidence:
 - No new public XRE / XTDK / XDNN / XTCL release notes in the 2026-04-01 → 2026-08-08 window
 - No published M100 specification of any kind (process, memory, throughput, TDP)
 - No vendor-primary Tianchi supernode spec sheet retrievable (kunlunxin.com HTTP 403)
+
+---
+
+## Resources Added 2026-09-13
+
+*Routine scan window 2026-08-08 → 2026-09-13. No new hardware/silicon resources; one corporate/roadmap fact and one software-ecosystem item.*
+
+- **[new 2026-09-13]** [Baidu search aggregation — Kunlunxin STAR Market (科创板) IPO tutoring filing 2026-05-07, CICC sponsor, "A+H" dual-listing framing](https://www.baidu.com/s?wd=%E6%98%86%E4%BB%91%E8%8A%AF%20%E7%A7%91%E5%88%9B%E6%9D%BF%20%E8%BE%85%E5%AF%BC%E5%A4%87%E6%A1%88) — **press-reported**; predates the scan window (2026-05-07) but was absent from the prior pass, which only recorded the HKEX filing. Underlying primary regulator bulletin not independently opened.
+- **[new 2026-09-13]** ["配货式"IPO，对昆仑芯而言是"双刃剑"吗？— 界面新闻 (2026-07-08)](https://www.jiemian.com/article/14725933.html) — Analyst commentary on Kunlunxin's IPO share-allocation strategy.
+- **[new 2026-09-13]** [昆仑芯联合FlagOS实现MiniCPM5-2B模型"开源即适配" — 同花顺财经 (2026-09-08)](http://news.10jqka.com.cn/20260908/c679714481.shtml) — Same-day model adaptation (MiniCPM5-2B, Mianbi AI/OpenBMB) via FlagOS; software-ecosystem item, not a new SDK release.
+
+## Searched and Not Found (2026-09-13)
+
+- No M100/M300 specification disclosure.
+- No new Tianchi 256/512 shipment, customer, or unit-volume figure.
+- No HKEX hearing/acceptance update for the confidential Form A1 filing.
+- No new XRE/XTDK/XDNN/XTCL release notes.
+- No Hot Chips 38 (2026-08-23 → 08-25) Kunlunxin talk.

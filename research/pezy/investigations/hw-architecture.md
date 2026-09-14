@@ -1,6 +1,6 @@
 # PEZY Computing — HW Architecture Investigation
 
-*as_of: 2026-08-08 (original investigation 2026-04-05; see section 12 — Investigation Update 2026-08-08)*
+*as_of: 2026-09-13 (original investigation 2026-04-05; see section 12 — Investigation Update 2026-08-08; section 13 — Investigation Update 2026-09-13)*
 
 ## Summary
 
@@ -359,6 +359,52 @@ Both in-window vendor announcements are bioinformatics/genomics applications on 
 - (Pre-baseline, context) "Optimize Winograd Convolution for a Novel MIMD Many-core Architecture PEZY-SC3s," PACT 2025, DOI 10.1109/PACT65351.2025.00045 (2025-11-03) — an AI convolution kernel on SC3s.
 
 **Naming note.** Both papers use **PEZY-SC3s**, the 512-PE / 109 mm² / TSMC 7 nm small-module variant (recorded in §2 of this document), which the survey's chip-level docs did not previously distinguish from the 4,096-PE PEZY-SC3. That distinction has been made explicit in `chips/pezy/hw-architecture.md` §1.
+
+---
+
+## 13. Investigation Update — 2026-09-13
+
+*Window covered: 2026-08-08 → 2026-09-13. Change class: **major** — the IEEE Micro paper (DOI 10.1109/MM.2026.3698804, flagged in §12.3 as "contents not retrieved") is now retrievable in summary form via PEZY's own 2026-08-31 announcement of its publication, and it reports a new FP64 energy-efficiency figure that updates the ~91 GF/W simulated value carried since the 2026-04-05 baseline.*
+
+### 13.1 New PEZY news item: IEEE Micro publication announced (2026-08-31)
+
+PEZY's English news index gained exactly one new item in this window: **2026-08-31**, "Paper on fourth-generation manycore processor 'PEZY-SC4s' published in IEEE Micro magazine" (Vol. 46, Issue 4, July–August 2026). URL: https://www.pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/
+
+Per PEZY's own summary of the paper (IEEE Xplore itself still refuses automated retrieval — HTTP 403/418, confirmed again this window — so the underlying paper text remains unread by this survey; the figures below come from PEZY's news-page characterization of it):
+
+| Item | Value (per PEZY's 2026-08-31 news post) |
+|---|---|
+| PEs / threads | 2,048 PEs, 16,384 hardware threads (unchanged) |
+| HBM3 bandwidth | 3.2 TB/s (unchanged) |
+| Peak FP64 | 24.6 TFLOPS (unchanged) |
+| Peak BF16 | **576 TFLOPS** — not previously recorded in this survey as a headline peak number |
+| **FP64 energy efficiency** | **"115 GFLOPS/W achieved in double precision matrix multiplication, confirming 2.2× improvement versus prior generation"** — supersedes the ~91 GF/W simulated (Hot Chips 37, 2025) figure this survey has carried since baseline |
+| Process | TSMC 5nm (unchanged) |
+| System plan | 90-node supercomputer, **8.9 PFLOPS FP64** (previously recorded as 8.6 PF; a small refinement, same 90-node/737,280-PE test-cluster plan) |
+| Software | "PyTorch-based software ecosystem constructed, enabling implementation and deployment of major LLMs" — no version numbers, no package names, no repository |
+| Shipping / availability | **Not stated.** The announcement contains no shipping date, no product-page link, no sampling status |
+
+### 13.2 What this does and does not establish
+
+- **"2.2× improvement versus prior generation"** is internally consistent with PEZY's own numbers: SC3's measured Green500 efficiency was 24.6 GF/W (Nov 2021, ZettaScaler 3.0); 24.6 × 2.2 ≈ 54, which does **not** match 115. If instead "prior generation" means the *previous SC4s figure itself* (91 GF/W sim.), 91 × 2.2 ≈ 200, which also does not match. **The reference point for "prior generation" in PEZY's own sentence cannot be reconciled with either previously known number and is therefore ambiguous — record the 115 GFLOPS/W and the "2.2×" claim as separate, both vendor-stated, without asserting they are mutually derivable.**
+- **"Achieved"** is PEZY's word, not this survey's. It is *not* established whether 115 GFLOPS/W is a silicon measurement or a refined simulation — the underlying IEEE Micro paper text is still inaccessible (IEEE Xplore blocks automated fetch, re-confirmed 2026-09-13). Given SC4s independently remains absent from PEZY's own products page (re-checked 2026-09-13, unchanged — see §13.3), a silicon-measured efficiency figure would be surprising; **treat 115 GFLOPS/W as vendor-claimed and *not* confirmed as a measured-silicon result** until the paper itself can be read.
+- The new 576 TFLOPS BF16 peak figure is the first time this survey has seen a quantified BF16 peak for SC4s (previously BF16 was recorded only as a supported data type with no peak number).
+
+### 13.3 SC4s product/shipping status: re-verified, unchanged
+
+PEZY's English products page (https://www.pezy.co.jp/en/products/), fetched 2026-09-13, still lists only ZettaScaler 3.0, PEZY-SC3 Processor and Module, ZettaVEGA, PZLAST, Photo Real 3D, 3D Viewer for Medical, AI-based Image Analysis, ZettaScaler-2.0, and PEZY-SC2. **No PEZY-SC4s entry, no ZettaScaler 4.0 entry.** The end-2025 release target (2025-06-06 press release) remains missed with no revised date — now 9+ months past target. No other PEZY news items appeared in the window besides the 2026-08-31 IEEE Micro announcement.
+
+### 13.4 Survey implication
+
+The ~91 GF/W figure used throughout `chips/pezy/hw-architecture.md`, `chips/pezy/summary.md`, `chips/pezy/layer-table.md`, and `hw-architecture-comparison.md` (private repo) should be updated to record the new 115 GFLOPS/W figure alongside it — as a distinct, later, vendor-stated number of unconfirmed (measured vs. simulated) provenance, not a replacement that erases the earlier figure's own paper trail. Both should be labeled "(vendor claim)".
+
+### Sources for this update
+
+- https://www.pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/ (primary; the IEEE Micro publication announcement, 2026-08-31)
+- https://www.pezy.co.jp/en/news/ (news index, re-fetched 2026-09-13; confirms only one new item in the window)
+- https://www.pezy.co.jp/en/products/ (re-fetched 2026-09-13; SC4s/ZettaScaler 4.0 still absent)
+- https://doi.org/10.1109/MM.2026.3698804 (redirects to https://ieeexplore.ieee.org/document/11543438/ — still returns no retrievable abstract/body to automated fetch, re-confirmed 2026-09-13)
+- https://api.crossref.org/works/10.1109/MM.2026.3698804 (confirms publication metadata: IEEE Micro, July 2026; no abstract in Crossref record)
 
 ### 12.7 Correction propagated from the software-stack investigation
 

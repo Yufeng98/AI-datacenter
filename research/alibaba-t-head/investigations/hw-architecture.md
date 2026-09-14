@@ -252,3 +252,22 @@ Alibaba has **not confirmed** a T-Head restructuring or IPO. Reuters' headline (
 - No **MLPerf** submission found for any T-Head part.
 - **XuanTie C950:** no tape-out, sampling or availability update after the March 2026 launch already recorded in §4.
 - No update to **Hanguang 800**.
+
+# Investigation Update — 2026-09-13
+
+**Investigated:** 2026-09-13 (window: 2026-08-08 → 2026-09-13)
+**Change class:** Roadmap — commercial deployment scale-up only; no new chip, spec, or architecture fact
+**Primary source:** Kuai Keji / MSN (2026-08-20)
+
+## 14. M890 commercialization update
+
+Kuai Keji (2026-08-20, "真武M890芯片商业化提速") reports T-Head's Zhenwu line now deployed with **650+ external customers across 20+ industries**, up from the 400+ figure recorded in the 2026-08-08 update. The article references a **2026-06-16** announcement — predating the 2026-08-08 baseline and not previously captured — that financial-sector Zhenwu deployment alone exceeded **100,000 cards across 150+ institutions**.
+
+This headline is the first to name **M890 specifically** in a commercialization-scale claim, incrementally stronger than the 2026-08-08 update's "M890-specific volume deployment not confirmed" hedge, but it remains **trade-press paraphrase of a vendor claim** — no primary Alibaba disclosure, no per-model unit count, no revenue figure. Treat as press-reported, vendor-sourced.
+
+No new chip, spec, or roadmap change: V900 (3Q2027) / J900 (3Q2028), the 560,000-unit cumulative Zhenwu shipment figure, and M890/ICN Switch 1.0/Panjiu AL128 specs are all unchanged.
+
+**Apsara Conference (云栖大会) 2026 — could not confirm a date.** Historically late October; if repeated, it falls after this scan's cutoff regardless. Not recorded as a finding.
+
+## 15. Sources — added 2026-09-13
+- Kuai Keji / MSN — "真武M890芯片商业化提速：650家外部客户已上车，覆盖20+行业" (2026-08-20): https://www.msn.com/zh-cn/news/other/%E5%B9%B3%E5%A4%B4%E5%93%A5%E7%9C%9F%E6%AD%A6m890%E8%8A%AF%E7%89%87%E5%95%86%E4%B8%9A%E5%8C%96%E6%8F%90%E9%80%9F-650%E5%AE%B6%E5%A4%96%E9%83%A8%E5%AE%A2%E6%88%B7%E5%B7%B2%E4%B8%8A%E8%BD%A6-%E8%A6%86%E7%9B%9620-%E8%A1%8C%E4%B8%9A/ar-AA2aywhK

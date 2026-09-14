@@ -1,6 +1,6 @@
 # MetaX (沐曦) MXMACA Software Stack Investigation
 
-*as_of: 2026-08-08 (baseline investigation 2026-04-05; see the dated update section at the end)*
+*as_of: 2026-09-13 (baseline investigation 2026-04-05; see the dated update sections at the end)*
 *chip: muxi*
 *device_class: GPU (China, 沐曦)*
 *resource: software-stack*
@@ -354,3 +354,32 @@ This upgrades the raw scan's classification of this item from "medium confidence
 - [MetaX Newsroom — WAIC 2026 (developer-community claims)](https://www.metax-tech.com/en/ndetail/12629.html)
 - [MetaX Newsroom — MiniMax H3 Day-0 adaptation (2026-08-03)](https://www.metax-tech.com/ndetail/12632.html)
 - [Baidu Baike — MXMACA 软件栈 (MXMACA 3.3.0.X internals; medium confidence)](https://baike.baidu.com/item/MXMACA%E8%BD%AF%E4%BB%B6%E6%A0%88)
+
+## Update — 2026-09-13
+
+*as_of: 2026-09-13*
+*scan window: 2026-08-08 → 2026-09-13*
+*classification: Moderate — vLLM-metax release cadence continues; no new hardware; HK-listing rumor could not be corroborated*
+
+### 1. vLLM-metax — two further releases in-window
+
+Per the GitHub releases API, `MetaX-MACA/vLLM-metax` shipped two more releases inside the scan window, continuing the cadence already documented through v0.22.0 (2026-07-27):
+
+| Release | Date | Notes |
+|---|---|---|
+| v0.23.0 | 2026-08-10 | (changelog not independently pulled this window) |
+| v0.24.0 | 2026-08-27 | Sampling-performance optimization; refactor onto PyTorch's stable API; adds **JD JoyAI_LLM_Flash** model support; additional kernel test coverage. 73 commits since v0.23.0; contributors ILikeIneine, caozuoba, Mandaluoren, metax-yi1zhang |
+
+Source: [vLLM-metax releases (GitHub API)](https://api.github.com/repos/MetaX-MACA/vLLM-metax/releases), [v0.24.0 release notes](https://github.com/MetaX-MACA/vLLM-metax/releases/tag/v0.24.0).
+
+### 2. Not corroborated this window: confidential HK listing filing
+
+A pre-verified input for this scan asserted MetaX had made a "confidential HK filing, IPO targeted by end-2026." This survey's existing record already has MetaX STAR-listed since **December 2025** (second Chinese GPU stock after Moore Threads, per the repo's investigation baseline). Searches this window (Bing, Chinese-language) for a MetaX/沐曦 confidential Hong Kong listing filing returned **no results** — this could not be independently corroborated and is **not** added to the record. A share-lockup unlock (13.97M restricted shares, effective 2026-09-17) is scheduled just after this scan's cutoff and is unrelated to any HK listing.
+
+### 3. No new hardware or MXC700/C700 tape-out news found
+
+No C700 tape-out, no new MXC600/C500 spec, and no new AI4S (X-series) disclosure were found in this window beyond what the 2026-08-08 update already records.
+
+## Sources — added 2026-09-13
+- vLLM-metax releases (GitHub API): https://api.github.com/repos/MetaX-MACA/vLLM-metax/releases
+- vLLM-metax v0.24.0 release notes: https://github.com/MetaX-MACA/vLLM-metax/releases/tag/v0.24.0

@@ -1,6 +1,6 @@
 # Cambricon MLU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: cambricon*
 *device_class: Neural Processor*
 
@@ -24,8 +24,8 @@ Cambricon's strategic position in 2025–2026 is as China's primary domestic alt
 
 Cambricon supports the major frameworks through native integrations:
 
-- **torch_mlu**: The official PyTorch backend for MLU. Registers the MLU as a PyTorch device (`torch.device("mlu")`), dispatches ATen operations to CNNL and BANGC OPS, and exposes MLU-aware distributed training through CNCL. Versioned as `{torch_mlu_ver}+torch{pytorch_ver}`. The earlier **CATCH** repository was the predecessor integration.
-- **vllm-mlu**: Cambricon's fork of vLLM for LLM inference serving on MLU hardware. Supports Chunk Prefill, Prefix Caching, Speculative Decoding, Graph Mode and Sleep Mode. Requires SDK 25.08 and MLU370+ hardware (`MLU370以上的设备`, still the stated requirement as of the 2026-08 README). The README changelog carries a single entry — `[2026.04.24] vllm_mlu day0支持DeepSeek-V4` — which is the day-0 DeepSeek-V4 enablement described in the 2026 H1 update section below. An upstream vLLM PR (#10315) integrates MLU as a first-class backend; a later documentation PR (#25942, "[Doc] Add Cambricon MLU support") merged upstream 2025-09-30.
+- **torch_mlu**: The official PyTorch backend for MLU. Registers the MLU as a PyTorch device (`torch.device("mlu")`), dispatches ATen operations to CNNL and BANGC OPS, and exposes MLU-aware distributed training through CNCL. Versioned as `{torch_mlu_ver}+torch{pytorch_ver}`. The earlier **CATCH** repository was the predecessor integration. **(2026-09-13)** Cambricon joined the **PyTorch Foundation as a Platinum member with a Governing Board seat** on 2026-09-08 — the first Chinese AI-chip vendor recorded in this survey with board-level PyTorch governance; see the software-stack investigation update for detail. [MyDrivers (2026-09-08)](https://news.mydrivers.com/1/1149/1149453.htm).
+- **vllm-mlu**: Cambricon's fork of vLLM for LLM inference serving on MLU hardware. Supports Chunk Prefill, Prefix Caching, Speculative Decoding, Graph Mode and Sleep Mode. Requires SDK 25.08 and MLU370+ hardware (`MLU370以上的设备`, still the stated requirement as of the 2026-08 README). The README changelog carries a single entry — `[2026.04.24] vllm_mlu day0支持DeepSeek-V4` — which is the day-0 DeepSeek-V4 enablement described in the 2026 H1 update section below. An upstream vLLM PR (#10315) integrates MLU as a first-class backend; a later documentation PR (#25942, "[Doc] Add Cambricon MLU support") merged upstream 2025-09-30. **(2026-09-13)** Cambricon reported Day-0 adaptation of **DeepSeek V4.1 Flash** (552B MoE, new Causal-Encoder-Decoder architecture) via vLLM/NeuWare on 2026-09-10 — press-reported, same delivery pattern as DeepSeek-V4. [Sina Finance (2026-09-10)](https://finance.sina.com.cn/tech/roll/2026-09-10/doc-inirinuw2944050.shtml).
 - **PaddlePaddle**: Two integration paths — `PaddleCustomDevice` loads `libpaddle-custom-mlu.so` with 264+ custom operators; PaddleX provides higher-level pipeline support.
 
 ### Compiler / IR
@@ -155,6 +155,8 @@ Also unchanged: no Cambricon submission appears in MLPerf Inference v6.0 (2026-0
 ### Siyuan 690 (MLU690) — reported, LOW confidence, status contested
 
 A part called **Siyuan 690 / MLU690** is widely described in Chinese media and brokerage commentary but has **no Cambricon primary source**. Status is genuinely contested: secondary coverage of the H1 report asserts mass production in early 2026, while other coverage in the same period describes the 690 as still "in final testing," and TrendForce in December 2025 placed it in the testing phase with volume production potentially slipping to H2 2026. Record it as *reported by secondary Chinese media as entering production in early 2026; not confirmed by any Cambricon primary source.*
+
+**(2026-09-13)** Market chatter in this scan window alleged a **20–30% MLU690 price increase vs. two months earlier**, part of a broader wave of reported Chinese AI-chip price increases (compare Huawei Ascend 950DT, ~60% reported, same window). **Cambricon investor relations denied issuing any pricing announcement** (2026-09-10/11): *"the company has not released pricing adjustment announcements."* This neither confirms nor refutes MLU690 production/pricing status — it corroborates only that "690" remains an active secondary-market topic. [MSN/China.com (2026-09-11)](https://www.msn.cn/zh-cn/news/other/%E5%AF%92%E6%AD%A6%E7%BA%AA%E5%90%A6%E8%AE%A4ai%E5%A4%84%E7%90%86%E5%99%A8%E6%B6%A8%E4%BB%B7%E4%BC%A0%E9%97%BB-%E7%A7%B0%E4%BB%A5%E5%AE%98%E6%96%B9%E5%85%AC%E5%91%8A%E4%B8%BA%E5%87%86-%E8%82%A1%E4%BB%B7%E5%BE%AE%E8%B7%8C/ar-AA2bYmKk).
 
 Recurring but **unverified vendor-adjacent** figures across those sources:
 

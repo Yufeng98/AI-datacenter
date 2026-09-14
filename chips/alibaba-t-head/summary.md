@@ -1,6 +1,6 @@
 # T-Head (平头哥) AI Chip Software and Hardware Stack Summary
 
-*as_of: 2026-04-05 · last updated: 2026-08-08*
+*as_of: 2026-04-05 · last updated: 2026-09-13 (previously 2026-08-08)*
 
 ---
 
@@ -183,6 +183,24 @@ Alibaba has **not confirmed** a T-Head restructuring or IPO. Reuters' own headli
 - **No T-Head presentation confirmed** at ISCA 2026 or ISSCC 2026. Hot Chips 38 runs **2026-08-23–25**, after this update date; no T-Head talk is confirmed on its program and no content from that conference exists yet.
 - **No MLPerf submission** found for any T-Head part.
 - **XuanTie C950:** no tape-out, sampling or availability update found since the March 2026 launch already recorded above.
+
+---
+
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Roadmap (commercial deployment scale-up; no new chip or spec). Sources: Kuai Keji / MSN (2026-08-20).*
+
+### M890 commercialization — customer count grows to 650+
+
+Kuai Keji (via MSN, headlined "真武M890芯片商业化提速" — "Zhenwu M890 chip commercialization accelerating"), dated **2026-08-20**, reports T-Head's Zhenwu line now deployed with **650+ external customers across 20+ industries** (autonomous driving, internet, financial services, etc.) — up from the **400+ customers** recorded in the 2026-08-08 update. The same piece references an earlier, **2026-06-16** announcement (predating the 2026-08-08 baseline and not previously captured here) that financial-sector Zhenwu deployment alone exceeded **100,000 cards across 150+ mainstream institutions**.
+
+**Reading caution, consistent with the 2026-08-08 update's own caveat:** the headline names M890 specifically, which is incrementally stronger sourcing than the prior "series-cumulative, not M890-specific" hedge — but this is still trade-press paraphrase of a vendor claim, not an Alibaba primary disclosure with a per-model breakdown, and no unit-shipment count, revenue, or new spec accompanies it. Treat "650+ customers" and "100,000+ cards in finance" as **press-reported, vendor-sourced**, not independently audited.
+
+**No new chip, spec, or roadmap change.** V900 (3Q2027) / J900 (3Q2028) targets, the 560,000-unit cumulative Zhenwu-series shipment figure, and the M890/ICN Switch 1.0/Panjiu AL128 specs are all unchanged from the 2026-08-08 update.
+
+**Apsara Conference (云栖大会) 2026 — not confirmed.** No 2026 date could be located this window; the conference has historically run in late October, which — if repeated in 2026 — would place it after this scan's 2026-09-13 cutoff regardless. Not treated as a finding either way.
+
+Source: [Kuai Keji / MSN — "真武M890芯片商业化提速：650家外部客户已上车，覆盖20+行业" (2026-08-20)](https://www.msn.com/zh-cn/news/other/%E5%B9%B3%E5%A4%B4%E5%93%A5%E7%9C%9F%E6%AD%A6m890%E8%8A%AF%E7%89%87%E5%95%86%E4%B8%9A%E5%8C%96%E6%8F%90%E9%80%9F-650%E5%AE%B6%E5%A4%96%E9%83%A8%E5%AE%A2%E6%88%B7%E5%B7%B2%E4%B8%8A%E8%BD%A6-%E8%A6%86%E7%9B%9620-%E8%A1%8C%E4%B8%9A/ar-AA2aywhK).
 
 ---
 

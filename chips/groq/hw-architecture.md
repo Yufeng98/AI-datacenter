@@ -1,7 +1,7 @@
 # Groq LPU Hardware Architecture
 
-*as_of: 2026-08-08*
-*Architectures: LPU v1 (Samsung 14nm), LPU v2 (Samsung 4nm), NVIDIA Groq 3 LPX LP30 (process node not disclosed, announced GTC 2026-03-16)*
+*as_of: 2026-09-13*
+*Architectures: LPU v1 (Samsung 14nm), LPU v2 (Samsung 4nm), NVIDIA Groq 3 LPX LP30 (process node not disclosed; announced GTC 2026-03-16; **full production as of 2026-08-24**)*
 
 ---
 
@@ -11,9 +11,9 @@
 |---|---|---|---|---|---|---|---|
 | **LPU v1 (TSP)** | Groq, shipping since 2022 | Samsung 14nm, 25×29 mm (~725 mm²), 900 MHz | ~230 MB | 80 TB/s | 750 INT8 TOPS / 188 FP16 TFLOPS | Plesiosynchronous direct mesh | GroqRack: 576 chips, ~130 GB SRAM |
 | **LPU v2** | Groq, production 2025 | Samsung 4nm | Not disclosed | Not disclosed | Not disclosed ("2x+ over v1", vendor positioning) | Plesiosynchronous | GroqRack |
-| **NVIDIA Groq 3 LPX (LP30)** | NVIDIA, **ANNOUNCED** GTC 2026-03-16; H2 2026 partner availability guidance | **Not disclosed** | **500 MB** | **150 TB/s** | **1.2 PFLOPS FP8** (other datatypes not disclosed) | **96 links @ 112 Gbps = 2.5 TB/s aggregate bidirectional** | LPX rack: **256 LPUs in 32 liquid-cooled 1U trays of 8**; 128 GB SRAM; 12 TB DDR5 |
+| **NVIDIA Groq 3 LPX (LP30)** | NVIDIA, **FULL PRODUCTION** as of 2026-08-24 (announced GTC 2026-03-16) | **Not disclosed** | **500 MB** | **150 TB/s** | **1.2 PFLOPS FP8/chip; 315 PFLOPS FP8/rack** (other datatypes not disclosed) | **96 links @ 112 Gbps = 2.5 TB/s aggregate bidirectional** | LPX rack: **256 LPUs in 32 liquid-cooled 1U trays of 8**; 128 GB SRAM, 40 PB/s aggregate SRAM BW; 12 TB DDR5; 11,000 tok/s decode (Gemma-4-class 31B, vendor benchmark) |
 
-*The LP30 row supersedes earlier revisions of this file, which stated 512 MB SRAM, "Samsung 4nm" and "Q3 2026". See the 2026-08-08 update section at the end of this file.*
+*The LP30 row supersedes earlier revisions of this file, which stated 512 MB SRAM, "Samsung 4nm" and "Q3 2026". See the 2026-08-08 update section below for those corrections and the 2026-09-13 update section for the full-production status change. **Full rack hardware specs are the responsibility of `public/chips/nvidia-gpu/hw-architecture.md` §8.7/§10.3 — this file's NVIDIA-side numbers are kept in sync with, but not the primary record for, that file.***
 
 ---
 
@@ -168,20 +168,24 @@ The "no DRAM anywhere in the system" architectural absolute **no longer holds at
 
 | Parameter | Value |
 |-----------|-------|
-| Status | **ANNOUNCED** (GTC, 2026-03-16). No LPX-specific ship date published. NVIDIA guides Vera Rubin-based partner availability to **H2 2026**; StorageReview/CRN report LPX as available H2 2026. No evidence of sampling or deployment as of 2026-08-08. |
+| Status | **FULL PRODUCTION as of 2026-08-24** (NVIDIA Newsroom: "NVIDIA Groq 3 LPX...is now in full production"). Announced GTC 2026-03-16; production confirmed at Hot Chips 38 (2026-08-24/25). **Nebius** is the first cloud adopter; Groq itself is among the earliest adopters. *(Status corrected 2026-09-13 — supersedes the 2026-08-08 "ANNOUNCED / H2 2026 guidance" entry below.)* |
 | Process | **Not disclosed** — the "Samsung 4nm" figure in earlier revisions is *not confirmed* (low-quality secondary blogs only) |
 | TDP | **Not disclosed** |
 | SRAM per die | **500 MB** (was incorrectly 512 MB) |
 | SRAM bandwidth | 150 TB/s |
-| FP8 compute | 1.2 PFLOPS/chip; 9.6 PFLOPS/tray |
+| FP8 compute | 1.2 PFLOPS/chip; 9.6 PFLOPS/tray; **315 PFLOPS/rack** (Hot Chips 38, 2026-08-24/25) |
 | Tray | 1U liquid-cooled, 8 LPUs |
 | Chips per rack | 256 (32 trays × 8) |
 | Rack SRAM | 128 GB, 40 PB/s aggregate |
 | Rack DDR5 | 12 TB |
 | Rack scale-up BW | 640 TB/s |
+| Decode throughput | **11,000 tok/s** on a Gemma-4-class 31B model, per rack (Hot Chips 38, ServeTheHome) — a separate benchmark configuration from NVIDIA Newsroom's 3,400 tok/s / 100K-context figure; the two are not directly comparable |
 | Cooling | **Liquid-cooled** (a departure from the air-cooled GroqRack) |
 | Role | Latency-sensitive decode co-processor in NVIDIA Vera Rubin platform (see corrected split below) |
 | Throughput claim | "up to 35x higher inference throughput per megawatt" — **NVIDIA marketing claim, unaudited** |
+| Production status | **Full production as of 2026-08-24** (NVIDIA Newsroom); Nebius first cloud adopter |
+
+*Full derivation and sourcing for the rows above (256-LPU rack composition, 315 PFLOPS FP8, 11,000 tok/s decode, full-production status) is maintained in `public/chips/nvidia-gpu/hw-architecture.md` §8.7/§10.3 — treat that file as authoritative if the two ever diverge.*
 
 **Corrected division of labour (2026-08-08).** Earlier revisions of this survey said "Rubin GPUs handle prefill, Groq LPUs handle token generation." Per NVIDIA's own developer blog, the split is *within decode*: Rubin GPUs take the **throughput-bound** decode work — notably full-context attention over the accumulated KV cache — while LPX accelerates the **latency-sensitive** execution within decode, notably sparse MoE expert feed-forward networks.
 
@@ -229,10 +233,12 @@ Because the compiler knows the inter-chip packet delivery times to exact clock c
 | Total SRAM | **128 GB** (256 × 500 MB) |
 | Aggregate SRAM BW | **40 PB/s** |
 | Rack DDR5 | **12 TB** |
-| Fabric protocol | Not re-disclosed by NVIDIA (whether the plesiosynchronous scheme is retained is **not disclosed**) |
+| Fabric protocol | Not re-disclosed by NVIDIA (whether the plesiosynchronous scheme is retained by *name* is **not disclosed**) |
 | Cooling | Liquid |
+| Decode throughput | 11,000 tok/s (Gemma-4-class 31B) per rack — Hot Chips 38 |
+| Production status | **Full production as of 2026-08-24** |
 
-The LPX rack is a substantially smaller node count than the 576-chip GroqRack (256 vs 576) but with ~2.2× the SRAM per chip, giving comparable aggregate SRAM (128 GB vs ~130 GB) at far higher bandwidth. Whether NVIDIA retains the plesiosynchronous protocol and its compiler-scheduled packet delivery, or substitutes an NVIDIA fabric, is **not disclosed** — the Hot Chips 38 talk (see below) is the first scheduled venue where this might be answered.
+The LPX rack is a substantially smaller node count than the 576-chip GroqRack (256 vs 576) but with ~2.2× the SRAM per chip, giving comparable aggregate SRAM (128 GB vs ~130 GB) at far higher bandwidth. **Hot Chips 38 (2026-08-24/25) has now presented** (see the 2026-09-13 update section below); ServeTheHome's coverage describes "fully deterministic design, software-based instruction scheduling (no hardware scheduler)" and "256 chips act as one unified compute system via on-chip routing" — behaviorally consistent with a plesiosynchronous-style scheme, but NVIDIA has still not used the term "plesiosynchronous" itself, so retention of the *named* Groq protocol remains **not disclosed**.
 
 ---
 
@@ -292,7 +298,23 @@ For GroqCloud, GroqRack servers are hosted in datacenters and accessed via HTTPS
 
 **Corporate status (affects how this chip should be attributed).** The December 2025 NVIDIA–Groq transaction was a **non-exclusive inference-technology licensing agreement plus a large acqui-hire**, *not* an acquisition — Groq remains an independent company and GroqCloud continues to operate. The widely cited ~$20B figure originated with CNBC (2025-12-24) and is **not confirmed by either company**. Groq raised **$650M on 2026-06-22** (Disruptive and Infinitum leading; valuation not disclosed) and has pivoted to inference-cloud operation — 13 data centers, >5M developers, targeting ~200 MW by end of 2027 — and is now itself a **customer for NVIDIA LPX systems** built on its own licensed IP. Groq announced **no new silicon** between April and August 2026. See `chips/groq/summary.md` for the full corporate section.
 
-**Forward-looking.** Hot Chips 38 (Aug 23–25, 2026, Memorial Auditorium, Stanford), Session AI 1, Tuesday 2026-08-25 2:15–4:15 PM PDT: **"Think Fast: LPU Accelerator for Heterogeneous Compute"** — Igor Arsovski & Santosh Raghavan, NVIDIA. *Disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public.* This is the first Hot Chips LPU disclosure under NVIDIA branding and the most likely near-term source for process node, TDP and per-datatype throughput. Re-scan after 2026-08-25.
+**Forward-looking (superseded — see 2026-09-13 update below).** Hot Chips 38 (Aug 23–25, 2026, Memorial Auditorium, Stanford), Session AI 1, Tuesday 2026-08-25 2:15–4:15 PM PDT: **"Think Fast: LPU Accelerator for Heterogeneous Compute"** — Igor Arsovski & Santosh Raghavan, NVIDIA. *Disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public [as of 2026-08-08].* This is the first Hot Chips LPU disclosure under NVIDIA branding and the most likely near-term source for process node, TDP and per-datatype throughput.
+
+---
+
+## Update — 2026-09-13 (Hot Chips 38 presented; full production; corporate)
+
+*Scan window 2026-08-08 → 2026-09-13. Sources: NVIDIA Newsroom (2026-08-24); groq.com/newsroom and groq.com/blog (2026-08-12, 2026-08-17, 2026-08-24); groq.com/about-us. Detailed Hot Chips 38 hardware disclosures for LP30/LPX were investigated by a separate pass and are recorded in `public/chips/nvidia-gpu/hw-architecture.md` §8.7/§10.3 — this section covers only what changes in the Groq-specific file: status fields, the small set of numbers restated above for reader convenience, and Groq Inc./GroqCloud corporate developments.*
+
+**"Think Fast: LPU Accelerator for Heterogeneous Compute" has now been presented** (Hot Chips 38, 2026-08-25). Per `nvidia-gpu/hw-architecture.md` §8.7, NVIDIA's own Hot Chips event page and ServeTheHome's on-site coverage supply the first quantified LPX rack numbers: 256 LPUs/rack, 128 GB SRAM, 40 PB/s aggregate SRAM bandwidth, 640 TB/s rack scale-up (reconfirms the 2026-08-08 GTC figures), 315 PFLOPS FP8/rack, and 11,000 tok/s decode throughput on a Gemma-4-class 31B model. **Process node and TDP remain not disclosed** even after Hot Chips 38 — the actual slide deck is attendee-gated (HTTP 401 on direct fetch), so the talk itself did not close this survey's remaining gap.
+
+**NVIDIA confirms full production (2026-08-24).** Status upgrades from "ANNOUNCED / H2 2026 partner availability guidance" to **full production**, per NVIDIA Newsroom, "NVIDIA Groq 3 LPX Now in Full Production With World-Class Speed for Agentic AI." **Nebius** is named the first AI cloud to adopt LPX; Groq itself is named as planning to be "among the platform's earliest adopters." A separately quoted benchmark — 3,400 output tok/s on Gemma 4 31B with 100K context — is a different configuration from the 11,000 tok/s rack-aggregate figure above and the two should not be conflated. The licensing language is reconfirmed unchanged: **"Groq and LPU are used under license from Groq, Inc."**
+
+**Groq Inc./GroqCloud corporate events (August 2026, three items):** (1) 2026-08-12 — Groq becomes an NVIDIA Cloud Partner, explicitly framed by Groq as confirming rather than superseding its independence. (2) 2026-08-17 — Groq closes a $350M "Series A" at a $3.5B valuation (Disruptive leading, NVIDIA planned participation); combined with June 2026's $650M this brings recent funding to $1B; the "Series A" label and the apparent markdown from the previously-reported ~$6.9B valuation are both flagged as unusual/uncertain rather than confirmed facts (see `chips/groq/summary.md` for the full caveat). (3) 2026-08-24 — Groq deploys LPX + Vera Rubin NVL72 with Dell Technologies, again as operator/early-adopter rather than designer. **No new Groq-designed silicon and no self-hosted LPU deployment outside the NVIDIA relationship were found in this window.**
+
+**Leadership:** unchanged from 2026-08-08 (Adam Winter CEO, Matt Eng CFO, Alan Rice COO, Sinclair Schuller CTO), re-checked against groq.com/about-us on 2026-09-13.
+
+**Still not disclosed for LP30/LPX**, even after Hot Chips 38: process node, TDP, die size, clock, transistor count, non-FP8 datatype throughput, and whether NVIDIA retains a plesiosynchronous-*named* fabric (behavior described by ServeTheHome is consistent with one, but the term itself is not used by NVIDIA).
 
 ---
 
@@ -307,5 +329,13 @@ For GroqCloud, GroqRack servers are hosted in datacenters and accessed via HTTPS
 - [NVIDIA LPX product page](https://www.nvidia.com/en-us/data-center/lpx/) — 500 MB SRAM/LPU, 128 GB and 40 PB/s per rack, 640 TB/s scale-up, 256 LPUs, 12 TB DDR5 per rack
 - [NVIDIA Vera Rubin platform release](https://nvidianews.nvidia.com/news/nvidia-vera-rubin-platform) — H2 2026 partner availability
 - [StorageReview: NVIDIA Groq 3 LPX — Everything We Know](https://www.storagereview.com/news/nvidia-groq-3-lpx-everything-we-know) — secondary; explicitly notes process node and TDP are unknown
-- [Hot Chips 38 advance program](https://hotchips.org/advance-program/) — Session AI 1, 2026-08-25, NVIDIA LPU talk; *not yet presented*
+- [Hot Chips 38 advance program](https://hotchips.org/advance-program/) — Session AI 1, 2026-08-25, NVIDIA LPU talk; presented 2026-08-25 (see `nvidia-gpu/hw-architecture.md` §8.7 for resulting specs)
 - [Zellic Deep Dive on Groq TSP](https://www.zellic.io/blog/groq-tsp-whitepapers/)
+
+### Added 2026-09-13
+- [NVIDIA Groq 3 LPX Now in Full Production — NVIDIA Newsroom (2026-08-24)](https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai)
+- [NVIDIA's Groq 3 LPU Accelerators for Heterogeneous AI Compute at Hot Chips 2026 — ServeTheHome (2026-08-25)](https://www.servethehome.com/nvidias-groq-3-lpu-accelerators-for-heterogeneous-ai-compute-at-hot-chips-2026/) (cited via `nvidia-gpu/hw-architecture.md`)
+- [Groq Becomes an NVIDIA Cloud Partner (2026-08-12)](https://groq.com/newsroom/groq-becomes-an-nvidia-cloud-partner)
+- [Groq Closes $350 million Series A (2026-08-17)](https://groq.com/newsroom/groq-closes-usd350-million-series-a-building-the-world-s-leading-ai-inference-cloud)
+- [Groq Among the First to Bring NVIDIA Groq 3 LPX and Vera Rubin NVL72 to Market (2026-08-24)](https://groq.com/blog/groq-among-the-first-to-bring-nvidia-groq-3-lpx-and-vera-rubin-nvl72-to-market)
+- `public/chips/nvidia-gpu/hw-architecture.md` §8.7, §10.3 (internal cross-reference for full LPX rack spec table)

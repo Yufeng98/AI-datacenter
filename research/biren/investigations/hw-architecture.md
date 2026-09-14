@@ -1,6 +1,6 @@
 # Biren BR100 / BR104 Hardware Architecture
 
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 *chip: biren*
 *device_class: GPU-like AI Accelerator (China)*
 *Representative products: BR100 (dual-die OAM, 550W), BR104 (monolithic PCIe, 300W)*
@@ -394,3 +394,22 @@ Two hazards: (1) sources are 亿元-denominated — RMB 10.35亿 = RMB 1.035 **b
 
 **Rejected as spec (recorded for traceability):**
 - [Toutiao aggregator — "BF16：800 TFLOPS…显存：128GB HBM" for the 166 series; sole source, contradicted by the absence of any such table on birentech.com](https://www.toutiao.com/w/1865240228792329/)
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*as_of: 2026-09-13*
+*classification: Roadmap (financial disclosure); no new hardware/architecture facts found*
+
+### 16. H1 2026 positive profit alert — revenue up ~19–22× YoY
+
+Biren issued H1 2026 revenue guidance of **CNY 1.15–1.3 billion (US$171–193 million)**, reported as up **~1,852%–2,107% YoY**. Source: DigiTimes headline (~2026-08-18), independently corroborated in substance by a Tech Times/MSN headline citing "22-fold" H1 2026 revenue growth. **This survey could not open a primary HKEX filing or the full DigiTimes article text** (DigiTimes article page returned "does not exist" on direct fetch; RTHK site search returned no matching article for the task brief's cited "rthk.hk 2026-08-25" source) — record as press-reported, corroborated by two independent secondary outlets on the same order of magnitude, not vendor/filing-confirmed.
+
+**Correction to a pre-verified input figure.** A "FY2025 revenue ¥10.35B" figure supplied as a pre-verified fact for this scan does not match any source found, here or in the 2026-08-08 pass. Biren's own FY2025 annual results (2026-03-30, already on record in §14 below) give FY2025 revenue as **RMB 1.0346 billion**, not RMB 10.35 billion — a plausible ×10 unit slip (亿 read as 十亿). The H1 2026 guidance above (RMB 1.15–1.3B) is a separate, later, larger number — notably already exceeding all of FY2025 — but it too is on the order of RMB ~1.2B, not RMB 10B+. No Biren-linked source anywhere in this survey supports revenue >RMB 10 billion for any period through H1 2026.
+
+### 17. No hardware findings
+
+No BR20X tape-out confirmation, no new SKU, no updated BLink/NPO spec, and no MLPerf/Hot-Chips-38 Biren submission were found in this window. Hot Chips 38 (2026-08-23/25) has now passed with no located Biren content, consistent with the task brief's premise that none of this batch's chips had a Hot Chips 38 talk.
+
+## Sources — added 2026-09-13
+- DigiTimes — Biren H1 2026 revenue guidance (~2026-08-18): https://www.digitimes.com/news/a20250818VL213/biren-revenue-ai-chip-2026-growth.html (headline/snippet corroborated via search; direct article fetch failed with "does not exist")
+- Tech Times / MSN — "22-fold" H1 2026 revenue growth headline (secondary corroboration; exact URL not resolved this window)

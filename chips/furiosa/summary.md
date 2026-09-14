@@ -1,6 +1,6 @@
 # FuriosaAI NPU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 
 ---
 
@@ -173,9 +173,10 @@ RNGD's key competitive advantage is **power efficiency for LLM inference**: 3 kW
 - **RNGD production**: Mass production January 2026; ~1,000 units/month (target: 2,000–3,000/month by end 2026)
 - **Meta $800M rejected**: March 2025 (strategic disagreement, not price)
 - **Series C**: $125M (July 2025; KDB, IBK, Kakao Investment)
-- **Series D**: $500M target (Morgan Stanley + Mirae Asset advisers) — **still open as of late July 2026**; see update section for the reported (low-confidence) revised size
+- **Series D**: $500M target (Morgan Stanley + Mirae Asset advisers) — **still open as of 2026-09-13**, no close found in the latest scan either; see update sections for the reported (low-confidence) revised size (KRW 800B relayed 2026-07-21; a "KRW 750B" figure circulated in a prior research pass could not be corroborated by any source found here)
 - **Valuation**: ~$2.3 billion (KRW 3 trillion) at the Series D target announcement
 - **IPO target**: 2027
+- **Regulatory, new 2026-09-13**: Korea added high-performance AI chips to its strategic-goods export-control list effective **2026-09-01**, requiring government approval for overseas shipment. FuriosaAI (named alongside Rebellions) is reported lobbying Seoul for government-brokered domestic reference deployments; Korean AI-chip startups' overseas contracts are collectively only ~$30M (not a FuriosaAI-specific figure) against this backdrop. See Update (2026-09-13) below.
 
 ---
 
@@ -304,3 +305,20 @@ Four papers from FuriosaAI's AI Research Group, all algorithmic/software with **
 - [Meta $800M Rejected (TechCrunch)](https://techcrunch.com/2025/03/24/ai-chip-startup-furiosaai-reportedly-turns-down-800m-acquisition-offer-from-meta/)
 - [Series D $500M Target (DCD)](https://www.datacenterdynamics.com/en/news/furiosaai-seeking-a-500m-funding-round-ahead-of-anticipated-ipo-report/)
 - [Series D reported nearing close at KRW 800B (secondary aggregation — LOW confidence)](https://www.ai-market-watch.com/news/furiosaai-nears-completion-of-800-billion-won-series-d-valuation-at-4-trillion-w-eawtpx)
+
+### Added 2026-09-13
+- [Crypto Briefing — South Korean AI chipmakers ask government for domestic deployment references (2026-09-10)](https://cryptobriefing.com/south-korean-ai-chipmakers-deployment-references/)
+- [Yahoo Finance — FuriosaAI × OpenAI gpt-oss-120b demo on 2 RNGD cards (event 2025-09-11)](https://finance.yahoo.com/news/ai-unicorn-furiosaai-246m-funding-123111208.html)
+
+---
+
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Roadmap (corporate/regulatory) — no new silicon, no new spec.*
+
+- **Korean export-control change (effective 2026-09-01)**: high-performance AI chips added to Korea's strategic-goods list, requiring government approval for overseas shipment. Reported (Crypto Briefing, 2026-09-10) alongside a note that FuriosaAI and Rebellions are lobbying Seoul for government-brokered "living showroom" domestic reference deployments; Korean AI-chip startups' overseas contracts collectively total only ~$30M (not FuriosaAI-specific).
+- **Pre-baseline correction**: a FuriosaAI × OpenAI live demo (gpt-oss-120b on 2 RNGD cards, MXFP4) took place 2025-09-11 at the opening of OpenAI's Seoul office — newly recorded here. **This was a demo, not a shipment or supply relationship** — the pre-verified-fact claim of "shipments to OpenAI" is not supported by this or any other source found and should not be repeated as a customer/shipment fact.
+- **Series D**: still not confirmed closed as of 2026-09-13. The KRW 800B figure (2026-07-21, LOW confidence) remains the latest on record; a "KRW 750B" figure could not be corroborated.
+- Searched and absent: no confirmed 2026 cumulative RNGD unit-shipment figure, no Gen 3/Broadcom tape-out update, no Hot Chips 38 FuriosaAI talk, no MLPerf submission.
+
+New sources: see `research/furiosa/search-results.md` → "Resources Added 2026-09-13" and `research/furiosa/investigations/hw-architecture.md` → "G. Investigation Update — 2026-09-13".

@@ -1,6 +1,6 @@
 # AMD GPU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 
 ---
 
@@ -327,3 +327,23 @@ Versioning note: ROCm jumped 7.2.x → 7.9.0 preview → 7.10–7.14. **"ROCm 8"
 - [AMD's Instinct MI455X: Aiming for the Top — Chips and Cheese (2026-07-23)](https://chipsandcheese.com/p/amds-instinct-mi455x-aiming-for-the)
 - [AMD Helios Architecture Deep Dive — ServeTheHome](https://www.servethehome.com/amd-helios-architecture-deep-dive-amd-broadcom-hardware-combined/)
 - [AMD Advancing AI 2026 Keynote Live Coverage — ServeTheHome](https://www.servethehome.com/amd-advancing-ai-2026-keynote-live-coverage/)
+
+## Update — 2026-09-13 (Hot Chips 38 confirmation pass; scan window 2026-08-08 → 2026-09-13)
+
+*Full evidence and per-item sourcing are in `research/amd-gpu/investigations/hw-architecture.md`, section "Update — 2026-09-13". Summary of what changed.*
+
+AMD gave two Hot Chips 38 talks (2026-08-24): "AMD Instinct MI400 Series GPU Architecture" and "System Architecture of the AMD MI400 Series GPU". Neither slide deck is publicly posted (both PDF URLs return HTTP 401, attendees-only); the numbers below are ServeTheHome's slide-by-slide coverage, treated as primary-adjacent.
+
+- **MXFP6/FP8 peak 20.13 PFLOPS is now AMD-confirmed** (was "arithmetically consistent, not independently confirmed"). Dense FP16/BF16 is still not stated on any AMD slide — the 5.03 PFLOPS figure remains an arithmetic halving, not a vendor number.
+- **New AMD-slide figures**: vector FP16 315 TFLOPS, matrix/vector FP32 315 TFLOPS each.
+- **Fabric/cache/IO die process corrected to TSMC N3P** (was recorded as "N3").
+- **72 UALoE lanes at 200 Gb/s = 1.8 TB/s/direction is now confirmed** (was flagged not-confirmed); switch tray: two 512-port 200G UALoE switch ASICs per tray (10.8 TB/s/direction each), six switch trays per rack at ~7 kW each — arithmetic against these gives AMD's stated 260 TB/s rack scale-up.
+- **Scale-out NIC named**: AMD Pensando "Vulcano 800" (single 800G port, PCIe Gen6 x16 + UAL128, P4-based, 192 MPUs); up to three per GPU module, consistent with the 43 TB/s rack scale-out figure.
+- **Helios rack physical format now confirmed**: 44OU ORW-HPR chassis, 50V DC liquid-cooled busbar, blind-mate quick-disconnect cooling, 18 compute trays (4× MI455X + 1× EPYC "Venice" SP7 host each) + 6 switch trays. Rack power remains not disclosed.
+- **LDS 320 KiB/WGP is now AMD-confirmed** (AMD ROCm blog, 2026-08-28), implemented as six 64 KiB hardware partitions (five allocated to LDS); two 256 B/cycle ports reach every partition (512 B/cycle peak when both active).
+- **CDNA 5 gfx ISA target is now public: `gfx1250`** (AMD ROCm blog naming it for "AMD Instinct MI450"; corroborated by LLVM AMDGPUUsage and the ROCm/aiter GitHub tree, which now has a `gfx1250/` directory). This closes the "ISA identifier not disclosed" gap carried since 2026-08-08. The ROCm 10.0.0 compatibility matrix does not yet list an MI455X/MI450/gfx1250 Instinct entry, so the target is public in source trees but not yet a "supported" product-matrix row.
+- **Transistor count ~320 billion** ("a 72% increase from the previous generation") is reported by ServeTheHome's deep-dive, framed as AMD's figure but not on a fetched AMD spec page or Hot Chips slide as covered — recorded as vendor-attributed, not independently confirmed. TBP remains not disclosed.
+- **AMD acquired Taalas** (announced 2026-08-06, pending close as of 2026-09-13) — a Toronto inference-accelerator maker (weights etched into a mask-programmed chip; TSMC 6nm "HC1" runs Llama 3.1 8B; "HC2" targets 20B). AMD frames it as a disaggregated pairing: prefill on Instinct GPUs, decode/token-generation on Taalas silicon. Not an Instinct product; tracked here as a roadmap item.
+- **ROCm 10.0.0 released 2026-08-26** ("A Decade of Open Compute, Built for Agentic AI") — see `research/amd-gpu/investigations/hip-rocm.md` for the software-layer detail.
+- **MLPerf Inference v6.1 is not yet published** as of 2026-09-13 (MLCommons' September feed has only MLPerf Storage v3.0). No AMD-specific v6.1 results exist to report.
+- Q2 FY2026 earnings (2026-08-04, pre-baseline): AMD Data Center revenue $6.7B, +107% YoY; Helios deployment partners named: Anthropic, Cirrascale, HUMAIN, Meta, Microsoft, OpenAI, Oracle, Tensorwave, Vultr.

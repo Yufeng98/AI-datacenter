@@ -3,7 +3,7 @@
 **Device class:** Photonic Interconnect + Optics (compute product no longer marketed, as of 2026-08-08) — historically classified in this survey as *Photonic Compute + Interconnect*
 **Manufacturer:** Lightmatter (founded 2017; MIT spinout; private)
 **Products (as listed by the vendor on 2026-08-08):** Passage L200 (CPO), Passage L20 (NPO/OBO), Guide 1 and Guide DR (VLSP laser light engines), vClick dFAU (detachable fiber array unit), plus four evaluation kits (Passage M1000 EVK, Passage EVK100, Passage EVK50, Guide 1 EVK). **Envise** (photonic AI accelerator) no longer appears in vendor product navigation — see the 2026 update section below.
-**Research date:** 2026-04-05 · **Last updated:** 2026-08-08
+**Research date:** 2026-04-05 · **Last updated:** 2026-09-13
 **Key sources:** https://lightmatter.co/products/, https://lightmatter.co/products/passage-l20/, https://lightmatter.co/products/guide/, https://lightmatter.co/products/vclick-optics/, https://www.nature.com/articles/s41586-025-08854-x, https://lightmatter.co/products/idiom/
 
 ---
@@ -245,3 +245,7 @@ Attribution discipline:
 | Standards | XPO MSA founding member (March 2026); IEEE 802.3dj-compliant electrical signaling (L20); CMIS 5.3 / OCP NIC 3.0 / OCP MHS (Guide DR) |
 | Ecosystem | NVIDIA **NVLink Fusion** partner (announced ~2026-06-03) |
 | Recognition | AI Breakthrough "AI Semiconductor Innovation" award, 2026-06-25 (marketing award; no technical content) |
+
+### Update (2026-09-13)
+
+Minor, resource-only update (scan window 2026-08-08 → 2026-09-13). Lightmatter's March-2026-teased OCP "Reference Architecture Initiative" for co-packaged optics formally launched as the **Open Silicon Photonics for AI Systems** workstream within the Open Compute Project (press release 2026-08-13; SDxCentral/Converge/DCD coverage 2026-08-13/14). Lightmatter leads the effort and contributed to a 294-page architecture white paper targeting open CPO specs for AI clusters of 72–1,000+ nodes, compatible with both scale-up (NVLink, UALink) and scale-out protocols; Celestica, Dell, Keysight and Qualcomm are named supporters. This is a standards/ecosystem development, not a new product — it adds to, rather than replaces, the XPO MSA and NVLink Fusion ecosystem entries already on file. Re-verified this window and unchanged: Passage M1000/L200/L20 and Guide 1/DR remain "early access" / evaluation-kit sampling only (no GA); Envise remains absent from product navigation with no revival found; no new funding round (still $850M raised / $4.4B valuation, Oct 2024 Series D). Sources: https://lightmatter.co/press-releases/, https://sdxcentral.com/news/industry-giants-unite-to-define-open-co-packaged-optics-for-next-gen-ai-infrastructure/, https://lightmatter.co/products/

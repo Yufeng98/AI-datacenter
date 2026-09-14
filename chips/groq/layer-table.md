@@ -1,8 +1,8 @@
 # Groq LPU Layer Mapping Table
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 
-> **Corporate status note (2026-08-08):** NVIDIA did **not** acquire Groq. The 2025-12-24 transaction was a **non-exclusive inference-technology licensing agreement** plus an acqui-hire; Groq remains independent and GroqCloud operates without interruption. Rows below tagged "NVIDIA Groq 3 LPX / LP30" describe **NVIDIA** silicon built on licensed Groq IP; rows tagged "LPU v1/v2" and "GroqCloud" describe **Groq's** own products, which continue.
+> **Corporate status note (updated 2026-09-13):** NVIDIA did **not** acquire Groq. The 2025-12-24 transaction was a **non-exclusive inference-technology licensing agreement** plus an acqui-hire; Groq remains independent and GroqCloud operates without interruption — reconfirmed by NVIDIA itself on 2026-08-24 ("Groq and LPU are used under license from Groq, Inc."). Rows below tagged "NVIDIA Groq 3 LPX / LP30" describe **NVIDIA** silicon built on licensed Groq IP, now in **full production as of 2026-08-24**; rows tagged "LPU v1/v2" and "GroqCloud" describe **Groq's** own products/operations, which continue — GroqCloud became an NVIDIA Cloud Partner (2026-08-12) and raised $350M (2026-08-17) in the same window. See `chips/groq/summary.md` for the full corporate update.
 
 ## Software Layers
 
@@ -59,7 +59,7 @@
 | Off-chip Memory | **12 TB DDR5 per LPX rack** — rack-level DRAM tier; breaks the "no DRAM anywhere" absolute at system level. Bandwidth and attachment point **not disclosed** | confirmed | hw-architecture (2026-08-08), NVIDIA LPX product page |
 | Host Interface / Package | Samsung 14nm (LPU v1), 25x29 mm (~725 mm²), 900 MHz | confirmed | hw-architecture, search-results |
 | Host Interface / Package | Samsung 4nm (LPU v2, 2025) | confirmed | search-results |
-| Host Interface / Package | NVIDIA Groq 3 LPX LP30: process node **not disclosed**; TDP **not disclosed**; die size/clock **not disclosed** — *corrected 2026-08-08; the prior "Samsung 4nm" attribution is unconfirmed (secondary blogs only)* | not disclosed | hw-architecture (2026-08-08), NVIDIA developer blog, StorageReview |
+| Host Interface / Package | NVIDIA Groq 3 LPX LP30: process node **not disclosed**; TDP **not disclosed**; die size/clock **not disclosed** — *unresolved even after Hot Chips 38 (2026-08-25); the "Samsung 4nm" attribution remains unconfirmed (secondary blogs only)*. **Full production as of 2026-08-24** (NVIDIA Newsroom); Nebius first cloud adopter | not disclosed (spec); confirmed (production status) | hw-architecture (2026-09-13), NVIDIA Newsroom, ServeTheHome HC38, StorageReview |
 | Host Interface / Package | LPX tray: 1U liquid-cooled, 8 LPUs (departure from air-cooled GroqRack) | confirmed | hw-architecture (2026-08-08), NVIDIA developer blog |
 | Host Interface / Package | PCIe host interface | confirmed | software-stack |
 | Scale-up Interconnect | Plesiosynchronous chip-to-chip protocol (near-synchronous; software drift correction) | confirmed | hw-architecture, search-results |
@@ -67,9 +67,9 @@
 | Scale-up Interconnect | GroqRack: 576 chips, ~130 GB SRAM | confirmed | hw-architecture, search-results |
 | Scale-up Interconnect | GroqRack "~640 TB/s aggregate chip-to-chip bandwidth" — **unverified**; no Groq primary source found; likely conflated with NVIDIA's 640 TB/s LPX rack scale-up figure | unverified | hw-architecture (2026-08-08) |
 | Scale-up Interconnect | 576 chips appear as single coherent memory to software | confirmed | hw-architecture, search-results |
-| Scale-up Interconnect | NVIDIA Groq 3 LPX: 256 LPUs per rack in 32 liquid-cooled 1U trays of 8; 40 PB/s aggregate SRAM BW; **640 TB/s rack scale-up BW** | confirmed | hw-architecture (2026-08-08), NVIDIA LPX product page |
+| Scale-up Interconnect | NVIDIA Groq 3 LPX: 256 LPUs per rack in 32 liquid-cooled 1U trays of 8; 40 PB/s aggregate SRAM BW; **640 TB/s rack scale-up BW**; 315 PFLOPS FP8/rack; 11,000 tok/s decode (Gemma-4-class 31B) — reconfirmed at Hot Chips 38, 2026-08-24/25 | confirmed | hw-architecture (2026-09-13), NVIDIA LPX product page, NVIDIA HC38 event page, ServeTheHome |
 | Scale-up Interconnect | LP30 chip-to-chip: **96 links @ 112 Gbps = 2.5 TB/s aggregate bidirectional per chip** | confirmed | hw-architecture (2026-08-08), NVIDIA developer blog |
 | Scale-up Interconnect | Whether LPX retains the plesiosynchronous protocol and compiler-scheduled packet delivery is **not disclosed** by NVIDIA | not disclosed | hw-architecture (2026-08-08) |
 | Scale-out Interconnect | Standard Ethernet/InfiniBand via host NICs (no proprietary scale-out fabric) | confirmed | search-results |
 | Scale-out Interconnect | Groq 3 LPX: integrated with NVIDIA Vera Rubin platform as **latency-sensitive decode co-processor** — Rubin GPUs take throughput-bound full-context attention over the KV cache; LPX takes latency-sensitive decode work such as sparse MoE expert FFNs (*corrected 2026-08-08; prior "prefill vs token generation" split was wrong*) | confirmed | hw-architecture (2026-08-08), NVIDIA developer blog |
-| Scale-out Interconnect | Groq 3 LPX availability: **ANNOUNCED** GTC 2026-03-16; H2 2026 Vera Rubin partner availability guidance; no LPX-specific ship date (*prior "Q3 2026" was an analyst inference*) | confirmed | hw-architecture (2026-08-08), nvidianews Vera Rubin release |
+| Scale-out Interconnect | Groq 3 LPX availability: **FULL PRODUCTION as of 2026-08-24** (was ANNOUNCED GTC 2026-03-16 / H2 2026 guidance as of 2026-08-08); Nebius first cloud adopter; Groq itself among earliest adopters, deploying with Dell Technologies | confirmed | hw-architecture (2026-09-13), NVIDIA Newsroom (2026-08-24) |

@@ -1,6 +1,6 @@
 # Moore Threads MUSA Software Stack Investigation
 
-*as_of: 2026-08-08 (baseline 2026-04-05; dated update section appended at end)*
+*as_of: 2026-09-13 (baseline 2026-04-05; dated update sections appended at end)*
 *chip: mthreads*
 *device_class: GPU (China, 摩尔线程)*
 *resource: software-stack*
@@ -329,3 +329,19 @@ Earlier and larger than initially reported (the "nine repos in two weeks, 2026-0
 - https://api.github.com/orgs/MooreThreads/repos?sort=created&direction=desc&per_page=100 — authoritative creation dates for every repo listed above
 - https://github.com/MooreThreads — org landing page
 - https://en.mthreads.com/product/S5000 — "fourth-generation MUSA full-stack platform"; FP8→FP64 (the hardware capability the AI4Science push depends on)
+
+# Investigation Update — 2026-09-13: torch_musa releases (Moderate)
+
+*scan window: 2026-08-08 → 2026-09-13*
+
+Per the GitHub releases API, two further torch_musa releases landed in-window:
+
+| Release | Date | Notes |
+|---|---|---|
+| v2.9.1.post1 | 2026-08-11 | Adds **MUSA SDK 5.2.0** support; introduces a **MUSA SymmetricMemory** distributed backend; various operator enhancements |
+| v2.11.0.post1 | 2026-08-17 | First torch_musa release tracking **PyTorch 2.11** (following v2.9.1.post1); upgrades `pyahocorasick` to 2.3.0; **LibTorch Stable ABI** support across PyTorch 2.9–2.11; inter-node communication bug fixes |
+
+No new op-library, compiler, or driver component was identified this window beyond these two release notes.
+
+## Sources — added 2026-09-13
+- torch_musa releases (GitHub API): https://api.github.com/repos/MooreThreads/torch_musa/releases

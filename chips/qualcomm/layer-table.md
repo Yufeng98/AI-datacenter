@@ -1,6 +1,6 @@
 # Qualcomm Cloud AI 100/200 — Layer Table
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *Covers Cloud AI 100 (Standard/Ultra) plus the Qualcomm **Dragonfly** portfolio announced 2026-06-24
 (AI200, AI250, AI300 accelerators and the C1000 CPU). Dragonfly figures are Qualcomm marketing claims unless
 marked otherwise; where Qualcomm published nothing, the cell reads "not disclosed".*
@@ -24,5 +24,6 @@ marked otherwise; where Qualcomm published nothing, the cell reads "not disclose
 | 15 — Workload | LLM + CV inference | High DRAM capacity for LLM; DLRM; image classification. Dragonfly positioning: agentic AI inference at rack scale |
 | 16 — Host CPU (new) | Dragonfly C1000 | 250+ custom Oryon cores, chiplet, >5 GHz; ">2× perf/W" vs competitive server CPUs (Qualcomm estimate); >2 TB/s PCIe Gen 7 + CXL; agentic / general-purpose virtualization / AI head node configs; availability 2028; Meta named customer (production H2 2028) |
 | 17 — Kernel language (new) | Mojo | MLIR-based, silicon-agnostic; arrived with the Modular acquisition (completed 2026-07-29); Chris Lattner → Qualcomm EVP of Advanced AI Software and Platforms. No published AI200/AI250/AI300 target |
-| 18 — Roadmap status | Sampling timeline | AI200 sampling in FY2026 on LPDDR5x (Investor-Day-reported, no production-shipment claim); AI250 commercial sampling expected mid-2027; AI300 commercial sampling expected 2028; C1000 availability 2028 |
-| 19 — Independent validation | None in this window | Qualcomm not among the 24 MLPerf Inference v6.0 submitters (2026-04-01); no Hot Chips 2026 (HC38, Aug 24–25 2026) talk |
+| 18 — Roadmap status | Sampling timeline | AI200 sampling in FY2026 on LPDDR5x (Investor-Day-reported, no production-shipment claim); AI250 commercial sampling expected mid-2027; AI300 commercial sampling expected 2028; C1000 availability 2028. **Update 2026-09-13**: HUMAIN Riyadh deployment confirmed carrying production workload (Adobe AI captioning, since 2026-08-31) — first confirmed live use of Dragonfly hardware; Dragonfly part in service not specified. Qualcomm–AWS multi-generation custom-silicon + optical-connectivity collaboration announced 2026-09-08 — no product names or specs disclosed |
+| 19 — Independent validation | None in this window | Qualcomm not among the 24 MLPerf Inference v6.0 submitters (2026-04-01); no Hot Chips 2026 (HC38, Aug 24–25 2026) talk (not re-verified 2026-09-13) |
+| 9 — Runtime (SDK update) | quic/efficient-transformers | **v1.22.8.0 (2026-08-26)**: Qwen3.5/Qwen3.6/Gemma4/GLM4 support, MoE export RAM reduction, CCL extensions. Still Cloud AI 100-only, no AI200/AI250 toolchain |

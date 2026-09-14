@@ -1,6 +1,6 @@
 # Hygon DCU Hardware Architecture Investigation
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: hygon-dcu*
 *device_class: GPU/DCU (China, 海光)*
 *resource: hw-architecture*
@@ -324,3 +324,26 @@ Consolidated CPU+DCU; no DCU-only breakout. Growth percentages are the safest ci
 - [深算三号 — 百度百科](https://baike.baidu.com/item/%E6%B7%B1%E7%AE%97%E4%B8%89%E5%8F%B7/67723890)
 - [IT之家 相关报道](https://www.ithome.com/0/977/747.htm)
 - ⚠️ **Rejected spec sources** (retail forums, contradictory, no primary basis): [Eastmoney 股吧](https://guba.eastmoney.com/news,688041,1483072345.html) · [Zhihu](https://zhuanlan.zhihu.com/p/2066563534897652881) · [集思录](https://www.jisilu.cn/question/510441) · [雪球](https://xueqiu.com/2453283973/400298837)
+
+## Investigation Update — 2026-09-13: Audited H1 2026 results only
+
+*classification: Roadmap (financial) — no new hardware facts found*
+
+The 2026-07-16 H1 2026 pre-announcement recorded in the 2026-08-08 update was superseded by Hygon's **audited 半年报, published 2026-08-13**:
+
+| Metric | Audited H1 2026 | YoY |
+|---|---|---|
+| Revenue | RMB 9.099 B (90.99亿元) | +66.52% |
+| Q2 2026 revenue alone | RMB 5.065 B (50.65亿元) | +65.32% |
+| Net profit | RMB 1.798 B (17.98亿元) | +49.69% |
+| Gross margin | down 4.94 pp YoY | — |
+
+Both figures land inside the pre-announced ranges already on record, so this is a narrowing/confirmation, not a correction. Still consolidated CPU+DCU — DCU is not broken out. Market snapshot (2026-08-21, not a disclosure): share price RMB 246.21, market cap ≈ RMB 572.3B.
+
+**No new hardware finding.** Searches for 深算三号/BW1000 spec disclosures and 深算四号 status in this window returned only restatements of the 2025-12 "进展顺利" (progressing smoothly) language already on record; no tape-out, sampling, or spec news located. No MLPerf submission and no Hot Chips 38 / ISCA 2026 paper found (Hot Chips 38 has now passed with nothing located, consistent with the task brief's premise for this batch).
+
+## Sources — added 2026-09-13
+- Sina Finance (2026-08-17): https://finance.sina.com.cn/tech/roll/2026-08-17/doc-ininruyf6769682.shtml
+- Eastmoney (2026-08-13): https://finance.eastmoney.com/a/202608133840707684.html
+- Eastmoney Fund (2026-08-13): https://fund.eastmoney.com/a/202608133840708424.html
+- Securities Star / MSN — Q2 revenue detail: https://www.msn.cn/zh-cn/money/技术/每周股票复盘-海光信息-688041-q2收入50-65亿增65-32/ar-AA2adHfu

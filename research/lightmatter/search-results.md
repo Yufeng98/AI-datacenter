@@ -1,6 +1,6 @@
 # Lightmatter — Search Results
 
-*as_of: 2026-08-08 (original scan 2026-04-05; 2026-08-08 results appended at end)*
+*as_of: 2026-09-13 (original scan 2026-04-05; 2026-08-08 and 2026-09-13 results appended at end)*
 *chip: lightmatter*
 *device_class: Photonic Interconnect + Optics (compute product no longer marketed) — historically Photonic Compute + Interconnect*
 
@@ -288,3 +288,24 @@
 | Press carry | Morningstar/BusinessWire — Guide DR "sampling in Q4 2026" (snippet only; 403 on full page) | https://www.morningstar.com/news/business-wire/20260521715044/ | LOW |
 | Disconfirming | Tower Semiconductor + LightIC (2026-01-05) — the unrelated announcement behind the erroneous Lightmatter–Tower attribution | https://towersemi.com/2026/01/05/01052026/ | LOW |
 | Conference | Hot Chips 38 (Aug 23–25, 2026, Stanford) — Lightmatter absent from advance program; re-check after the event | https://hotchips.org/ | LOW |
+
+---
+
+## Resources Added 2026-09-13
+
+Scan window 2026-08-08 → 2026-09-13. Queries run: `"Lightmatter new AI chip 2026"`, `"Lightmatter Passage next generation"`, `"Lightmatter AI accelerator announcement 2026"`, `"Lightmatter SDK release 2026"`, `"Lightmatter Envise benchmark"`, `"Lightmatter funding 2026"`, `"Lightmatter Envise shipping customer 2026"`. (WebSearch tool was unavailable this session — quota exhausted before the first query; discovery instead used WebFetch against lightmatter.co's own News/Press-release index pages and Bing News search, which is a narrower net than a full web search and may miss third-party coverage.)
+
+**Key finding — Open Silicon Photonics for AI Systems initiative formally launched (2026-08-13/14):** Lightmatter-led effort that was teased in March 2026 (as "Reference Architecture Initiative … for Co-Packaged Optics," press release 2026-03-16) is now a formal Open Compute Project (OCP) workstream. Lightmatter contributed to a 294-page architectural white paper. Supporting companies named: Celestica, Dell, Keysight, Qualcomm. Technical goals per SDxCentral: open CPO specs for AI clusters from 72 to 1,000+ nodes; compatibility with OCP ORv3/MHS platforms; support for coherent optics and future micro-LED interconnects; compatibility with both scale-up (NVLink, UALink) and scale-out protocols. CEO quote: "Interconnect has become as fundamental to AI infrastructure performance as compute." — this is a standards/ecosystem development, not a new chip or shipped product; no new specs, no shipping-status change.
+- https://lightmatter.co/press-releases/ (index confirms 2026-08-13 press release: "Industry Leaders Formally Launch CPO System Architecture Initiative Within the Open Compute Project")
+- https://sdxcentral.com/news/industry-giants-unite-to-define-open-co-packaged-optics-for-next-gen-ai-infrastructure/ (2026-08-14)
+- Converge! Network Digest, "OCP Launches Open Silicon Photonics for AI Systems Initiative" (2026-08-13)
+- Data Center Dynamics coverage (2026-08-13)
+- Lightwave podcast with Harris on electrical bottlenecks (2026-08-12) — background/framing only, no new facts
+
+**Verified unchanged (re-checked this window):**
+- Passage M1000 EVK, Passage L200, Passage L20, Guide 1, Guide DR: lightmatter.co/products/ still describes Passage and Guide as "available for early access" with evaluation kits "sampling today" — **no GA/shipping-status change** from 2026-08-08. https://lightmatter.co/products/
+- Envise: no revival, no new product-navigation appearance, no Nature follow-up found. https://lightmatter.co/press-releases/
+- Financing: no new funding round found (Bing News and lightmatter.co press-release index both checked); $850M raised / $4.4B valuation (Oct 2024 Series D) remains the latest reported figure. https://www.bing.com/news/search?q=Lightmatter+funding+2026
+- No Hot Chips 38 talk (per task baseline; not re-verified independently this pass since the event predates 2026-08-08 advance-program check already on file).
+
+**Classification: Minor** (new ecosystem/standards resource; no new hardware, no shipping-status change, no financing change).

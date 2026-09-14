@@ -1,7 +1,7 @@
 # Intel Gaudi Hardware Architecture Investigation
 
 *chip: intel-gaudi*
-*as_of: 2026-08-08 (baseline investigation 2026-04-05; see dated update section at end)*
+*as_of: 2026-09-13 (baseline investigation 2026-04-05; see dated update sections at end)*
 *sources: Gaudi 3 White Paper (Intel, 2024), Hot Chips 2024 presentation, docs.habana.ai v1.24.0, VideoCardz, OAM Product Brief*
 
 ---
@@ -306,4 +306,73 @@ Intel, "**Crescent Island: GPU Designed for Agentic AI Inference**" (Sumit Mohan
 - [Intel Delivers Open, Scalable AI Performance in MLPerf Inference v6.0 (2026-04-01) — no Gaudi mention](https://newsroom.intel.com/artificial-intelligence/intel-delivers-ai-performance-mlperf-inference-v6-0)
 - [MLPerf Training v6.0 results (2026-06-16) — Intel absent](https://mlcommons.org/2026/06/mlperf-training-v6-0-results/)
 - [Hot Chips 38 program — Intel Crescent Island talk, 2026-08-24 (scheduled; content not yet public)](https://hotchips.org/program/conference/)
+
+---
+
+## Update — Crescent Island Hot Chips 38 disclosure (2026-09-13)
+
+*Window covered: 2026-08-08 → 2026-09-13. Primary event: Intel, "Crescent Island: GPU Designed for Agentic AI Inference" (Sumit Mohan, Hong Jiang), Hot Chips 38, Day-1 GPU session, Mon 2026-08-24. Sources: ServeTheHome talk coverage (2026-08-24) and Chips and Cheese architectural deep-dive (2026-08-27).*
+
+### A. Scope of change
+
+The pending disclosure flagged in the 2026-08-08 update has now happened. Gaudi 1/2/3 silicon is still unchanged — nothing in this window touches Gaudi hardware. The entire update is Crescent Island's Hot Chips 38 spec disclosure, which resolves most (not all) of the "not disclosed" items carried since Computex 2026.
+
+### B. Newly Intel-disclosed architecture (via the Hot Chips 38 talk, reported by ServeTheHome)
+
+| Property | Value | Confidence |
+|---|---|---|
+| GPU architecture | **Xe3P** | confirmed (Intel talk) |
+| Xe core count | **32 Xe cores** | confirmed |
+| XMX (matrix) engines | **256** ("32 Xe cores feeding 256 XMX engines") | confirmed |
+| XMX design | "3-way extended Xe matrix" with FP4 precision co-issue and FP64 support | confirmed |
+| Systolic array depth | **16-deep** | confirmed |
+| Per-core register file (GRF) | **1 MB** | confirmed |
+| Per-core L1 | **512 KB** | confirmed |
+| L2 cache | **32 MB unified** | confirmed |
+| Memory (reference card) | **160 GB LPDDR5X** | confirmed (unchanged from Computex) |
+| Memory (ODM partner cards) | up to **480 GB LPDDR5X** | confirmed (unchanged from Computex) |
+| Datatypes | **FP4 and MXFP4 through FP64** | confirmed |
+| Power | **350 W, air-cooled PCIe GPU** | confirmed (unchanged from Computex, now Intel-stated at a public talk rather than only trade-press-reported) |
+| Active-idle power | **50 W or less in the G0 state** | confirmed — first disclosure |
+| Low-power idle | ~10 W in G8 | confirmed — first disclosure |
+| Host interface | **PCIe Gen5 x16, scale-up** | confirmed — first disclosure |
+| Reliability | ECC + parity across key memory; error checking on every hop of the internal IP fabric; dynamic page offlining; hard post-package repair | confirmed — first disclosure |
+| Memory bandwidth | **still not Intel-disclosed** — ServeTheHome's Patrick Kennedy explicitly notes Intel withheld this figure | not disclosed |
+| Sampling / GA dates | **not restated in the talk materials** per Chips and Cheese; prior Computex figures (customer sampling H2 2026, GA 2027) stand unconfirmed by this talk | unchanged, medium confidence |
+
+This talk is Intel's own conference presentation — a materially stronger source than the Computex trade-press coverage this entry previously relied on for 160/480 GB, 350 W and FP4–FP64. Confidence on those three items is raised from "medium, trade-press" to "confirmed, Intel-disclosed at a public Intel talk."
+
+### C. Chips and Cheese performance ESTIMATES — explicitly not Intel figures
+
+Chips and Cheese's 2026-08-27 architectural analysis publishes TFLOP/s estimates modeled at an **assumed 2.5 GHz clock** with **quadrupled XMX matrix-op rate over Xe2/Xe3**. These are **analyst estimates, not Intel-disclosed numbers**:
+
+| Datatype | Estimated throughput |
+|---|---|
+| FP64 (vector) | 10.2 TFLOP/s |
+| FP32 (vector) | 20.5 TFLOP/s |
+| FP16 (vector) | ~41 TFLOP/s |
+| TF32 (XMX) | 328 TFLOP/s |
+| FP16/BF16 (XMX) | 655 TFLOP/s |
+| FP8 (XMX) | 1.3 PFLOP/s |
+| FP4/MXFP4 (XMX) | 2.6 PFLOP/s |
+
+Chips and Cheese also estimates memory bandwidth at **over 1.5 TB/s**, reverse-engineered from PCB photos showing **20 LPDDR5X modules (12 front + 8 back)** on an assumed **1280-bit bus** at LPDDR5X-9600 — this **supersedes** the earlier, much lower Computex-era press guess of ~0.6–0.7 TB/s ("~684 GB/s"), which now looks like an underestimate given the disclosed 32 MB L2 / 256-XMX compute scale. Both bandwidth figures remain analyst estimates, not Intel numbers, and are recorded as such.
+
+**Module-count nuance:** The 2026-08-08 update deliberately excluded a circulating "20 × 24 GB module" breakdown as an unattributed press reconstruction. Chips and Cheese's independent photo-based count also finds 20 modules total, but at 160 GB / 20 modules = **8 GB/module** for the reference card — the 24 GB/module figure would only reconcile with the 480 GB ODM configuration (20 × 24 GB = 480 GB), not the reference design. This is a plausible resolution, not a confirmation; still recorded as analyst-derived, not Intel-stated.
+
+### D. Comparative framing (Chips and Cheese, vendor-neutral analyst comparison, not Intel claims)
+
+Chips and Cheese frames Crescent Island's matrix compute as ~30% ahead of NVIDIA RTX PRO 6000 Blackwell, and its FP64 vector throughput as over 5× Blackwell's — while Blackwell holds 6× higher FP32 vector and 3× higher FP16 vector compute. These are third-party analyst comparisons and are recorded here as context, not as Intel-published competitive claims.
+
+### E. What remains unresolved
+
+- Memory bandwidth (Intel still declines to state it)
+- Process node / fab
+- Die/package configuration, die count
+- Exact sampling and GA dates (talk did not restate the Computex H2-2026/2027 schedule)
+
+### Sources for this update
+
+- [ServeTheHome — Intel Crescent Island: 160GB to 480GB LPDDR5X AI GPU at Hot Chips 2026](https://www.servethehome.com/intel-crescent-island-160gb-to-480gb-lpddr5x-ai-gpu-at-hot-chips-2026/)
+- [Chips and Cheese — Hot Chips 2026: Intel's Crescent Island](https://chipsandcheese.com/p/hot-chips-2026-intels-crescent-island)
 - [Intel Announces New AI Innovations at Computex — Xeon 6+ / SambaNova SN-50 racks (non-Gaudi context)](https://www.intc.com/news-events/press-releases/detail/1771/intel-announces-new-ai-innovations-at-computex-chip-to)

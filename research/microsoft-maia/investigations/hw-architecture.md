@@ -1,6 +1,6 @@
 # Microsoft Maia Hardware Architecture — Investigation Report
 
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 *Primary sources: HC2024 "Inside Maia 100" (Sherry Xu, Microsoft); Microsoft Tech Community blog; Maia 200 deep-dive blog (January 2026)*
 
 ---
@@ -283,6 +283,96 @@ Microsoft deliberately chose HBM2e (vs. HBM3) for Maia 100 — a cost and supply
 - https://www.datacenterdynamics.com/en/news/microsoft-launches-vms-based-on-cobalt-200-chip-in-preview-maia-200-already-in-production/ — 2026-06-03 (HTTP 403 on direct fetch; verified via search snippet only)
 - https://venturebeat.com/technology/microsoft-ai-chief-says-company-was-set-free-from-openai-to-pursue-superintelligence — snippet-level corroboration (HTTP 429 on direct fetch)
 - https://azure.microsoft.com/en-us/blog/new-azure-cobalt-200-vms-deliver-50-performance-improvement-fully-optimized-for-modern-agentic-ai-workloads/ — 2026-06-02, negative control (Cobalt only, no Maia regions)
+
+---
+
+## Update investigation — Hot Chips 38 system-level disclosure (dated 2026-09-13)
+
+*Verdict: **major disclosure.** The Hot Chips 38 talk flagged "scheduled, content not yet public" on 2026-08-08 has now happened (2026-08-25, session AI 1: "MAIA 200: A Data Center Scale AI system – MAIA-200 Accelerator", Prashant Ranjan & Jackson Peng). It is accompanied by a Microsoft Tech Community blog post (2026-08-25, authors Sherry Xu, Prashant Ranjan, Torsten Hoefler) and — critically — a full academic paper on arXiv (2608.24664, "Maia 200: A Software Defined Dataflow System for Large-scale AI Acceleration", Sherry Xu et al., Microsoft Corporation, submitted 2026-08-25). Both were fetched and read in full (the arXiv PDF via `pdftotext -layout`, since WebFetch could not extract the PDF's decompressed text directly; the blog via its embedded Next.js JSON payload, since the rendered page also would not yield body text to WebFetch). This is the first system-level, silicon-detail disclosure of Maia 200 — the die size, tile/cluster counts, clock, and network topology that were "not disclosed" as of 2026-08-08 are now Microsoft-primary-confirmed.*
+
+### A. Process, package, physical (arXiv:2608.24664, primary)
+
+| Parameter | Value | Note |
+|---|---|---|
+| Process | **TSMC's 3nm process** | Paper says only "3nm" — does **not** specify N3 vs N3P vs N3E. The pre-existing repo entry "TSMC N3" should be read as "3nm, sub-node unconfirmed," not as a confirmed N3P claim. |
+| Transistors | **>140 billion** | Confirms the January 2026 figure exactly |
+| Die | **Near-reticle-sized monolithic die, 26×33 mm** | New. Arithmetic ⇒ ~858 mm². ServeTheHome's Hot Chips 38 coverage separately states "~820 mm² altogether" — close but not identical; the paper's dimensioned figure is treated as primary here, ServeTheHome's rounded total as a roughly-corroborating secondary figure. |
+| Packaging | **CoWoS-S**, HBM co-located on a silicon interposer | New (confirms Maia 100's packaging choice carries to Maia 200) |
+| Package size | **75 mm × 75 mm** | New |
+| TDP | **750 W SoC TDP**, distributed via **19 metal layers** | Confirms 750 W; "19 metal layers" is new |
+| Deployment | **"It is a full system including tray, rack, and network architecture scalable to thousands of accelerators in a single cluster and it is in production in the fleet today."** | Direct quote, Microsoft-primary — confirms in-production status independent of the Build 2026 deployment-status reporting already in this file |
+
+### B. Compute architecture — SDLA, clusters, tiles (arXiv, primary)
+
+Maia 200 is described as the first instance of a new architecture class Microsoft names **Software Defined Locally Accessed Dataflow Architecture (SDLA)** — software has explicit control over data movement between HBM and localized SRAMs, in contrast to implicit cache-based designs. This is new vocabulary; it supersedes no prior figure but gives the "tile→cluster hierarchy" already in this file (from the January 2026 deep-dive blog) a formal architectural name and taxonomy (the paper frames SDLA as a data-centric sibling to Flynn's instruction-centric taxonomy).
+
+| Parameter | Value |
+|---|---|
+| Clusters per SoC | **4** |
+| Tiles per cluster | **"nine or ten"** — i.e., 10 physical tiles per cluster with one held in reserve for yield, mirroring the redundancy pattern Meta uses on MTIA 300's PE grid. Benchmark section explicitly runs "a Maia 200 system with 9 Tiles per cluster enabled" (36 active tiles total: 4×9). |
+| Per-tile compute units | One **Tile Tensor Unit (TTU)** + one **Tile Vector Processor (TVP)**, specialized tile memory, DMA engines, Sync engines, a **Tile Control Processor (TCP)** |
+| TSRAM (per tile) | **3 MiB** |
+| CSRAM (per cluster) | **35 MB** |
+| Clock | **2 GHz** |
+| TTU MAC counts (per cycle) | FP4: **65,536**; FP8/FP6: **32,768**; BF16: **8,192** |
+| TTU per-tile peak (FP4, 2 GHz) | **262.14 Tflop/s** |
+| TTU input matrix shape | 32×K×32 (K=64 for FP4, K=32 for FP8); output/accumulate into 32×32 FP32 or BF16/FP16 |
+| TVP throughput | **256 lanes** for ≤16-bit types at **3.07 Tflop/s**; **128 lanes** FP32 at **1.54 Tflop/s** (both at 2 GHz) |
+| Chip-level peak (36 active tiles, unthrottled, benchmark section) | **BF16 1,180 Tflop/s; FP8 4,785 Tflop/s** |
+| Chip-level peak (abstract/headline) | **FP4 10,145 Tflop/s; FP8 5,072 Tflop/s** within 750 W (**13.3 / 6.7 Tflop/W**) |
+
+**Note the headline (10,145 FP4 / 5,072 FP8) and the benchmark-section figure (4,785 FP8, no FP4 stated at chip level in that passage) are not identical** — plausibly different tile-count or clock assumptions between the abstract's top-line spec and the specific 36-tile benchmark configuration. Both are quoted from the same primary paper; report both rather than silently reconciling them. The **10,145 TFLOPS FP4 headline confirms** the >10 PFLOPS FP4 figure already in this repo (from the January 2026 blog) almost exactly, and the **5,072 TFLOPS FP8 headline confirms** the >5 PFLOPS FP8 figure almost exactly.
+
+Datatype support (TTU/TVP): BF16, FP8 (E4M3/E5M2), FP6 (E2M3/E3M2), FP4 (E1M2/E2M1); OCP-compliant MXFP composition with E8M0 scaling factors, group size 32. Datatype lane counts for the Reshaper/vector path: INT8/UINT8 512 lanes, INT16/UINT16 256, INT32/UINT32 128, BFP16 256, FP16 256, FP4 256, FP6 256, FP8 256, FP32 128.
+
+### C. Memory (arXiv, primary)
+
+- **6× HBM3e stacks** (HBM0–HBM5 in the SoC diagram), confirming the pre-existing "6 HBM stacks" ServeTheHome-sourced figure now with a Microsoft-primary citation.
+- Bandwidth stated as **"7 TB/s"** in the abstract but **"7 TiB/s"** in the introduction — an internal inconsistency in the paper itself (TiB/s ≈ 7.7 TB/s decimal). Flagged here; downstream tables should keep using "7 TB/s" (the more conservative, more widely corroborated figure) and note the paper's own unit ambiguity rather than silently pick one.
+- **Absolute HBM capacity in GB is still not stated in the sections of this paper that were extracted.** The repo's existing "216 GB" figure remains TrendForce/Tom's Hardware-sourced (secondary) — this pass did **not** find a Microsoft-primary restatement of 216 GB specifically, though it is plausible the number appears in a table/figure not captured by text extraction. Treat 216 GB as still secondary-sourced pending a cleaner primary confirmation.
+- PCIe: **PCIe 6×8, 64 GB/s** (new — host link generation now disclosed)
+
+### D. Networking — HammingMesh topology, now fully disclosed (arXiv, primary)
+
+This is the most significant new disclosure relative to the 2026-08-08 baseline, which had "on-die NIC, 2.8 TB/s bidirectional, 2-tier topology, 6,144 accelerators" with no topology detail.
+
+- **28 integrated 400 Gbps Ethernet-based AI Network Controllers (ANC)** per SoC = **1.4 TB/s full-duplex** total per-chip network bandwidth. This is a materially different figure from, and should not be merged with, the pre-existing repo's "2.8 TB/s bidirectional" (2.8 TB/s ≈ 2× 1.4 TB/s full-duplex, so the two may be reconciled as one counting each direction separately and the other counting combined — flagged for a future pass to reconcile explicitly rather than guessed here).
+- Transport: Microsoft's in-house **AI Transport Layer v2 (ATLv2)**, running over lossless (PFC) Ethernet L2 with L3 IP routing, **end-to-end AES-GCM-256 encryption**, ECMP + entropy-vector per-packet load balancing, selective retransmit. ATLv2 "later influenced the standardization of Ultra Ethernet" — Microsoft states it contributed this direction to the **Ultra Ethernet Consortium (UEC) AI base transport profile**.
+- Topology: **"a special case of a 2×2 1D Hamming Mesh"** (citing the HammingMesh paper, Belk/Goel/Castro-Miguel) with cross-links added per physical tray for full intra-tray connectivity. Of the 28 ANCs per SoC: **20 use fixed (unswitched) links** within the tray; **8 connect to a switched network** organized as **4 identical planes**, with each SoC connecting **2× 400G ANCs to each plane** — this is the Microsoft-primary confirmation of ServeTheHome's shorthand "8 Ethernet lanes, split into four network planes."
+- Blade/board bandwidth asymmetry: north-south links **300 GB/s**, east-west/diagonal **350 GB/s**; the switched portion (400 GB/s) can rebalance this to a **fully balanced 350 GB/s per direction, 1.4 TB/s total balanced network bandwidth**.
+- Two-tier switched network, current design point **maximum 6,144 SoCs** (confirms the existing repo figure with a primary source and now explains the arithmetic): each **Tier-0 (T0) switch is 51.2 T, 128× 400G ports**, connecting to **48 Maia 200 SoCs across 12 trays with two links each**; the remaining 32 T0 ports connect to up to **32 Tier-1 (T1) switches at a 1:3 oversubscription ratio**. Total SoCs = 48 × 128 = **6,144**. "Smaller subset configurations are possible and deployed in the field."
+- Deployment note: **liquid-cooled by default**; can be deployed in air-cooled datacenters via an **integrated heat exchanger** (Fig. 9) — this is the first disclosure of a Maia 200 cooling option, filling the "Maia 200 rack/pod/cooling design — not disclosed" gap noted on 2026-08-08.
+
+### E. Measured performance (arXiv, primary)
+
+- **BF16 matrix multiply**: up to **99.69%** of peak in the compute-bound regime; **>90%** of peak for multiplications >58 TFLOP of compute; memory-bound regime up to **51.4%** of peak bandwidth (rising above 50% for combined input+output operand size >113.5 MiB), benchmarked across **6,143 relevant matrix shapes**.
+- **FP8 matrix multiply**: up to **96%** of peak in the compute-bound regime; up to **56%** in the memory-bound regime; roofline ridge point at arithmetic intensity 674 (vs. 169 for BF16).
+- **Allgather** (8 Maia 200 chips across two trays, production-representative workloads): speed-of-light model SoL = max(4 µs, R / 1.4 TiB/s); measured **78% of the latency bound** and **94% of the bandwidth bound**. **This is the paper's only explicitly benchmarked collective** — direct-connect and ring algorithms compared, with direct favored for small messages and ring for large.
+- **Cross-check against ServeTheHome's HC38-slide figures** ("~1.3 TB/s BF16 AllReduce", "655 GB/s All2All", "1.65 PFLOPS attention effective peak"): **none of these three figures were found in the extracted arXiv text.** 94% of the paper's 1.4 TiB/s Allgather bandwidth bound ≈ 1.45 TB/s, in the same neighborhood as ServeTheHome's "~1.3 TB/s AllReduce" but not an exact match, and AllReduce ≠ Allgather algorithmically. All2All and the attention-effective-peak figure appear nowhere in the extracted paper text — they may be in a Hot Chips 38 slide chart not reproduced in the arXiv paper, or a figure whose image content the text extraction could not read. **Treat all three ServeTheHome figures as analyst/HC38-slide-sourced only, not confirmed against the primary paper text in this pass.**
+
+### F. Vendor efficiency claims — two distinct claims, both flagged
+
+1. **Paper-stated (arXiv, primary):** "Internal data suggests that Maia 200 saves **30% cost (TCO) and 15% energy** compared to any other AI accelerator in Microsoft's fleet." This refines, and is a different framing from, the January 2026 "30% better performance per dollar" claim — now explicitly TCO + energy, still against Microsoft's own fleet, still internal/unaudited, no methodology published.
+2. **Blog-stated (Tech Community, 2026-08-25, primary):** "Maia 200 delivers over **40% higher token generation** under the same rack power budget... when running the MAI-Thinking-1 model than other leading accelerators in the Azure fleet." This is a **new figure**, distinct from the Build-2026-era "1.4× perf/W" claim already recorded in this file (2026-06-02) — it is not stated whether the two are the same underlying measurement re-expressed or a new benchmark. Baseline is "other leading accelerators in the Azure fleet" — **no specific chip (e.g., GB200) is named** in either the blog or the arXiv paper. Both figures are **unfalsifiable vendor claims**: no workload spec, sequence length, batch size, or power-measurement boundary is published beyond what is quoted above. Exclude both from any comparison table as measured facts.
+
+### G. Des Moines / GPT-5.2 claim — actively checked, not found in either primary source
+
+The task brief for this pass flagged a secondary-sourced claim that Maia 200 uses 216 GB HBM3e and serves "GPT-5.2-class workloads at a Des Moines datacenter." **Both primary sources for this update (arXiv:2608.24664 full text, and the 2026-08-25 Tech Community blog full text) were searched for "Des Moines" and "GPT-5" — neither term appears in either document.** This claim remains **unconfirmed by any primary source found in this pass** and should continue to be treated as unverified/secondary. (The pre-existing repo record of Maia 200 running in the US Central/Des Moines, Iowa region comes from the January 2026 announcement blog and Build 2026, and is independently well-sourced — only the specific "GPT-5.2-class workload" pairing is unconfirmed.)
+
+### H. End-to-end demonstration (arXiv, primary) — new
+
+The paper includes a complete inference demo on a **single Maia 200 chip**: **Qwen 2.5 7B** (public model, 28 layers, inner dim 3584, FFN intermediate 18,944, 28 attention heads / 4 KV heads, GQA), memory-bound decode phase, 16,384-token context generating the 16,385th token. Achieved **2,434 tokens/s**, stated as **>70% of estimated maximum performance**; correctness validated against existing GPU inference solutions. This is the first third-party-model, single-chip, primary-sourced performance number for Maia 200 found in this repo's research to date.
+
+### I. Related-work framing (arXiv, primary)
+
+The paper explicitly places Maia alongside "AWS's Trainium and Inferentia, Google's TPUs, and Meta's MTIA" as comparable datacenter-provider-designed accelerators — useful confirmation that Microsoft's own competitive frame for Maia 200 is the custom-silicon cohort already tracked in this repo, not merely NVIDIA/AMD GPUs.
+
+### Sources consulted in this window (added 2026-09-13)
+
+- https://arxiv.org/abs/2608.24664 and https://arxiv.org/pdf/2608.24664 — "Maia 200: A Software Defined Dataflow System for Large-scale AI Acceleration", Sherry Xu, Marco Heddes, Jackson Peng, Tom Savell, Monica Tang, Prashant Ranjan, Jesse Benson, Ofer Dekel, Saurabh Dighe, Anupama Kurpad, Artour Levin, Matthew Mattina, George Petre, Cheng Tang, Yuan Yu, Li Zhang, Torsten Hoefler; Microsoft Corporation; submitted 2026-08-25 (primary; PDF fetched and converted with `pdftotext -layout`, ~1,077 lines of extracted text reviewed)
+- https://techcommunity.microsoft.com/blog/azureinfrastructureblog/maia-200-software-defined-dataflow-and-all-ethernet-networking-for-efficient-inf/4548198 — Microsoft Tech Community, "Maia 200: Software-defined dataflow and all-Ethernet networking for efficient inference on Azure", Sherry Xu / Prashant Ranjan / Torsten Hoefler, 2026-08-25 (primary; body text extracted from the page's embedded Next.js `__NEXT_DATA__` JSON payload after WebFetch's rendered-text extraction returned only the page title)
+- https://www.servethehome.com/microsofts-maia-200-accelerator-at-hot-chips-2026/ — ServeTheHome, Hot Chips 38 coverage, 2026-08-25 (analyst; sole source for the "1.65 PFLOPS attention effective peak", "~1.3 TB/s BF16 AllReduce", and "655 GB/s All2All" figures, none of which were found in the primary arXiv text)
+- https://hotchips.org/program/conference/ — Hot Chips 38 program (talk realized 2026-08-25, was "scheduled" as of 2026-08-08)
 - https://mlcommons.org/2026/06/mlperf-training-v6-0-results/ — 2026-06-16
 - https://techcommunity.microsoft.com/blog/azurehighperformancecomputingblog/inside-llama-3-1-405b-mlperf-training-on-azure-system-level-insights-at-8k-gpu-s/4529296
 - https://techcommunity.microsoft.com/category/azure/blog/azureinfrastructureblog — Apr–Aug 2026 silicon posts are Cobalt-only

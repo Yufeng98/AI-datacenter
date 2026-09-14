@@ -1,7 +1,7 @@
 # Rebellions ATOM — Hardware Architecture Investigation
 
 *chip: rebellions-atom*
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *sources: ATOM white paper, ATOM-Max blog, REBEL-Quad Hot Chips 2025, ServeTheHome analysis, Tom's Hardware ISSCC 2026, Next Platform REBEL analysis, EE Times chiplet roadmap; (2026-08-08 update) Rebellions newsroom 2026-04-10 / 2026-06-17 / 2026-07-23, Seoul Economic Daily EN 2026-07-23, MLCommons MLPerf Training v6.0*
 
 ---
@@ -263,3 +263,36 @@ A UPI item dated 2026-08-07 ("SK Telecom, Rebellions expand Korean AI chip infra
 - [Rebellions $400M pre-IPO + RebelRack/RebelPOD launch — 2026-03-30](https://rebellions.ai/newsroom/rebellions-closes-400-million-pre-ipo-and-launches-rebelrack-and-rebelpod-to-accelerate-global-expansion/) (primary; **no** technical specs — basis for the RebelRack sourcing re-grade)
 - [MLPerf Training v6.0 results — 2026-06-16](https://mlcommons.org/2026/06/mlperf-training-v6-0-results/) (Rebellions absent from 24 submitters)
 - [Hot Chips 38 program](https://hotchips.org/) (Aug 23–25 2026 — future; Rebellions absent)
+
+---
+
+## Investigation Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*No new silicon, no new spec, no new performance figure this window. The material development is corporate: NVIDIA is reported in early-stage talks with Rebellions. All prior-generation content above is retained unchanged.*
+
+### Finding — NVIDIA in early talks with Rebellions (2026-08-21, Bloomberg)
+
+Bloomberg reported (2026-08-21) that **NVIDIA is in early discussions with Rebellions** covering "a technical partnership, an investment or perhaps even an acquisition." Key facts, cross-checked against an eWeek summary (2026-08-24) of the same Bloomberg reporting:
+
+- **NVIDIA CEO Jensen Huang met Rebellions CEO Sung-hyun Park** at NVIDIA's Santa Clara HQ the week before the eWeek article (i.e., ~2026-08-17 → 08-21).
+- Described explicitly as **early-stage**; may not conclude in any deal.
+- eWeek draws an explicit precedent: **NVIDIA used a similar structure with Groq in late 2025** — a nonexclusive technology license plus absorption of engineering staff (an "acqui-hire"-shaped deal, not a full acquisition). This is offered as the likely template, not a confirmed structure for a Rebellions deal.
+- No investment amount, equity stake, or licensing scope has been disclosed for any Rebellions deal.
+- Financial context repeated in the coverage (not new): ~$850M total funding, ~$2.3B last valuation (March 2026 pre-IPO round), backers including SK hynix, Samsung, Arm.
+- **Explicitly absent from both the Bloomberg and eWeek reporting**: any mention of Rebel100 shipping timelines, Saudi Aramco, or IPO plans — none of the pre-verified claims about an Aramco-specific "H1 2027 deployment target" were corroborated by this coverage or by any other source found in this pass. **Treat "Rebel100 → Saudi Aramco deployment, H1 2027" as unconfirmed** — the only H1 2027 date on record anywhere in this research thread is the Reuters/CNBC (2026-07-08) **Korea IPO listing** target, which is a different event; Aramco appears in this repo only as an investor (Wa'ed Ventures, $15M, reported ~2024) and a pre-IPO round participant, never tied to a deployment date.
+
+### Corroborating coverage gap note
+
+The 2026-08-07 UPI item ("SK Telecom, Rebellions expand Korean AI chip infrastructure") flagged as HTTP-403-blocked at the 2026-08-08 pass was **re-attempted and could not be located or retrieved in this pass either** — neither the original URL nor a re-search surfaced a working copy. Still unverified.
+
+### Not found / searched and absent
+
+- No Rebel100/RebelCard confirmed shipment or ship-date (still "entering validation," per the 2026-08-08 baseline).
+- No Sapeon-merger status change beyond the December 2024 completion already on record.
+- No new ISSCC/Hot Chips/MLPerf disclosure.
+- No confirmation of a Saudi Aramco deployment target of any kind (H1 2027 or otherwise).
+
+### Sources added 2026-09-13
+
+- [Bloomberg — Nvidia in Talks With Chip Startup Rebellions for Potential Deal (2026-08-21)](https://www.bloomberg.com/news/articles/2026-08-21/nvidia-in-talks-with-chip-startup-rebellions-for-potential-deal)
+- [eWeek — Nvidia Eyes Rebellions Deal as AI Inference Competition Heats Up (2026-08-24)](https://www.eweek.com/news/nvidia-rebellions-ai-chip-potential-deal-apac-south-korea/)

@@ -1,6 +1,6 @@
 # Tsingmicro TX81 Software Stack Investigation
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: tsingmicro*
 *device_class: Reconfigurable Dataflow / CGRA "RPU" (China, 清微智能)*
 
@@ -205,3 +205,36 @@ The stack is real and actively developed (commits through Aug 2026), but the pub
 - [Tsingmicro TX8 series page — RAISA four-layer description](https://www.tsingmicro.com/products/tx8/series)
 - [tsingmicro-public-e GitHub org](https://github.com/tsingmicro-public-e)
 - [TS.Knight model zoo — the TX5 edge flow (out of scope)](https://github.com/tsingmicro-toolchain/ts.knight-modelzoo)
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Verified directly against the GitHub REST API for `flagos-ai/FlagTree` (the repo the survey previously knew as `FlagTree/flagtree` — GitHub reports a 301 redirect from the old org name to `flagos-ai`; both URLs resolve to the same repository). No new hardware/silicon disclosure this window; one substantive upstream commit to the TX81 Triton backend.*
+
+### TX81 backend — new TLE DSA ops and launch fast path (2026-09-01)
+
+Commit `0abc361e` ("[BACKEND] Add TLE DSA elementwise/randgen/bitcast ops and tx81 launch fast path", PR #1073), landed on the `triton_v3.3.x` branch **2026-09-01** — squarely in-window and the newest commit touching `third_party/tsingmicro` as of 2026-09-13. 27 files changed:
+
+- **New TLE-DSA ops**: elementwise binary (add/sub/mul/maximum/minimum/div), `to_tensor`/`to_buffer` tensor↔buffer bridging, `dsa.randgen` (random-number generation on TX81 peripheral), `dsa.bitcast`, and strided `extract_slice`/`insert_slice`.
+- **Tsingmicro backend lowering** added for the new ops across `TLEToMK`, `MKToTx81`, `Tx81ToLLVM`, `LinalgToMK`, and a new `MaterializeStridedLinalgInputs` pass; CRT support added for `randgen`.
+- **Driver launch fast path**: the kernel module is now preloaded once and launched via a `txLaunchKernel` handle (with a `TXDA_LAUNCH_VIA_GGL` fallback to `txLaunchKernelGGL`), redundant `txSetDevice` calls on the hot path are skipped, and a `Py_DECREF`/refcount bug plus a stray `fflush` are fixed.
+
+This is routine, credible upstream development — consistent with the vendor's "Triton-first, upstream-first" posture recorded at baseline — and does not change any hardware fact (no new TX8x part, no spec value, no order/corporate update).
+
+### Corroborating repo status
+
+- `flagos-ai/FlagTree` overall `pushed_at`: **2026-09-14** (i.e., essentially current as of this pass) — the org remains actively developed, though the most recent tsingmicro-path-specific commit is the 2026-09-01 one above.
+
+### Searched and absent
+
+- No new Tsingmicro SDK/toolkit release (private SDK still not shipped; upstream FlagTree/FlagGems/FlagCX remain the only public surface).
+- No ChiNext IPO status change found beyond the 2026-06-16 tutoring (辅导验收) stage already recorded — no filing/acceptance (受理) news located. English- and Chinese-language news search (Bing News) returned no indexed results for "清微智能" in this window; Baidu search was blocked by a CAPTCHA challenge on every attempt. **Treat the IPO status as unchanged, not as confirmed unchanged** — search coverage for this vendor is thin.
+- No new order-volume figure beyond the previously recorded "30000+ cumulative" (2026 vendor site) figure.
+- No Hot Chips 38 (2026-08-23 → 08-25) Tsingmicro talk.
+
+### Sources added 2026-09-13
+
+- [GitHub — flagos-ai/FlagTree commit 0abc361e (2026-09-01), PR #1073](https://github.com/flagos-ai/FlagTree/commit/0abc361ee426e4a8c9d39d8af90c37120bbd8f4a)
+- [GitHub API — flagos-ai/FlagTree repo metadata (`pushed_at`, live query 2026-09-13)](https://api.github.com/repos/flagos-ai/FlagTree)
+- [GitHub API — commits on `triton_v3.3.x` touching `third_party/tsingmicro` (live query 2026-09-13)](https://api.github.com/repos/flagos-ai/FlagTree/commits?sha=triton_v3.3.x&path=third_party/tsingmicro)

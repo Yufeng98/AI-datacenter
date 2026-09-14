@@ -2,8 +2,8 @@
 
 *chip: d-matrix*
 *device_class: Digital In-Memory Compute (DIMC)*
-*as_of: 2026-08-08*
-*generations: Corsair (in full production, 2026-06-09) / Raptor (3DIMC — early silicon, ISCA 2026; pre-production)*
+*as_of: 2026-09-13*
+*generations: Corsair (in full production, 2026-06-09) / Raptor (3DIMC — early silicon, ISCA 2026 + Hot Chips 38 disclosure; pre-production; tapeout end-2026, release Q4 2027)*
 
 ---
 
@@ -18,7 +18,7 @@ d-Matrix Corsair is a **Digital In-Memory Compute (DIMC)** inference accelerator
 | Property | Value |
 |----------|-------|
 | Paradigm | Digital In-Memory Compute (DIMC) |
-| Generation | Corsair (shipping); Raptor / 3DIMC™ (early silicon, pre-production) |
+| Generation | Corsair (shipping); Raptor / 3DIMC™ (early silicon, pre-production; tapeout end-2026, release Q4 2027) |
 | Status | **In full production since 2026-06-09**; beginning volume shipment to select qualified customers |
 | Process node | TSMC N6 (6nm); Alchip Technologies is the design/production partner |
 | DIMC cores / card | 2,048 (single card) / 4,096 (dual card via DMX Bridge) |
@@ -74,6 +74,8 @@ d-Matrix Corsair is a **Digital In-Memory Compute (DIMC)** inference accelerator
 - [Corsair enters full production (2026-06-09)](https://www.d-matrix.ai/announcements/d-matrix-corsair-ai-inference-platform-enters-full-production-to-meet-customer-demand/)
 - [d-Matrix acquires GigaIO datacenter business (2026-04-02)](https://www.d-matrix.ai/announcements/acquisition-of-gigaio/)
 - [d-Matrix acquires Wallaroo.ai (2026-08-03)](https://www.d-matrix.ai/announcements/d-matrix-acquires-wallaroo/)
+- [ServeTheHome — d-Matrix Raptor: 3D DRAM Accelerator for Generative Inference at Hot Chips 2026 (2026-08-23)](https://www.servethehome.com/d-matrix-raptor-3d-dram-accelerator-for-generative-inference-at-hot-chips-2026/)
+- [The Next Platform — Startup d-Matrix will pair its Raptor memory-based XPU to Nvidia rackscale iron (2026-09-10)](https://www.nextplatform.com/compute/2026/09/10/startup-d-matrix-will-pair-its-raptor-memory-based-xpu-to-nvidia-rackscale-iron/5295601)
 
 ---
 
@@ -144,3 +146,32 @@ Announced at the **OCP Global Summit** with **Arista, Broadcom and Supermicro**:
 - **Funding:** no 2026 round confirmed. The $275M already recorded is the **November 2025 Series C at a ~$2B valuation** (~$450M raised to date; Bullhound Capital, Triatomic Capital and Temasek leading, with QIA, EDBI and Microsoft's **M12** participating). M12's participation is why some June 2026 coverage carries "Microsoft backing" headlines — that is **not** a new investment.
 - **MLPerf:** confirmed negative — **no d-Matrix/Corsair submission in any MLPerf Inference round.**
 - **Hot Chips 38 (2026-08-23 – 2026-08-25, Stanford):** d-Matrix is **not listed in the advance program**. The conference is in the future relative to this update; recheck afterwards.
+
+---
+
+## Raptor Hot Chips 38 Disclosure and NVIDIA Rack-Scale Partnership Update (2026-09-13)
+
+*Updated 2026-09-13. Baseline for this section is the repo's 2026-08-08 state. Prior-generation content above is retained. Sources: ServeTheHome Hot Chips 38 Raptor coverage (2026-08-23); The Next Platform (2026-09-10).*
+
+**Corsair is unchanged.** This entry's prior "Hot Chips 38: d-Matrix not listed in the advance program" note (§7 above) is **superseded** — Raptor did appear at Hot Chips 38 on 2026-08-23, apparently via the Sunday tutorial track ("3D DRAM based Accelerator for Generative Inference," Sudeep Bhoja with Meta's Aayush Ankit) rather than the main AI-chip session; the reviewed coverage does not fully disambiguate.
+
+### 1. Raptor architecture — Hot Chips 38 disclosure
+
+- **3D-DRAM capacity disclosed for the first time: 32 GB per card.** Bank organization refined: 840 banks total, 768 active after 72 spares, 256 channels (16 per slice, unchanged from ISCA 2026).
+- **Stack configuration**: 1-Hi (single logic layer face-to-face bonded to the 3D-DRAM die at 36 µm pitch — "proven, low-cost, high-volume, and high-yield" per d-Matrix).
+- **Process node labeling**: Hot Chips 38 coverage says **TSMC N4**; the ISCA 2026 paper said **N4P**. Likely the same process family described with different shorthand — not treated as a correction without further confirmation.
+- **New efficiency/density vendor figures**: ~1.37% ECC/refresh bandwidth overhead; 296 W I/O power at 100 TB/s (0.37 pJ/bit); ≤0.5 W/mm² power-density limit for liquid cooling with DRAM under 100°C; 32.6 GB/s/mm² bandwidth density (vs. ~1.5 GB/s/mm² for HBM4, ~20× vendor-claimed); 2.96 mW/GB/s power efficiency (vs. ~40 mW/GB/s for HBM4, ~13.5× vendor-claimed).
+- **~100 TB/s "sustained" bandwidth** stated at Hot Chips 38 — recorded alongside, not merged with, the ISCA 2026 paper's ~105 TB/s **measured** figure.
+- **New throughput claim**: ~1,000 tok/s/user on a 3-trillion-parameter-class model at 1M-token context, on a 72-card scale-up configuration (vendor claim).
+
+### 2. NVIDIA NVL144 MGX rack partnership (2026-09-10)
+
+d-Matrix will offer Raptor as an XPU inside **NVIDIA's NVL144 MGX rack** — the same liquid-cooled rack and compute-tray hardware as NVIDIA Vera-Rubin systems, populated with Raptor XPUs, integrated via NVLink with NVIDIA Vera CPUs, BlueField DPUs, ConnectX and Spectrum-X networking. Can run standalone or as a companion to Vera-Rubin GPU racks.
+
+- **144 Raptor XPUs per rack**; **2.3 TB** total 3D-stack DRAM capacity; **7.2 PB/s** aggregate rack bandwidth.
+- **Arithmetic cross-check (this survey's own, not stated by the source)**: 2.3 TB ÷ 32 GB/card ≈ 72 cards, and 7.2 PB/s ÷ 100 TB/s/card = 72 cards — both point to 72 cards, matching the separately-disclosed "72-card configuration to host frontier models" figure. The relationship between "144 XPUs/rack" and this 72-card arithmetic is **not reconciled** in the source; both figures are recorded as reported.
+- **First concrete Raptor schedule**: tapeout end of 2026; release **Q4 2027**. Previously undated.
+- **Benchmark**: GLM 5.2 achieving ~3,000 tok/s/user on a single Raptor rack, stated to scale across eight racks — a different model and figure from the 3T-parameter/1M-context claim above; not the same benchmark.
+- **Funding note**: Next Platform states **"over $500 million"** raised to date, above the ~$450M previously recorded from the November 2025 Series C. No specific new funding round was found in the reviewed coverage — flagged for reconciliation, not confirmed as a new raise.
+
+**Sources for this update:** https://www.servethehome.com/d-matrix-raptor-3d-dram-accelerator-for-generative-inference-at-hot-chips-2026/ · https://www.nextplatform.com/compute/2026/09/10/startup-d-matrix-will-pair-its-raptor-memory-based-xpu-to-nvidia-rackscale-iron/5295601

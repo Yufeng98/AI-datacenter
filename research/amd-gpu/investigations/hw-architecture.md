@@ -1,6 +1,8 @@
 # AMD GPU Hardware Architecture Investigation
 ## CDNA3 (MI300X) and CDNA4 (MI350/MI355X)
 
+*as_of: 2026-09-13*
+
 **Chip:** amd-gpu  
 **Device Class:** GPU  
 **Architectures Covered:** CDNA3 (MI300-series), CDNA4 (MI350-series)  
@@ -305,6 +307,28 @@ AMD's "Helios" reference design is the system-level counterpart to MI400:
 - [AMD 2026-2027 AI Roadmap: MI400 and MI500 — WccfTech](https://wccftech.com/amd-to-battle-nvidia-ai-dominance-instinct-mi400-accelerators-2026-mi500-2027/)
 - [AMD Instinct MI350 Series and Beyond — AMD Blog](https://www.amd.com/en/blogs/2025/amd-instinct-mi350-series-and-beyond-accelerating-the-future-of-ai-and-hpc.html)
 
+### Added 2026-09-13
+
+- [Hot Chips 38 program (hc2026.hotchips.org) — lists both AMD MI400 talks and their slide-PDF paths](https://hc2026.hotchips.org/program/) — fetched 2026-09-13. The two AMD PDFs (`FINAL_AMD Instinct MI400 GPU Architecture_HotChips.pdf`, `FINAL_AMD MI400_System_Arch_Hot_Chips_2026.pdf`) return **HTTP 401, Basic realm "Attendees Only"** (curl, 2026-09-13) — **not publicly posted** as of this scan
+- [AMD MI400 GPU at Hot Chips 2026 — ServeTheHome, Patrick Kennedy (2026-08-24)](https://www.servethehome.com/amd-mi400-gpu-at-hot-chips-2026/) — slide-by-slide coverage of "AMD Instinct MI400 Series GPU Architecture" (Alan Smith, Maiyuran Subramaniam); used here as the primary-adjacent record of the slides
+- [AMD Helios MI400 System Architecture at Hot Chips 2026 — ServeTheHome, Patrick Kennedy (2026-08-24)](https://www.servethehome.com/amd-helios-mi400-system-architecture-at-hot-chips-2026/) — slide-by-slide coverage of "System Architecture of the AMD MI400 Series GPU" (Steve Scott, David Riddoch, Krishna Doddapaneni)
+- [Hot Chips 2026 MI400 System Architecture Slide 23 — AMD Pensando Vulcano 800 AI NIC — ServeTheHome](https://www.servethehome.com/hot-chips-2026-mi400-system-architecture-slide-23/) — image-only slide page (no extractable text)
+- [AMD Instinct MI455X Deep Dive: CDNA 5 Marks the Next Era of Instinct — ServeTheHome (2026-08-12)](https://www.servethehome.com/amd-instinct-mi455x-deep-dive-cdna-5-marks-the-next-era-of-instinct/) — source of the 320B-transistor figure (framed as AMD's) and of an explicit "AMD has not disclosed power" statement
+- [A Deep Dive into LDS Optimizations on AMD Instinct MI450 GPUs — AMD ROCm Blogs (2026-08-28; Plavsic, Zaghen, Zhang)](https://rocm.blogs.amd.com/software-tools-optimization/mi450-lds-optimization/README.html) — **first AMD document naming the CDNA 5 target `gfx1250`**; LDS partition/port microarchitecture
+- [LLVM AMDGPUUsage — Processors table](https://llvm.org/docs/AMDGPUUsage.html) — fetched 2026-09-13; lists `gfx1250` / `gfx1251` (products "TBA")
+- [ROCm 10.0.0 Compatibility Matrix](https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html) — fetched 2026-09-13; Instinct entries still stop at gfx950
+- [ROCm Core SDK 10.0.0 release notes (2026-08-26)](https://rocm.docs.amd.com/en/latest/about/release-notes.html)
+- [ROCm 10.0: A Decade of Open Compute, Built for Agentic AI — AMD ROCm Blogs (2026-08-27)](https://rocm.blogs.amd.com/ecosystems-and-partners/rocm-x-blog/README.html)
+- [ROCm/aiter `hsa/` tree — GitHub](https://github.com/ROCm/aiter/tree/main/hsa) — fetched 2026-09-13; `gfx1250/` directory present alongside `gfx942/`, `gfx950/`
+- [ROCm/aiter releases — GitHub](https://github.com/ROCm/aiter/releases) — v0.1.20 (2026-08-18) … v0.1.21.post2 (2026-09-09)
+- [AMD Acquires Taalas — AMD Investor Relations press release (2026-08-06)](https://ir.amd.com/news-events/press-releases/detail/1296/amd-acquires-taalas-to-advance-compute-solutions-for-rapidly-growing-ai-inference-market)
+- [AMD acquires AI chip startup Taalas — The Register (2026-08-06)](https://www.theregister.com/systems/2026/08/06/amd-acquires-ai-chip-startup-taalas-to-boost-inference-performance-by-etching-models-into-silicon/5284344)
+- [With Taalas, AMD Can Bake AI Inference Directly Into Its Chippery — The Next Platform (2026-08-07)](https://www.nextplatform.com/compute/2026/08/07/with-taalas-amd-can-bake-ai-inference-directly-into-its-chippery/5285060)
+- [AMD Reports Second Quarter 2026 Financial Results — AMD IR (2026-08-04)](https://ir.amd.com/news-events/press-releases/detail/1295/amd-reports-second-quarter-2026-financial-results)
+- [AMD Catches The Agentic AI Wave — The Next Platform (2026-08-05)](https://www.nextplatform.com/compute/2026/08/05/amd-catches-the-agentic-ai-wave-and-will-ride-it-up-masterfully/5283468)
+- [AMD IR press-release index](https://ir.amd.com/news-events/press-releases) — fetched 2026-09-13; no Taalas-completion release through 2026-09-13
+- [MLCommons — September 2026 posts](https://mlcommons.org/2026/09/) — fetched 2026-09-13; only MLPerf Storage v3.0 (2026-09-01); **no MLPerf Inference v6.1**
+
 ---
 
 ## CDNA 5 / Instinct MI455X / Helios — Investigation Update
@@ -431,3 +455,112 @@ The adversarial verification for this update ran with the session's WebSearch bu
 - [ROCm Compatibility Matrix](https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html)
 - [Oracle Leads AI Innovation with AMD "Altair" MI450 GPUs and Helios Racks — The Next Platform (2025-10-14)](https://www.nextplatform.com/compute/2025/10/14/oracle-leads-ai-innovation-with-amd-altair-mi450-gpus-and-helios-racks/1632443)
 - [AMD Instinct — Wikipedia](https://en.wikipedia.org/wiki/AMD_Instinct)
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Scan date 2026-09-13. Classes: **Major** (first public CDNA 5 gfx target; first AMD-slide confirmation of MXFP6/MXFP8 peaks; first system-level Helios disclosure), **Moderate** (ROCm 10.0.0 — recorded in `hip-rocm.md`), **Minor** (Hot Chips 38 talks, blogs, one arXiv report), **Roadmap** (Taalas acquisition pending; Q2 2026 earnings, both pre-baseline). Evidence rule: every number below is from a source fetched on 2026-09-13; arithmetic checks are labelled as such.*
+
+### A. Hot Chips 38 (2026-08-24) — what was presented and how it was sourced
+
+AMD gave two talks in the GPU session (Monday 2026-08-24, 4:45–6:45 PM): **"AMD Instinct MI400 Series GPU Architecture"** (Alan Smith, Maiyuran Subramaniam) and **"System Architecture of the AMD MI400 Series GPU"** (Steve Scott, David Riddoch, Krishna Doddapaneni). The program page lists slide PDFs for both, but on 2026-09-13 both URLs return **HTTP 401 (Basic realm "Attendees Only")** — the decks are **not publicly posted**. Everything attributed to "Hot Chips slides" below therefore comes from **ServeTheHome's slide-by-slide coverage (Patrick Kennedy, 2026-08-24)**, which reproduces slide numbers; treat it as primary-adjacent, not primary. Chips and Cheese, The Next Platform and SemiAnalysis published no AMD Hot Chips article in the window (their indexes were fetched).
+
+### B. Layer 1 — Compute Engine: peaks now on an AMD slide; process split corrected
+
+| Attribute | Value (2026-09-13) | Evidence |
+|---|---|---|
+| Peak MXFP4 | **40.26 PFLOPS**, "up to 4x the MI355X" | Hot Chips slide 10 (via STH) — unchanged |
+| Peak MXFP6 | **20.13 PFLOPS** | Hot Chips slide 10 (via STH) — **now confirmed**; was "arithmetically consistent, not independently confirmed" |
+| Peak MXFP8 | **20.13 PFLOPS** | Hot Chips slide 10 (via STH) — **now confirmed** |
+| Vector FP16 | **315 TFLOPS**, "up to 2x" | Hot Chips slide 10 (via STH) — new |
+| Matrix FP32 / vector FP32 | **315 TFLOPS** each, "up to 2x" | Hot Chips slide 10 (via STH) |
+| **Matrix FP16/BF16 (dense)** | **not stated** on the slide as covered; the repo's 5.03 PFLOPS remains an arithmetic halving, **not confirmed** | STH coverage explicitly gives no matrix FP16/BF16 figure |
+| FP64 (MI455X) | **not disclosed** | not on any fetched source |
+| Compute die process | **TSMC N2** (XCD) | Hot Chips (via STH) — unchanged |
+| Fabric/cache and I/O die process | **TSMC N3P** — *corrects the repo's "N3"* | Hot Chips (via STH): "fabric and cache dies plus I/O dies on N3P" |
+| Packaging | CoWoS-L; "3D hybrid-bonded XCDs" | Hot Chips (via STH) |
+| Transistor count | **~320 billion, "a 72% increase from the previous generation"** — *reported by ServeTheHome's deep-dive (2026-08-12), framed as AMD's figure; not on a Hot Chips slide as covered and not on an AMD spec page fetched.* Arithmetic check: 185B x 1.72 ≈ 318B, consistent | STH deep-dive 2026-08-12 |
+| TBP | **not disclosed** — STH: "AMD has not even disclosed the power consumption of MI455X"; STH's ">2 kW per GPU" is an explicit STH estimate resting on an unsourced "upwards of 245 kW" rack figure | STH deep-dive 2026-08-12 |
+| Clock | 2.4 GHz remains third-party (Chips and Cheese, 2026-07-23); not restated in Hot Chips coverage | — |
+| WGPs | 256 active | Hot Chips (via STH) — unchanged |
+| Register file | "doubled compared to MI355X" (capacity not stated) | Hot Chips (via STH) |
+
+**WGP vs CU — vendor statement now on record.** AMD's ROCm blog of 2026-08-28 states: *"On MI450 the Workgroup Processor (WGP) is what earlier AMD Instinct architectures called a Compute Unit (CU)."* This is the vendor's structural equivalence (one WGP succeeds one CU). The repo's earlier "256 WGPs = 512 CUs" note is a *lane-count* equivalence taken from RDNA nomenclature (4x SIMD32 per WGP = 2x the lanes of a 4x SIMD16 CDNA CU). Both are recorded; AMD's wording is now preferred for the block count, with the lane-doubling stated separately.
+
+**New MX-format detail (Hot Chips slide, via STH):** shared-scale blocks "can now span 16 or 32 elements", plus "a new fractional scale for MXFP4"; 4-bit tensor LUT instructions are described as serving memory/compute **format conversion**. The corpus's E5M3 scale format (AMD CDNA 5 blog) is not contradicted; the "fractional scale" wording is new and its relation to E5M3 is **not stated**.
+
+**Dispatch/data-movement features named on the slides (via STH), no microarchitectural numbers:** "topology-aware HBM DMA" with parallel execution; a "new transcendental engine" (lower dispatch latency, faster attention math); **Tensor Data Mover "copies data asynchronously into LDS"** (first vendor description of what the Tensor Data Movers do — still not "TMA" in AMD's words); a "reworked command processor"; **work group clusters and L2 multicast** to cut redundant traffic; a "4 MB L2 broadcast arbitrator can amplify bandwidth by up to 4x" (slide 9, wording as covered — the 4 MB granularity is not explained).
+
+**AMD-presented measured figures (vendor claims, vs prior generation, via STH):** MLA decode bandwidth (FP8) 20 TB/s "measured", 3.8x; FP4 compute 20 PFLOPS "measured", 3.3x; scale-up 3.2 TB/s measured, 3.5x; scale-out 190 GB/s, 2x; "2.4x gain in AI energy efficiency"; stated goal of "20x improvement in rack-scale efficiency" by 2030. Not independently verified.
+
+### C. Layer 2/5 — the CDNA 5 gfx target is now public: `gfx1250`
+
+- **Source:** AMD ROCm blog "A Deep Dive into LDS Optimizations on AMD Instinct MI450 GPUs" (2026-08-28) — target architecture **gfx1250 (AMD Instinct MI450)**. This closes the "CDNA 5 gfx ISA identifier not disclosed" item carried since 2026-08-08.
+- **Corroboration:** LLVM AMDGPUUsage lists `gfx1250` (target triple `amdgpu12.50`, feature `sramecc`, products "TBA") and `gfx1251`; the row does **not** mention CDNA 5 / MI455X / wave32. AITER's open tree now has `hsa/gfx1250/` next to `hsa/gfx942/` and `hsa/gfx950/`; AITER v0.1.20 (2026-08-18) "gfx1250 refactored GEMMs with layout-based API and A8W8 MX128 optimization", v0.1.21.dev0 (2026-08-27) is a "gfx1250 / ROCm 7.14 (pre-release)" snapshot with 12 gfx1250-specific commits, v0.1.21 (2026-09-02) adds gfx1250 Triton MoE A8W4/A4W4.
+- **Still open:** the **ROCm 10.0.0 compatibility matrix (fetched 2026-09-13) has no MI455X / MI450 / gfx1250 Instinct entry** — newest Instinct targets remain gfx950 (MI355X/MI350X/MI350P), gfx942, gfx90a, gfx908. So the target is public in AMD's blog, LLVM and AITER, but MI455X is not yet a "supported" part in the ROCm product matrix. Whether `gfx1251` is an MI400-series variant is **not disclosed**.
+- **Naming:** AMD's blog says "MI450"; AMD's press releases use "MI450 Series" for the family and "MI455X" for the flagship. No fetched source equates gfx1250 to MI455X specifically, and none names an "MI450X" SKU.
+- The wave width in the blog is "32 lanes on MI450", consistent with native Wave32. **Wave64 availability is still not stated.**
+
+### D. Layer 3 — On-chip memory: LDS microarchitecture (AMD blog, 2026-08-28)
+
+- **LDS capacity 320 KiB per WGP**, implemented as **six fixed 64 KiB hardware memory partitions of which five belong to LDS** (the blog's wording; the sixth partition's role is not stated in the fetched text). This is the first AMD-primary confirmation of the 320 KB figure previously carried from Chips and Cheese.
+- **Two LDS ports, "L" and "C", each 256 B/cycle, each able to reach every partition** → 512 B/cycle peak when both ports are active, 256 B/cycle when serialised. Microbenchmark in the blog: 255.4 B/cycle (plain layout) → 509.8 B/cycle (partition-aware layout), quoted as "1.65x speedup for 32 KiB of extra LDS".
+- **Four SIMDs per WGP organised as two pairs** (SIMD 0/2 and SIMD 1/3), "32 lanes on MI450".
+- **New cooperative transposed LDS loads:** `ds_load_tr16_b128` (128-bit per lane) and `ds_load_tr8_b64` (64-bit per lane). Attention example (fp16, BLOCK_M=BLOCK_N=128, HEAD_DIM=256): 128 `ds_load_tr16_b128` vs 1,024 `ds_load_u16` plus a 233-register VGPR spill without them.
+- Hot Chips (via STH): per-WGP LDS and the register file are each "doubled" vs MI355X; **192 MB global L2** restated. The 2x96 MB / 27 TB/s-per-FCD / 54 TB/s split remains Chips and Cheese-only. L1 128 KB/WGP remains Chips and Cheese-only.
+
+### E. Layer 4 — Off-chip memory
+
+Unchanged: **432 GB HBM4, 12 stacks, 23.3 TB/s** (Hot Chips via STH; "1.5x capacity" and "roughly 2.9x" bandwidth vs MI355X's 288 GB HBM3E). Pin speed still **not disclosed**.
+
+### F. Layer 6 — Scale-up: Hot Chips system talk gives the real topology
+
+| Item | Value | Evidence |
+|---|---|---|
+| Per-GPU UALoE | **1.8 TB/s per direction "across 12 3×2 links"**, also phrased as **"72 IFoE links at 200G"**; GPU talk: "72 UALoE lanes pushing 3.6 TB/s" | system-talk slide 7; GPU talk (via STH) |
+| Reconciliation | 72 lanes x 200 Gb/s = 14.4 Tb/s = 1.8 TB/s/dir — identical to the corpus's "36 x 400 Gb/s"; the **Hot Chips framing is 72 x 200G in 12 six-lane links**, which replaces the Chips and Cheese phrasing as the vendor description. The "72 lanes" wording previously flagged "not confirmed" is **now confirmed** | arithmetic (this scan) |
+| Switch tray | **"Two 512-port 200G UALoE switch ASICs deliver 10.8 TB/s/dir and 72 active links per switch, arranged in a multi-plane architecture"**; **~7 kW, liquid-cooled per switch tray**; STH: **six switch trays per rack** | slide 8 (via STH) |
+| Arithmetic (this scan) | 6 trays x 2 = **12 switch ASICs**; 12 x 10.8 TB/s/dir x 2 directions = 259 TB/s ≈ AMD's **260 TB/s** rack scale-up; 72 active links x 6 lanes x 200G = 432 of 512 ports = 10.8 TB/s/dir — i.e. **each ASIC terminates one 3×2 link from every GPU**, and each GPU's 12 links fan out to the 12 ASICs (one per plane). The plane count (12) is therefore implied, **not stated** | — |
+| Switch silicon | AMD stresses "open Ethernet and ESUN standards, and on (often) Broadcom switches" (slide 13); **no ASIC model named** — the "12x Tomahawk 6" claim remains **not confirmed**, though the 12-ASIC count is now arithmetically implied | slide 13 (via STH) |
+| UALoE semantics | described as a **shared-memory load/store fabric across the 72-GPU pod** (slides 11–12); **no UALink spec version** given; in-network reduction on the switches **not disclosed** | via STH |
+| Host link | **"Coherent Infinity Fabric at 128 GB/s/dir to the CPU"** = 256 GB/s bidirectional — matches the corpus; **PCIe Gen 6** is also present on the GPU (GPU talk: "connects through PCIe Gen 6 as well as 72 UALoE lanes") | slide 7; GPU talk (via STH) |
+
+### G. Layer 7 — Scale-out: Pensando "Vulcano 800"
+
+- NIC is named **AMD Pensando Vulcano 800**: **single 800G port**; host interfaces **PCIe Gen6 x16 and UAL128**; **P4-based with 192 MPUs**; "custom protocol logic for collectives" (slides 23–24 via STH). Attached to the GPU "via UALink".
+- **"Up to three Vulcano 800 AI NICs per EAM"** (slide 7). "EAM" is not expanded in the coverage. Arithmetic (this scan): 72 GPUs x 3 x 800 Gb/s x 2 directions = 43.2 TB/s ≈ AMD's **43 TB/s** rack scale-out, so the per-GPU-module reading of EAM is consistent, and the corpus's "2,400 Gb/s per GPU" (3 x 800G) is now **consistent with a vendor slide** rather than back-derived. The old "3x UALink128 ports per GPU" claim maps onto the three UAL128-attached NICs and is best described as **consistent, not verbatim**.
+- A tray photo caption reads "4 of 6 populated" — meaning not resolvable from text; not entered.
+
+### H. Helios rack — physical format now confirmed
+
+| Attribute | Value | Status change |
+|---|---|---|
+| Compute tray | **4x MI455X + 1x EPYC "Venice" SP7 host** (slide 3 via STH: "96 core AMD EPYC Venice"); **18 compute trays** | new (vendor slide) |
+| Rack format | **44OU ORW-HPR chassis** | **confirmed** (was "not disclosed") |
+| Bus bar | **50 V DC LC busbar** | **confirmed** (was "not disclosed") |
+| Cooling | **blind-mate QD liquid cooling** | confirmed |
+| Switch trays | 6, ~7 kW each, liquid-cooled | new |
+| Rack totals | 72 GPUs, 31 TB HBM4, **1.7 PB/s** HBM4 BW, 2.9 EFLOPS, 260 TB/s scale-up, 43 TB/s scale-out (slide 5) | unchanged; the 1.4 PB/s aggregator figure stays discarded |
+| Rack power | **not disclosed** (only the per-switch-tray ~7 kW is stated) | unchanged |
+
+### I. Roadmap items (pre-baseline material the 2026-08-08 scan missed, plus status)
+
+- **Taalas acquisition — announced 2026-08-06 (pre-baseline by two days), still pending.** AMD IR press release: *definitive agreement* to acquire Taalas (Toronto; founded 2023; "optimizes inference dataflows, significantly reducing compute and memory bottlenecks"); price undisclosed; "subject to customary closing conditions and regulatory approvals"; AMD "plans to integrate the technology into its accelerator roadmap and develop system-level solutions with AMD Instinct GPUs", positioned as complementing Helios, Instinct, EPYC and ROCm. The Register (2026-08-06): close expected **Q4 2026**; Taalas **HC1** (TSMC 6 nm) hardwires Llama 3.1 8B at "16,960 tokens a second"; **HC2** targets 20 B parameters, "due summer 2026"; AMD's framing is a **disaggregated architecture — prefill on GPUs, token generation on Taalas accelerators**. The Next Platform (2026-08-07): weights in ROM linked to large SRAM used as on-chip KV cache; founders ex-Tenstorrent. **AMD's IR index through 2026-09-13 has no completion release → not closed.** Not an Instinct product; entered as a roadmap/adjacent-silicon item.
+- **Q2 2026 earnings (2026-08-04, pre-baseline):** Data Center revenue **$6.7 B, +107% YoY**; Helios deployment partners named: **Anthropic, Cirrascale, HUMAIN, Meta, Microsoft, OpenAI, Oracle, Tensorwave, Vultr**; MI350P launched; "Released ROCm.ai"; MEXT acquired (predictive memory); Q3 guide ~$13 B ± $0.3 B. TNP (2026-08-05): Instinct revenue "just a tad over $3 billion" (**TNP estimate**); Su: the data-center AI accelerator business "will grow in the second half of 2026 faster than it did in the first half"; AMD says it has "enough wafer, substrate, interposer, and HBM capacity". Helios/MI455X remains **in production, ramping 2H 2026** — no change to the shipping characterisation.
+- **MI430X:** no new information in the window. **MI450X:** no fetched source names such a SKU. **MI500:** no new information.
+
+### J. Benchmarks and papers
+
+- **MLPerf Inference v6.1: not published as of 2026-09-13.** MLCommons' September 2026 feed contains only MLPerf Storage v3.0 (2026-09-01); the AMD ROCm blog index has no v6.1 post (it posted v6.0 on results day).
+- **SemiAnalysis "AgentX – InferenceXv3" (2026-08-24), independent:** MI355X SGLang matched B200 vLLM on perf-per-dollar for DeepSeek V4 Pro before 2026-08-21 but after NVIDIA optimisations "B300 vLLM and B200 SGLang still beat AMD's MI355X"; on Kimi K3, MI355X ATOM beats GB300 NVL72 vLLM on perf/$ in a 40–60 s end-to-end latency band; MiniMax M3 performance on AMD called "horrible" at long context; no AMD SGLang entry for Qwen3.5 397B. Qualitative; no absolute tokens/s captured.
+- **arXiv:** Instella-MoE Technical Report (arXiv:2609.00791, 2026-09-01) — open MoE LLM trained entirely on MI300X/MI325X. No CDNA 5 microbenchmark paper found (arXiv API rate-limited; web listing fetched).
+- **Tom's Hardware (2026-09-04):** "Threadripper Halo Station" workstation with dual liquid-cooled **MI350P** — workstation, out of datacenter scope; noted only.
+
+### K. Items checked and still not disclosed / not found
+
+Matrix FP16/BF16 dense peak (MI455X); FP64 (MI455X); TBP; clock on an AMD slide; HBM4 pin speed; rack power; fabric plane count (implied 12); switch ASIC model; UALink spec version; in-network reduction; Wave64 availability; expansion of "EAM"; role of the sixth 64 KiB partition; whether gfx1251 is an MI400 part; MI450X. **Not covered this scan (search budget exhausted):** AI Infra Summit 2026 talks; EE Times; Korean/Japanese/Chinese press.
+
+### Sources (2026-09-13 update)
+
+See "### Added 2026-09-13" under **## Sources** above; software-stack sources for ROCm 10.0.0 are in `hip-rocm.md` ("## Update — 2026-09-13").

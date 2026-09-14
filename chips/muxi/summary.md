@@ -1,6 +1,6 @@
 # MetaX (沐曦) GPU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: muxi*
 *device_class: GPU (China, 沐曦)*
 
@@ -298,6 +298,16 @@ The AI4S repository cluster (FluidDynamics, LifeScience, MedicalImage, AI4S-Fram
 ### 8. Ecosystem
 
 **MiniMax H3 Day-0 adaptation — confirmed.** Per MetaX's own newsroom (**2026-08-03**), 曦云 C-series GPUs completed Day-0 adaptation of MiniMax's newly open-sourced multimodal model **H3** via MXMACA. Moore Threads announced Day-0 adaptation of the same model on the same day with the MTT S5000.
+
+---
+
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Moderate — software-stack cadence only.*
+
+- **vLLM-metax** shipped two further releases: **v0.23.0** (2026-08-10) and **v0.24.0** (2026-08-27, sampling-performance optimization, PyTorch stable-API refactor, JD JoyAI_LLM_Flash model support). [GitHub releases API](https://api.github.com/repos/MetaX-MACA/vLLM-metax/releases).
+- **Not corroborated:** a pre-scan input claimed MetaX had made a "confidential HK filing, IPO targeted by end-2026." This survey's own baseline already records MetaX as **STAR-listed since December 2025**; no Hong Kong confidential-filing news was found this window (Bing English/Chinese search returned no results) — **not added to the record**. A routine share-lockup unlock (13.97M shares, 2026-09-17) falls just after this scan's cutoff and is unrelated.
+- No C700 tape-out, no new MXC600/C500/X-series spec, and no other hardware news found in this window.
 
 ---
 

@@ -1,5 +1,7 @@
 # Qualcomm Cloud AI 100/200 — HW Architecture Investigation
 
+*as_of: 2026-09-13*
+
 ## Summary
 
 The AIC100 SoC is built around 16 Hexagon AI cores, each with three specialized execution units (Tensor, Vector, Scalar). The architecture separates tensor computation from vector and scalar tasks, enabling high throughput for GEMM while also handling pre/post-processing efficiently. Large on-chip SRAM (144 MB/SoC) reduces DRAM pressure for LLM KV-cache and model weights.
@@ -180,3 +182,41 @@ so they are retained with that provenance attached.
 - https://futurumgroup.com/insights/qualcomms-data-center-reentry-at-investor-day-2026-arrives-just-in-time-for-the-inference-decode-prize/
 - https://hotchips.org/program/conference/
 - https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Method: direct fetch of Qualcomm newsroom monthly listings (`/news/releases/2026/08`, `/news/releases/2026/09`). WebSearch was unavailable this session (budget exhausted). Classification: **Roadmap** — deployment/customer confirmations, no new hardware specs (AI200/AI250/AI300 core count, clock, process node, TDP and peak FLOPS/TOPS remain **not disclosed**).*
+
+### HUMAIN deployment — first confirmed production workload (2026-08-31)
+
+"Adobe Becomes First Global Software Company to Migrate AI Workloads onto HUMAIN Platform, Accelerated by Qualcomm" (Qualcomm newsroom, Riyadh, 2026-08-31) is the first concrete evidence that the HUMAIN Riyadh deployment (announced Oct/Nov 2025, previously tracked in this survey as an unconfirmed 200 MW figure) is carrying **production workload**, not just a construction/capacity announcement:
+
+- HUMAIN is described as "a global artificial intelligence company delivering full-stack AI capabilities across four core areas: next-generation data centers; hyper-performance infrastructure and cloud platforms; advanced AI models... and transformative AI solutions."
+- The deployment runs on **Qualcomm Dragonfly™ AI accelerators** — the press release does **not** specify which of AI200/AI250/AI300 (or a mix) is in service. Given AI250 commercial sampling is "expected mid-2027" and AI300 "2028," the implication is this deployment runs **AI200** (the only Dragonfly part with any sampling claim as of 2026-08-08), but the release does not say so explicitly — **not confirmed, inferred only**.
+- Adobe is migrating **"regional AI data captioning workloads"** onto HUMAIN's infrastructure, stated motivation being data/compute residency ("keep compute and data in the Kingdom as enterprise AI demand grows").
+- Framed as "the first global software company" on HUMAIN, with the release stating this pilot is "expected to be followed by additional migrations from the wider industry" — i.e., an initial reference customer, not evidence of the full 200 MW capacity being utilized.
+- No throughput, latency, chip count, or utilization figures disclosed.
+
+**This resolves one item from the prior "Still not disclosed" list**: "Any 2026 confirmation that the HUMAIN 200 MW Riyadh deployment... has begun" — now confirmed at the workload level (Adobe captioning), though total facility scale/utilization remains undisclosed.
+
+### Qualcomm–AWS custom-silicon and optical-connectivity collaboration (2026-09-08)
+
+"Qualcomm Announces Multi-Generational Product Collaboration with Amazon to Build Next-Generation AI Data Center Infrastructure" (Qualcomm newsroom, 2026-09-08). Qualcomm is the **supplier** in this relationship: *"Qualcomm Technologies, Inc. today announced a multi-generation collaboration with Amazon to enable customized silicon at scale for large-scale AI data centers."*
+
+- Scope: (1) **custom AI inference silicon** for AWS data centers, and (2) **optical connectivity solutions** — "extending up to 1.6T and future-generation solutions," leveraging "Qualcomm Technologies' advanced SerDes and optical DSP technologies." The 1.6T figure matches the scale-out Ethernet ceiling already recorded for Dragonfly (800G/1.6T); this release does not clarify whether it is the same interconnect line-item or an AWS-specific product.
+- **No product names given** — the release does not mention Dragonfly, AI200/AI250/AI300, UALink, or ESUN by name.
+- **No generation count, timeline, volume, or deployment date disclosed.**
+- CEO Cristiano Amon: *"Qualcomm is pleased to work with AWS on customized silicon and connectivity solutions, bringing decades of leadership in advanced processing and power-efficient compute, to deliver breakthrough performance and enable the next generation of AI infrastructure."* AWS VP Prasad Kalyanaraman: *"By working together on customized silicon and advanced connectivity, we're delivering more performant, efficient, and cost-effective infrastructure for our customers."*
+- Reciprocal element: Qualcomm states it "plans to deepen its use of AWS AI infrastructure, including Amazon Bedrock, for electronic design automation (EDA) workloads, targeting a reduction in chip design cycles" — Qualcomm-as-AWS-customer, a separate relationship from the silicon supply side.
+- **Plausible but unconfirmed**: this may be one of the "two unnamed global-scale hyperscaler custom-silicon customers" reported via Futurum from Investor Day (2026-06-24). **No source explicitly ties the two together** — recorded as a hypothesis, not a fact.
+
+### Checked, no change found
+
+- No new AI200/AI250/AI300 core count, clock, process node, TDP, or peak FLOPS/TOPS figure.
+- No new HBC bandwidth figure or methodology disclosure.
+- No MLPerf submission found for this window; no re-verification of Hot Chips 38 absence performed this cycle (prior finding stands).
+- No resolution of the AI200-vs-AI250 768 GB/card capacity-attribution conflict.
+
+Sources: https://www.qualcomm.com/news/releases/2026/08/adobe-becomes-first-global-software-company-to-migrate-ai-worklo · https://www.qualcomm.com/news/releases/2026/09/qualcomm-announces-multi-generational-product-collaboration-with

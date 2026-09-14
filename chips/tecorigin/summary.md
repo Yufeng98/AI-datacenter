@@ -1,6 +1,6 @@
 # Tecorigin (太初元碁) SDAA Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: tecorigin*
 *device_class: Heterogeneous Many-Core Accelerator (SPA/SPE array with software-managed SPM scratchpad; China, 太初元碁)*
 
@@ -210,3 +210,9 @@ Tecorigin occupies an unusual niche: a **domestic-supply-chain HPC+AI accelerato
 - [Solutions & deployments (marketing)](https://www.tecorigin.com/cn/products.html)
 - [About (company facts)](https://www.tecorigin.com/cn/about.html)
 - [Binary mirrors](http://mirrors.tecorigin.com/) · [jfrog artifactory](http://jfrog.tecorigin.net/artifactory/)
+
+---
+
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Minor. No press/funding/IPO coverage found (English or Chinese); the vendor's own newsroom has not posted since 2026-06-03. GitHub confirms the toolchain is still under active engineering, verified via the GitHub API: `Tecorigin/teco-ops` bumped its HAL dependency to v0.0.2 (2026-08-13) alongside several flash-attention bug fixes (NaN-in-result, multi-batch boundary reads), and `teco-modelzoo`/`tecovllm-modelzoo` had documentation/competition-rule commits through 2026-09-01. No TecoToolKit/TecoDriver version bump beyond the already-recorded v3.2.0, no T200 or second chip generation, no new peak-performance disclosure. See `research/tecorigin/search-results.md` → "Resources Added 2026-09-13".

@@ -1,7 +1,7 @@
 # Tesla FSD Chip — Hardware Architecture
 
-*as_of: 2026-08-08*
-*generations: HW3 / HW4 (AI4) / AI4.5 "AP45" (unannounced) / AI4.1 "AI4 Plus" (announced only) / AI5 (taped out)*
+*as_of: 2026-09-13*
+*generations: HW3 / HW4 (AI4) / AI4.5 "AP45" (unannounced) / AI4.1 "AI4 Plus" (announced only) / AI5 (taped out, delayed to mid-2027)*
 
 ---
 
@@ -11,7 +11,7 @@
 |---|---|---|---|---|---|---|---|---|
 | HW3 (FSD Chip) | 2019 | Deployed; **declared insufficient for unsupervised FSD 2026-04-22** | Samsung 14 nm | 2 | 73.7 | 32 MiB/NPU | 8 GB LPDDR4, 68 GB/s † | ~100 W |
 | HW4 / AI4 | 2023 | Deployed; current shipping baseline | Samsung 7 nm | 3 | ~121.6 | 32 MiB/NPU | 16 GB GDDR6, 224 GB/s † | ~160 W |
-| **AI4.5 / "AP45"** | 2025-12 → | **Shipping in some vehicles; never announced by Tesla** | Not disclosed (assumed Samsung 7 nm) | Not disclosed (a three-SoC board is a *low-confidence* firmware inference) | Not disclosed | Not disclosed | Not disclosed | Not disclosed |
+| **AI4.5 / "AP45"** | 2025-12 → | **Shipping in some vehicles; never announced by Tesla.** Update 2026-09-13: a JPMorgan analyst note (via Electrek, 2026-08-20) attributes "~10% more compute and about twice the memory" (vs AI4) to a chip it calls "AI4.5" — **thirdhand (Tesla → JPMorgan → Electrek) and possibly a mislabeling of AI4.1/"AI4 Plus,"** whose announced spec is identically worded. Not promoted to a confirmed spec — see Update section below. | Not disclosed (assumed Samsung 7 nm) | Not disclosed (a three-SoC board is a *low-confidence* firmware inference) | Not disclosed | Not disclosed (**~+10% compute claimed 2026-08-20, unconfirmed / possibly AI4.1 conflation**) | Not disclosed (**~2× AI4's per-SoC memory claimed 2026-08-20, unconfirmed / possibly AI4.1 conflation**) | Not disclosed |
 | **AI4.1 / "AI4 Plus"** | target 2027 | **Announced 2026-04-22; no silicon** | Samsung 7 nm, **modified process** | Not disclosed (no NPU-count change stated) | Not disclosed (**~+10 % vs AI4**, Musk) | Not disclosed | **32 GB/SoC, 64 GB/board**, "newer generation RAM"; **~+10 % bandwidth** (Musk) | Not disclosed |
 | **AI5** | tape-out announced 2026-04-15 | **Taped out; one packaged engineering sample shown.** Volume targeted 2027 (mid-2027 automotive) | **Dual-sourced: TSMC (node not disclosed) + Samsung SF2-class 2 nm, Taylor TX** | Not disclosed | **Not disclosed** — only marketing multipliers exist (see below) | Not disclosed | **Not disclosed.** Photo shows **12 SK hynix discrete DRAM packages** on an organic substrate (GDDR6 or GDDR7 — grade unestablished); **not HBM/CoWoS** | Not disclosed |
 
@@ -160,3 +160,19 @@ information of any kind exists for AI4.5, AI4.1 or AI5** — Tesla has never pub
   autonomous-driving keynote and the automotive SoC slot.
 - No MLPerf submission for any FSD generation.
 - No public SDK, no ISA documentation, no die-area or transistor-count disclosure for any generation.
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Classification: **Major**, heavily hedged — see the parallel update in `public/research/tesla-fsd/investigations/hw-architecture.md` for full sourcing detail. Single source: Electrek (2026-08-20), reporting a JPMorgan analyst note (analyst Rajat Gupta) written after a Fremont factory visit/briefing — i.e. Tesla → JPMorgan → Electrek, not a transcript or filing.*
+
+- **AI4.5 — first figures attributed to this name ("~10% more compute, ~2× memory" vs AI4), but likely a conflation with AI4.1/"AI4 Plus"** (whose Musk-stated spec is nearly identical wording). Both readings — genuine AI4.5 spec, or mislabeled AI4.1 — are recorded; neither is adopted as confirmed. See the Generation Overview row above.
+- **AI5 delay to mid-2027 reaffirmed** (Electrek's own April 2026 reporting already carried "mid-2027 for automotive"; the August note frames it explicitly as a "delay," which is new framing, not a new date).
+- **Cybercab hardware target clarified**: per the same note, Cybercab was originally planned to launch on **AI4** hardware — the first explicit statement found of which chip generation Cybercab targets; consistent with AI5's near-term Optimus/datacenter priority and deferred automotive use.
+- **HW3 retrofit reality**: HW3 vehicles now receive a stripped-down **"FSD v14 Lite"** release rather than full FSD, with reported **rising HW3 hardware failure rates** — a new concrete symptom of the 2026-04-22 "HW3 insufficient" finding already in this survey. Thirdhand, not independently corroborated by a second outlet this cycle.
+- No new AI5 compute, memory, process-node, or performance figures. No new HW3/HW4 hardware facts.
+
+**Checked, no change found**: no primary Tesla source (earnings call, filing, datasheet) issued new AI4.5/AI5 specs this window; Hot Chips 38 occurred within the window but the "no Tesla talk" finding was not re-verified against a post-event archive this cycle; no MLPerf submission; no public SDK or ISA disclosure.
+
+Source: https://electrek.co/2026/08/20/tesla-jpmorgan-fremont-fsd-v15-hw4-optimus-2027/

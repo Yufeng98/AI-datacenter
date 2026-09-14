@@ -1,6 +1,6 @@
 # AMD GPU Hardware Architecture
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *Architectures: CDNA3 (MI300X/MI300A/MI325X), CDNA4 (MI350X/MI355X/MI350P) and CDNA 5 (MI455X/MI430X)*
 
 ---
@@ -481,3 +481,29 @@ Status language, precisely: Helios is "now in production to be deployed by leadi
 - [ROCm Compatibility Matrix (gfx targets)](https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html)
 - [Oracle Leads AI Innovation with AMD "Altair" MI450 GPUs and Helios Racks — The Next Platform (2025-10-14)](https://www.nextplatform.com/compute/2025/10/14/oracle-leads-ai-innovation-with-amd-altair-mi450-gpus-and-helios-racks/1632443)
 - [AMD Instinct — Wikipedia (SKU/date cross-check)](https://en.wikipedia.org/wiki/AMD_Instinct)
+
+## Update — 2026-09-13 (Hot Chips 38)
+
+*Full sourcing in `research/amd-gpu/investigations/hw-architecture.md`, "Update — 2026-09-13". AMD's two Hot Chips 38 slide decks are not publicly posted (HTTP 401, attendees-only); figures below are ServeTheHome's slide-by-slide coverage of the talks, treated as primary-adjacent, not primary.*
+
+| Item | 2026-08-08 record | 2026-09-13 correction/addition |
+|---|---|---|
+| MXFP6/FP8 peak | 20,130 GFLOPS, "not independently confirmed" | **Confirmed** on an AMD Hot Chips slide |
+| Vector FP16 / Matrix+vector FP32 | not recorded | **315 TFLOPS each**, new AMD-slide figures |
+| Fabric/cache/IO die process | "N3" | **N3P** (corrected) |
+| Scale-up UALoE | "36 × 400 Gb/s", per-lane count "not confirmed" | **72 × 200 Gb/s (12 six-lane links) = 1.8 TB/s/direction — now confirmed**; identical aggregate bandwidth, corrected framing |
+| Scale-up switch | not disclosed | Two 512-port 200G UALoE switch ASICs per tray (10.8 TB/s/dir each); 6 switch trays/rack, ~7 kW each, liquid-cooled |
+| Scale-out NIC | "Pensando Vulcano" (unnamed model) | **AMD Pensando Vulcano 800** — single 800G port, PCIe Gen6 x16 + UAL128, P4-based (192 MPUs); up to 3 per GPU module |
+| Helios rack format | not disclosed | **44OU ORW-HPR chassis** |
+| Helios bus bar | not disclosed | **50V DC liquid-cooled busbar**, blind-mate quick-disconnect cooling |
+| Helios compute tray | not disclosed | 4× MI455X + 1× EPYC "Venice" SP7 host; 18 compute trays + 6 switch trays/rack |
+| LDS capacity | 320 KB/WGP, third-party (Chips and Cheese) | **AMD-confirmed** (ROCm blog, 2026-08-28): six 64 KiB hardware partitions (five for LDS); two 256 B/cycle ports, 512 B/cycle peak bandwidth when both active |
+| CDNA 5 gfx ISA target | not disclosed | **`gfx1250`** (AMD ROCm blog, names it for "AMD Instinct MI450"; corroborated by LLVM AMDGPUUsage and a new `hsa/gfx1250/` directory in ROCm/aiter on GitHub). Not yet listed in the ROCm 10.0.0 product compatibility matrix. |
+| Transistor count | not disclosed | ~320 billion ("72% increase from prior gen") — vendor-attributed via ServeTheHome, not on a fetched AMD page; still not independently confirmed |
+| TBP, FP64, dense FP16/BF16, rack power, switch ASIC vendor, Wave64 availability | not disclosed | **Still not disclosed** — checked this scan, no new source found |
+
+**Taalas acquisition** (announced 2026-08-06, pending as of 2026-09-13): AMD to acquire Toronto-based Taalas, whose chips etch model weights directly into silicon (TSMC 6nm "HC1" runs Llama 3.1 8B; "HC2" targets 20B parameters). AMD's stated integration model is disaggregated: prefill on Instinct GPUs, decode on Taalas silicon. Not an Instinct-branded product; tracked as an adjacent-silicon roadmap item, not added to the SKU table above.
+
+**ROCm 10.0.0** shipped 2026-08-26; see `research/amd-gpu/investigations/hip-rocm.md` for the software-layer changes.
+
+**MLPerf Inference v6.1** is not yet published as of 2026-09-13.

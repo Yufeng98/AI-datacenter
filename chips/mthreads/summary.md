@@ -1,6 +1,6 @@
 # Moore Threads (摩尔线程) MTT GPU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08 (baseline research 2026-04-05)*
+*as_of: 2026-09-13 (baseline research 2026-04-05)*
 *chip: mthreads*
 *device_class: GPU (China, 摩尔线程)*
 
@@ -258,6 +258,20 @@ The span — quantum chemistry (CP2K), molecular dynamics (LAMMPS, DeePMD-kit), 
 - Lushan gaming GPU 2026 status unverified
 - MTLink generation number for S5000 and C256 **not disclosed**
 - S5000 memory type / HBM generation, TDP, process node and transistor count all **not disclosed** by the vendor
+
+---
+
+## Update (2026-09-13) — Q1 2026 first quarterly profit (backfill) and September stock decline
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Roadmap (financial/market) + Moderate (torch_musa releases). Sources: 36Kr (2026-04-30), Sina Finance / Sohu / Tencent News / Phoenix Finance / Eastmoney (all 2026-09-07/08), GitHub releases API.*
+
+**Q1 2026 first quarterly profit (backfill — predates this scan window, not previously recorded here).** 36Kr (2026-04-30) reports Moore Threads' **Q1 2026 revenue at RMB 738 M (7.38亿元, +155% YoY)** with a **net profit of RMB 29.35 M** — its first quarterly profit. Caveat directly from the same source: **excluding government subsidies, the adjusted result was a loss of RMB 54.28 M** — i.e., the headline profit is subsidy-dependent. [36Kr (2026-04-30)](https://www.36kr.com/p/3788937709449989).
+
+**September 2026 stock decline (in-window).** On **2026-09-07**, Moore Threads shares hit the daily 20% limit-down, closing at **RMB 415.49/share** — the lowest since its November 2025 IPO — cutting market cap to **RMB 195.3 B (1953亿元)**, below the RMB 200B level for the first time. The proximate trigger was a **lock-up expiry**: 25,774,500 shares (5.48% of total share capital, ~RMB 10.7B in unlocked value) became tradable that day. Secondary coverage additionally cited "业绩承压" (earnings pressure, declining gross margin) and broader questions about whether China's "four AI-GPU dragons" (Moore Threads, MetaX, Biren, Enflame) are overvalued. **This is a stock-market event, not a new hardware/business disclosure** — no new chip spec, customer, or revenue figure accompanies it. Sources: [Sina Finance (2026-09-07)](https://finance.sina.com.cn/stock/s/2026-09-07/doc-iniqznpq6265641.shtml), [Sohu (2026-09-07)](https://www.sohu.com/a/1073215563_122014422), [Tencent News (2026-09-07)](https://news.qq.com/rain/a/20260907A0D33D00), [Phoenix Finance (2026-09-07/08)](https://i.ifeng.com/c/8wEZGQTtoK6), [Eastmoney (2026-09-08)](https://finance.eastmoney.com/a/202609083868286948.html).
+
+**torch_musa releases in-window (Moderate software update).** Per the GitHub releases API: **v2.9.1.post1** (2026-08-11) adds **MUSA SDK 5.2.0** support and a new **MUSA SymmetricMemory** distributed backend; **v2.11.0.post1** (2026-08-17) is the first torch_musa release tracking **PyTorch 2.11**, adding LibTorch Stable ABI support across PyTorch 2.9–2.11 and inter-node communication fixes. [torch_musa releases (GitHub API)](https://api.github.com/repos/MooreThreads/torch_musa/releases).
+
+No new MTT S5000/C256 hardware disclosure, no MLPerf submission, and no Hot Chips 38 content were found this window.
 
 ---
 

@@ -1,6 +1,6 @@
 # Xiwang (曦望) GPU Hardware Architecture
 
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 *chip: xiwang*
 *device_class: AI Accelerator (China, 曦望)*
 *Representative products: S1 (DSA, 2022), S2 (GPGPU, 7nm, 2024), S3 (inference GPU, 2026 target)*
@@ -260,3 +260,21 @@ The vendor site footer now reads **浙江曦望智能科技股份有限公司** 
 - [FlagTree sunrise `backend/driver.py` — libtang.so, libtangrt_shared, /usr/local/tangrt](https://raw.githubusercontent.com/FlagTree/flagtree/main/third_party/sunrise/backend/driver.py)
 - [Wayback 2025-12-11 sunrise-ai.com — control snapshot ("x3 倍+", no SIRE/LPDDR6/Gen6/SC3-256)](http://web.archive.org/web/20251211220612id_/https://sunrise-ai.com/)
 - [Wayback 2026-05-21 sunrise-ai.com — SC3-256 in nav, still no SIRE/LPDDR6/Gen6](http://web.archive.org/web/20260521020029id_/https://sunrise-ai.com/)
+
+# Update — 2026-09-13: Funding chronology resolved (Roadmap)
+
+*scan window: 2026-08-08 → 2026-09-13; classification: Roadmap (financial) — no new hardware facts*
+
+Eastmoney (2026-08-28) reports a new Xiwang funding round — **¥2B raised, post-money valuation ≈¥20B (200亿元)**, nearly double the prior valuation within ~4 months — and, in doing so, retroactively resolves two items the 2026-08-08 update left open:
+
+- The previously **undated** ">¥1B" round (2026-08-08 update, §8) is now dated to **April 2026**, reaching a **>¥10B valuation**.
+- **Cumulative funding since the late-2024 SenseTime spin-off is now ≈¥6B (接近60亿元)**.
+
+Investors in the August round: PICC Equity, China Construction Bank Equity, Orient International Assets, Janchor Partners, 中科创星, 同创伟业, 进化论资本, 临芯投资, 毅达资本, 湖畔基金, 弘晖基金; corporate investors CP Group, 九安医疗, 盈峰环境, 三七互娱, 同程旅行. The same report describes the company as operating **three product generations (S1/S2/S3)** with **~400 employees, >80% in R&D**.
+
+**Unit-conversion caution:** an initial automated read of this article rendered the valuation as "¥200B"; the correct figure, cross-checked against the ¥2B raise itself, is **¥20B (200亿元)**.
+
+**No S3 tape-out, sampling, or new hardware spec was found in this window** — the S3 status recorded in the 2026-08-08 update (announced only, no confirmed tape-out) is unchanged.
+
+## Sources — added 2026-09-13
+- Eastmoney — Xiwang ¥2B round, ≈¥20B valuation (2026-08-28): https://finance.eastmoney.com/a/202608283858780525.html

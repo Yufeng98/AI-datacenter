@@ -262,3 +262,22 @@ Both were presented at Advancing AI 2026.
 - [MLPerf Training v6.0 — AMD ROCm Blogs](https://rocm.blogs.amd.com/artificial-intelligence/mlperf-training-v6.0/README.html)
 - [MLPerf Inference v6.0 — AMD ROCm Blogs](https://rocm.blogs.amd.com/artificial-intelligence/mlperf-inference-v6.0/README.html)
 - [MLPerf Training v6.0 Supplemental Discussion — MLCommons](https://mlcommons.org/benchmarks/training/)
+
+## Update — 2026-09-13
+
+**ROCm 10.0.0** released 2026-08-26 ("ROCm 10.0: A Decade of Open Compute, Built for Agentic AI" — AMD ROCm Blogs, 2026-08-27). Confirmed via the ROCm 10.0.0 compatibility matrix and release notes (both fetched 2026-09-13):
+
+- The compatibility matrix's newest Instinct entries remain **gfx950** (MI355X/MI350X/MI350P), gfx942, gfx90a, gfx908 — **no MI455X/CDNA 5/gfx1250 product row yet**, even though `gfx1250` is now named as a compute target elsewhere (AMD's CDNA 5 LDS-optimization blog, LLVM AMDGPUUsage, and a new `hsa/gfx1250/` directory in the ROCm/aiter open-source tree — see `hw-architecture.md`, "Update — 2026-09-13").
+- **ROCm/aiter** (AITER kernel library) releases in the window: v0.1.20 (2026-08-18, "gfx1250 refactored GEMMs with layout-based API and A8W8 MX128 optimization"), v0.1.21.dev0 (2026-08-27, a gfx1250/ROCm 7.14 pre-release snapshot with 12 gfx1250-specific commits), v0.1.21 (2026-09-02, adds gfx1250 Triton MoE A8W4/A4W4), v0.1.21.post2 (2026-09-09). This is the first open-source kernel work targeting CDNA 5, ahead of CDNA 5 appearing in the product compatibility matrix.
+- No MLPerf Inference v6.1 ROCm blog exists — v6.1 is not yet published by MLCommons as of 2026-09-13 (MLCommons' September 2026 feed has only MLPerf Storage v3.0, 2026-09-01).
+
+### Sources (2026-09-13 update)
+
+- [ROCm 10.0.0 Compatibility Matrix](https://rocm.docs.amd.com/en/latest/compatibility/compatibility-matrix.html) — fetched 2026-09-13
+- [ROCm Core SDK 10.0.0 release notes](https://rocm.docs.amd.com/en/latest/about/release-notes.html) — fetched 2026-09-13
+- [ROCm 10.0: A Decade of Open Compute, Built for Agentic AI — AMD ROCm Blogs (2026-08-27)](https://rocm.blogs.amd.com/ecosystems-and-partners/rocm-x-blog/README.html)
+- [A Deep Dive into LDS Optimizations on AMD Instinct MI450 GPUs — AMD ROCm Blogs (2026-08-28)](https://rocm.blogs.amd.com/software-tools-optimization/mi450-lds-optimization/README.html)
+- [ROCm/aiter releases — GitHub](https://github.com/ROCm/aiter/releases)
+- [ROCm/aiter `hsa/` tree — GitHub](https://github.com/ROCm/aiter/tree/main/hsa) — fetched 2026-09-13
+- [LLVM AMDGPUUsage — Processors table](https://llvm.org/docs/AMDGPUUsage.html) — fetched 2026-09-13
+- [MLCommons — September 2026 posts](https://mlcommons.org/2026/09/) — fetched 2026-09-13

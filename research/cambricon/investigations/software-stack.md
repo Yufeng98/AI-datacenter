@@ -1,7 +1,7 @@
 # Cambricon MLU Software Stack — Investigation Report
 
 *resource: https://github.com/Cambricon/torch_mlu + https://www.cambricon.com/docs/bangc/developer_guide_html/ + https://www.cambricon.com/docs/cnrt/user_guide_html/index.html*
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 *chip: cambricon*
 *layer: Framework Integration, Compiler / IR, Op Library, Kernel Library, Runtime, Driver / Firmware, Communication, Assembler / ISA*
 
@@ -376,3 +376,28 @@ This supersedes the survey's prior "CNToolkit v3.7.2 / SDK 1.15.0", which was al
 - [CNToolkit 3.8.4 doc tree (intermediate; release notes HTTP 401)](https://sdk.cambricon.com/static/independent/CNToolkit/3.8.4/releasenote/)
 - [vllm-project/vllm PR #25942 overview](https://app.semanticdiff.com/gh/vllm-project/vllm/pull/25942/overview)
 - [Cambricon 2026 半年度报告 (cninfo)](https://static.cninfo.com.cn/finalpage/2026-08-08/1225464969.PDF) — PRIMARY; corroborates PD separation and DeepSeek Day-0 generically; Triton community tracking
+
+## Update — 2026-09-13
+
+*as_of: 2026-09-13*
+*scan window: 2026-08-08 → 2026-09-13*
+
+### 1. Framework Integration — Cambricon joins PyTorch Foundation as Platinum member with board seat (2026-09-08)
+
+Cambricon formally joined the **PyTorch Foundation** (Linux Foundation) as a **Platinum member** on 2026-09-08 — the foundation's top membership tier — and was granted **one seat on the Governing Board** (Wang Jin, Cambricon's Senior Director of AI Frameworks) plus a seat on the **Technical Advisory Council** for a core PyTorch maintainer (Zhu Jing). Quoted from Cambricon VP of Software Engineering Elton Gong: *"only deep synergy between software and hardware architecture, combined with a thriving open-source ecosystem, can truly unleash the potential of AI computing infrastructure."* PyTorch Foundation Executive Director Mark Collier's statement credits Cambricon's "continued upstream contributions and active promotion of vLLM integration." This is the first instance recorded in this survey of a Chinese AI-chip vendor holding board-level PyTorch Foundation governance — a material ecosystem-integration signal, distinct from (and beyond) the existing `torch_mlu` PrivateUse1 backend adapter already documented above. No new API surface or performance claim accompanies it. Sources: [MyDrivers (2026-09-08)](https://news.mydrivers.com/1/1149/1149453.htm), [Sina Finance (2026-09-08)](https://finance.sina.com.cn/stock/relnews/cn/2026-09-08/doc-inirayqy9530736.shtml), [China.com (2026-09-08)](https://news.china.com/socialgd/10000169/20260908/49727383.html).
+
+### 2. Framework Integration — DeepSeek V4.1 Flash Day-0 adaptation (2026-09-10)
+
+Cambricon reported Day-0 adaptation of **DeepSeek V4.1 Flash** (a 552B-parameter MoE model, the smallest in DeepSeek's new V4.1 series, described as using a new "Causal-Encoder-Decoder" architecture), running stably on Cambricon MLU hardware on the model's release day via the **vLLM inference framework** and Cambricon's NeuWare stack. This continues the pattern established with DeepSeek-V4 Day-0 support (2026-04-24, recorded above) — same delivery mechanism (`vllm-mlu` / NeuWare), no new toolchain component identified. Source: [Sina Finance (2026-09-10)](https://finance.sina.com.cn/tech/roll/2026-09-10/doc-inirinuw2944050.shtml) — **press-reported, citing a Cambricon announcement; original Cambricon developer-portal article not independently located this window.**
+
+### 3. Negative / contested: MLU690 pricing rumor, denied by Cambricon (2026-09-10/11)
+
+Chinese financial media reported market chatter that Cambricon's tentatively-named **"690" chip** (MLU690 / Siyuan 690 — status already recorded above as *reported, LOW confidence, contested*) had seen an alleged **20–30% price increase versus pricing from two months earlier**, part of a broader wave of reported Chinese AI-chip price increases in this window (compare the Huawei Ascend 950DT ~60% price-increase report, same window). **Cambricon investor relations denied issuing any pricing announcement**, telling media: *"the company has not released pricing adjustment announcements,"* and cautioned against relying on unverified market rumors. Net effect: this neither confirms nor disproves MLU690 mass production/pricing — it corroborates that "690" remains a live topic in secondary markets while Cambricon itself has made no primary disclosure. Source: [MSN/China.com — "寒武纪否认AI处理器涨价传闻" (2026-09-11)](https://www.msn.cn/zh-cn/news/other/%E5%AF%92%E6%AD%A6%E7%BA%AA%E5%90%A6%E8%AE%A4ai%E5%A4%84%E7%90%86%E5%99%A8%E6%B6%A8%E4%BB%B7%E4%BC%A0%E9%97%BB-%E7%A7%B0%E4%BB%A5%E5%AE%98%E6%96%B9%E5%85%AC%E5%91%8A%E4%B8%BA%E5%87%86-%E8%82%A1%E4%BB%B7%E5%BE%AE%E8%B7%8C/ar-AA2bYmKk) — press-reported, **company-denied**, not vendor-confirmed.
+
+## Sources (2026-09-13 update)
+
+- [MyDrivers — Cambricon joins PyTorch Foundation as Platinum member (2026-09-08)](https://news.mydrivers.com/1/1149/1149453.htm) — PRIMARY-adjacent (trade press quoting Cambricon officials)
+- [Sina Finance — Cambricon PyTorch Foundation (2026-09-08)](https://finance.sina.com.cn/stock/relnews/cn/2026-09-08/doc-inirayqy9530736.shtml)
+- [China.com — Cambricon PyTorch Foundation (2026-09-08)](https://news.china.com/socialgd/10000169/20260908/49727383.html)
+- [Sina Finance — Cambricon DeepSeek V4.1 Flash Day-0 (2026-09-10)](https://finance.sina.com.cn/tech/roll/2026-09-10/doc-inirinuw2944050.shtml)
+- [MSN/China.com — Cambricon denies AI-processor price-increase rumor (2026-09-11)](https://www.msn.cn/zh-cn/news/other/%E5%AF%92%E6%AD%A6%E7%BA%AA%E5%90%A6%E8%AE%A4ai%E5%A4%84%E7%90%86%E5%99%A8%E6%B6%A8%E4%BB%B7%E4%BC%A0%E9%97%BB-%E7%A7%B0%E4%BB%A5%E5%AE%98%E6%96%B9%E5%85%AC%E5%91%8A%E4%B8%BA%E5%87%86-%E8%82%A1%E4%BB%B7%E5%BE%AE%E8%B7%8C/ar-AA2bYmKk)

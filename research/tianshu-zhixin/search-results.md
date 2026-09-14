@@ -1,6 +1,6 @@
 # Iluvatar CoreX (天数智芯) Search Results
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: tianshu-zhixin*
 *device_class: GPU (天数智芯 / Iluvatar CoreX)*
 
@@ -115,3 +115,19 @@ count is high; true independence is low. Nothing in the coverage is independentl
 | Caixin — HKEX IPO USD 475M | https://www.caixinglobal.com/2025-12-30/chinese-gpu-maker-iluvatar-corex-seeks-475-million-in-hong-kong-listing-102398766.html | Business |
 | Caixin — HKEX debut USD 5.3B valuation | https://www.caixinglobal.com/2026-01-08/chinese-gpu-maker-iluvatar-corex-climbs-in-hong-kong-debut-with-53-billion-valuation-102401708.html | Business |
 | Startupnews — 2025 revenue +92% (RMB 1.03B) | https://startupnews.fyi/2026/04/02/chinese-gpu-designer-iluvatar-corex-reports-92-jump-in-annual-revenue/ | Business |
+
+### Resources Added 2026-09-13 (scan window 2026-08-08 → 2026-09-13; most items predate the window but were absent from the prior pass)
+
+| Resource | URL | Layer | Note |
+|----------|-----|-------|------|
+| TheNextWeb — Iluvatar CoreX seeks to raise $850m | https://thenextweb.com/news/iluvatar-corex-850-million-share-sale | Business | 2026-07-08; ~USD 850M placement, mechanics (primary vs secondary) disputed across sources |
+| U.S. News/Reuters wire — ByteDance in talks with Iluvatar CoreX | https://money.usnews.com/investing/news/articles/2026-06-14/exclusive-bytedance-in-talks-with-chinas-iluvatar-corex-to-purchase-ai-chips-sources-say | Business | 2026-06-14; in-talks, not a confirmed order |
+| AASTOCKS — ILUVATAR COREX (09903.HK) TianGai 300 flagship coverage | https://www.aastocks.com/en/stocks/news/aafn-news/NOW.1534101/2 | Business | Secondary coverage of the 2026-07-19 launch |
+| Bing News aggregation — 09903.HK H1 2026 interim results | https://www.bing.com/news/search?q=09903.HK+%E5%8D%8A%E5%B9%B4%E6%8A%A5 | Business | Accessed 2026-09-13; RMB 9.45-9.46B H1 revenue (+191.6% YoY), Hang Seng TECH inclusion reported, H-share placement — **press-reported aggregate; primary interim filing not independently opened** |
+
+## Searched and Not Found (2026-09-13)
+
+- No TianGai 300 tape-out/sampling/mass-production disclosure.
+- No new 天数超节点 topology/bandwidth disclosure.
+- No confirmed (vs. in-talks) ByteDance order.
+- No Hot Chips 38 (2026-08-23 → 08-25) Iluvatar CoreX talk.

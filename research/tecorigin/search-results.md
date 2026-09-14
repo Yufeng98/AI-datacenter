@@ -1,6 +1,6 @@
 # Tecorigin (太初元碁) SDAA — Search Results
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: tecorigin*
 *device_class: Heterogeneous Many-Core Accelerator (SPA/SPE array with software-managed SPM scratchpad; China, 太初元碁)*
 
@@ -141,3 +141,23 @@ Via that route, **17 complete manuals (~3.2 MB of Chinese-language primary vendo
 - **Zero peak-performance disclosure.** No TFLOPS/TOPS at any precision, no HBM bandwidth, no process node, no die size, no TDP. The only public throughput number is a **tutorial micro-benchmark** (≈29 TFLOPS FP16 through the matrix unit vs ≈2.5 TFLOPS through vector instructions at a 2.36 GHz SPE clock) which Tecorigin itself states is "远没有达到" peak and whose scope (per-SPE / per-SPA / per-card) is not stated.
 - **Openness is bimodal.** The *kernel-source* layer is genuinely open (teco-ops BSD-3, Teco-AL, and the Tecorigin-independent PaddleCustomDevice SDAA backend under Apache-2.0 with a hardware CI script). Every compiler, library, runtime, driver and tool **binary** is closed and distributed only as `.deb`/`.rpm`/`.runfile`/Docker tarball from vendor mirrors.
 - **Traction is small and partly artificial.** 0–4★ on GitHub, 0–31★ on Gitee; Teco-AL's 157 forks are WAIC-competition artifacts. The three most active GitHub repos were created 2026-04-13 for that competition. The *documentation* cadence (v2.0 → v3.2 across 2025, PyTorch 2.7.1 tracking, Teco-vLLM gaining PD-separation and EPLB) tells a very different and more credible story about internal engineering activity.
+
+---
+
+## Resources Added 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*No hardware/silicon disclosure, no press/IPO/funding coverage found this window (English- and Chinese-language news search — Bing News and the vendor's own site, whose newsroom's most recent item is dated 2026-06-03 — returned nothing new). GitHub org activity confirms the toolchain is still actively engineered, verified directly via the GitHub API.*
+
+| Resource | URL | Note |
+|----------|-----|------|
+| Tecorigin/teco-ops — HAL version bump | https://github.com/Tecorigin/teco-ops/commit/fd088dca | 2026-08-13, "update teco-hal to v0.0.2 (#33)" |
+| Tecorigin/teco-ops — recent commits | https://github.com/Tecorigin/teco-ops/commits/main | Flash-attention bug fixes (2026-07-17 → 08-21): NaN-in-result, multi-batch boundary read, obuf last-block copy; `reshape_and_cache` fixes; `pushed_at` 2026-08-21 |
+| Tecorigin/teco-modelzoo — repo activity | https://github.com/Tecorigin/teco-modelzoo | `pushed_at` 2026-09-01; documentation-only commits (model-adaptation guide, PR guide) |
+| Tecorigin/tecovllm-modelzoo — repo activity | https://github.com/Tecorigin/tecovllm-modelzoo | `pushed_at` 2026-08-31; WAIC-competition doc/rule updates |
+
+## Searched and Not Found (2026-09-13)
+
+- No TecoToolKit/TecoDriver version bump beyond v3.2.0 (still the current release per the last pass).
+- No SDAA C release beyond v3.3.0 (2026-07-23, pre-window).
+- No press coverage, funding, IPO, or export-control item — consistent with the "WebSearch unavailable" caveat recorded at the two prior passes; this pass used Bing News and the vendor site instead and still found nothing.
+- No T200 or any second-chip-generation evidence (chip remains "T1"; T100/T110/T111 are card SKUs on that one chip).

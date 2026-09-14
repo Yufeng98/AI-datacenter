@@ -1,6 +1,6 @@
 # Tenstorrent Software Stack Overview Investigation
 
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 *device_class: Tensix RISC + SFPU*
 *sources: official docs, GitHub repos, search results*
 
@@ -342,6 +342,46 @@ Reported per-model throughput in those builds is modest, e.g. DeepSeek-V3.1 at *
 - [tt-forge releases API (1.5.0.dev builds)](https://api.github.com/repos/tenstorrent/tt-forge/releases?per_page=5)
 - [tt-isa-documentation repo contents](https://api.github.com/repos/tenstorrent/tt-isa-documentation/contents/)
 - [docs.tenstorrent.com/aibs — product and software index (TT-Lang listing)](https://docs.tenstorrent.com/aibs/)
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Method: direct fetch of GitHub releases pages/tags for tenstorrent/tt-metal and tenstorrent/tt-forge, and the Tenstorrent newsroom. WebSearch was unavailable this session (budget exhausted); Bing's news-search surface was used as a fallback for the Qualcomm-rumor check (see item 3) but returned only previously-known coverage. Classification: **Moderate** (tt-metal version bumps with real content) with a **Minor** ecosystem item (JapanFold) and a **Roadmap** negative-result item (Qualcomm rumor re-checked).*
+
+### 1. tt-metal v0.77.0 (2026-08-18) and v0.78.0 (2026-09-05) — DeepSeek V4 and Kimi-K3 bring-up
+
+Two stable releases landed inside the window (in addition to ongoing `v0.79.0-dev*` nightly builds through at least 2026-09-13):
+
+| Release | Date | Headline content |
+|---|---|---|
+| v0.77.0 | **2026-08-18** | 1,027 commits since v0.76.0. LLK: perf-report header fixes, SFPU edge-case testing, RoPE/hw_cleanup kernels promoted to experimental, MoE gate support expanded to k=9..15. Metalium core: further Quasar-architecture fixes, device-sync improvements, Metal 2.0 "program arg validation on cache miss." TT-NN: fixes for silent data corruption in `topk`, `tilize`, and `sort` ops; INT8 support added. Models: multiple migrations to tiered CI; **Kimi-K3 MLA bring-up**; **DeepSeek V4 HCA functional prefill support** |
+| v0.78.0 | **2026-09-05** | 465 commits since v0.77.0. "MOP-less Matmul" LLK & compute-kernel implementation; further Metal 2.0 migrations (embedding, normalization, data-movement ops); SFPU test/fix continuation; **Fabric2D and TorusXY topology support for prefill operations**; DRAM-sharded matmul optimizations; autonomous model-bringup framework infrastructure |
+
+**DeepSeek V4 caveat.** v0.77.0's release notes state "DeepSeek V4 HCA functional prefill support" — this is the first DeepSeek V4 reference this survey has found in the tt-metal core, directly following the 2026-08-08 baseline's explicit "no DeepSeek-V4 entry" finding. However, **tt-forge's own model-coverage builds through 2026-08-31 (`1.5.0.dev20260831...`) still do not list a DeepSeek V4 entry** — the two repos are not yet in sync. Read this as "DeepSeek V4 prefill is functional at the tt-metal/TT-NN layer, not yet reflected in tt-forge's published model-coverage matrix," not as "DeepSeek V4 is a supported end-to-end model." "HCA" is not expanded anywhere in the fetched release notes — **meaning not disclosed**.
+
+**Fabric2D / TorusXY note.** v0.78.0's "Fabric2D and TorusXY topology support for prefill operations" is the first explicit software-level reference this survey has found to a fabric topology abstraction beyond the fixed 2D-torus NoC already documented in hw-architecture.md — but the release notes describe it as a *software* topology/routing feature for prefill workload scheduling, not a new physical interconnect. **Do not read this as new interconnect hardware** — no corresponding hardware disclosure exists.
+
+### 2. JapanFold — new ecosystem/application announcement (2026-09-03)
+
+"ai& and Tenstorrent Launch JapanFold, Bringing Open-Source, Sovereign Drug Discovery to Japan" (Tenstorrent newsroom, 2026-09-03). JapanFold is a drug-discovery application platform running on "ai&'s sovereign infrastructure, powered by Tenstorrent Galaxy™ superclusters" — i.e. a new named workload/customer on the already-tracked ai& Japan deployment (120+ Galaxy systems, recorded 2026-06-30), not new hardware. **Minor** — an application/ecosystem data point, no new specs.
+
+### 3. Qualcomm–Tenstorrent acquisition rumor — re-checked, still unresolved
+
+The corpus's existing "2026-06-16 report that Qualcomm was circling Tenstorrent in a ~$10B deal... rumor only... deliberately excluded" was re-checked this cycle (prompted by a task hint referencing a similar 2026-07-01 report). Bing's news index surfaces the same story cluster — Reuters/Seeking Alpha/Datacenter Dynamics/MSN coverage of Qualcomm being "in talks to buy Tenstorrent" for "$8 billion to $10 billion," dated in a cluster around mid-June to early-July 2026 — but **no article found confirms, denies, or resolves the deal as of 2026-09-13**. No Tenstorrent newsroom post, no Qualcomm newsroom post (see the qualcomm chip's 2026-09-13 update, which separately confirms new Qualcomm–AWS and HUMAIN/Adobe news but nothing about Tenstorrent), and no dated follow-up beyond the original rumor cluster was found. **Status unchanged: rumor only, not adopted as fact.**
+
+### 4. "Grendel" naming — checked, appears superseded by "Quasar"
+
+SemiAnalysis's "Tenstorrent Blackhole, Grendel and..." newsletter (already in this survey's Resources list) describes **Grendel** as an earlier-disclosed codename for a third-generation Tenstorrent chip (after Blackhole): TSMC 4nm, 64 in-house RISC-V cores (replacing licensed SiFive cores), 16×400G Ethernet, tape-out originally targeted circa 2023–24 per that newsletter. **No 2025 or 2026 primary source (Tenstorrent newsroom, tt-metal/tt-llk commit history, product pages) uses the name "Grendel."** All next-generation bring-up activity in the current open-source stack (tt-metal/tt-llk commits since 2025-08-15) uses the name **Quasar** exclusively. This survey's working assessment: **Grendel is most plausibly an earlier/retired codename for what is now called Quasar, or an distinct earlier-stage plan that did not proceed as named — not confirmed either way.** No Tenstorrent statement ties or distinguishes the two names. Recorded as checked, not resolved.
+
+### Checked, no change found
+
+- No Tenstorrent talk in Hot Chips 38 (event occurred within this window, Aug 23–25, 2026); not re-verified against a post-event archive this cycle.
+- No MLPerf submission found.
+- No new Galaxy hardware spec, no new Blackhole SKU, no Quasar spec sheet.
+- No LG deal.
+
+Sources: https://github.com/tenstorrent/tt-metal/releases/tag/v0.77.0 · https://github.com/tenstorrent/tt-metal/releases/tag/v0.78.0 · https://github.com/tenstorrent/tt-metal/releases · https://api.github.com/repos/tenstorrent/tt-forge/releases?per_page=5 · https://tenstorrent.com/en/newsroom · https://newsletter.semianalysis.com/p/tenstorrent-blackhole-grendel-and
 - [Tenstorrent Newsroom: Galaxy Blackhole GA (2026-04-28)](https://tenstorrent.com/en/newsroom/tenstorrent-enables-ai-at-scale-with-industry-leading-performance)
 - [Tenstorrent Newsroom: TT-Deploy (2026-05-04)](https://tenstorrent.com/en/newsroom/tt-deploy)
 - [Tenstorrent Newsroom: performance records / TT-Ascalon S (2026-06-30)](https://tenstorrent.com/en/newsroom/tenstorrent-sets-new-performance-records-launches-tt--ascalon-s)

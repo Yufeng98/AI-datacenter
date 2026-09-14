@@ -3,7 +3,7 @@
 *chip: sk-hynix-aim*
 *device_class: Processing-in-Memory*
 *search_date: 2026-04-05*
-*last_rescan: 2026-08-08 — see "Re-scan — 2026-08-08" below*
+*last_rescan: 2026-09-13 — see "Re-scan — 2026-08-08" and "Resources Added 2026-09-13" below*
 
 ## Summary
 
@@ -75,3 +75,29 @@ SK Hynix developed **AiM (Accelerator-in-Memory)**, a PIM product family that in
 - **Not confirmed, treat as nonexistent:** AiM Gen3, GDDR7-AiM, HBM-based AiM, AiM in an HBM4 custom base die, any MLPerf submission using AiMX, any public AiM SDK release, any cancellation announcement.
 - **Direction of travel:** SK hynix's 2026 compute-memory messaging emphasizes CXL (CMM-Ax, CMM-Hybrid, Pooled Memory), cHBM, and HBF over AiM.
 - **Search caveat:** the verifying pass exhausted its WebSearch budget; corroboration came from DuckDuckGo HTML result pages plus direct fetches, and GitHub's REST API returned 403 (simulator date read from the rendered commits page).
+
+---
+
+## Resources Added 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Classification: **Minor**. No AiM/AiMX product, spec, or status change found in this window — AiMX remains a "prototype" per SK hynix's own last statement (CES 2026, unchanged). This scan resolves one previously-flagged ambiguity (the Hot Chips 38 Tutorial 1 speaker/title) and adds negative evidence on two specific questions this round of research was asked to check: an SK hynix LPDDR-based PIM response to Samsung, and an SK hynix HBM4 logic base die. Method note: this session's WebSearch budget was exhausted (200/200) before this chip was investigated; DuckDuckGo returned a CAPTCHA wall on every query, so discovery relied on WebFetch against primary URLs (hotchips.org program page, news.skhynix.com, and direct navigation) plus Bing's rendered HTML, which returned only generic/irrelevant snippets for open-ended queries.*
+
+| # | Title | URL | Type | Date | Quality | Why it matters |
+|---|-------|-----|------|------|---------|----------------|
+| 29 | Hot Chips 2026 (38) full program — hc2026.hotchips.org | https://hc2026.hotchips.org/program/ | Conference program | fetched 2026-09-13 | High | **Resolves prior ambiguity.** Confirms Tutorial 1 (Memory Technology, Sun Aug 23, 9:00–11:00 AM, chair Suresh Rajgopal) includes **"Advanced packaging for High Bandwidth Memory (HBM)" — Jaesik Lee, SK Hynix**. This is SK hynix's only Hot Chips 38 appearance; it is HBM *packaging* technology, not an AiM/PIM product disclosure, consistent with how the 2026-08-08 entry already treated it (then unconfirmed) |
+| 30 | Hot Chips 2026 program — Samsung LPDDR5X-PIM talk | https://hc2026.hotchips.org/program/ | Conference program | fetched 2026-09-13 | High | Confirms the Tuesday Memory session PIM talk, **"Samsung LPDDR5X-PIM: World's First LPDDR based Processing in Memory"** (Karam Hwang, Samsung), is Samsung's, not SK hynix's — **SK hynix has no competing LPDDR-based PIM disclosure at HC38** |
+| 31 | Hot Chips 2026 program — Samsung HBM base-die talk | https://hc2026.hotchips.org/program/ | Conference program | fetched 2026-09-13 | High | Confirms Tutorial 1 also includes **"HBM Base Die: How HBM Will Evolve Using Advanced Logic Processes"** (Sangwook Han, **Samsung**) — the HBM4-logic-base-die disclosure at HC38 belongs to Samsung, not SK hynix |
+| 32 | SK hynix Presents a Full Lineup of Memory Solutions Optimized for AI Infrastructure at DTF 2026 | https://news.skhynix.com/en/dtf-2026/ | Vendor | 2026-08-26 | High | **Negative evidence.** Full DTF 2026 product lineup (HBM3E/HBM4/HBM4E, RDIMM/MRDIMM/SOCAMM2/CSODIMM/LPCAMM2, LPDDR5X, GDDR7, QLC eSSD/cSSD lines, CMM-DDR5) — **no AiM/AiMX/PIM mention**; an HBM4 wafer was displayed with no base-die architecture detail given |
+| 33 | [Tech Note] Hybrid Bonding: Evolving into a Foundational Technology for Improving Semiconductor Performance | https://news.skhynix.com/en/tech-note-series-ep2/ | Vendor blog (educational) | 2026-08-25 | Medium | **Relevant negative for the HBM4-logic-base-die question.** States HBM4 I/O count doubles to 2,048 and package height grows to 775 µm, but describes hybrid bonding as likely arriving at **HBM4E or HBM5** (stack heights >20 layers) — i.e. HBM4 itself is described as still using conventional TCB. No mention of a logic-process base die, a foundry base-die partner, or AiM/PIM |
+| 34 | SK hynix Charts Its Business and Technology Direction at the 2026 Future Forum | https://news.skhynix.com/en/future-forum-2026/ | Vendor | 2026-09-09 (event 2026-09-08) | Medium | **Roadmap-level, not AiM-specific.** "Full-Stack AI Memory Strategy" (3D DRAM + HBM + HBF combined per-workload) and a forward-looking "3D Memory Technology" direction described as "converting DRAM peripheral circuits into logic foundry capabilities" — vague and not tied to AiM/PIM by name; recorded as context only, not as an AiM development |
+| 35 | SK hynix Holds Groundbreaking Ceremony for HBM Production Base in Indiana | https://news.skhynix.com/en/groundbreaking-ceremony-in-indiana/ | Vendor | 2026-08-27/28 | Medium | **Negative evidence.** HBM manufacturing capacity news; no AiM/PIM content |
+| 36 | SK hynix's technology roadmap for co-packaged optics features in 'Nature Electronics' | https://news.skhynix.com/en/cpo-in-nature-electronics/ | Vendor | 2026-08-20 | Low | **Negative evidence.** CPO/networking technology; no AiM/PIM content |
+| 37 | news.skhynix.com/en/ newsroom index, re-checked for the full window | https://news.skhynix.com/en/ | Vendor index | fetched 2026-09-13 | High | **Negative evidence.** Every item dated 2026-08-08 → 2026-09-13 checked (DTF 2026, Future Forum, Hybrid Bonding tech note, Indiana groundbreaking ×3, CPO/Nature Electronics, share buyback, two AI Ecosystem/AI Infrastructure Insight posts, one analyst interview) — **none mention AiM, AiMX, or PIM** |
+
+### Findings
+
+- **No AiM/AiMX product, spec, or status change in the window.** AiMX remains a prototype per SK hynix's own last public statement (CES 2026); nothing in this scan updates that.
+- **Hot Chips 38 Tutorial 1 ambiguity resolved:** SK hynix's talk is confirmed as "Advanced packaging for High Bandwidth Memory (HBM)" (Jaesik Lee) — packaging technology, correctly not treated as an AiM/PIM disclosure.
+- **No SK hynix LPDDR-based PIM response to Samsung's HC38 "World's First" LPDDR5X-PIM disclosure was found** — at Hot Chips 38 or in SK hynix's own newsroom for the window.
+- **No SK hynix HBM4 logic-base-die disclosure was found** — SK hynix's own Hybrid Bonding tech note describes HBM4 as still using conventional TCB packaging (hybrid bonding deferred to HBM4E/HBM5), with no base-die-logic-process or foundry-partner content. This is a direct contrast with Samsung's dedicated HC38 talk on exactly this topic ("HBM Base Die: How HBM Will Evolve Using Advanced Logic Processes").
+- **Direction of travel reconfirmed:** SK hynix's August–September 2026 messaging (DTF 2026, Future Forum, Hybrid Bonding) continues to emphasize HBM/HBM4/HBM4E, packaging, and capacity (Indiana fab) — not AiM/PIM.

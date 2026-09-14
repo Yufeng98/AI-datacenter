@@ -272,4 +272,66 @@ Announced **2025-10-14 at the OCP Global Summit** with **Arista, Broadcom and Su
 - [gigaio.com — footer now reads "FabreX is a trademark of d-Matrix, Inc."](https://gigaio.com/)
 - [ServeTheHome Hot Chips 2025 — ~1 TB/s D2D, 115 ns, 275 W @ 800 MHz / 550 W @ 1.2 GHz, 38 TOPS/W](https://www.servethehome.com/d-matrix-corsair-in-memory-computing-for-ai-inference-at-hot-chips-2025/)
 - [Parasail × d-Matrix — "select, qualified customers", "plan to explore expanded integration"](https://www.parasail.io/blogs/parasail-d-matrix-accelerators)
+
+---
+
+# Update — 2026-09-13 Investigation
+
+*investigation: hw-architecture (update 2)*
+*date: 2026-09-13*
+*baseline: 2026-08-08 section above (retained unchanged)*
+*sources: ServeTheHome Hot Chips 38 Raptor coverage (2026-08-23); The Next Platform, "Startup d-Matrix will pair its Raptor memory-based XPU to Nvidia rackscale iron" (2026-09-10)*
+
+---
+
+## R1. Scope of change
+
+**Corsair is unchanged** in this window (no new production/shipment news beyond the 2026-08-08 update). The entire update concerns **Raptor**, which went from "early silicon, ISCA 2026 paper" (U2 above) to a fuller Hot Chips 38 architecture/performance disclosure (2026-08-23) plus a first announced rack-scale go-to-market partnership with NVIDIA (2026-09-10). U7's prediction — "Hot Chips 38: d-Matrix not listed in the advance program... recheck afterwards" — is **superseded**: d-Matrix (or Raptor specifically) did appear at Hot Chips 38, via ServeTheHome's coverage dated 2026-08-23. Whether this was the Sunday tutorial "3D DRAM based Accelerator for Generative Inference" (Sudeep Bhoja, d-Matrix, co-presented with Meta's Aayush Ankit) or a separate AI-session talk is **not disambiguated** in the reviewed coverage — recorded as "Hot Chips 38, 2026-08-23" without asserting which program slot.
+
+## R2. Raptor — Hot Chips 38 architecture disclosure (new/confirmed figures)
+
+| Parameter | Value | Relation to prior record (U2.1) |
+|---|---|---|
+| Logic die process | **TSMC N4** | U2.1 recorded **N4P** from the ISCA 2026 paper. Not necessarily a contradiction — N4P is a member of the N4 process family — but the two sources use different labels. Recorded as **"TSMC N4 (Hot Chips 38) / N4P (ISCA 2026 paper)" — treat as the same process family unless a correction surfaces.** |
+| Bonding | **36 µm face-to-face stacking** — d-Matrix's own characterization: "proven, low-cost, high-volume, and high-yield" | Confirms U2.1's 36 µm µbump pitch figure |
+| Stack configuration | **1-Hi** (single logic layer on DRAM) | New — not stated in U2.1 |
+| Per-card 3D-DRAM capacity | **32 GB per card** | **New** — U2.1 explicitly listed 3D-DRAM capacity as "not disclosed." Now resolved |
+| Bank configuration | **840 banks total; 768 active after 72 spares reserved; 256 channels** | Refines U2.1's "840 banks → 256 channels" — adds the spare-bank detail |
+| Scale-up | **72-card configuration** to host frontier models at **1M context length** | New |
+| Peak/sustained bandwidth | **~100 TB/s sustained** (vendor figure, Hot Chips 38) | U2.2 recorded "~105 TB/s per card at 700 MHz, measured" (ISCA 2026 paper). Treat as roughly consistent — "sustained" vs. a specific measured operating point are not necessarily the same figure; both are recorded, not reconciled to one number |
+| ECC / refresh overhead | **~1.37%** bandwidth loss from thermal-aware refresh + ECC | New |
+| I/O power at peak bandwidth | **296 W** to move 100 TB/s at **0.37 pJ/bit** (vendor calculation) | New |
+| Power density limit | **≤0.5 W/mm²** for liquid cooling with DRAM held under 100°C | New |
+| 3D I/O energy | **0.3–0.4 pJ/bit**, vs. a stated 2.5–5 pJ/bit for HBM4 systems (vendor comparison) | New |
+
+**All figures in this table are vendor claims/figures disclosed at Hot Chips 38**, per ServeTheHome's coverage — not independently measured by this survey.
+
+## R3. Raptor performance and density claims (vendor)
+
+| Claim | Value | Baseline / comparison |
+|---|---|---|
+| Throughput | **~1,000 tokens/second/user** (vendor claim) | 3-trillion-parameter-class model, 1M-token context |
+| Bandwidth density | **32.6 GB/s per mm²** | vs. ~1.5 GB/s/mm² for HBM4 (vendor comparison, ~20× improvement claimed) |
+| Power efficiency | **2.96 mW per GB/s** | vs. ~40 mW/GB/s for HBM4 (vendor comparison, ~13.5× improvement claimed) |
+
+These are presented as vendor claims disclosed at Hot Chips 38, consistent with this file's existing practice of flagging all non-ISCA-measured Raptor/Corsair throughput figures as marketing numbers. The only **measured** Raptor figures remain the ISCA 2026 paper's ~105 TB/s bandwidth and 2.5 ns flit latency (U2.2) — the Hot Chips 38 figures above are additional vendor disclosures, not new silicon measurements.
+
+## R4. NVIDIA rack-scale partnership (The Next Platform, 2026-09-10)
+
+- **144 Raptor XPUs per rack**, in an **NVIDIA NVL144 MGX** rack design.
+- **2.3 TB total 3D-stack DRAM capacity per rack**; **7.2 PB/s aggregate rack bandwidth**.
+  - **Arithmetic cross-check (this survey's own, not stated by the source)**: 2.3 TB ÷ 32 GB/card ≈ 72 cards, and 7.2 PB/s ÷ 100 TB/s/card = 72 cards — both point to **72 cards**, exactly matching R2's "72-card configuration to host frontier models" figure from the separate Hot Chips 38 coverage. This suggests the 2.3 TB / 7.2 PB/s figures describe a **72-card subset of the 144-XPU rack**, not the full rack — but Next Platform's own text states "144 Raptor XPUs per rack" without reconciling this arithmetic explicitly. Record both figures as reported; do not silently resolve the apparent 144-vs-72 discrepancy.
+- **Integration**: NVLink connectivity "coherently linking GPUs, CPUs, and other accelerators"; compatible with the NVL144 liquid-cooled rack design; uses the **same compute trays as NVIDIA Vera-Rubin systems** but houses Raptor XPUs instead; includes NVIDIA Vera CPUs, BlueField DPUs, ConnectX and Spectrum-X networking. Can operate as a companion to Vera-Rubin GPU racks or standalone.
+- **Timeline**: **tapeout end of 2026**; **release Q4 2027**.
+- **Benchmark**: GLM 5.2 model achieving **~3,000 tokens/second/user** on a single Raptor rack, with stated scaling across eight racks. This is a **different model and different figure** from R3's "~1,000 tok/s/user on a 3T-parameter model at 1M context" — both are vendor-reported and are not the same claim; do not merge them.
+- **Funding**: "Over $500 million" raised to date. This is **higher than the ~$450M total previously recorded** (U7, from the November 2025 Series C at ~$2B valuation). **No specific new funding round was found** in the reviewed coverage to explain the difference — it may reflect additional funding since the Series C, a different accounting basis, or reporting imprecision. Flagged for reconciliation, not treated as a confirmed new round.
+
+## R5. Status
+
+Raptor remains **pre-production**. Hot Chips 38 and the NVIDIA rack-scale announcement add substantial architectural and go-to-market detail but **no availability date earlier than the previously-unstated one** — R4 gives the first concrete **timeline** for Raptor (tapeout end of 2026, release Q4 2027), which is new information not present anywhere in the 2026-08-08 update.
+
+### Sources for this update
+
+- [ServeTheHome — d-Matrix Raptor: 3D DRAM Accelerator for Generative Inference at Hot Chips 2026 (2026-08-23)](https://www.servethehome.com/d-matrix-raptor-3d-dram-accelerator-for-generative-inference-at-hot-chips-2026/)
+- [The Next Platform — Startup d-Matrix will pair its Raptor memory-based XPU to Nvidia rackscale iron (2026-09-10)](https://www.nextplatform.com/compute/2026/09/10/startup-d-matrix-will-pair-its-raptor-memory-based-xpu-to-nvidia-rackscale-iron/5295601)
 - [MLCommons Inference (datacenter) — no d-Matrix submission](https://mlcommons.org/benchmarks/inference-datacenter/)

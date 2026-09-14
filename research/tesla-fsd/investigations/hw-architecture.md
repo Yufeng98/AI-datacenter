@@ -1,5 +1,7 @@
 # Tesla FSD Chip — HW Architecture Investigation
 
+*as_of: 2026-09-13*
+
 ## Summary
 
 The Tesla FSD chip is a custom edge inference SoC built around a proprietary systolic-array NPU. Two generations (HW3 / HW4) are deployed in vehicles. The architecture prioritizes deterministic, static-scheduled inference for automotive-grade latency and power constraints.
@@ -233,3 +235,48 @@ Thor ~273 GB/s. **Resolution: present both with attribution; do not pick a winne
 
 Musk's 2026-04-15 post also named **AI6** and **Dojo 3** as "in work." Nothing further is public for either —
 no node, no schedule, no architecture. Recorded here only so the names are not later mistaken for new evidence.
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Method: electrek.co on-site search (`?s=` query fetches) followed by direct article fetches; WebSearch was unavailable this session (budget exhausted). Classification: **Major**, hedged heavily — this is the first time any figure has been publicly associated with "AI4.5," but the sourcing is thirdhand and the figure may simply be a mislabeling of the already-tracked AI4.1/"AI4 Plus" spec.*
+
+### Source chain for this update
+
+Everything below traces to a single Electrek article (2026-08-20) reporting on a **JPMorgan analyst note** (analyst Rajat Gupta, who recently replaced longtime Tesla bear Ryan Brinkman) written after a **Fremont factory visit/briefing with Tesla**. The chain is therefore **Tesla → JPMorgan analyst note → Electrek**, not a Tesla transcript, filing, or datasheet. Electrek's own framing is skeptical: it notes the JPMorgan note "primarily relays Tesla's own guidance without substantial scrutiny" and that "the goalpost for 'the hardware that finally does unsupervised driving' keeps sliding to the next chip." Treat everything in this section as **vendor-guidance-via-analyst-note**, one tier weaker than the Musk-earnings-call statements this survey already treats as "medium confidence."
+
+### AI4.5 — first figures attributed to this name, but likely a naming conflation with AI4.1
+
+Electrek (2026-08-20), paraphrasing the JPMorgan note: *"Tesla is rolling out AI4.5, a new version of the chip with roughly 10% more compute and about twice the memory."*
+
+**This is functionally identical to Musk's 2026-04-22 description of AI4.1 / "AI4 Plus"** — "probably a 10% increase in compute and in memory bandwidth" plus 16→32 GB/SoC (64 GB/board), i.e. a doubling of memory capacity — which this survey has tracked as a **separate, distinct variant** from AI4.5/"AP45" (the unannounced part 2261336-02-A shipping in Fremont-built 2026 Model Y since Dec 2025/Jan 2026, for which no compute or memory figures existed anywhere before now).
+
+Two readings are both plausible and **this survey does not pick one**:
+1. **Naming conflation**: Electrek/JPMorgan are using "AI4.5" loosely to refer to what Tesla itself calls AI4.1/AI4 Plus, and no new information exists about the AP45 board specifically.
+2. **Genuine new information**: AI4.5 and AI4.1 are the same product under two informal names, and the ~10% compute / ~2× memory figures apply to the already-shipping AP45 board.
+
+**Given this ambiguity, this update does NOT overwrite the existing "AI4.5: not disclosed" cells with confident specs.** Instead, it records "~10% more compute, ~2× memory (thirdhand, JPMorgan-via-Electrek, 2026-08-20; may be a mislabeling of AI4.1)" alongside the existing not-disclosed rows, and flags the naming collision prominently. No memory type, absolute bandwidth, NPU count, or process node was given for either reading.
+
+### AI5 — delay reaffirmed, Cybercab hardware target clarified
+
+- Electrek (2026-08-20), per the same JPMorgan note: *"Tesla delayed its next-gen AI5 chip to mid-2027."* This **reaffirms rather than newly discloses** — Electrek's own April 2026 reporting already put AI5 automotive volume at "mid-2027," which this survey already recorded. The August note frames it explicitly as a **delay**, which is new framing language, not a new date.
+- **Cybercab was originally planned to launch on AI4 hardware** (per the same note) — the first explicit statement this survey has found of which chip generation Cybercab targets. This is consistent with, and slightly sharpens, the existing "AI5 near-term priority is Optimus and datacenter, automotive deferred" finding — Cybercab specifically was an AI4-generation vehicle program, not an AI5-dependent one.
+- No new AI5 compute, memory, process, or performance figures. AI5 disclosure state is otherwise unchanged from 2026-08-08.
+
+### HW3 retrofit reality — "FSD v14 Lite" and rising hardware failures
+
+Per the same Electrek/JPMorgan chain: HW3-equipped vehicles are now receiving a stripped-down **"FSD v14 Lite"** software release rather than the full FSD package, and the article reports **rising HW3 computer hardware failures** correlated with this deployment. This is a continuation of the 2026-04-22 "HW3 declared insufficient" finding already in this survey, with a new concrete symptom (a reduced-capability software SKU) and a new claim (rising failure rates) — both thirdhand via the same JPMorgan note and not independently corroborated by a second outlet in this update.
+
+### FSD v15 status (context, not a chip spec)
+
+Tesla told JPMorgan that FSD v15 is "a major jump in capability, built on seven 'core technologies,'" with roughly 40% already operational in the Austin robotaxi fleet, and reasserted that **HW4/AI4 is sufficient** to run v15 and unsupervised FSD — the same claim Tesla made about HW3 for years before conceding it insufficient in April 2026 (a parallel Electrek itself draws). This is software/product roadmap context, not a hardware spec, and is recorded for completeness only.
+
+### Checked, no change found
+
+- No AI5 or AI4.5 compute/memory/process figures from any primary Tesla source (earnings call, filing, datasheet) in this window.
+- No Hot Chips 38 Tesla talk (event occurred within this window, Aug 23–25, 2026); the prior "not scheduled" finding was not re-verified against a post-event archive this cycle.
+- No MLPerf submission, no public SDK, no ISA disclosure for any generation.
+- No new information on AI6 or Dojo 3 beyond what is already tracked in the tesla-dojo chip file.
+
+Source: https://electrek.co/2026/08/20/tesla-jpmorgan-fremont-fsd-v15-hw4-optimus-2027/

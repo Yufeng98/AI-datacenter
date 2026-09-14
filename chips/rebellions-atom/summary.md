@@ -2,7 +2,7 @@
 
 *chip: rebellions-atom*
 *device_class: Inference Accelerator (Korea)*
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 
 ---
 
@@ -225,6 +225,7 @@ For context immediately before the window: 2026-01-30 (compiler v0.10.0, driver 
 - Key investors: Samsung Electronics, Arm, SK Telecom, KT, SoftBank Ventures, **Aramco**, **SK hynix**; March 2026 pre-IPO participants named include the National Growth Fund (KRW 250B), Korea Development Bank (KRW 50B), Mirae Asset Group (KRW 300B)
 - Revenue: KRW 32B (2025, as reported to CNBC 2026-07-08)
 - IPO: preparing a Korean listing, CEO leaning **KOSPI** over KOSDAQ; preliminary-review filing targeted **within 2026** (previously August 2026 — pushed back per Seoul Economic Daily 2026-05-27), listing targeted H1 2027, possible later US listing; J.P. Morgan named as underwriter. *Timing is MEDIUM confidence and has moved more than once (a June-2026 filing on KOSDAQ was the plan as recently as Feb 2026).*
+- **New 2026-09-13**: NVIDIA reported (Bloomberg, 2026-08-21) in **early-stage talks** with Rebellions covering "a technical partnership, an investment or perhaps even an acquisition" — Jensen Huang met CEO Sung-hyun Park at NVIDIA's Santa Clara HQ. Secondary coverage (eWeek, 2026-08-24) draws an explicit parallel to NVIDIA's late-2025 Groq deal (nonexclusive tech license + engineering-staff absorption) as a likely template, **not a confirmed structure**. No investment amount, stake, or scope disclosed; talks may not conclude. See the Update (2026-09-13) section below.
 - Fab partner: Samsung Electronics
 - Design partner: Synopsys (EDA)
 - Partners: Pegatron (manufacturing), DOCOMO Innovations (Japan), SK Telecom; **Arm + SK Telecom** three-way MOU (2026-04-10) and **Giga Computing** MOU (2026-06-17) — both are intent-to-co-develop, not design wins
@@ -259,3 +260,21 @@ For context immediately before the window: 2026-01-30 (compiler v0.10.0, driver 
 - [CNBC: Rebellions IPO, KOSPI over KOSDAQ (2026-07-08)](https://www.cnbc.com/2026/07/08/rebellions-ipo-south-korea-ai-chips.html)
 - [Rebellions $400M pre-IPO + RebelRack/RebelPOD launch (2026-03-30)](https://rebellions.ai/newsroom/rebellions-closes-400-million-pre-ipo-and-launches-rebelrack-and-rebelpod-to-accelerate-global-expansion/) — note: contains **no** technical specs
 - [MLPerf Training v6.0 results (2026-06-16)](https://mlcommons.org/2026/06/mlperf-training-v6-0-results/) — Rebellions absent from the 24 submitters
+
+### Added 2026-09-13
+
+- [Bloomberg — Nvidia in Talks With Chip Startup Rebellions for Potential Deal (2026-08-21)](https://www.bloomberg.com/news/articles/2026-08-21/nvidia-in-talks-with-chip-startup-rebellions-for-potential-deal)
+- [eWeek — Nvidia Eyes Rebellions Deal as AI Inference Competition Heats Up (2026-08-24)](https://www.eweek.com/news/nvidia-rebellions-ai-chip-potential-deal-apac-south-korea/)
+
+---
+
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Roadmap (corporate) — no new silicon, no new spec, no new performance figure.*
+
+- **NVIDIA–Rebellions talks (2026-08-21, Bloomberg; corroborated by eWeek 2026-08-24)**: NVIDIA is reported in early discussions with Rebellions covering a technical partnership, investment, or acquisition. Jensen Huang met CEO Sung-hyun Park at NVIDIA's Santa Clara HQ. Explicit (unconfirmed) parallel drawn to NVIDIA's late-2025 Groq deal structure. No amount, stake, or scope disclosed; may not conclude.
+- **Pre-verified-fact check**: "Rebel100 → Saudi Aramco deployment target H1 2027" could **not be confirmed** in this pass. The only H1 2027 date on record anywhere in this research thread is the Korea IPO listing target (Reuters/CNBC, 2026-07-08); Aramco appears only as an investor, never tied to a deployment date. Treat the Aramco-deployment claim as unverified.
+- Coverage-gap note: the 2026-08-07 UPI item on SK Telecom/Rebellions was re-attempted and still could not be retrieved.
+- Searched and absent: no Rebel100/RebelCard ship date, no Sapeon-merger status change, no new ISSCC/Hot Chips 38/MLPerf disclosure.
+
+New sources: see `research/rebellions-atom/search-results.md` → "Resources Added 2026-09-13" and `research/rebellions-atom/investigations/hw-architecture.md` → "Investigation Update — 2026-09-13".

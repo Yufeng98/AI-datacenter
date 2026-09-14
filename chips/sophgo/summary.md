@@ -1,6 +1,6 @@
 # Sophgo (算能) Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: sophgo*
 *device_class: RISC-V + TPU Hybrid (China, 算能)*
 
@@ -46,6 +46,8 @@ TPU-MLIR is the crown jewel of Sophgo's open-source ecosystem. The compilation p
 The `.bmodel` is Sophgo's hardware binary format — analogous to NVIDIA's TensorRT `.plan` or Cambricon's `.cnbin`. It encodes compiled tensor operations, DMA command sequences, quantized weights, and target chip metadata. Users never write ISA-level code directly.
 
 The earlier `sophgo/tpu_compiler` (CVITEK AI compiler) handles older CV18XX series chips and is now superseded by TPU-MLIR for current hardware.
+
+**Update (2026-09-13).** TPU-MLIR advanced from **v1.29** (2026-07-01) to **v1.30.2** (2026-08-31, verified via the GitHub API). New in v1.30.2: LLM **chunk prefill** and **chunked decode** (incl. a Qwen3.5-specific path), new multimodal model support (**MiniCPM-V-4.6, Step3-VL, Falcon-Perception, LocateAnything-3B**), a further-updated **BM1690/BM1690E backend**, continued **BM1684X2** enablement, and merged **CUDA op support**. Software-only — no new BM1690 spec value. Two repos in the BM1690 LLM-serving/training path — `vllm-tpu` and `torch-tpu` — have **not been pushed since before the 2026-04-05 baseline** (last push 2025-12-17 and 2026-01-28 respectively); flagged as a stalled area. See `research/sophgo/investigations/software-stack.md` → "Update — 2026-09-13".
 
 ### Runtime — libsophon
 

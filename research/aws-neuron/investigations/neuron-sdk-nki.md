@@ -3,6 +3,7 @@
 **Chip:** AWS Neuron (Trainium/Inferentia)
 **Investigation Focus:** Compiler Pipeline, NKI, Framework Integrations, Runtime
 **Date:** 2026-04-05
+*as_of: 2026-09-13*
 
 ---
 
@@ -228,3 +229,33 @@ The most consequential software-stack event in the window for this survey, whose
 3. **The compiler back-end was redesigned in 2.31.0** and is default on Trn2/Trn3 — the first codegen-level rewrite recorded in this survey.
 4. **A new SDK layer exists above the frameworks:** agentic porting and equivalence-checking skills shipped as SDK components, bundled in DLAMIs/DLCs. No other chip in this survey currently documents an equivalent layer.
 5. **Local development no longer requires accelerator hardware** for kernel authoring, via the experimental CPU Simulator.
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Method: direct fetch of `github.com/aws-neuron/aws-neuron-sdk` releases, `awsdocs-neuron.readthedocs-hosted.com` release-notes pages, and component `.rst` changelogs (`nki.rst`, `nxd-inference.rst`). WebSearch was unavailable this session (session budget exhausted); findings rely on primary-source URL fetches only, not news aggregation — absence claims below are "no evidence found in fetched primary sources," not "verified absent."*
+
+Two releases landed in the window: **2.31.1** (2026-08-12, patch/bugfix only) and **2.32.0** (2026-08-17, NKI 0.6.0). This is a **Moderate** (SDK/runtime/compiler version) update — no new NeuronCore generation, no new spec disclosures.
+
+### 2.32.0 (2026-08-17) — NKI 0.6.0
+
+- **NKI 0.6.0:** on-device top-K reduction via `nisa.topk`; **variable-length collectives** (`all_gather_v`, joining the existing `all_to_all_v`) for uneven per-rank data; new **runtime loop constructs** `fori_loop` / `while_loop`, replacing `nl.dynamic_range` for data-dependent iteration counts; relaxed DMA transpose constraints; simulator bug fixes.
+- **NKI Library:** +13 new kernels, including DeepSeek-V3.2 sparse-MLA context-encoding and MXFP8 MoE training kernels; PyTorch reference implementations extended to 22 additional kernels.
+- **Graph compiler (neuronx-cc v2.27.5334.0):** explicit 64-bit integer control (`--native-int64`, `--implicit-integer-downcast` flags); complex64 op support expanded to 30 ops; embedding lookups now optimized as gather ops — AWS claims up to 64% compile-time reduction and up to 96% smaller NEFF files for affected workloads (vendor claim).
+- **Runtime/driver:** variable-size collectives (AllGatherV, ReduceScatterV, AllToAllV) for uneven per-rank data on Trn2 and Trn3; one-rank-per-die topology support on the Trn3 Gen2 UltraServer; max NCCL communicators per NEFF raised from 12 to 16.
+- **Neuron Agentic Development:** new `neuron-framework-autoport-vllm-neuron` skill, automating porting of HuggingFace models to the vLLM Neuron backend.
+- **vLLM Neuron:** upgraded to v0.24.0.
+- **Breaking / roadmap signal: NxD Inference enters maintenance mode as of 2.32.0** — "no new feature releases are planned for this component"; AWS directs users to migrate to vLLM Neuron. Source: `release-notes/components/nxd-inference.rst`. This confirms the multi-release trend (Trn1/Inf2 drop in 2.29.0, Trn2-and-newer-only scope) was a step toward vLLM Neuron becoming the primary inference serving path, not just a hardware-support narrowing.
+
+Source: https://github.com/aws-neuron/aws-neuron-sdk/releases/tag/v2.32.0 ; https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nki.rst ; https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nxd-inference.rst
+
+### 2.31.1 (2026-08-12)
+
+Patch release, "bug fixes applied to the AWS Neuron SDK v2.31.0." No NKI version bump, no new features documented. Source: https://github.com/aws-neuron/aws-neuron-sdk/releases
+
+### Checked, no change found
+
+- **Trn3 architecture page** (`about-neuron/arch/neuron-hardware/trn3-arch.rst` / rendered page): content unchanged from the 2026-04-09 revision recorded in the 2026-08-08 update — same UltraServer Gen1/Gen2 spec table, same unreconciled NeuronLink-v4 bandwidth figures (2,048 GiB/s per device in the spec table vs. the 256+320+128 = 704 GB/s per-chip PCIe Gen6 link-budget sum), same absence of Trn3 GA/preview status. Still **not disclosed**: Trn3 instance availability, sizes, regions.
+- **Trainium4 / NeuronCore-v5:** no new primary-source confirmation found in fetched pages (Trn3 arch page has no Trainium4 mention; no re:Invent-adjacent announcement expected before Dec 2026). Roadmap claims remain unchanged vendor preview only, as recorded 2026-08-08.
+- **Hot Chips 38 (Aug 23–25, 2026):** already passed within this window; consistent with the 2026-08-08 record, AWS/Amazon/Annapurna had no talk on the program (not re-verified this cycle since the event has concluded and the prior finding stands).

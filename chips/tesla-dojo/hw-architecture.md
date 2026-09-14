@@ -1,6 +1,6 @@
 # Tesla Dojo Hardware Architecture
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *Primary source: Hot Chips 34 (August 2022)*
 *generations: D1 (Dojo v1) / D2 (Dojo 2, cancelled) / Dojo 3 (program acknowledged, nothing disclosed)*
 
@@ -206,6 +206,8 @@ There is **no published Dojo 3 system hierarchy** — no die, module, rack, or c
 | Foundry context | Tesla is a **framework-agreement** participant in Terafab (SpaceX-led, Grimes County TX, Intel 14A). SpaceX's S-1 states neither Tesla nor Intel is obligated to remain in the project. No source ties Terafab or 14A to Dojo 3 specifically |
 | Adjacent trademark | Tesla filed "MEGAPOD" (USPTO SN 99893717, ~2026-06-18) covering "computer servers, computer hardware for artificial intelligence processing, computer networking hardware, electrical power distribution units, and cooling systems, sold as a unit" — **trademark filing only**; no product, no chip, no specifications |
 | Hot Chips 38 | No Tesla or Dojo talk in the advance program (Aug 23–25, 2026), checked 2026-08-08 |
+| Mystery AI hardware acquisition (**Update 2026-09-13**) | Tesla's Q1 2026 10-Q disclosed (April 2026) an agreement to acquire an **unnamed** AI hardware company for up to $2.00B in stock/equity; Electrek reports the deal **closed 2026-07-24** at $1.95B (only $222M allocated to patent/technology intangibles; the $1.73B milestone-dependent tranche is described by Tesla as "improbable" to be achieved). Target **not named**; no confirmed link to Dojo 3, AI5, or AI6 hardware. Pre-baseline item, backfilled as a corpus gap |
+| DensityAI personnel flow (**Update 2026-09-13**) | 2026-08-24: Shishuang Sun (Tesla Senior Director, AI Hardware Design — packaging/power/PCB/thermal, worked on Dojo and Autopilot computers) departs for DensityAI (founded by ex-Dojo chief Ganesh Venkataramanan). Evidence DensityAI remains independent a month after Tesla's own AI-hardware acquisition closed — weighs against (does not disprove) DensityAI being that acquisition's target |
 
 ---
 
@@ -227,3 +229,10 @@ There is **no published Dojo 3 system hierarchy** — no die, module, rack, or c
 - [Tom's Hardware — Terafab: 100M sq ft, $16.8B initial capital (2026-08-07)](https://www.tomshardware.com/tech-industry/semiconductors/terafab-starts-to-take-shape-100-million-square-feet-of-manufacturing-space-and-usd16-8b-initial-capital-investment)
 - [Wikipedia — Terafab](https://en.wikipedia.org/wiki/Terafab)
 - [Hot Chips 38 advance program](https://hotchips.org/advance-program/) — checked 2026-08-08; no Tesla/Dojo talk
+
+### Added 2026-09-13 (roadmap update)
+
+- [Electrek — Tesla quietly closes its secret ~$2 billion AI hardware deal (2026-07-24)](https://electrek.co/2026/07/24/tesla-secret-2-billion-ai-hardware-acquisition-closes/)
+- [Electrek — Tesla quietly discloses $2B AI hardware acquisition in Q1 2026 10-Q (2026-04-23)](https://electrek.co/2026/04/23/tesla-tsla-quietly-discloses-2-billion-ai-hardware-acquisition-10q/)
+- [Electrek — Tesla loses chip engineer Shishuang Sun to DensityAI (2026-08-24)](https://electrek.co/2026/08/24/tesla-chip-engineer-shishuang-sun-densityai/)
+- [Electrek — Terafab to run on gas, not Tesla solar (2026-08-10)](https://electrek.co/2026/08/10/musk-terafab-gas-power-not-tesla-solar/)

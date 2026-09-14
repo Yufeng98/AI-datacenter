@@ -1,7 +1,7 @@
 # Biren Technology BR10X (壁砺 / BR100 · BR104 · BR106 · BR110 · BR166) Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
-*prior revision: 2026-04-05*
+*as_of: 2026-09-13*
+*prior revision: 2026-04-05, 2026-08-08*
 *chip: biren*
 *device_class: GPU-like AI Accelerator (China)*
 
@@ -288,6 +288,24 @@ Biren also publishes **Day-0 model enablement** claims: MiniMax M3 (2026-06-16),
 
 ---
 
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Sources: DigiTimes (~2026-08-18, corroborated by a Tech Times/MSN headline "27 days ago" as of this scan); the task brief's pre-verified figure attributed to rthk.hk (2026-08-25) could not be independently located this window — see caveat below.*
+
+### H1 2026 positive profit alert: revenue up ~19–22× YoY
+
+Biren issued H1 2026 revenue guidance of **CNY 1.15–1.3 billion (US$171–193 million)**, described as up **~1,852%–2,107% year-on-year**. This is **press-reported** (DigiTimes headline, corroborated independently by a Tech Times/MSN headline citing "22-fold" revenue growth for the same period) — **not a primary HKEX filing this survey could open directly**; DigiTimes' own article page 404'd on fetch, and RTHK's site search returned no matching article. Treat the exact figure as **press-reported, not independently verified against the primary filing**, though two independent secondary outlets agree on the same order of magnitude.
+
+**Correction to the task brief's pre-verified figure:** the pre-verified note associated with this scan cited "**FY2025 revenue ¥10.35B**." That figure does not match any primary or secondary source found — Biren's own FY2025 annual results (published 2026-03-30, recorded above) give **FY2025 revenue as RMB 1.0346 billion (10.346亿元)**, not RMB 10.35 billion; the "¥10.35B" appears to be a ×10 unit error (亿 vs 十亿) somewhere upstream. The **H1 2026 guidance of CNY 1.15–1.3 billion** now on record here is a *different, later, and larger* number than full-year 2025 — i.e., Biren's H1 2026 alone already exceeds all of FY2025 — but it is still ~RMB 1.15–1.3 billion, not RMB 10.35 billion. No Biren source at any point in this survey supports a >RMB 10 billion revenue figure for any period to date.
+
+If confirmed at full interim reporting, ~20x YoY growth would be consistent with the BR166 mass-production ramp (Aug 2025) reaching a full first half-year of shipments, plus the China Telecom co-inference and Token Factory go-to-market work recorded in the 2026-08-08 section above. No new hardware spec accompanies this guidance.
+
+### No other findings
+
+No BR20X tape-out confirmation, no new product SKU, and no additional WAIC-scale disclosure were found in this window beyond the 2026-08-08 section above.
+
+---
+
 ## Resources
 
 ### Official
@@ -334,3 +352,7 @@ Biren also publishes **Day-0 model enablement** claims: MiniMax M3 (2026-06-16),
 - [Baidu Baike — 壁砺166系列: co-packages two 壁砺106 dies via chiplet + die-to-die interconnect; launched 2025](https://baike.baidu.com/item/%E5%A3%81%E7%A0%BA166%E7%B3%BB%E5%88%97/67163995)
 - [ChinaBizInsider — HKEX listing hearing cleared 2025-12-17; prospectus 12,000+ combined BR106/BR110 units](https://chinabizinsider.com/chinese-gpu-chip-designer-biren-technology-clears-hong-kong-ipo-hurdle-eyes-listing/)
 - ⚠️ [Toutiao aggregator listing "BF16 800 TFLOPS / 128 GB HBM" for the 166 series — **only** source for these numbers; contradicted by the absence of any such table on birentech.com. Recorded for traceability; **not** treated as a spec](https://www.toutiao.com/w/1865240228792329/)
+
+### Added 2026-09-13
+- [DigiTimes — Biren H1 2026 revenue guidance CNY1.15-1.3bn, +1,852%-2,107% YoY](https://www.digitimes.com/news/a20250818VL213/biren-revenue-ai-chip-2026-growth.html) — headline/snippet corroborated via search; direct article fetch returned a page-not-found error at verification time
+- Tech Times/MSN — "22-fold" H1 2026 revenue growth headline (secondary corroboration, exact URL not resolved this window)

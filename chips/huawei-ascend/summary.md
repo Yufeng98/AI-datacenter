@@ -1,7 +1,7 @@
 # Huawei Ascend Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
-*(baseline sections written 2026-04-05; see "Ascend 950 Generation Update (2026-08-08)" below)*
+*as_of: 2026-09-13*
+*(baseline sections written 2026-04-05; see "Ascend 950 Generation Update (2026-08-08)" and "Update (2026-09-13)" below)*
 
 ---
 
@@ -263,6 +263,39 @@ The "**2.8× H20**" headline is a **Huawei marketing comparison**, not an indepe
 
 ---
 
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Sources: Bloomberg (2026-09-04, via secondary coverage), The Decoder (2026-09-04), TechNode (2026-09-07), Huawei Central (2026-09-10), Huawei Connect 2026 event page.*
+
+### 1. Commercial demand signal: DeepSeek orders ≥160,000 Ascend 950DT accelerators
+
+Bloomberg reported (2026-09-04) that **DeepSeek plans to deploy at least 160,000 Huawei Ascend 950DT accelerators** at a new gigawatt-scale data center it is building in **Inner Mongolia**, described by secondary coverage as the largest known Huawei AI chip cluster to date. Key qualifiers, all **press-reported, not vendor-confirmed**:
+
+- The deployment is described as **inference-only**; DeepSeek reportedly continues to use Nvidia hardware for training.
+- Bloomberg/The Decoder report Huawei **cannot deliver the full order for over a year**, citing production constraints and HBM memory shortages (with China's CXMT cited as still 3–5 years behind Samsung/SK hynix/Micron in HBM).
+- This is a **reported order/plan**, not a confirmed shipped deployment — it does not change the Ascend 950DT's official Q4 2026 commercial-release date recorded above, and it does not resolve whether the Huawei Cloud "August 2026" pull-forward (§4 above) actually went live; no confirmation of that was found in this window either.
+- No new hardware specs accompany this report; 144 GB / 4 TB/s / FP8-MXFP8-MXFP4-HiF8 figures are unchanged.
+
+Sources: [Bloomberg, "DeepSeek Plans Big Huawei AI Chip Order to Power New Data Center" (2026-09-04)](https://www.bloomberg.com/news/articles/2026-09-04/deepseek-plans-big-huawei-ai-chip-order-to-power-new-data-center), [The Decoder (2026-09-04)](https://the-decoder.com/deepseek-plans-the-largest-known-huawei-chip-cluster-with-160000-processors-in-inner-mongolia/), [TechNode (2026-09-07)](https://technode.com/2026/09/07/).
+
+### 2. Ascend 950DT price increase (press-reported)
+
+Huawei Central (2026-09-10, citing Bloomberg) reports Huawei notified clients of an **Ascend 950DT price increase of ~60% over three months** — from roughly **¥150,653 to ¥250,000** per unit — attributed to strong demand, limited HBM supply raising production cost, and a stated intent to price closer to Nvidia's B200. This is **press-reported, not independently verified against a Huawei price list**, and no unit is specified (per-card vs. per-chip ambiguous in the secondary reporting). Source: [Huawei Central, "Huawei Ascend 950DT price jumped 60% over past three months" (2026-09-10)](https://www.huaweicentral.com/huawei-ascend-950dt-price-jumped-60-over-past-three-months/).
+
+### 3. Huawei Connect 2026 — not yet held as of this scan
+
+Huawei Connect 2026 is scheduled for **2026-09-17 to 09-19** in Shanghai (World Expo Exhibition & Convention Center / Shanghai Expo Center) — **after** this scan's 2026-09-13 cutoff. No Ascend-specific agenda content was available at fetch time; any HC 2026 disclosures (Ascend 960 roadmap, 950DT GA, etc.) remain for the next scan window. Source: [Huawei Connect 2026 event page](https://www.huawei.com/en/events/huaweiconnect).
+
+### 4. MindSpore 2.10.0 (pre-window release, missed at 2026-08-08 baseline)
+
+**MindSpore 2.10.0** was published on PyPI **2026-07-31** — before the 2026-08-08 baseline cutoff but not captured then. It is the current stable release (2.9.0 is now the prior "maintained" line). Visible release-note highlights: per-rank sharded Distributed Checkpoint (DCP) with cross-strategy reshard loading, AKG compiler integration with "AscendNPU IR" for fused-operator generation on the Ascend backend, and two-level on-chip MPMD parallelism for MoE communication masking. No explicit Ascend 950-only feature was identified; treat as a correction to the record, not new-in-window news. Source: [MindSpore release history — PyPI](https://pypi.org/project/mindspore/#history), [MindSpore 2.10 version notes](https://www.mindspore.cn/version-updates/en/2_10_en).
+
+### 5. No findings
+
+No evidence of a new Ascend chip SKU, CANN version beyond 9.0.x, or Ascend 960/970 schedule change in this window. The CANN GitCode organization (`gitcode.com/cann`) remains under active multi-repo development. Hot Chips 38 (2026-08-23 to 08-25) is now in the past; no Ascend/Huawei talk or slide deck was located in this scan (consistent with the task brief that none of this batch's chips had a Hot Chips 38 talk).
+
+---
+
 ## Resources
 
 ### Documentation
@@ -309,3 +342,11 @@ The "**2.8× H20**" headline is a **Huawei marketing comparison**, not an indepe
 - [Atlas 350 debut on Ascend 950PR — TrendForce (2026-03-23)](https://www.trendforce.com/news/2026/03/23/news-huawei-debuts-atlas-350-on-ascend-950pr-with-in-house-hbm-touting-2-8x-h20-performance/) — 1.56 PFLOPS FP4, 112 GB, 1.4 TB/s, 600 W shipping-card spec
 - [Atlas 350 unveiled — Tom's Hardware (2026-03-24)](https://www.tomshardware.com/pc-components/gpus/huawei-unveils-new-atlas-350-ai-accelerator-with-1-56-pflops-of-fp4-compute-and-up-to-112gb-of-hbm-claims-2-8x-more-performance-than-nvidias-h20)
 - [Ascend 950 NPU whitepaper analysis (third-party, single-source)](https://pillumina.github.io/posts/aiinfra/ascend-950-npu/) — source of the unconfirmed microarchitecture and RTP/CTP figures flagged in §2
+
+### Update (added 2026-09-13)
+- [Bloomberg — "DeepSeek Plans Big Huawei AI Chip Order to Power New Data Center" (2026-09-04)](https://www.bloomberg.com/news/articles/2026-09-04/deepseek-plans-big-huawei-ai-chip-order-to-power-new-data-center) — ≥160,000 Ascend 950DT, Inner Mongolia, inference-only, >1 year to deliver in full
+- [The Decoder (2026-09-04)](https://the-decoder.com/deepseek-plans-the-largest-known-huawei-chip-cluster-with-160000-processors-in-inner-mongolia/)
+- [TechNode (2026-09-07)](https://technode.com/2026/09/07/)
+- [Huawei Central — "Huawei Ascend 950DT price jumped 60% over past three months" (2026-09-10)](https://www.huaweicentral.com/huawei-ascend-950dt-price-jumped-60-over-past-three-months/) — press-reported ¥150,653 → ¥250,000
+- [Huawei Connect 2026 event page](https://www.huawei.com/en/events/huaweiconnect) — 2026-09-17 to 09-19, Shanghai; not yet held as of this scan
+- [MindSpore release history — PyPI](https://pypi.org/project/mindspore/#history) — 2.10.0 published 2026-07-31 (pre-window, missed at 2026-08-08 baseline)

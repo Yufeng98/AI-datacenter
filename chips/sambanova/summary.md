@@ -1,6 +1,6 @@
 # SambaNova RDU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08* (base research 2026-04-05; see "Update — 2026-08-08" below)
+*as_of: 2026-09-13* (base research 2026-04-05; see "Update — 2026-08-08" and "Update — 2026-09-13" below)
 *chip: sambanova*
 *device_class: Dataflow / Reconfigurable*
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-SambaNova Systems builds the **Reconfigurable Dataflow Unit (RDU)** — a spatial, dataflow processor whose architecture is fundamentally different from GPUs (SIMT), systolic arrays (TPUs), and traditional CPUs. The current production chip is the **SN40L** (4th generation, TSMC 5 nm, 2023); the **SN50** (5th generation, TSMC 3 nm) was announced 2026-02-24 with general availability targeted for H2 2026 — **not confirmed shipped to any customer as of 2026-08-08**. What is publicly demonstrated is a single 16-RDU SambaRack SN50 running benchmark workloads.
+SambaNova Systems builds the **Reconfigurable Dataflow Unit (RDU)** — a spatial, dataflow processor whose architecture is fundamentally different from GPUs (SIMT), systolic arrays (TPUs), and traditional CPUs. The current production chip is the **SN40L** (4th generation, TSMC 5 nm, 2023); the **SN50** (5th generation, TSMC 3 nm) was announced 2026-02-24 with general availability targeted for H2 2026. As of 2026-08-08 no customer delivery was confirmed; as of 2026-09-13, SambaNova's Hot Chips 38 architecture talk ("Dataflow at Scale: the SN50 RDU," 2026-08-25) is described by Hot Chips coverage as covering a chip that has **"launched earlier this year"** — a language upgrade this pass could not independently confirm against a primary SambaNova shipment announcement (see "Update — 2026-09-13" below). What is publicly demonstrated in production benchmarks remains a single 16-RDU SambaRack SN50; SambaNova's own Hot Chips talk additionally discloses architecture-level figures at 256- and 512-RDU scale (design targets, not demonstrated deployments).
 
 The defining characteristic: the **SambaFlow compiler maps the entire ML model computation graph onto the PCU/PMU array at compile time**, generating a static binary (PEF) that encodes every operation placement, every data route, and every memory allocation. At runtime, the RDU executes this pre-compiled spatial program — there is no runtime scheduler, no kernel launch overhead, no thread blocks. Data flows from PCU to PCU on a 3D switching fabric without returning to off-chip memory between operators.
 
@@ -120,25 +120,28 @@ All routes are statically determined at compile time. No dynamic routing decisio
 
 ## Chip Specifications
 
-> ⚠️ **Sourcing warning (2026-08-08).** The SN50 column below is largely **extrapolated**. Re-verification on 2026-08-08 confirmed that *none* of the SN50 die-level numbers — 432 MiB SRAM, 64 GiB HBM @ 1.8 TB/s, 2.2 TB/s bidirectional chip-to-chip, 1,600 BF16 TFLOPS / 3.2 FP8 PFLOPS, 256 GiB–2 TiB DDR5, ~2× SN40L PCU count — appear in either the 2026-02-24 press release or the SN50 introduction blog post. SambaNova's own primary material states only: "256 accelerators", "multi-terabyte-per-second interconnect", "four times more network bandwidth than the previous generation", "10T+ parameter models", "10M+ context", "20 kW in a SambaRack", "5X faster", "3X lower TCO". Rows marked *(extrapolated)* below should be treated as unsourced pending a primary disclosure. The first detailed SN50 architecture disclosure is **scheduled** for Hot Chips 38 (Session AI 2, "Dataflow at Scale: the SN50 RDU", Raghu Prabhakar, 2026-08-25) — **content not yet public**; do not cite the talk as a spec source. Re-scan early September 2026.
+> ⚠️ **Sourcing warning (2026-08-08; partially resolved 2026-09-13).** Re-verification on 2026-08-08 confirmed that *none* of the SN50 die-level numbers — 432 MiB SRAM, 64 GiB HBM @ 1.8 TB/s, 2.2 TB/s bidirectional chip-to-chip, 1,600 BF16 TFLOPS / 3.2 FP8 PFLOPS, 256 GiB–2 TiB DDR5, ~2× SN40L PCU count — appeared in either the 2026-02-24 press release or the SN50 introduction blog post. SambaNova's own primary material stated only: "256 accelerators", "multi-terabyte-per-second interconnect", "four times more network bandwidth than the previous generation", "10T+ parameter models", "10M+ context", "20 kW in a SambaRack", "5X faster", "3X lower TCO". **2026-09-13: Hot Chips 38** ("Dataflow at Scale: the SN50 RDU", Raghu Prabhakar, delivered 2026-08-25) resolved the memory-generation (HBM2e) and networking (800GbE scale-up / 400GbE scale-out) figures, and reconfirmed the 5x-FLOPS-vs-SN40 claim — see "Update — 2026-09-13" below. Rows still marked *(extrapolated)* remain unsourced pending further primary disclosure.
 
 | Spec | SN40L (Gen 4) | SN50 (Gen 5) |
 |------|--------------|-------------|
 | Generation | 4th | 5th |
-| Release | 2023 | Announced 2026-02-24; GA targeted H2 2026; **not confirmed shipped as of 2026-08-08** |
+| Release | 2023 | Announced 2026-02-24; GA targeted H2 2026; described as "launched earlier this year" by Hot Chips 38 coverage (2026-08-25) — **no independently-confirmed named-customer delivery** as of 2026-09-13 |
 | Process | TSMC 5 nm | TSMC 3 nm (N3) |
 | Transistors | ~102 B | not disclosed |
 | Package | Dual-die + HBM + DDR | Dual-chiplet |
 | PCU count | 1040 | ~2x SN40L *(extrapolated)* |
 | PMU count | 1040 | not disclosed |
-| BF16 TFLOPS/socket | 638 | 1,600 *(extrapolated)* |
+| BF16 TFLOPS/socket | 638 | 1,600 *(extrapolated)*; **5x FLOPS vs SN40 reconfirmed as a vendor claim at Hot Chips 38, 2026-09-13** |
 | FP8 PFLOPS/socket | — | 3.2 *(extrapolated)* |
 | On-chip SRAM | 520 MiB | 432 MiB *(extrapolated)* |
+| HBM generation | not specified in primary SN40L sources | **HBM2e — confirmed at Hot Chips 38, 2026-09-13** (the repo's original 2026-04-05 baseline research had already recorded SN50 as HBM2E; the 2026-08-08 pass downgraded this to "extrapolated" for lack of a primary source; Hot Chips 38 now independently confirms it) |
 | HBM capacity | 64 GiB | 64 GiB *(extrapolated)* |
 | HBM bandwidth | ~1 TB/s (node) | 1.8 TB/s *(extrapolated)* |
 | DDR capacity | up to 1.5 TiB | 256 GiB – 2 TiB DDR5 *(extrapolated)* |
-| Max RDU scale-up | 16 (SambaRack) | **16 demonstrated** (SambaRack SN50, 2026-07); 256 vendor-claimed |
-| Chip-to-chip BW | P2P | 2.2 TB/s bidir *(extrapolated;* vendor says only "multi-TB/s" and 4× SN40L*)* |
+| Max RDU scale-up | 16 (SambaRack) | **16 demonstrated** (SambaRack SN50, 2026-07); **scale-up domain of 256+ chips confirmed as a design target at Hot Chips 38 (2026-09-13)** |
+| Scale-up network | P2P | **800GbE — confirmed at Hot Chips 38, 2026-09-13** (replaces the prior 2.2 TB/s-bidir extrapolation) |
+| Scale-out network | InfiniBand | **400GbE — confirmed at Hot Chips 38, 2026-09-13** (previously not disclosed) |
+| Aggregate model bandwidth at scale | — | **>350 TB/s at 512 RDUs (~40% MBU); ~45% MBU at 256 RDUs** — Hot Chips 38, 2026-09-13; architecture-talk figures beyond the 16-RDU demonstrated baseline |
 | Rack power | — | 20 kW per SambaRack (vendor-stated) |
 | Max model params | — | 10T+ (vendor claim) |
 | Max context tokens | — | 10M+ (vendor claim) |
@@ -238,6 +241,35 @@ Minor SambaCloud items: Anthropic Messages API support (2026-07-01), prompt cach
 
 ---
 
+## Update — 2026-09-13 (Hot Chips 38: "Dataflow at Scale: the SN50 RDU")
+
+*Change class: **major** for the memory/networking sourcing status; **minor** for the shipping-status question. Window: 2026-08-08 → 2026-09-13. Talk: "Dataflow at Scale: the SN50 RDU" (Raghu Prabhakar, SambaNova), Hot Chips 38, Session AI 2, delivered 2026-08-25 — the disclosure the 2026-08-08 pass had flagged as scheduled. Source: ServeTheHome's session writeup, https://www.servethehome.com/sambanovas-sn50-rdu-for-ai-at-hot-chips-2026/ (2026-08-25).*
+
+### 1. Memory and networking specs resolved
+
+- **HBM2e confirmed.** SN50 uses HBM2e — matching this repo's original 2026-04-05 baseline (which the 2026-08-08 pass had downgraded to "extrapolated" for lack of a corroborating primary source). Capacity (64 GiB) and bandwidth (1.8 TB/s) remain unconfirmed extrapolations; only the generation is now sourced. ServeTheHome separately editorializes that HBM2e "is going to be a problem in the future as production of the memory is already ramping down" — this is the journalist's commentary, not a SambaNova statement, and is recorded as commentary only.
+- **Scale-up network: 800GbE.** Replaces the prior "2.2 TB/s bidirectional — extrapolated" placeholder. Note 800GbE is a per-link figure and is not asserted to reconcile with the separate "multi-terabyte-per-second interconnect" vendor marketing claim.
+- **Scale-out network: 400GbE.** Previously "not disclosed."
+
+### 2. Scale-up domain and bandwidth-at-scale
+
+SambaNova's own architecture talk states SN50 is "designed to scale-up to a much larger domain of **256+ chips**" — this upgrades the 256-chip figure from "vendor claim only" (a 2026-07-30 blog post framing it as future tense) to a figure stated in the company's own Hot Chips talk, though it remains a **design target**: the largest publicly benchmarked production configuration is still the 16-RDU SambaRack. The talk further discloses: at 256 RDUs, MBU (memory bandwidth utilization) holds at **~45%**; at 512 RDUs, aggregate model bandwidth exceeds **350 TB/s** at **~40%** MBU. These are architecture-talk figures at scales beyond any demonstrated deployment — treat as vendor-disclosed analytical/simulated figures, not independent measurements.
+
+### 3. Performance
+
+- **"5x as many FLOPS as SN40"** — reconfirms the existing "5X faster" figure (Feb 2026 press release) in the Hot Chips talk itself; the absolute PFLOPS baseline remains extrapolated.
+- **">750 tokens/second on MiniMax M2.7"** (attributed to Artificial Analysis) — a fourth data point alongside the existing ≈800 t/s (TP16 demo) and 392.4 t/s (production SambaCloud) figures in Update §6 above; it is unclear from the retrieved coverage which configuration this corresponds to. Continue using 392.4 t/s for production-serving comparisons.
+
+### 4. Shipping status: language upgrade, not an independently confirmed shipment
+
+ServeTheHome (2026-08-25) describes SN50 as having **"launched earlier this year."** This is a shift from the 2026-08-08 finding ("no customer delivery confirmed"). This pass could **not** independently corroborate a shipment or named customer delivery from a primary SambaNova source: a direct fetch of `sambanova.ai/products/sn50` returned HTTP 404, and no new SambaNova press release beyond the ones already on record (2026-02-24 announcement, 2026-04-08 Intel blueprint, 2026-07-08 Series F/JPMorganChase-intent) was located in this narrower, WebSearch-constrained pass. **Recorded status:** SN50 is described as launched by Hot Chips 38 coverage; independent confirmation of a named-customer shipment is still absent. Re-check `sambanova.ai/press` directly in the next scan.
+
+### 5. Not re-verified in this pass
+
+This pass was scoped to the Hot Chips 38 SN50 disclosure specifically (WebSearch budget was exhausted before reaching the SambaNova leg of this scan, so verification relied on direct fetches of the ServeTheHome article and a small number of targeted primary-source checks). The SambaStack version history, corporate/funding events, open-source tooling inventory, and vLLM-integration questions from the 2026-08-08 update were **not re-checked** and should be treated as carrying forward unchanged from that pass.
+
+---
+
 ## Resources
 
 ### Documentation — current (verified live 2026-08-08)
@@ -281,3 +313,6 @@ These were the repo's SambaFlow SDK sources through the 2026-04-05 baseline. The
 
 ### Third-party measurement
 - [Artificial Analysis — MiniMax-M2.7 provider comparison](https://artificialanalysis.ai/models/minimax-m2-7/providers) — SambaNova 392.4 output t/s, rank #1 of 5 providers (2026-08-08)
+
+### Added 2026-09-13
+- [SambaNova's SN50 RDU for AI at Hot Chips 2026 — ServeTheHome (2026-08-25)](https://www.servethehome.com/sambanovas-sn50-rdu-for-ai-at-hot-chips-2026/) — Hot Chips 38 "Dataflow at Scale: the SN50 RDU" (Raghu Prabhakar) session writeup; source for HBM2e confirmation, 800GbE/400GbE networking, 256+ chip scale-up domain, 350 TB/s @ 40% MBU, 5x FLOPS vs SN40, >750 t/s MiniMax M2.7, "launched earlier this year" language

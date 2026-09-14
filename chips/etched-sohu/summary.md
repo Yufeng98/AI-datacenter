@@ -1,8 +1,8 @@
 # Etched Sohu — Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *Device class: Transformer-Specific ASIC*
-*Status: A0 silicon returned (H1 2026); first rack-scale product in customer validation; production started; NOT shipping and NOT deployed at scale as of 2026-08-08*
+*Status: A0 silicon returned (H1 2026); **first rack delivered to Jane Street in July 2026** (vendor post 2026-08-18); one named customer; production started; NOT deployed at scale as of 2026-09-13 — see the "2026-09-13 Update" section*
 
 > **Naming note (2026-08-08).** The repo slug remains `etched-sohu`, but the string "Sohu" no longer appears
 > anywhere on etched.com (homepage, `/progress`, `/progress/frontier-inference-clusters`,
@@ -28,11 +28,11 @@ The Etched Sohu is the world's first transformer-specific ASIC: a chip that hard
 | Company | Etched |
 | Founded | 2022 |
 | Founders | Gavin Uberti (Co-Founder & CEO), Robert Wachen (Co-Founder & President), Chris Zhu (Co-Founder) — "three Harvard dropouts" |
-| Other leadership | Mark Ross (CTO, ex-CTO of Cypress); Saptadeep Pal (VP ASIC & Architecture, ex-NVIDIA H100/A100/V100 architecture team, co-founded Auradine); Brian Loiler (VP Platform); Wayne Cao (VP Production); David Munday (VP Software); Tim Perevozchikov (VP Finance) |
+| Other leadership | Mark Ross (CTO, ex-CTO of Cypress); Saptadeep Pal (VP ASIC & Architecture, ex-NVIDIA H100/A100/V100 architecture team, co-founded Auradine); Brian Loiler (VP Platform); Wayne Cao (VP Production); David Munday (VP Software); Tim Perevozchikov (VP Finance); Ajat Hukkoo (Distinguished Engineer, ex-Broadcom, ex-Intel VP Custom Silicon — on the `/join` roster as of 2026-09-13) |
 | HQ | San Jose / Cupertino, CA |
-| Funding | ~$1.1B raised to date — ~$800M cumulative through Jun 2026 (four unannounced financings incl. VentureTech Alliance; most recent prior round $500M closed Dec 2025, reported Jan 2026) + $300M Series C (Jul 2026). **Do not add $800M to the older $620M figure — $800M is a cumulative total, not a new round.** |
-| Valuation | $10.3B post-money (Series C, 2026-07-23); previously $5B post-money ($500M round, Dec 2025) |
-| Lead investors | Sequoia Capital (Series C lead), with a16z, Jane Street, Diffusion, Argo, SK Hynix; Stripes led the $500M Dec 2025 round; VentureTech Alliance (TSMC's venture arm); returning backers incl. Peter Thiel, Andrej Karpathy, Dylan Field, Amjad Masad |
+| Funding | ~$1.8–1.9B raised to date — ~$800M cumulative through Jun 2026 (four unannounced financings incl. VentureTech Alliance; most recent prior round $500M closed Dec 2025, reported Jan 2026) + $300M Series C (Jul 2026) + **$700M Series D (2026-08-18)**. Arithmetic gives ≈$1.8B; Quartz (via Yahoo Finance) and Pulse2 (both 2026-08-19) report "approximately $1.9 billion" total — the ~$0.1B gap is unexplained and is not resolved here. **Do not add $800M to the older $620M figure — $800M is a cumulative total, not a new round.** |
+| Valuation | **$21B (Series D, 2026-08-18)**; previously $10.3B post-money (Series C, 2026-07-23) and $5B post-money ($500M round, Dec 2025) |
+| Lead investors | **Jane Street (Series D lead, 2026-08-18 — also the first customer)** with Kleiner Perkins, Sequoia Capital, a16z, Peter Thiel, Tiger Global, Bain Capital Ventures, Neo, Stripes, Primary, Positive Sum, Diffusion, Argo, Blackstone; Sequoia Capital (Series C lead) with a16z, Jane Street, Diffusion, Argo, SK Hynix; Stripes led the $500M Dec 2025 round; VentureTech Alliance (TSMC's venture arm); returning backers incl. Peter Thiel, Andrej Karpathy, Dylan Field, Amjad Masad |
 | Headcount | 400+ engineers (vendor; TechCrunch says ~400 employees) from NVIDIA, Google TPU, Broadcom, SK Hynix, TSMC |
 
 ---
@@ -54,7 +54,7 @@ The Etched Sohu is the world's first transformer-specific ASIC: a chip that hard
 | Inference throughput | 500,000+ tok/s Llama 70B on 8× server (claimed, 2024; no longer stated by Etched) |
 | Training support | No |
 | Host interface | Not disclosed |
-| Status | A0 silicon returned H1 2026; rack-scale product in customer validation; not shipping as of 2026-08-08 |
+| Status | A0 silicon returned H1 2026; **first rack delivered to Jane Street in July 2026** (vendor 2026-08-18; Quartz and Pulse2 2026-08-19); not deployed at scale as of 2026-09-13 |
 
 ---
 
@@ -175,6 +175,46 @@ Etched is a **Rhodium-level (top-tier) sponsor** of Hot Chips 2026 (Aug 23–25,
 advance program**. A sponsorship is not a disclosure and must not be treated as evidence of a forthcoming
 architecture reveal — though the vendor did promise a performance update "this summer".
 
+## 2026-09-13 Update — First Rack Shipped to Jane Street, $700M Series D at $21B, Hot Chips 38 Outcome
+
+*Updated 2026-09-13. Scan window 2026-08-08 → 2026-09-13. Primary sources: etched.com `/progress/from-zero-to-one`
+(2026-08-18), etched.com homepage, `/progress` index and `/join` (all retrieved 2026-09-13); Hot Chips 38 final
+program (hc2026.hotchips.org/program/, retrieved 2026-09-13); `mlcommons/inference_results_v6.0` on GitHub
+(retrieved 2026-09-13). Independent: TechCrunch 2026-08-18; Quartz via Yahoo Finance 2026-08-19; Pulse2
+2026-08-19; TechStartups 2026-08-18 (citing The Wall Street Journal). Nothing prior to this section is deleted.
+WebSearch was unavailable for this scan; all sourcing was by direct fetch of vendor, publisher, GitHub and Bing
+SERP pages.*
+
+Etched published a third `/progress` post on 2026-08-18 ("From Zero to One"). It changes the **commercial
+status** (first rack delivered, first named customer) and the **capitalisation** ($700M at $21B). It contains
+**no performance, power, capacity, bandwidth, chip-count, node, or roadmap number** — the promised "summer"
+performance/roadmap update was not delivered as a technical disclosure.
+
+### What changed
+
+| Item | Record at 2026-08-08 | Record at 2026-09-13 | Confidence |
+|---|---|---|---|
+| Shipping | Not shipping; "first racks ship this summer" (forward-looking); no named customer | **"We shipped our first rack to Jane Street"** (vendor, 2026-08-18). Quartz and Pulse2 (2026-08-19) state Jane Street **received the rack in July 2026** and is "actively deploying the technology into its workloads". One rack, one customer | confirmed (vendor) + independently reported; volume still **one rack** |
+| Customer | none named | **Jane Street** — quantitative trading firm; also Series D lead investor. Jane Street's statement (quoted by Etched): "We tested the chip and are pleased with the early results … We're excited to now have our own rack running in our datacenter." | confirmed (customer statement is relayed by the vendor; no Jane Street primary page located) |
+| Funding | ~$1.1B total; $10.3B post (Series C, 2026-07-23) | **+$700M Series D at $21B**, led by Jane Street; participants Kleiner Perkins, Sequoia, a16z, Peter Thiel, Tiger Global, Bain Capital Ventures, Neo, Stripes, Primary, Positive Sum, Diffusion, Argo, Blackstone. Total ≈$1.8B by arithmetic; "approximately $1.9B" per Quartz/Pulse2 | confirmed (vendor + TechCrunch + Quartz) |
+| Bookings | "$1B in demand" / "over $1B in customer contracts" (vendor) | Restated as "over $1 billion in customer contracts spanning frontier AI companies and cloud providers" (Pulse2/Quartz, attributed to the release). Still company-originated; no customer other than Jane Street named | claimed-unverified |
+| Product composition | "frontier inference cluster"; LVI + CSM named; no component breakdown | TechCrunch (2026-08-18) paraphrases co-founder Robert Wachen: the system has **two custom-designed components — a "prefill chip"** that runs at low voltage to allow higher transistor density, **and a cluster-scale-memory interconnect** letting many chips share a memory pool at low latency; the systems can run "any frontier model". Quartz adds "large mixture-of-experts models and non-transformer architectures". **First use of the phrase "prefill chip"; what executes decode is not stated.** No specs | claimed-unverified (press paraphrase of the vendor) |
+| Roadmap | "more updates on our performance and roadmap this summer" | Pulse2 (attributed to the release): Etched is "developing three generations of hardware simultaneously". No names, nodes, or dates. The 2026-08-18 post lists future work only as "building new factories, global supply chains, fleet software, self-improving kernel agents" while ramping "to Gigawatt-scale" | claimed-unverified |
+| Hot Chips 38 | Rhodium sponsor; no talk in the advance program | **Final program (Aug 23–25, 2026) confirms: Rhodium-tier sponsor, no talk, no poster.** No Etched disclosure occurred | confirmed |
+| MLPerf | v6.0 submitter list unreachable; absence "unverified" | **v6.0 closed-division submitter directories (24 organisations) contain no Etched entry** — absence now confirmed (*pre-baseline* fact, resolved this scan). **v6.1**: `mlcommons/inference_results_v6.1` does not exist on GitHub as of 2026-09-13; treat v6.1 as not yet published | confirmed (v6.0) / not yet available (v6.1) |
+| AI Infra Summit / other September events | — | No evidence of an Etched talk or announcement found (Bing SERP, 2026-09-13) | negative result |
+| Leadership | 9 names on `/join` | `/join` now also lists **Ajat Hukkoo, Distinguished Engineer** (ex-Broadcom; ex-Intel VP Custom Silicon). Whether this is a new hire or a newly listed one is not stated | confirmed (roster) |
+| Headcount / hiring | 400+ engineers | TechStartups (citing WSJ, not fetched directly): ~15% of ~400 employees previously at NVIDIA; Brian Loiler recruited ~12 NVIDIA engineers; "44 days" from receiving test chips to running inference workloads | secondary — WSJ article not retrieved; record as reported |
+
+### Status board (as of 2026-09-13)
+
+- **Silicon**: A0 (TSMC N4P, vendor-stated) — unchanged.
+- **Shipping**: **one rack delivered** (Jane Street, July 2026). Not deployed at scale. No second customer named.
+- **Specs**: still **zero absolute numbers** for the Gen 2 part (voltage, FLOPS, TDP, HBM/SRAM capacity, bandwidth, chips per rack, rack power).
+- **Software**: still no public SDK, compiler, profiler, or documentation.
+- **Benchmarks**: none — no third-party result; not in MLPerf v6.0; v6.1 not yet published.
+- **Name**: "Sohu" still absent from every etched.com page (re-checked 2026-09-13). TechStartups/WSJ still use "Sohu" for the chip — press usage, not vendor usage.
+
 ---
 
 ## Architecture
@@ -254,7 +294,7 @@ Sohu Hardware
 - **No user ISA** (no CUDA/PTX equivalent)
 - **No kernel library** (no cuDNN/CUTLASS equivalent)
 - **No dynamic dispatch** (hardware pipeline is fixed)
-- SDK still not publicly released as of 2026-08-08
+- SDK still not publicly released as of 2026-08-08 (re-checked 2026-09-13 — still none; the 2026-08-18 post names only "fleet software" and "self-improving kernel agents" as future work)
 
 **2026 caveat.** Etched's 2026-07-23 hiring copy mentions "new RL environments for **recursive kernel
 generation**", and the company lists a VP of Software (David Munday) and describes co-designing "chips, racks,
@@ -305,9 +345,32 @@ One 8× Sohu server claimed to replace 160 H100 GPUs.
 - Valuation moved $5B → $10.3B in ~7 months on a product that has not shipped
 - The $1B booked-order figure originates with the company; TechCrunch reports but does not independently verify it
 
+**Strengths (added 2026-09-13):**
+- **First rack delivered to a named customer (Jane Street, July 2026)** — the company has crossed from validation to a
+  paying deployment, and the customer led the next round after testing the hardware
+- $700M Series D at $21B extends runway for the stated "Gigawatt-scale" ramp
+
+**Risks (added 2026-09-13):**
+- Deployment is **one rack at one customer**; "not deployed at scale" still holds, and no second customer is named
+- The promised summer performance/roadmap update produced **no numbers**; Hot Chips 38 came and went with no Etched talk
+- Valuation moved $5B → $21B in ~8 months on one delivered rack; the only customer statement is qualitative
+- The "prefill chip" description raises an unanswered question about how decode is executed
+
 ---
 
 ## Resources
+
+**2026-09-13 update sources (retrieved 2026-09-13)**
+- Etched, "From Zero to One" (2026-08-18) — first rack to Jane Street; $700M at $21B: https://www.etched.com/progress/from-zero-to-one
+- Etched progress index (three posts as of 2026-09-13): https://www.etched.com/progress
+- Etched leadership / careers (roster incl. Ajat Hukkoo): https://www.etched.com/join
+- TechCrunch (2026-08-18), Series D; Wachen on the "prefill chip" + cluster-scale-memory interconnect: https://techcrunch.com/2026/08/18/etcheds-valuation-doubles-to-21b-in-a-month/
+- Quartz via Yahoo Finance (2026-08-19), rack received in July; ~$1.9B total; MoE and non-transformer workloads: https://finance.yahoo.com/technology/ai/articles/etched-raises-700-million-21-125534015.html
+- Pulse2 (2026-08-19), ~$1.9B total; "three generations of hardware simultaneously": https://pulse2.com/etched-raises-700-million-at-21-billion-valuation-as-customer-contracts-top-1-billion-and-jane-street-deploys-first-rack/
+- TechStartups (2026-08-18, citing WSJ), ex-NVIDIA share, "44 days": https://techstartups.com/2026/08/18/21-billion-ai-chip-startup-etched-takes-on-nvidia-poaches-its-engineers-and-lands-jane-street/
+- GlobeNewswire release headline (2026-08-18) as syndicated by Business Insider — body not retrievable: https://markets.businessinsider.com/news/stocks/etched-raises-700m-at-a-21b-valuation-and-completes-first-customer-delivery-to-jane-street-1036471031
+- Hot Chips 38 final program (Etched = Rhodium sponsor, no talk): https://hc2026.hotchips.org/program/
+- MLPerf Inference v6.0 closed-division submitters (no Etched): https://github.com/mlcommons/inference_results_v6.0/tree/main/closed
 
 **2026 update sources (retrieved 2026-08-08)**
 - Etched, "Frontier Inference Clusters" (2026-06-30): https://www.etched.com/progress/frontier-inference-clusters

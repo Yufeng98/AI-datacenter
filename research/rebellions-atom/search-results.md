@@ -1,7 +1,7 @@
 # Rebellions ATOM — Search Results
 
 *chip: rebellions-atom*
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 
 ---
 
@@ -176,4 +176,20 @@ Rebellions is a South Korean AI chip startup founded in 2020. It merged with SAP
 
 ### Coverage gap
 
-- A UPI item dated 2026-08-07, "SK Telecom, Rebellions expand Korean AI chip infrastructure", appeared in the search index but returned **HTTP 403** on fetch. Developments in the final ~48 hours of this window are unverified. Re-attempt on the next scan.
+- A UPI item dated 2026-08-07, "SK Telecom, Rebellions expand Korean AI chip infrastructure", appeared in the search index but returned **HTTP 403** on fetch. Developments in the final ~48 hours of this window are unverified. Re-attempted 2026-09-13 — still could not be located/retrieved.
+
+---
+
+## Resources Added 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+| URL | Date | Confidence | Notes |
+|-----|------|------------|-------|
+| https://www.bloomberg.com/news/articles/2026-08-21/nvidia-in-talks-with-chip-startup-rebellions-for-potential-deal | 2026-08-21 | high (paywalled primary wire) | NVIDIA in early talks with Rebellions — technical partnership, investment, or acquisition; Jensen Huang met CEO Sung-hyun Park at NVIDIA Santa Clara HQ |
+| https://www.eweek.com/news/nvidia-rebellions-ai-chip-potential-deal-apac-south-korea/ | 2026-08-24 | medium (secondary, cites Bloomberg) | Draws explicit precedent to NVIDIA's late-2025 Groq deal structure (nonexclusive tech license + engineering-staff absorption); confirms no Rebel100/Aramco/IPO detail in the Bloomberg reporting |
+
+## Searched and Not Found (2026-09-13)
+
+- No confirmation anywhere of a Saudi Aramco deployment target for Rebel100 (H1 2027 or otherwise) — the only H1 2027 date on record in this thread is the Korea IPO listing target (Reuters/CNBC, 2026-07-08), a separate event. **The pre-verified claim "Rebel100 → Saudi Aramco deployment target H1 2027" is unconfirmed.**
+- No Rebel100/RebelCard shipment or firm ship date.
+- No Sapeon-merger status change beyond December 2024 completion.
+- No new ISSCC/Hot Chips 38/MLPerf disclosure for Rebellions.

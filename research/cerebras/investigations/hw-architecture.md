@@ -298,3 +298,70 @@ MLPerf status **not re-verified** in this pass. No Cerebras submission appears i
 ## 7. Method and limitations of this scan
 
 The WebSearch budget was exhausted at the start of the verification pass, so independent verification was performed by fetching primary sources directly (AMD newsroom, hotchips.org, cerebras.ai/chip, investors.cerebras.ai listings, investors.flex.com) plus DuckDuckGo HTML/lite result pages. Several targets returned 403/429/timeout (CNBC direct, SEC EDGAR, HPCwire, DataCenterDynamics, the Cerebras IR PDF), so a small number of corporate figures rest on search-result snippets rather than full-article reads. Hardware figures in sections 1–3 all rest on directly fetched vendor pages.
+
+---
+
+# Investigation Update — 2026-09-13 (Hot Chips 38 disclosure: WSE-3T / CS-4 "Nexus")
+
+*as_of: 2026-09-13*
+*scan type: scheduled-disclosure follow-up (the Hot Chips 38 rack-scale talk flagged in §4 above has now been delivered)*
+*primary source fetched directly: https://www.cerebras.ai/blog/ultrafast-frontier-inference-cerebras-deep-dive-at-hot-chips-2026 (2026-08-25)*
+*secondary sources fetched directly for numeric detail the primary post omits: https://www.servethehome.com/cerebras-talks-going-rack-scale-with-their-wses-at-hot-chips-2026/ (2026-08-25), https://www.nextplatform.com/compute/2026/08/19/cerebras-overclocks-wse-3-waferscale-engine-to-boost-inference-oomph-in-nexus-cs-4/5289400 (2026-08-19)*
+*WebSearch budget was unavailable for this pass (session-wide exhaustion); all verification below rests on directly-fetched articles, not search-result snippets.*
+
+## H. WSE-3T identity: re-clocked WSE-3, not a new die
+
+The Next Platform states WSE-3T uses the **same TSMC 5nm process**, the **same 900,000 cores**, and the **same 44 GB on-wafer SRAM** as WSE-3 — i.e. the unchanged 46,225 mm² die — clocked at **2.8 GHz vs. WSE-3's 1.4 GHz** (~2× overclock). ServeTheHome corroborates qualitatively ("WSE3-T... doubled the clockspeeds") without giving GHz figures itself. Confidence: **confirmed** (two independent secondary sources agree; Cerebras's own primary blog does not restate the GHz figures but does not contradict them either).
+
+This means the repo's 2026-08-08 finding — "no WSE-4, no CS-4" — is **still correct** for a new-die-design reading. WSE-3T/CS-4 is a new SKU and new rack system, not a new wafer design.
+
+## I. New bandwidth figures — one primary, one secondary
+
+| Figure | Value | Confidence | Source |
+|---|---|---|---|
+| On-wafer SRAM bandwidth, WSE-3T | 43,000 TB/s (~43 PB/s) | confirmed (secondary, ServeTheHome, direct quote) | ServeTheHome |
+| Aggregate on-wafer fabric bandwidth, WSE-3T | 53.5 PB/s | **confirmed, primary source** — Cerebras's own blog, verbatim quote | cerebras.ai |
+
+The 43,000 TB/s figure is internally consistent with the clock-doubling finding (H): WSE-3's already-recorded 21 PB/s SRAM bandwidth × ~2 ≈ 42–43 PB/s. Flagging for a future pass: the repo's existing WSE-3 Swarm-fabric bandwidth figure ("~100 Pb/s aggregate, all links") does not unit-reconcile cleanly against the new 53.5 PB/s (=428 Pb/s) WSE-3T fabric figure; this was not resolved in this pass since the ~100 Pb/s figure has no clear original citation and the two numbers may describe different things (routing-network wavelet capacity vs. a narrower on-wafer fabric metric).
+
+## J. Wafer-to-wafer interconnect — new architectural capability
+
+ServeTheHome, direct quote: "The direct wafer links between the backpacks mean that the wafer-to-wafer latency can be as low as 2 microseconds. There is 2.4Tb/second of aggregate bandwidth from each wafer." Confidence: **confirmed** (secondary source, specific numeric quote attributed to the talk).
+
+**Architectural significance:** this is the first inter-wafer, intra-rack interconnect Cerebras has disclosed. It directly qualifies the repo's Limitation #6 ("CS-3 is a single-system design — no NVLink-style peer-to-peer GPU tiling within one node"). It is *not* claimed to be NVLink-equivalent (protocol/topology beyond "direct wafer links" not disclosed), but it is a materially new scale-up primitive relative to CS-1–CS-3, where SwarmX (100GbE, tree, inter-*system*) was the only multi-wafer path.
+
+## K. CS-4 "Nexus" rack — physical and performance detail
+
+| Attribute | Finding | Confidence |
+|---|---|---|
+| WSE per rack | 3, each in its own "compute backpack" | confirmed (ServeTheHome) |
+| Compute density vs CS-1–3 | "three times the compute per rack" | confirmed as vendor claim (Next Platform) |
+| Power delivery | AC/DC converters 0.5mm from wafer (vs ~50mm on GPU); up to 30 modules/backpack, up to 277VAC → 54.5VDC | confirmed (ServeTheHome) |
+| Cooling | Per-backpack water conditioning | confirmed (ServeTheHome) |
+| Deployment | 50% fewer components, up to 3× faster deployment vs CS-1–3 | confirmed as vendor claim (Next Platform) |
+| Availability | Early access now; GA "later in Q3 2026" | confirmed (Next Platform, 2026-08-19) |
+| Performance vs CS-3 | "2x more tokens, at 10x more tokens per watt" | confirmed as **vendor claim**, not independently measured (ServeTheHome) |
+| Performance vs GPU | "30x faster than a GPU" | confirmed as **vendor claim**; baseline/config not specified (ServeTheHome) |
+
+**Causal inference (survey's own, not vendor-stated):** the 0.5mm power-delivery proximity plausibly explains how WSE-3T sustains ~2× clock without a new die — closer, higher-current delivery reduces I×R loss. This is analytical reasoning added by this survey, not a claim made in either source.
+
+## L. Roadmap — CS-5 (2027) and CS-6
+
+From Cerebras's own primary blog:
+- **CS-5** (targeted 2027): up to 10,000 output tokens/s/user on mid-size/open models; up to 5,000 tokens/s/user and 3M tokens/s/MW for frontier models; support for models >50T parameters.
+- **CS-6** (undated): wafer-scale SRAM and compute integrated with 3D-stacked DRAM, targeting an order-of-magnitude smaller inference footprint than current systems.
+
+Both are forward roadmap statements, not shipping products; recorded as such.
+
+## M. Explicitly not confirmed in this pass
+
+- **Peak FLOPS for WSE-3T** (any precision) — absent from all three sources fetched.
+- **"6× 200GbE per system"** — traced directly to The Next Platform author's own hedged speculation: "I *think* the wafer I/O module has six Ethernet ports running at 200 Gb/sec... Based on the specs, which say 'new higher speed wafer links'"; the same article states "We have tried to confirm many of these network details with Cerebras but have not heard back as yet." This is a journalist's inference, explicitly unconfirmed by the vendor. **Not promoted to a repo fact.**
+- CS-4 pricing; WSE-3T transistor count (presumed unchanged at ~4T, not restated); exact wafer-to-wafer link protocol/topology.
+- Any broader corporate/funding news beyond what the 2026-08-08 pass already recorded — this pass was scoped to the Hot Chips 38 disclosure specifically, not a full corporate-news refresh, given WebSearch budget constraints.
+
+## Sources added 2026-09-13
+
+- https://www.cerebras.ai/blog/ultrafast-frontier-inference-cerebras-deep-dive-at-hot-chips-2026 — primary, fetched directly twice (general pass + targeted follow-up for bandwidth/latency/clock figures)
+- https://www.servethehome.com/cerebras-talks-going-rack-scale-with-their-wses-at-hot-chips-2026/ — fetched directly; primary numeric source for SRAM bandwidth, wafer-to-wafer interconnect, CS-4 rack detail, performance claims
+- https://www.nextplatform.com/compute/2026/08/19/cerebras-overclocks-wse-3-waferscale-engine-to-boost-inference-oomph-in-nexus-cs-4/5289400 — fetched directly twice (general pass + targeted follow-up confirming the 200GbE figure is unconfirmed speculation)

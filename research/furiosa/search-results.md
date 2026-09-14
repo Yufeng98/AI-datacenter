@@ -1,7 +1,7 @@
 # FuriosaAI Search Results
 
-*as_of: 2026-08-08*
-*Queries executed: 6 (baseline, 2026-04-05) + 7 (update scan, 2026-08-08)*
+*as_of: 2026-09-13*
+*Queries executed: 6 (baseline, 2026-04-05) + 7 (update scan, 2026-08-08) + Bing News queries (scan, 2026-09-13)*
 
 ---
 
@@ -186,3 +186,19 @@
 | Unverified (fetch blocked) | 2 (Yonhap direct, DCD 403) |
 | Business news (low confidence) | 1 |
 | **New total** | **24** |
+
+---
+
+## Resources Added 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+| Resource | URL | Category | Note |
+|----------|-----|----------|------|
+| Korean chipmakers ask government for deployment references (2026-09-10) | https://cryptobriefing.com/south-korean-ai-chipmakers-deployment-references/ | Business / regulatory | Names FuriosaAI + Rebellions; new 2026-09-01 export-control listing of high-performance AI chips; ~$30M collective overseas contracts (not FuriosaAI-specific) |
+| FuriosaAI × OpenAI gpt-oss-120b demo (event 2025-09-11, republished article) | https://finance.yahoo.com/news/ai-unicorn-furiosaai-246m-funding-123111208.html | Business / pre-baseline correction | **Demo, not a shipment or supply deal** — corrects the pre-verified "shipments to OpenAI" claim; the $246M funding figure is stale (pre-dates the already-recorded $125M July-2025 Series C close reconciliation) |
+
+## Searched and Not Found (2026-09-13)
+
+- No Series D close announcement (KRW 800B figure from 2026-07-21 remains the latest, still LOW confidence).
+- No confirmed 2026 cumulative RNGD unit-shipment figure (e.g. "~20,000 units").
+- No Gen 3 (Broadcom) tape-out/sampling update.
+- No Hot Chips 38 (2026-08-23 → 08-25) FuriosaAI talk.

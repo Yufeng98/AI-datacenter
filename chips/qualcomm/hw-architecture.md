@@ -1,6 +1,6 @@
 # Qualcomm Cloud AI 100 — Hardware Architecture
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *generations: Cloud AI 100 (Standard / Ultra) / Dragonfly AI200 / Dragonfly AI250 (HBC Gen 1) / Dragonfly AI300 (HBC Gen 2) / Dragonfly C1000 (CPU)*
 
 ---
@@ -165,6 +165,22 @@ August 24–25 2026) program.
 - **(Dragonfly, 2026)** Full-stack posture: an in-house data center CPU (C1000, 250+ Oryon cores) alongside the
   accelerators, plus an open silicon-agnostic compiler layer acquired with Modular
 
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Classification: **Roadmap** — deployment/customer confirmations, no new hardware specs. Full detail and sourcing
+in `public/research/qualcomm/investigations/hw-architecture.md`.*
+
+- **HUMAIN Riyadh deployment confirmed live** (2026-08-31): Adobe is running production "regional AI data
+  captioning workloads" on Qualcomm Dragonfly-accelerated HUMAIN infrastructure — the first confirmed production
+  workload on this deployment. Which Dragonfly part (AI200/AI250/AI300) is not stated; AI200 is the plausible
+  inference given AI250/AI300 sampling timelines, but this is **not confirmed**.
+- **Qualcomm–AWS custom-silicon and optical-connectivity collaboration** (2026-09-08): Qualcomm will supply AWS
+  with custom AI inference silicon and optical connectivity (SerDes/optical DSP, "up to 1.6T and future-generation
+  solutions") for AWS AI data centers. No product names, generations, timeline, or volumes disclosed. Possibly
+  one of the two previously-unnamed hyperscaler custom-silicon customers reported via Futurum — **unconfirmed**.
+- No new AI200/AI250/AI300 compute, memory, or process-node figures. HBC bandwidth-claim methodology still
+  undisclosed. No MLPerf submission found this window.
+
 ## Sources (2026-08-08 update)
 
 - [Qualcomm Unveils Comprehensive Data Center Roadmap … Dragonfly Portfolio (2026-06-24)](https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent)
@@ -174,3 +190,9 @@ August 24–25 2026) program.
 - [Futurum Group — Qualcomm's Data Center Re-entry at Investor Day 2026](https://futurumgroup.com/insights/qualcomms-data-center-reentry-at-investor-day-2026-arrives-just-in-time-for-the-inference-decode-prize/)
 - [Hot Chips 38 program (August 24–25, 2026) — Qualcomm absent](https://hotchips.org/program/conference/)
 - [MLPerf Inference v6.0 results (2026-04-01) — Qualcomm not among the 24 submitters](https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/)
+
+## Sources (2026-09-13 update)
+
+- [Adobe Becomes First Global Software Company to Migrate AI Workloads onto HUMAIN Platform, Accelerated by Qualcomm (2026-08-31)](https://www.qualcomm.com/news/releases/2026/08/adobe-becomes-first-global-software-company-to-migrate-ai-worklo)
+- [Qualcomm Announces Multi-Generational Product Collaboration with Amazon to Build Next-Generation AI Data Center Infrastructure (2026-09-08)](https://www.qualcomm.com/news/releases/2026/09/qualcomm-announces-multi-generational-product-collaboration-with)
+- [quic/efficient-transformers releases](https://github.com/quic/efficient-transformers/releases)

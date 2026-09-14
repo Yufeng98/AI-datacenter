@@ -1,6 +1,6 @@
 # NVIDIA GPU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 
 ---
 
@@ -185,6 +185,8 @@ The Vera Rubin platform is NVIDIA's most co-designed platform to date — seven 
 
 **Rubin CPX**: A specialized inference variant optimized for massive-context workloads and long context windows.
 
+**NVIDIA Groq 3 LPX rack (quantified 2026-09-13, Hot Chips 38):** 256 LPUs per rack, 128 GB SRAM, 40 PB/s aggregate SRAM bandwidth, 640 TB/s scale-up bandwidth per rack, 315 PFLOPS FP8 compute per rack, 11,000 tok/s decode on a 31B-parameter Gemma-4-class model per rack. Full production confirmed as of 2026-08-24; process node still not disclosed. See the Update section below for sources and caveats.
+
 ### Multi-Year Roadmap
 
 | Generation | Year | Memory | FP4 Perf/GPU | Notable Change |
@@ -274,6 +276,24 @@ Beyond the NVL576 correction above: **Spectrum-6 SPX** at 102.4 Tb/s with 512 la
 
 ---
 
+## Update (2026-09-13)
+
+*Window covered: 2026-08-08 → 2026-09-13. Hot Chips 38 (2026-08-24/25) is the main event in this window. NVIDIA's own slide decks are attendee-gated — direct fetches of the Rubin GPU deck (`FINAL_NV_HC2026_Rubin.pdf`) and the LPU deck (`NV_HC2026_LP30_Final.pdf`) both returned HTTP 401 — so figures below come from NVIDIA's own Hot Chips event page and from ServeTheHome's on-site conference coverage (both dated 2026-08-24/25), not from the slides themselves.*
+
+**1. Vera Rubin NVL72 — reconfirmed + new rack engineering detail.** NVLink 6 at 3.6 TB/s all-to-all bandwidth per GPU is reconfirmed. New: 130 TFLOPS of in-network compute vs. Ethernet scale-up ("10x lower latency," vendor claim); 45°C inlet liquid cooling; 800 VDC power distribution; a claimed 13% peak-power reduction for LLM training with "40% more GPUs per provisioned watt" (vendor claims). [ServeTheHome](https://www.servethehome.com/nvidia-vera-rubin-nvl72-rack-at-hot-chips-2026/).
+
+**2. New scale: "100 MW AI Factory."** Factory-scale figures labeled "at-scale figures using DSX with MaxLPS," distinct from the per-rack numbers already recorded (3,600 PFLOPS/rack, 20.7 TB HBM4/rack): 2 ZFLOPS NVFP4 inference, 1.4 ZFLOPS NVFP4 training, 11 PB HBM4, 800 PB/s aggregate memory bandwidth. No rack count given, so not decomposed against the per-rack figures.
+
+**3. NVIDIA Groq 3 LPX — quantified for the first time, and now in full production.** Hot Chips 38 gave this survey its first quantified LPX numbers (previously only naming/unquantified marketing framing): 256 LPUs/rack, 128 GB SRAM, 40 PB/s aggregate SRAM bandwidth, 640 TB/s scale-up bandwidth/rack, 315 PFLOPS FP8/rack, 11,000 tok/s decode on a 31B-parameter Gemma-4-class model/rack (NVIDIA event page; [ServeTheHome](https://www.servethehome.com/nvidias-groq-3-lpu-accelerators-for-heterogeneous-ai-compute-at-hot-chips-2026/)). Separately, [NVIDIA Newsroom (2026-08-24)](https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai) confirms **"NVIDIA Groq 3 LPX...is now in full production"**, reports 3,400 tok/s on Gemma 4 31B with a 100,000-token context (a different, non-comparable benchmark configuration from the 11,000 tok/s rack-aggregate figure), reconfirms **"Groq and LPU are used under license from Groq, Inc."** (licensing, not acquisition — consistent with the existing correction below), and names **Nebius** as "the first AI cloud to adopt NVIDIA Groq 3 LPX." Process node remains not disclosed. The HC38 slide filename `NV_HC2026_LP30_Final.pdf` is a circumstantial (unconfirmed) signal for an "LP30" internal name; the deck itself is attendee-gated.
+
+**4. Vera CPU — new marketing claim.** NVIDIA's Hot Chips event page states Vera CPU delivers "1.8x faster task completion and twice the efficiency of traditional x86 CPUs" — a vendor claim with no published methodology. Core count (88 Olympus) unchanged.
+
+**5. Rubin GPU per-die specifics — investigated, not confirmed, excluded.** A secondary aggregator circulated per-die Rubin numbers (224 SMs / 896 tensor cores, 336B transistors, dual-die TSMC 3nm, 1,800–2,300 W/GPU, 190–230 kW/cabinet). Could not be verified: absent from ServeTheHome's HC38 coverage, the actual NVIDIA slide deck is attendee-gated (HTTP 401), and no NVIDIA primary source states them. Excluded per this survey's evidence discipline — SM count, tensor-core count, transistor count, and TDP remain not disclosed.
+
+**6. Not included.** No confirmed change to Rubin Ultra (H2 2027) or Feynman (2028) timing; no new statement on the Kyber-to-2028 slip report; BlueField-4 and Spectrum-X Multiplane HC38 talk content is out of scope for this GPU-focused document.
+
+---
+
 ## Resources
 
 ### Documentation
@@ -317,3 +337,10 @@ Beyond the NVL576 correction above: **Spectrum-6 SPX** at 102.4 Tb/s with 512 la
 ### Benchmarks
 - [MLPerf Training v6.0 Results — MLCommons (2026-06-16)](https://mlcommons.org/2026/06/mlperf-training-v6-0-results/)
 - [NVIDIA Blackwell Tops MLPerf Training v6.0 — NVIDIA Technical Blog](https://developer.nvidia.com/blog/nvidia-blackwell-tops-mlperf-training-6-0-with-industry-leading-scale-and-performance/)
+
+### Added 2026-09-13
+- [NVIDIA Groq 3 LPX Now in Full Production — NVIDIA Newsroom (2026-08-24)](https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai)
+- [NVIDIA Vera Rubin NVL72 Rack at Hot Chips 2026 — ServeTheHome (2026-08-24)](https://www.servethehome.com/nvidia-vera-rubin-nvl72-rack-at-hot-chips-2026/)
+- [NVIDIA's Groq 3 LPU Accelerators for Heterogeneous AI Compute at Hot Chips 2026 — ServeTheHome (2026-08-25)](https://www.servethehome.com/nvidias-groq-3-lpu-accelerators-for-heterogeneous-ai-compute-at-hot-chips-2026/)
+- [NVIDIA Hot Chips Conference Event Page](https://www.nvidia.com/en-us/events/hot-chips-conference/)
+- [Hot Chips 2026 Program — hc2026.hotchips.org](https://hc2026.hotchips.org/program/)

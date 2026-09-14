@@ -1,6 +1,6 @@
 # PEZY Computing Layer Mapping Table
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 
 ## Software Layers
 
@@ -52,7 +52,8 @@
 | System | ZettaVEGA (shipping, PEZY-SC3-based genome-analysis system) and PZLAST / PZLAST-MAG protein-search service — PEZY's visible 2026 commercial deployments | confirmed | pezy.co.jp/en/products/, news 2026-05-11 / 2026-05-13 |
 | Product Status | PEZY-SC4s: **pre-production as of 2026-08-08** — never listed on PEZY's product page, no press release, no tape-out/sampling/shipping announcement; stated end-2025 release target (PEZY release 2025-06-06) missed by 8+ months with no revised date and no vendor delay notice | confirmed (absence-based for the slip) | pezy.co.jp news index (JA+EN) and products page, fetched 2026-08-08 |
 | Cooling | Liquid immersion: fluorine-type inert liquid (non-combustible, non-toxic, odorless, high electrical insulation) | confirmed | search-results, hw-architecture |
-| Energy Efficiency | PEZY-SC4s: ~91 GF/W FP64 **simulated only** (cf. H200 ~49, MI300A ~110). No measured Green500 entry behind it — no PEZY/ZettaScaler/ExaScaler system in the June 2026 Green500 **top 20** (top-20 verified only, not all 500) | vendor simulation | search-results, top500.org/lists/green500/list/2026/06/ |
+| Energy Efficiency | PEZY-SC4s: ~91 GF/W FP64 **simulated** (Hot Chips 37, 2025; cf. H200 ~49, MI300A ~110), **and separately 115 GFLOPS/W "achieved in double precision matrix multiplication," per PEZY's 2026-08-31 announcement of its IEEE Micro paper** — vendor claim; whether measured-silicon or simulated is not disclosed. No measured Green500 entry behind either figure — no PEZY/ZettaScaler/ExaScaler system in the June 2026 Green500 **top 20** (top-20 verified only, not all 500; not re-verified 2026-09-13) | vendor claim (provenance undisclosed) | search-results, top500.org/lists/green500/list/2026/06/, pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/ |
+| Compute Engine | PEZY-SC4s: BF16 peak **576 TFLOPS** (new figure, vendor-disclosed 2026-08-31; not previously quantified in this survey) | vendor claim | pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/ |
 | Energy Efficiency | PEZY-SC3: 24.6 GF/W FP64 (measured; Green500 #12 Nov 2021) | confirmed | search-results |
 | Energy Efficiency | PEZY-SC2: 17 GF/W FP64 (Green500 #1 Nov 2017, Shoubu System B) | confirmed | search-results |
 | Energy Efficiency | PEZY-SC: 7.03 GF/W FP64 (Green500 #1 Jun/Nov 2015, Shoubu) | confirmed | search-results |

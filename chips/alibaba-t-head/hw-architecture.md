@@ -1,6 +1,6 @@
 # T-Head (平头哥) Hardware Architecture
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *generations: Hanguang 800 / Zhenwu 810E (PPU) / Zhenwu M890 — roadmap: Zhenwu V900 (3Q2027), Zhenwu J900 (3Q2028); Xuantie C910 → C950*
 
 **Chip:** alibaba-t-head  
@@ -131,10 +131,11 @@ Formally debuted at the Alibaba Cloud Summit on **2026-05-20** (Reuters, YiCai G
 ### Status
 Alibaba's newsroom states the M890 was **"formally debuted"** and makes **no mass-production or general-availability claim for the chip**. What is stated as available is the **Panjiu AL128 supernode, "now available through Alibaba's model service platform, Bailian"**. Per-chip pricing and M890-specific shipment volumes were **not disclosed** (The Next Web). The 560,000-unit figure below is **cumulative Zhenwu-series**, not M890.
 
-### Deployment base (as of 2026-05)
-- **560,000 cumulative Zhenwu-series units shipped** (up from 470,000 at the 2026-04-05 baseline)
-- **400+ external customers across 20+ industries** (Alibaba newsroom; The Register)
+### Deployment base (as of 2026-05; updated 2026-09-13)
+- **560,000 cumulative Zhenwu-series units shipped** (up from 470,000 at the 2026-04-05 baseline) — unchanged as of 2026-09-13
+- **400+ external customers across 20+ industries** as of 2026-05 (Alibaba newsroom; The Register) → **650+ external customers across 20+ industries** per trade-press coverage dated **2026-08-20** (Kuai Keji/MSN, headline names M890 specifically) — press-reported, vendor-sourced, not an Alibaba primary disclosure
 - Named customers independently confirmed: **China Telecom, FAW Group, Shanghai Pudong Development Bank** (YiCai Global, Baidu Baike). XPeng and Sina Weibo appear in some aggregator coverage of this announcement but are **not confirmed** for it.
+- **(2026-09-13, backfill of a 2026-06-16 announcement predating the 2026-08-08 baseline):** financial-sector Zhenwu deployment alone reported to exceed **100,000 cards across 150+ institutions** — press-reported.
 
 ---
 
@@ -211,3 +212,6 @@ T-Head-developed switch ASIC — the switched counterpart to the point-to-point 
 - **V900 / J900 roadmap figures appear only in Chinese media**, not in Alibaba's English newsroom
 - **No T-Head presentation confirmed** at ISCA 2026 or ISSCC 2026; **no MLPerf submission** found. Hot Chips 38 runs 2026-08-23–25, after this update — no T-Head talk is confirmed on its program and no content from that conference exists yet
 - **XuanTie C950:** no tape-out, sampling or availability update found since the March 2026 launch
+
+### Added 2026-09-13
+- [Kuai Keji / MSN — M890 commercialization, 650+ external customers (2026-08-20)](https://www.msn.com/zh-cn/news/other/%E5%B9%B3%E5%A4%B4%E5%93%A5%E7%9C%9F%E6%AD%A6m890%E8%8A%AF%E7%89%87%E5%95%86%E4%B8%9A%E5%8C%96%E6%8F%90%E9%80%9F-650%E5%AE%B6%E5%A4%96%E9%83%A8%E5%AE%A2%E6%88%B7%E5%B7%B2%E4%B8%8A%E8%BD%A6-%E8%A6%86%E7%9B%9620-%E8%A1%8C%E4%B8%9A/ar-AA2aywhK) — press-reported, cites a 2026-06-16 financial-sector deployment figure (>100,000 cards, >150 institutions) predating the 2026-08-08 baseline

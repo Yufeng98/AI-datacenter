@@ -1,6 +1,6 @@
 # Sophgo Software Stack Investigation
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: sophgo*
 *device_class: RISC-V + TPU Hybrid (China, 算能)*
 
@@ -309,3 +309,57 @@ Sophgo's public GitHub org is active: sophon-tools (2026-08-08), sophon-demo (20
 - https://github.com/sophgo/tpu-mlir/releases.atom — authoritative release dates
 - https://github.com/sophgo/tpu-mlir/releases/tag/v1.28.1 — v1.28.1 release notes
 - https://github.com/orgs/sophgo/repositories?sort=updated — org activity check
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Verified directly against the GitHub REST API (`api.github.com/repos/sophgo/...`), not the releases atom feed, to avoid the year-parsing risk the 2026-08-08 pass flagged. No hardware/silicon disclosure this window — this is a pure SDK update.*
+
+### TPU-MLIR advances from v1.29 to v1.30.2
+
+The `/releases` endpoint only surfaces tags that carry a full GitHub Release object; several point releases are tags-only and are invisible to that endpoint, but commit dates (via `git/refs/tags` → `commits/{sha}`) confirm the true sequence:
+
+| Version | Commit / publish date | Note |
+|---|---|---|
+| v1.29 (previously recorded) | 2026-07-01 | Narrow conv2d hardware-margin fix |
+| v1.30-beta.0 | 2026-08-24 | tag only, no Release notes object |
+| v1.30-beta.1 | 2026-08-26 | tag only |
+| v1.30 | 2026-08-26 | tag only |
+| v1.30.1 | 2026-08-31 | tag only |
+| **v1.30.2** | **2026-08-31** (GitHub Release, `published_at` 04:24 UTC) | Full release notes published — see below |
+
+**v1.30.2 release notes (verbatim structure, summarized):**
+- **LLM serving**: added **chunk prefill** (e.g., 64K prefill split into 8K chunks) and **chunked decode** (incl. a Qwen3.5-specific variant); added MoE performance analysis (`llm_analyse.py`); FP8 LLM fixes; auto-generated random input/result comparison in `llm_convert`/`model_deploy`; MoE weight-logic dedup.
+- **New model support**: **MiniCPM-V-4.6**, **Step3-VL**, **Falcon-Perception**, **LocateAnything-3B** (all multimodal); UnlimitedOCR converter for DeepSeek-V2-MoE VLM.
+- **New ops/patterns**: `A16Gather` (W4A16/W8A16 on-the-fly dequant), `FlexAttention`/`FAttentionLse`, fused attention-decode kernel, `SliceAttentionChainPattern` for attention tiling, float-mix search for mixed-precision quantization.
+- **Backend/platform**: continued **BM1684X2** enablement (RQ1 requant, RVTI, multi-core FC path); **updated BM1690/BM1690E backend**; merged **CUDA op support** (PRs 278/279, "plus more"); added c2c ops support; BM1688 user-IO-tag support extended (tags 3–7).
+- No process-node, silicon, or spec disclosure — this release is entirely compiler/runtime.
+
+**Assessment**: this is the most substantive TPU-MLIR release since the 2026-04-05 baseline — it is the first release to explicitly touch the BM1690/BM1690E backend again since the 2026-08-08 pass, and the first to mention CUDA-op support (relevant to any future NVIDIA-source-portability story) — but it remains a software-only change; no BM1690 spec value changes as a result.
+
+### Repo activity (verified via `pushed_at`, 2026-09-13)
+
+| Repo | `pushed_at` |
+|---|---|
+| sophgo/tpu-mlir | 2026-08-31 |
+| sophgo/libsophon | 2026-08-10 |
+| sophgo/mcu | 2026-08-31 |
+| sophgo/LLM-TPU | 2026-09-04 |
+| sophgo/sophon-demo | 2026-09-14 (essentially current) |
+| sophgo/vllm-tpu | 2025-12-17 (**stale — no change since baseline**) |
+| sophgo/torch-tpu | 2026-01-28 (**stale — no change since baseline**) |
+
+vllm-tpu and torch-tpu — the two repos carrying the BM1690/SG2260 vLLM fork and PyTorch DeepSpeed/Megatron support — have **not been pushed to since before the 2026-04-05 research baseline**. This is worth flagging: the LLM-serving and distributed-training story for BM1690 has had no public code movement in over seven months, even while TPU-MLIR itself is actively developed.
+
+### Searched and absent
+
+- No new BM1690-successor or SG2044-specific repo.
+- No STAR Market (科创板) filing update found for Sophgo in this window (searches returned only a year-old BIS Entity List story and an unrelated STAR Market listing for a different vendor, 燧原科技/Enflame).
+- No Hot Chips 38 (2026-08-23 → 08-25) Sophgo talk.
+
+### Sources added 2026-09-13
+
+- [GitHub API — sophgo/tpu-mlir releases (live query, 2026-09-13)](https://api.github.com/repos/sophgo/tpu-mlir/releases)
+- [GitHub — tpu-mlir v1.30.2 release notes](https://github.com/sophgo/tpu-mlir/releases/tag/v1.30.2)
+- [GitHub API — sophgo/{tpu-mlir,libsophon,mcu,LLM-TPU,sophon-demo,vllm-tpu,torch-tpu} repo metadata (`pushed_at`, live query 2026-09-13)](https://api.github.com/repos/sophgo/tpu-mlir)

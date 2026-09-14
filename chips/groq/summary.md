@@ -1,6 +1,6 @@
 # Groq LPU (TSP) Software and Hardware Stack Summary
 
-*as_of: 2026-04-05 · **Last updated: 2026-08-08*** — see "Corporate Status & LP30 Corrections Update (2026-08-08)" below.
+*as_of: 2026-09-13 · **Last updated: 2026-09-13*** — see "GroqCloud & NVIDIA Partnership Update (2026-09-13)" below.
 
 ---
 
@@ -10,7 +10,7 @@ Groq's Language Processing Unit (LPU), originally named the Tensor Streaming Pro
 
 The flagship system is the **GroqRack**: 576 LPU chips interconnected via a plesiosynchronous fabric, appearing to software as a single coherent ~130 GB SRAM memory. A single chip holds 230 MB SRAM at 80 TB/s — roughly 24x the bandwidth of H100 HBM3. (The "640 TB/s aggregate" GroqRack figure carried in earlier revisions of this survey is **unverified** — see the 2026-08-08 update.)
 
-On **2025-12-24 Groq and NVIDIA entered a non-exclusive inference-technology licensing agreement**. This was **not an acquisition**: Groq continues to operate as an independent company and GroqCloud continues without interruption, while founder/CEO Jonathan Ross, president Sunny Madra and other employees joined NVIDIA to advance the licensed technology. The resulting **NVIDIA Groq 3 LPX** (LP30 chip; 500 MB SRAM/die at 150 TB/s) was announced at GTC on 2026-03-16 as a decode-phase co-processor in NVIDIA's Vera Rubin platform; NVIDIA guides Vera Rubin partner availability to H2 2026 and has published no LPX-specific ship date. Full corrections — deal structure, the unconfirmed ~$20B price, the LP30 spec fixes, the prefill/decode split, and Groq's June 2026 $650M raise — are in the dated update section below.
+On **2025-12-24 Groq and NVIDIA entered a non-exclusive inference-technology licensing agreement**. This was **not an acquisition**: Groq continues to operate as an independent company, and NVIDIA's own materials still confirm this ("Groq and LPU are used under license from Groq, Inc." — NVIDIA Newsroom, 2026-08-24). Founder/CEO Jonathan Ross, president Sunny Madra and other employees joined NVIDIA to advance the licensed technology. The resulting **NVIDIA Groq 3 LPX** (LP30 chip; 500 MB SRAM/die at 150 TB/s) was announced at GTC on 2026-03-16 as a decode-phase co-processor in NVIDIA's Vera Rubin platform and **entered full production on 2026-08-24**, with **Nebius** as first cloud adopter and Groq itself among the earliest adopters. Full LPX rack hardware specs (256 LPUs/rack, 128 GB SRAM, 40 PB/s aggregate SRAM BW, 640 TB/s scale-up, 315 PFLOPS FP8, 11,000 tok/s decode) are tracked in **`chips/nvidia-gpu/hw-architecture.md`** — not duplicated here. GroqCloud itself continues operating independently and has kept adding NVIDIA-branded infrastructure and capital in 2026: NVIDIA Cloud Partner status (2026-08-12), a $350M raise at a $3.5B valuation (2026-08-17), and an LPX + Vera Rubin NVL72 deployment with Dell Technologies (2026-08-24). Full corrections and details — deal structure, the unconfirmed ~$20B price, the LP30 spec fixes, the prefill/decode split, Groq's funding history, and the 2026-09-13 production/funding update — are in the dated update sections below.
 
 ---
 
@@ -126,7 +126,7 @@ A single LPU v1 die has **no DRAM**. For large models:
 
 - LPU v1: Samsung 14nm, 25x29 mm (~725 mm²), 900 MHz
 - LPU v2: Samsung 4nm (2025)
-- NVIDIA Groq 3 LPX (LP30): **process node not disclosed** (the "Samsung 4nm" attribution is *not confirmed* — it appears only in low-quality secondary blogs); **500 MB** SRAM/die, 150 TB/s, 1.2 PFLOPS FP8/chip; TDP not disclosed; announced GTC 2026-03-16, H2 2026 partner availability guidance
+- NVIDIA Groq 3 LPX (LP30): **process node not disclosed** (the "Samsung 4nm" attribution is *not confirmed* — it appears only in low-quality secondary blogs, and Hot Chips 38 did not close this gap); **500 MB** SRAM/die, 150 TB/s, 1.2 PFLOPS FP8/chip (315 PFLOPS FP8/rack); TDP not disclosed; announced GTC 2026-03-16, **full production as of 2026-08-24**
 - PCIe host interface
 
 ### Scale-up Interconnect (GroqRack)
@@ -243,6 +243,45 @@ Hot Chips 38 runs **Aug 23–25, 2026** at Memorial Auditorium, Stanford. **Sess
 
 ---
 
+## GroqCloud & NVIDIA Partnership Update (2026-09-13)
+
+*Updated 2026-09-13, scan window 2026-08-08 → 2026-09-13. Primary sources: nvidianews.nvidia.com (2026-08-24), groq.com/newsroom, groq.com/blog, groq.com/about-us. This section covers Groq Inc./GroqCloud corporate status and the NVIDIA Groq 3 LPX production milestone. **Detailed NVIDIA-side LPX/LP30 hardware specs live in `chips/nvidia-gpu/hw-architecture.md` §8.7/§10.3 — see "Cross-reference" below rather than duplicated tables here.***
+
+### NVIDIA Groq 3 LPX reaches full production (2026-08-24)
+
+NVIDIA's own newsroom states **"NVIDIA Groq 3 LPX...is now in full production"** — a status upgrade from the 2026-08-08 entry's "ANNOUNCED (GTC, 2026-03-16); H2 2026 partner availability guidance." Key facts from that release:
+
+| Item | Value |
+|---|---|
+| Production status | Full production, 2026-08-24 |
+| First cloud adopter | **Nebius** |
+| Early adopter | **Groq** ("among the platform's earliest adopters") |
+| Quoted benchmark | 3,400 output tok/s, Gemma 4 31B, 100,000-token context |
+| Marketing claim | "4x faster responsiveness... than the nearest alternative platform" — **vendor claim, unaudited, no named alternative** |
+| Licensing language | Reconfirmed unchanged: **"Groq and LPU are used under license from Groq, Inc."** |
+
+### GroqCloud corporate events, August 2026 (three items; none in the September portion of the window)
+
+1. **2026-08-12 — Groq Becomes an NVIDIA Cloud Partner.** Certified to NVIDIA's reference architecture/operational standards. Groq frames this as confirming, not superseding, its independence: "independent confirmation of something our customers experience every day: we deliver fast, reliable, trusted inference... anywhere in the world." NVIDIA-branded infrastructure is described as being added *alongside* Groq's existing LPU fleet, not replacing it.
+2. **2026-08-17 — Groq closes a $350M "Series A" at a $3.5B valuation.** Led by **Disruptive**, with planned NVIDIA participation. Combined with June 2026's $650M raise, recent funding totals **$1B**. Funds target NVIDIA-cluster customer demand and scaling from 54 MW to 200+ MW by 2027. **Flag:** calling this a "Series A" is unusual for a company with Groq's funding history, and the implied $3.5B valuation is a steep markdown from the ~$6.9B figure reported around the June 2026 round — both figures should be treated cautiously since neither is a clean primary-source apples-to-apples comparison (the $6.9B figure itself was "reportedly," not vendor-stated).
+3. **2026-08-24 — Groq Among the First to Bring NVIDIA Groq 3 LPX and Vera Rubin NVL72 to Market**, deployed with **Dell Technologies**. Groq is explicitly the operator/early-adopter, not the hardware designer, in this release.
+
+### Leadership
+
+groq.com/about-us (re-checked 2026-09-13) is unchanged from 2026-08-08: **Adam Winter, CEO**; Matt Eng, CFO; Alan Rice, COO; Sinclair Schuller, CTO.
+
+### No self-hosted/independent new-LPU news found
+
+Explicitly checked groq.com/newsroom and groq.com/blog for the full window: no new Groq-designed silicon, no LPU v3/next-gen TSP, and no self-hosted deployment reported outside the NVIDIA relationship. This extends the 2026-08-08 finding ("no new Groq silicon") through 2026-09-13.
+
+### Cross-reference — NVIDIA-side hardware specs
+
+The NVIDIA Groq 3 LPX rack (256 LPUs, 128 GB SRAM, 40 PB/s aggregate SRAM bandwidth, 640 TB/s scale-up, 315 PFLOPS FP8/rack, 11,000 tok/s decode on a Gemma-4-class 31B model) is documented in **`chips/nvidia-gpu/hw-architecture.md`** §8.7 and §10.3, sourced to NVIDIA's Hot Chips 38 (2026-08-24/25) materials and ServeTheHome's on-site coverage. This file intentionally does not restate those numbers to avoid the two entries diverging; see that file for the authoritative NVIDIA-side spec table.
+
+*Sources: [NVIDIA Groq 3 LPX Now in Full Production](https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai) (2026-08-24); [Groq Becomes an NVIDIA Cloud Partner](https://groq.com/newsroom/groq-becomes-an-nvidia-cloud-partner) (2026-08-12); [Groq Closes $350 million Series A](https://groq.com/newsroom/groq-closes-usd350-million-series-a-building-the-world-s-leading-ai-inference-cloud) (2026-08-17); [Groq Among the First to Bring NVIDIA Groq 3 LPX and Vera Rubin NVL72 to Market](https://groq.com/blog/groq-among-the-first-to-bring-nvidia-groq-3-lpx-and-vera-rubin-nvl72-to-market) (2026-08-24); groq.com/about-us (re-checked 2026-09-13).*
+
+---
+
 ## Resources
 
 ### Documentation
@@ -260,7 +299,13 @@ Hot Chips 38 runs **Aug 23–25, 2026** at Memorial Auditorium, Stanford. **Sess
 - [Groq raises $650M to scale its AI inference cloud business (2026-06-22)](https://groq.com/newsroom/groq-raises-usd650m-to-scale-its-ai-inference-cloud-business)
 - [Groq About Us — current leadership](https://groq.com/about-us)
 - [Groq newsroom index](https://groq.com/newsroom)
-- [Hot Chips 38 advance program](https://hotchips.org/advance-program/) — Session AI 1, 2026-08-25, "Think Fast: LPU Accelerator for Heterogeneous Compute" (NVIDIA); *not yet presented*
+- [Hot Chips 38 advance program](https://hotchips.org/advance-program/) — Session AI 1, 2026-08-25, "Think Fast: LPU Accelerator for Heterogeneous Compute" (NVIDIA); presented 2026-08-25 — see `chips/nvidia-gpu/hw-architecture.md` §8.7 for the resulting spec disclosures (this repo tracks that content there, not here, to avoid duplication)
+
+### Corporate / Status (added 2026-09-13)
+- [NVIDIA Groq 3 LPX Now in Full Production — NVIDIA Newsroom (2026-08-24)](https://nvidianews.nvidia.com/news/nvidia-groq-3-lpx-now-in-full-production-with-world-class-speed-for-agentic-ai)
+- [Groq Becomes an NVIDIA Cloud Partner (2026-08-12)](https://groq.com/newsroom/groq-becomes-an-nvidia-cloud-partner)
+- [Groq Closes $350 million Series A, Building the World's Leading AI Inference Cloud (2026-08-17)](https://groq.com/newsroom/groq-closes-usd350-million-series-a-building-the-world-s-leading-ai-inference-cloud)
+- [Groq Among the First to Bring NVIDIA Groq 3 LPX and Vera Rubin NVL72 to Market (2026-08-24)](https://groq.com/blog/groq-among-the-first-to-bring-nvidia-groq-3-lpx-and-vera-rubin-nvl72-to-market)
 
 ### Academic Papers
 - [ISCA 2020: Think Fast — A Tensor Streaming Processor (TSP)](http://pkamath.com/publications/papers/tsp-isca20.pdf)

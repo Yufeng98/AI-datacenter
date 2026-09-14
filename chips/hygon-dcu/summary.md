@@ -1,6 +1,6 @@
 # Hygon DCU (海光深算) Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: hygon-dcu*
 *device_class: GPU/DCU (China, 海光)*
 
@@ -185,6 +185,29 @@ The growth percentages are the safest citation. These are consolidated CPU+DCU f
 
 - No Hygon/DCU **MLPerf** Training or Inference submission.
 - No Hygon paper at **Hot Chips 2026**, **ISCA 2026**, or **ISSCC 2026**.
+
+---
+
+## Update (2026-09-13) — Audited H1 2026 results confirm the July pre-announcement
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Roadmap (financial disclosure only — no new hardware/software facts). Sources: Sina Finance, Eastmoney, Tencent News (all 2026-08-13/15).*
+
+Hygon's **audited H1 2026 半年报**, published **2026-08-13**, narrows the 2026-07-16 pre-announcement range recorded above to point figures:
+
+| Metric | Audited H1 2026 | YoY | vs. 2026-07-16 pre-announced range |
+|---|---|---|---|
+| Revenue | RMB **9.099 B** (90.99亿元) | **+66.52%** | Within the RMB 8.5–9.3B / +55.56%–70.20% pre-announced range |
+| Q2 2026 revenue (quarter alone) | RMB **5.065 B** (50.65亿元) | +65.32% | — |
+| Net profit | RMB **1.798 B** (17.98亿元) | **+49.69%** | Within the RMB 1.70–1.83B / +41.50%–52.32% pre-announced range |
+| Gross margin | Declined **4.94 pp** YoY | — | Not previously recorded |
+
+**Unit-conversion note for future passes:** several aggregator summaries of this report render 亿元 figures as "billion yuan" without the ×0.1 correction (e.g. mis-stating revenue as "RMB 90.99 billion" instead of RMB 9.099 billion / 90.99亿元). The figures in the table above have been corrected to RMB billions.
+
+Market context (2026-08-21 snapshot, not a fundamental): stock price RMB 246.21 (down 12.38% on the week), market cap ≈ **RMB 572.3 B** (5,722.75亿元), #28 by A-share market cap, #4 in the domestic semiconductor sector. This is a point-in-time market snapshot, not a company disclosure.
+
+These are still **consolidated CPU+DCU figures** — Hygon does not break out DCU-specific revenue, so this update does not change any DCU hardware spec, and no new 深算三号/BW1000 or 深算四号 disclosure was found in this window (searches for both returned only restatements of the 2025-12 "进展顺利" language already on record above).
+
+Sources: [Sina Finance (2026-08-17)](https://finance.sina.com.cn/tech/roll/2026-08-17/doc-ininruyf6769682.shtml), [Eastmoney (2026-08-13)](https://finance.eastmoney.com/a/202608133840707684.html), [Eastmoney Fund (2026-08-13)](https://fund.eastmoney.com/a/202608133840708424.html), [Securities Star / MSN — Q2 revenue detail](https://www.msn.cn/zh-cn/money/技术/每周股票复盘-海光信息-688041-q2收入50-65亿增65-32/ar-AA2adHfu).
 
 ---
 

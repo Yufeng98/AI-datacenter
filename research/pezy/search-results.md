@@ -1,6 +1,6 @@
 # PEZY Computing — Search Results
 
-*as_of: 2026-08-08 (original scan 2026-04-05; see "Update Scan — 2026-08-08" at the end)*
+*as_of: 2026-09-13 (original scan 2026-04-05; see "Update Scan — 2026-08-08" and "Update Scan — 2026-09-13" at the end)*
 *device_class: Manycore HPC/FP64 (Japan)*
 
 ## Search Queries Executed
@@ -159,3 +159,21 @@
 - Newly recorded: an **undeclared 8+ month slip** past the stated end-2025 release target.
 - **Retracted**: the repo's "no ML framework backends (PyTorch/JAX/TensorFlow) exist" claim.
 - Added: IEEE Micro primary citation; two SC3 genomics vendor claims; SC3 vs SC3s naming distinction.
+
+---
+
+## Update Scan — 2026-09-13
+
+*Window: 2026-08-08 → 2026-09-13. Outcome: **major** — one new PEZY news item discloses a new vendor-claimed FP64 efficiency figure for the previously-unread IEEE Micro paper. Queries: `"PEZY new AI chip 2026"`, `"PEZY-SC4s next generation"`, `"PEZY AI accelerator announcement 2026"`, `"PEZY SDK release 2026"`, `"PEZY SC4s benchmark"`, `"PEZY SC4s whitepaper"`, plus direct re-fetch of PEZY's own news/products pages and the Crossref/IEEE Xplore DOI redirect.*
+
+| Resource | URL | Type | Note |
+|---|---|---|---|
+| PEZY news post — IEEE Micro publication announced | https://www.pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/ | Vendor PR (2026-08-31) | **New primary finding.** States "115 GFLOPS/W achieved in double precision matrix multiplication, confirming 2.2× improvement versus prior generation"; 576 TFLOPS BF16 peak; 8.9 PFLOPS/90-node system plan (refines 8.6 PF). No shipping/availability info. Provenance (measured vs. simulated) not stated |
+| PEZY news index (English), re-fetched | https://www.pezy.co.jp/en/news/ | Vendor index | Exactly **one** new item since 2026-08-08 (the above) |
+| PEZY products page (English), re-fetched | https://www.pezy.co.jp/en/products/ | Vendor | **Still no PEZY-SC4s, no ZettaScaler 4.0** as of 2026-09-13 — unchanged from 2026-08-08 |
+| IEEE Xplore document page (via DOI redirect) | https://ieeexplore.ieee.org/document/11543438/ | Journal | Still not retrievable to automated fetch — re-confirmed dead end |
+| Crossref metadata, re-queried | https://api.crossref.org/works/10.1109/MM.2026.3698804 | Metadata | Confirms IEEE Micro, Vol. 46 Issue 4, July 2026; no abstract field populated |
+
+**Not independently re-verified this pass** (carried forward from 2026-08-08 unchanged): Green500 June 2026 top-20 standing; Hot Chips 38 absence; ExaScaler corporate/TLS status.
+
+**Net effect on the survey**: a new vendor-claimed FP64 efficiency number (115 GFLOPS/W) and a new BF16 peak (576 TFLOPS) are added alongside — not in place of — the existing ~91 GF/W simulated figure; SC4s shipping/product status is unchanged (still pre-production, now 9+ months past its stated end-2025 target).

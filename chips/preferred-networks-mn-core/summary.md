@@ -1,6 +1,6 @@
 # Preferred Networks MN-Core — Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: preferred-networks-mn-core*
 *device_class: Compiler-Scheduled SIMD Accelerator (Japan)*
 *Representative products: MN-Core 2 (shipping, TSMC N7); MN-Core gen 1 (superseded, TSMC 12 nm); MN-Core L1100 / L1400 (pre-silicon, 2027 target)*
@@ -78,6 +78,10 @@ Kernel module `gpfn3` (DKMS), user-space `libgpfn3`, and `gpfn3-smi` (the `nvidi
 
 **The public developer story is about six months old.** The SDK Hub (dev.mn-core.com) launched 2026-06-22; before 2026 the SDK was effectively PFCP-internal.
 
+### Software Stack Update (2026-09-13)
+
+**MN-Core SDK v0.8 released 2026-08-26** (dev.mn-core.com/news/en/) — the only SDK release in the 2026-08-08 → 2026-09-13 window (v0.7, 2026-07-15, was already on file). The SDK Hub publishes no version-diff changelog page for either release, and the v0.8 Technical Notes / Getting Started / index pages contain no "what's new" content and no dependency version table — **specific v0.8 changes (including whether the bundled torch/torchvision versions moved past the v0.7-era 2.9.0/0.24.0) are not disclosed** to this survey. No hardware specification changed. Full detail: `research/preferred-networks-mn-core/investigations/software-stack.md` § Update — 2026-09-13.
+
 ---
 
 ## Hardware Architecture
@@ -144,7 +148,13 @@ The point of the part is memory: "PFN's proprietary **logic and DRAM are vertica
 
 **MN-Core L2000** (2028, "large-scale AI inference + HPC") appears **only** on PFN's roadmap graphic and in no press release. Treat as a roadmap tile.
 
-Two unreconciled process statements exist for the generation after MN-Core 2: Makino's Hot Chips 36 slide says **"MN-Core Next for learning: >10× peak performance, >30× application performance, Samsung SF2"** (2024-08-27), while the PFN / **Rapidus** / SAKURA internet basic agreement (2025-01-08) says "Rapidus manufactures a new model of AI semiconductors in the MN-Core series to be designed by PFN". PFN has never publicly reconciled the two. **Report both as separate dated statements; do not merge them.**
+Two unreconciled process statements exist for the generation after MN-Core 2: Makino's Hot Chips 36 slide says **"MN-Core Next for learning: >10× peak performance, >30× application performance, Samsung SF2"** (2024-08-27), while the PFN / **Rapidus** / SAKURA internet basic agreement (2025-01-08) says "Rapidus manufactures a new model of AI semiconductors in the MN-Core series to be designed by PFN". PFN has never publicly reconciled the two. **Report both as separate dated statements; do not merge them.** No "MN-Core 3" name has been found anywhere; re-checked 2026-09-13, still absent. No new Rapidus/PFN news found in the 2026-08-08 → 2026-09-13 window.
+
+**Re-verified 2026-09-13, unchanged:** the PFN AI Chips business page still describes MN-Core L1000 as "under development" / prototype stage, and MN-Core 2 pricing is unchanged (MN-Server 2 ¥20M, Devkit ¥2M). No MN-Core L1100/L1400 availability date, spec disclosure, or silicon news found in the window.
+
+### Corporate: IPO reporting (early September 2026) — reported, not vendor-confirmed
+
+Independent financial press (Bloomberg, Crypto Briefing, MarketScreener, DIGITIMES — all ~2026-09-06/07/08) reports **Preferred Networks is pursuing an IPO**, with CEO Daisuke Okanohara quoted framing it as necessary to fund MN-Core mass production amid "the rising cost and scale needed to stay competitive in the global AI race." **No funding amount, target exchange, or timeline was located** in the retrieved coverage (WebSearch was unavailable this session — quota exhausted before the first query; this rests on WebFetch-summarized Bing News results, a narrower net than a full search). **PFN's own news index carries no IPO press release as of 2026-09-13** — this is reported by financial/trade press, not yet a PFN-confirmed announcement. Does not change any chip specification; recorded here as corporate context relevant to the chip's mass-production roadmap. Classification: this item alone would be Roadmap/corporate, not Major — no product, spec, or comparison-table change results from it.
 
 ---
 
@@ -189,3 +199,9 @@ MN-Core is the cleanest published example of the "compiler owns everything" thes
 - [PR 2025-09-11 — NEDO testbed, 240 + 16 boards](https://www.preferred.jp/en/news/pr20250911)
 - [PR 2025-01-08 — PFN / Rapidus / SAKURA internet](https://www.preferred.jp/en/news/pr20250108)
 - [PFCP User Guide](https://docs.pfcomputing.com/en/)
+
+### Added 2026-09-13
+- [MN-Core SDK Hub News (EN) — v0.8 release, 2026-08-26](https://dev.mn-core.com/news/en/)
+- [PFN AI Chips business page, re-checked 2026-09-13](https://www.preferred.jp/en/business/chips/)
+- [PFN News index (EN), re-checked 2026-09-13 — no IPO press release found on PFN's own site](https://www.preferred.jp/en/news/)
+- IPO coverage (via Bing News/WebFetch summaries, not fetched directly): Bloomberg "Japan's Preferred Networks Seeks IPO to Keep Up in AI Chip Race"; Crypto Briefing; MarketScreener; DIGITIMES (all ~2026-09-06/07/08)

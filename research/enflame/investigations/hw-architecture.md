@@ -1,7 +1,7 @@
 # Enflame HW Architecture Investigation Report
 
 *investigator: search-chip-toolchain*
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 *source: Web search (6 queries) + official Enflame documentation + IEEE HC33 + TechInsights*
 
 ---
@@ -160,3 +160,31 @@ These exist only as IPO use-of-proceeds line items: RMB 1.503 B for 基于五代
 | L600 800 GB/s interconnect | High (but pre-baseline) | QQ News + DRAMeXchange, both 2025-07 |
 | L600 "not in mass production" | High | Prospectus wording + independent June-2026 filing coverage |
 | DTU 5.0 / 6.0 as funded projects only | High | DRAMeXchange IPO project breakdown |
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*classification: Roadmap — STAR Market trading debut completes the IPO process tracked in the 2026-08-08 update; no new hardware/software facts*
+
+### A. STAR Market trading debut (2026-09-11)
+
+Enflame's shares began trading on the SSE STAR Market on **2026-09-11**, converting the "registration effective, not yet trading" status recorded in the 2026-08-08 update into a completed listing — the last of China's "four AI-GPU dragons" (after Moore Threads, MetaX, Biren) to list.
+
+| Metric | Value | Confidence |
+|---|---|---|
+| IPO price | RMB 142.18/share | Confirmed, multiple outlets |
+| Shares issued | 43,035,173 — matches the "floor" figure already on record | Confirmed |
+| Funds raised | ≈ RMB 6.12 B (computed: 142.18 × 43,035,173) | Computed from confirmed inputs; matches task brief's pre-verified ¥6.12B |
+| First-day open | RMB 410/share, +188.37% vs. issue price | Confirmed |
+| First-day intraday peak | RMB 475/share, +234% vs. issue price | Confirmed |
+| Market cap | **Unresolved** — secondary aggregation gave an internally inconsistent "exceeded RMB 1.7 trillion" opening figure that does not reconcile with plausible share-count assumptions; not cited as fact | Rejected — do not cite |
+
+No use-of-proceeds change, no chip spec, and no new SDK release accompanies the listing itself.
+
+### B. No hardware or software findings this window
+
+No DTU 5.0 tape-out, no MLPerf submission, no new ESL64 spec, no CoPoS production update, and no Hot Chips 38 Enflame content were found beyond what §1–7 of the 2026-08-08 update already record. Hot Chips 38 (2026-08-23/25) has now passed with nothing located, consistent with the task brief's premise for this chip batch.
+
+## Sources — added 2026-09-13
+- Economic Observer — Enflame STAR Market debut (2026-09-11): https://www.eeo.com.cn/2026/0911/1031856.shtml
+- Tencent News — Enflame listing day (2026-09-11): https://news.qq.com/rain/a/20260911A04XUP00
+- Sohu — Enflame listing day (2026-09-11): https://www.sohu.com/a/1074619948

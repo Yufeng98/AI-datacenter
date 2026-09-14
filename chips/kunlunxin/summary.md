@@ -1,6 +1,6 @@
 # Kunlunxin XPU — Chip Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *research_baseline: 2026-04-05*
 *chip: kunlunxin*
 *device_class: AI Accelerator (百度昆仑芯)*
@@ -49,12 +49,13 @@ Baidu-origin cluster-based SIMD AI accelerator (Gen 3 P800: 345 TFLOPS FP16, 96 
 
 ## Roadmap
 
-*(status verbs as of 2026-08-08 — see the update section below for sourcing and caveats)*
+*(status verbs as of 2026-09-13 — see the update sections below for sourcing and caveats)*
 
-- **M100** (Gen 4, inference) announced 2025-11-13 at Baidu World 2025; first **physical** public appearance at WAIC 2026 (2026-07-17 → 07-20) with **no published specification of any kind**
+- **M100** (Gen 4, inference) announced 2025-11-13 at Baidu World 2025; first **physical** public appearance at WAIC 2026 (2026-07-17 → 07-20) with **no published specification of any kind**; no spec disclosure in the 2026-08-08 → 2026-09-13 window either
 - **M300** (Gen 4, training + multimodal) announced 2025-11-13, targeted early 2027 — no new detail
-- **Scale-up ladder**: 8 cards/server (conventional) → **32/64-card cabinet supernode** (launched April 2025, vendor says volume-delivered) → **Tianchi 256** (announced on sale June 2026) → **Tianchi 512** (H2 2026 target, not shipped)
-- **Hong Kong IPO**: confidential HKEX Form A1 submitted 2026-01-01, spin-off announced 2026-01-02; **press-reported** ~USD 50B valuation target and Q3 2026 listing (Reuters 2026-06-28, citing The Information) — not a filed figure, not listed as of 2026-08-08
+- **Scale-up ladder**: 8 cards/server (conventional) → **32/64-card cabinet supernode** (launched April 2025, vendor says volume-delivered) → **Tianchi 256** (announced on sale June 2026) → **Tianchi 512** (H2 2026 target, not shipped) — no new shipment/customer/volume disclosure in-window
+- **Hong Kong IPO**: confidential HKEX Form A1 submitted 2026-01-01, spin-off announced 2026-01-02; **press-reported** ~USD 50B valuation target and Q3 2026 listing (Reuters 2026-06-28, citing The Information) — not a filed figure; no HKEX hearing/acceptance update found as of 2026-09-13
+- **STAR Market ("A+H" dual listing) — new 2026-09-13, fact predates window**: Kunlunxin completed **STAR Market (科创板) IPO tutoring registration (辅导备案)** with the Beijing Securities Regulatory Bureau on **2026-05-07** (agreement dated 2026-04-29), with **CICC** as tutoring institution — confirming Kunlunxin is pursuing simultaneous A-share + H-share listings rather than HKEX alone. **Press-reported** (aggregated search snippets; primary regulator bulletin not independently opened) — treat date, sponsor, and the cited 57.67%-Baidu-stake figure as unverified against a primary filing.
 
 ---
 
@@ -136,3 +137,15 @@ This repo described `baidu/vLLM-Kunlun` as an "open-source vLLM fork". **That is
 - https://github.com/baidu/vLLM-Kunlun — plugin (not fork) confirmation + release history
 - https://vllm-kunlun.readthedocs.io/en/latest/ — vLLM-Kunlun docs, prerequisites, model list, developer guide (torch_xray, xpu_profiler)
 - https://www.trendforce.com/news/2026/07/20/news-waic-2026-highlights-chinas-supernode-push-led-by-huawei-minimax-m3-unitree-robots-in-focus/ — WAIC 2026 supernode context
+
+---
+
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Roadmap + Minor (no hardware/silicon change).*
+
+- **Roadmap/corporate**: Kunlunxin filed **STAR Market (科创板) IPO tutoring registration** on 2026-05-07 (CICC sponsor) — confirms "A+H" dual-listing intent alongside the confidential HKEX Form A1. Press-reported; predates this scan window but was not previously recorded here. See Roadmap section above.
+- **Minor**: 2026-09-08, Kunlunxin + FlagOS announced same-day adaptation of the MiniCPM5-2B model (Mianbi AI/OpenBMB) — an ecosystem/model-support item, not a new SDK release.
+- Searched and absent: no M100/M300 spec disclosure, no Tianchi shipment/customer update, no HKEX hearing update, no new XRE/XTDK/XDNN/XTCL release, no Hot Chips 38 Kunlunxin talk.
+
+New sources: see `research/kunlunxin/search-results.md` → "Resources Added 2026-09-13" and `research/kunlunxin/investigations/hw-architecture.md` → "Investigation Update — 2026-09-13".

@@ -1,6 +1,6 @@
 # Tsingmicro (清微智能) TX81 — Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: tsingmicro*
 *device_class: Reconfigurable Dataflow / CGRA "RPU" (China, 清微智能)*
 
@@ -102,6 +102,8 @@ Collectives: TCCL (closed, NCCL-shaped) via open FlagCX adaptors
 - **~60 PyTorch ops still fall back to CPU** (`TXDA_FALLBACK_CPU_OPS`: `sort`, `gather`, `index`, `pad`, `cat`, `add`, `mul`, `sum`, `embedding_backward`, …).
 - **No public graph capture** — no torch.compile/Dynamo/FX path exists, so RAISA layer-3 "global graph optimisation" is unverifiable.
 - FlagOS ecosystem forks (`tsingmicro-public-e/*`) have ~0 stars; upstream `PyTorch-Plugin-FL` has no txda backend at all.
+
+**Update (2026-09-13).** The FlagTree TX81 backend continues active upstream development: commit `0abc361e` (2026-09-01, PR #1073) added new **TLE-DSA elementwise/randgen/bitcast ops** and a **driver launch fast path** (preloaded kernel module + `txLaunchKernel` handle, skipping redundant `txSetDevice`). No hardware/spec change; no ChiNext IPO status change found beyond the previously recorded 2026-06-16 tutoring stage. See `research/tsingmicro/investigations/software-stack.md` → "Update — 2026-09-13".
 
 ---
 

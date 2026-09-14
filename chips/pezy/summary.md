@@ -1,6 +1,6 @@
 # PEZY Computing (PEZY-SC4s) Software and Hardware Stack Summary
 
-*as_of: 2026-08-08 (original research 2026-04-05; see "PEZY Update — 2026-08-08" below)*
+*as_of: 2026-09-13 (original research 2026-04-05; see "PEZY Update — 2026-08-08" and "Update (2026-09-13)" below)*
 
 ---
 
@@ -180,20 +180,30 @@ Both papers use the designation **PEZY-SC3s** (the 512-PE, 109 mm² small-module
 
 ---
 
+## Update (2026-09-13)
+
+*Change class: major. Window: 2026-08-08 → 2026-09-13. Full detail: `research/pezy/investigations/hw-architecture.md` §13; `chips/pezy/hw-architecture.md` §10.*
+
+PEZY's news index gained exactly one item in this window: **2026-08-31**, announcing publication of the IEEE Micro journal paper on SC4s (the same paper this survey flagged on 2026-08-08 as "content not retrievable"). PEZY's own summary of the paper discloses a new FP64 efficiency figure — **"115 GFLOPS/W achieved in double precision matrix multiplication, confirming 2.2× improvement versus prior generation"** — plus a first-time quantified **BF16 peak of 576 TFLOPS**, and a refined system-scale figure of **8.9 PFLOPS FP64** for the planned 90-node test cluster (previously 8.6 PF). All figures are **(vendor claim)**; PEZY's "2.2× improvement" does not arithmetically reconcile against either the previously known 24.6 GF/W (SC3, measured) or 91 GF/W (SC4s, simulated) figures, so it is recorded as stated rather than derived. **Whether 115 GFLOPS/W reflects a silicon measurement or a refined simulation is not disclosed** — IEEE Xplore continues to block automated retrieval of the paper itself (re-confirmed 2026-09-13). Peak FP64 (24.6 TFLOPS), HBM3 capacity/bandwidth (96 GB / 3.2 TB/s), and process (TSMC 5nm) are unchanged. **SC4s remains absent from PEZY's products page** (re-checked 2026-09-13); the end-2025 release target is now missed by 9+ months with no revised date. No other PEZY news, and no corporate-status, funding, or ExaScaler change, was found in the window. Sources: https://www.pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/, https://www.pezy.co.jp/en/products/, https://api.crossref.org/works/10.1109/MM.2026.3698804
+
+---
+
 ## Resources
 
 ### Primary
-- **[IEEE Micro (2026) — "PEZY-SC4s: The Fourth-Generation MIMD Many-Core Processor with High Energy Efficiency and Flexibility for HPC and AI", Hatta et al., pp. 1–8, DOI 10.1109/MM.2026.3698804](https://doi.org/10.1109/MM.2026.3698804)** — extended journal version of the HC37 talk; online ~June 2026. Citable primary reference. Content not retrievable to this survey (Xplore blocks automated fetch); no spec here is sourced from it.
+- **[IEEE Micro (2026) — "PEZY-SC4s: The Fourth-Generation MIMD Many-Core Processor with High Energy Efficiency and Flexibility for HPC and AI", Hatta et al., pp. 1–8, DOI 10.1109/MM.2026.3698804](https://doi.org/10.1109/MM.2026.3698804)** — extended journal version of the HC37 talk; published in the July–August 2026 issue (PEZY announced this 2026-08-31). Citable primary reference. Full text still not retrievable to this survey (Xplore blocks automated fetch as of 2026-09-13); the 115 GFLOPS/W and 576 TFLOPS BF16 figures below come from PEZY's own news-page summary of the paper, not the paper text itself.
+- [PEZY news post announcing the IEEE Micro publication (2026-08-31) — source of the 115 GFLOPS/W and 576 TFLOPS BF16 figures](https://www.pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/)
 - [PEZY-SC4s Hot Chips 2025 Slides (official PDF)](https://www.pezy.co.jp/wp-content/uploads/2025/09/HC2025.PEZYComputing.NaoyaHatta.v06.pdf)
 - [IEEE Xplore — PEZY-SC4s HC37 proceedings paper (DOI 10.1109/HCS66204.2025.11154388)](https://ieeexplore.ieee.org/document/11154388/)
 - [PEZY Computing website](https://www.pezy.co.jp/en/)
-- [PEZY products page](https://www.pezy.co.jp/en/products/) — as of 2026-08-08 lists no PEZY-SC4s and no ZettaScaler 4.0
+- [PEZY products page](https://www.pezy.co.jp/en/products/) — as of 2026-09-13 still lists no PEZY-SC4s and no ZettaScaler 4.0
 - [ZettaScaler 3.0 product page](https://www.pezy.co.jp/en/products/zettascaler-3-0/)
 
 ### Vendor announcements (2025–2026)
 - [2025-06-06 — PyTorch / generative-AI support on the PEZY-SC series](https://www.pezy.co.jp/en/news/news20250606-pezysc-pytorch-generativeai/) — also the source of the "SC4s release at the end of the year" (end-2025) target
 - [2026-05-11 — pzMutect2 on ZettaVEGA: 139× vs GATK 4.2.6.1 Mutect2](https://www.pezy.co.jp/news/news20260511-humangenome-zettavega-pzmutect2/) (Japanese)
 - [2026-05-13 — PZLAST-MAG public MAG protein-search server on PEZY-SC3](https://www.pezy.co.jp/en/news/news20260513-pzlastmag/) · [service](https://pzlast.nig.ac.jp/pzlast/mag)
+- [2026-08-31 — IEEE Micro publication of the PEZY-SC4s paper announced](https://www.pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/)
 - [PEZY news index (English)](https://www.pezy.co.jp/en/news/) · [PEZY news index (Japanese)](https://www.pezy.co.jp/news/)
 
 ### Analysis

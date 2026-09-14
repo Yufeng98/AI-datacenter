@@ -1,5 +1,7 @@
 # Qualcomm Cloud AI 100/200 — Software Stack Investigation
 
+*as_of: 2026-09-13*
+
 ## Summary
 
 The Cloud AI 100 software stack is well-documented and partially open-source. The Linux kernel driver is upstream. The primary compilation path goes: PyTorch/ONNX → qaic-compile → QNN context binary → libQAic runtime → AIC100. Qualcomm also supports ONNX Runtime's QNN Execution Provider and ExecuTorch backend.
@@ -179,3 +181,24 @@ toolchain for any Dragonfly accelerator.
 - https://www.modular.com/blog
 - https://github.com/quic/efficient-transformers/releases
 - https://www.qualcomm.com/news/releases
+
+---
+
+## Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Method: direct fetch of the Qualcomm newsroom monthly listings (`/news/releases/2026/08`, `/news/releases/2026/09`) and the quic/efficient-transformers GitHub releases page. WebSearch was unavailable this session (budget exhausted). Classification: **Moderate** (SDK version bump; no new toolchain target). A separate **Roadmap** classification applies for this chip's hw-architecture.md investigation update (HUMAIN/Adobe deployment, Qualcomm–AWS collaboration) — not repeated here.*
+
+### quic/efficient-transformers v1.22.8.0 (2026-08-26)
+
+| Release | Date | Contents |
+|---|---|---|
+| v1.22.8.0 | **2026-08-26** | Fixed blocking-transform config lookup for wrappers (Qwen3VL); added Qwen3.5, Qwen3.6, Gemma4, GLM4 model support; layerwise API cleanup via `CustomLoader`; MDP generation added to QEff Compile; removed deprecated `compile_only` compiler flag; fixed `vision_size` for Gemma4 chunked-embedding specializations; reduced MoE export RAM via weight aliasing; fixed `CtxGatherCB` operator error during chunked compilation; CCL support extended to Gemma4, Qwen3.5 (MoE), and Qwen3_VL models |
+
+Assessment unchanged from the 2026-08-08 baseline: **incremental and generative/model-support-focused, not architectural.** The release notes show **no AI200/AI250/AI300 support** — the SDK remains exclusively Cloud AI 100-targeted. As of 2026-09-13 there is still no published toolchain for any Dragonfly accelerator, and no Mojo/MAX backend for AI200/AI250/AI300 has been announced.
+
+### Checked, no change found
+
+- No new Modular/Mojo/MAX blog post or Qualcomm PR found for this window beyond the already-recorded 2026-07-29 acquisition close.
+- No qaic-compile / libQAic / QAIC driver version change found.
+
+Source: https://github.com/quic/efficient-transformers/releases

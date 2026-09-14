@@ -574,4 +574,49 @@ Anthropic / Google / Broadcom announced (2026-04-06, anthropic.com; CFO Krishna 
 - [Cloud TPU system architecture / supported versions](https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm) — retrieved 2026-08-08; newest documented generation is TPU7x (Ironwood)
 - [Hot Chips 38 program](https://hotchips.org/program/conference/) — retrieved 2026-08-08
 - [MLPerf Training v6.0 results — MLCommons (2026-06-16)](https://mlcommons.org/2026/06/mlperf-training-v6-0-results/)
+
+---
+
+## Update — 2026-09-13: Hot Chips 38 disclosure
+
+*Window: 2026-08-08 → 2026-09-13. Primary talk: "The Eighth Generation TPU Family: Two Chips Optimized for Training and Serving in the Agentic Era" (Norman Jouppi, Sridhar Lakshmanamurthy), delivered Hot Chips 38, 2026-08-25 — the disclosure the 2026-08-08 pass flagged as scheduled. Source used: ServeTheHome's session writeup, https://www.servethehome.com/googles-tpuv8s-for-training-and-inference-at-hot-chips-2026/ (2026-08-25). This is a detailed secondary account of the talk; no slide deck or transcript was independently retrieved. WebSearch budget for this scan was largely consumed on the Cerebras and SambaNova legs, so verification here rests on this one article plus the pre-existing baseline.*
+
+### A. HBM stack counts (new)
+
+The talk states v8t (Sunfish) has **6 HBM stacks** and v8i (Zebrafish) has **8 HBM stacks**. The repo's off-chip memory table previously carried an unsourced estimate of "4 HBM stacks" for v8t (apparently half of Ironwood's 8); that estimate is now corrected. No stack count had previously been recorded for v8i at all.
+
+### B. Superpod FP4 aggregate — now a directly-cited figure
+
+The 2026-08-08 pass computed v8t's superpod aggregate as ~121 FP4 ExaFLOPS by multiplying Google's per-chip peak (12.6 PFLOPS) by the 9,600-chip superpod size, and cross-checked it against Google's own "121 exaflops" quote from the April 2026 material. The Hot Chips 38 talk restates the same figure directly ("121 EFLOPS of FP4 compute"), so this is now doubly-sourced rather than resting on one arithmetic check.
+
+### C. Virgo network — bandwidth and topology detail (new)
+
+Two facts not in any prior source for this repo:
+- **47 Pb/s aggregate bandwidth** at Virgo's 134,000-chip single-datacenter scale.
+- A **two-layer switching topology** for Virgo. The talk (per ServeTheHome) does not detail what each layer does.
+
+### D. Physical rack/tray configuration (new)
+
+- v8t: **300 racks per superpod, 4 TPUs per tray** → 300 × 32 chips/rack = 9,600 chips, consistent with the already-recorded superpod size.
+- v8i: **8 trays of 4 TPUs per group, 36 groups** → 8 × 4 × 36 = 1,152 chips, consistent with the already-recorded pod size and a refinement of Google's April 2026 "36 groups of 8 boards" language (each board = a 4-chip tray).
+
+### E. Perf/W — reconfirmed, not new
+
+ServeTheHome quotes the talk as "around twice the perf-per-watt as the TPUv7 Ironwood" — this is v8t-specific language but is consistent with, and does not change, the "up to 2×" figure already recorded for both chips from the April 2026 announcement.
+
+### F. Design process (new, minor)
+
+Google states it used AI to help design the TPU 8t/8i chips, specifically for power and area optimization. No further detail (methodology, tooling, which design stages) is given in the available coverage.
+
+### G. Availability — explicitly checked, nothing found
+
+This scan specifically checked the Hot Chips 38 coverage for a GA/availability statement, because a "GA late 2027" figure for TPU 8i has been circulating in some secondary commentary (flagged for verification at the start of this pass). **The ServeTheHome article contains no availability language for either chip at all** — no GA date, no shipping timeline, nothing. The "late 2027" figure is therefore **not corroborated by this source** and is **not recorded**. This is consistent with the 2026-08-08 pass's finding that an "external availability late 2027" claim traced to a dead URL and was excluded. The only sourced availability figure remains Google's April 2026 statement ("both chips will be generally available later this year"). The Cloud TPU release notes and supported-version list were **not re-fetched** in this pass; their last-checked state (2026-08-08, no v8 entry) is carried forward unverified.
+
+### H. Price/performance and specialized-block claims — no update
+
+No new price/performance figures, SparseCore counts, MXU dimensions, FP8-on-v8 confirmation, or process-node/design-partner confirmation appear in the available Hot Chips 38 coverage. All "not disclosed" items from the 2026-08-08 pass (§ "Explicitly not confirmed in this window") remain not disclosed.
+
+### Sources (2026-09-13 pass)
+
+- [Google's TPUv8s for Training and Inference at Hot Chips 2026 — ServeTheHome (2026-08-25)](https://www.servethehome.com/googles-tpuv8s-for-training-and-inference-at-hot-chips-2026/) — primary source for this update: HBM stack counts, 121 EFLOPS FP4, Virgo 47 Pb/s + two-layer topology, rack/tray physical layout, perf/W reconfirmation, AI-assisted design note; explicitly checked and found no GA/availability statement
 - [Anthropic / Google / Broadcom compute partnership (2026-04-06)](https://www.anthropic.com/news/google-broadcom-partnership-compute)

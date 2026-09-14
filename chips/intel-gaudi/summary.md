@@ -1,7 +1,7 @@
 # Intel Gaudi — Software & Hardware Stack Summary
 
-*as_of: 2026-04-05*
-*last_updated: 2026-08-08*
+*as_of: 2026-09-13*
+*last_updated: 2026-09-13*
 *device_class: Mixed (GEMM + VLIW TPC)*
 
 ---
@@ -189,7 +189,7 @@ Originally planned as a multi-chiplet hybrid (Xe-HPC GPU + Gaudi ASIC) targeting
 
 ### Crescent Island — Inference GPU (customer sampling H2 2026)
 
-Announced at OCP Global Summit (October 2025). Crescent Island is an inference-oriented GPU based on the Xe3P architecture — a performance-optimized variant of Intel's Xe3 GPU used in Panther Lake mobile. The reference design carries **160 GB of LPDDR5X** memory (capacity-optimized over bandwidth, unlike Gaudi's HBM), with **partner/ODM configurations up to 480 GB LPDDR5X** per the Computex 2026 disclosure. Positioned for "tokens-as-a-service" inference operators in air-cooled enterprise servers. **350 W air-cooled PCIe add-in card**; datatype range reported as **FP4 through FP64**. Memory bandwidth and TFLOPs are **not disclosed**. **Note:** This product diverges from the Gaudi ASIC architecture; it is not a training accelerator and does not appear to carry Gaudi's on-die RoCE NIC design. Computex figures are trade-press-sourced (medium confidence) — see the 2026-08-08 update section.
+Announced at OCP Global Summit (October 2025), given a fuller spec sheet at Computex 2026, and given its first Intel architectural disclosure at Hot Chips 38 (2026-08-24, talk "Crescent Island: GPU Designed for Agentic AI Inference"). Crescent Island is an inference-oriented GPU based on the Xe3P architecture — a performance-optimized variant of Intel's Xe3 GPU used in Panther Lake mobile — built around **32 Xe cores feeding 256 XMX engines** on a 16-deep systolic array, with 32 MB unified L2 and 1 MB GRF + 512 KB L1 per core. The reference design carries **160 GB of LPDDR5X** memory (capacity-optimized over bandwidth, unlike Gaudi's HBM), with **partner/ODM configurations up to 480 GB LPDDR5X**. Positioned for "tokens-as-a-service" and agentic-inference operators in air-cooled enterprise servers. **350 W air-cooled PCIe Gen5 x16 add-in card** (50 W active-idle, ~10 W low-power idle); confirmed datatype range **FP4/MXFP4 through FP64**. Memory bandwidth, process node and die/package configuration remain **not Intel-disclosed**; Chips and Cheese estimates >1.5 TB/s bandwidth and 655/1,300/2,600 TFLOP/s at BF16/FP8/FP4 respectively (assumed 2.5 GHz clock — analyst estimates, not Intel figures). **Note:** This product diverges from the Gaudi ASIC architecture; it is not a training accelerator and does not appear to carry Gaudi's on-die RoCE NIC design. See the 2026-09-13 update section for the Hot Chips 38 disclosure and the 2026-08-08 section for the Computex-era figures still awaiting confirmation (bandwidth, sampling/GA dates).
 
 ### Jaguar Shores — Gaudi-branded rack-scale platform (~2027)
 
@@ -201,10 +201,10 @@ Confirmed by Intel to carry the Gaudi brand. Built on Intel 18A (gate-all-around
 |---------|-------------|--------|--------|--------|
 | Gaudi 3 (HL-325L) | Gaudi ASIC, dual-die | 128 GB HBM2e @ 3.7 TB/s | GA, shipping | Training + inference |
 | Falcon Shores | Xe-HPC + Gaudi hybrid | — | **Cancelled** (Jan 2025) | Was training + inference |
-| Crescent Island | Xe3P GPU | 160 GB LPDDR5X reference, up to 480 GB (partner configs); bandwidth not disclosed | Sampling H2 2026, GA 2027; 350 W air-cooled PCIe | Inference (FP4–FP64) |
+| Crescent Island | Xe3P GPU: 32 Xe cores / 256 XMX engines, 16-deep systolic array, 32 MB L2 | 160 GB LPDDR5X reference, up to 480 GB (partner configs); bandwidth not Intel-disclosed (analyst est. >1.5 TB/s) | Sampling H2 2026, GA 2027; 350 W air-cooled PCIe Gen5 x16, 50 W active-idle | Inference (FP4/MXFP4–FP64) |
 | Jaguar Shores | Gaudi-branded, Intel 18A, rack-scale | HBM4 / HBM4E (SK Hynix) | ~2027 pre-announcement | Training + inference |
 
-*Crescent Island figures per Computex 2026 trade coverage (2026-06-01/02); no Intel first-party page carrying these figures was located. Hot Chips 38 talk 2026-08-24 pending.*
+*Crescent Island architecture (Xe cores/XMX engines, systolic array, L2, PCIe generation, idle power, RAS features) is Intel-disclosed via the Hot Chips 38 talk "Crescent Island: GPU Designed for Agentic AI Inference" (2026-08-24, per ServeTheHome). Capacity, TDP and datatype-range figures not restated there still trace to Computex 2026 trade coverage (2026-06-01/02); no Intel first-party page carrying the full spec sheet was located. Memory bandwidth remains undisclosed by Intel; Chips and Cheese's >1.5 TB/s figure is an analyst estimate.*
 
 ### Strategic Implications
 
@@ -303,6 +303,24 @@ At Computex 2026 Intel announced production rack-scale AI infrastructure pairing
 
 ---
 
+## Intel Gaudi Update (2026-09-13)
+
+*Updated 2026-09-13. Window covered: 2026-08-08 → 2026-09-13. Primary event: Intel, "Crescent Island: GPU Designed for Agentic AI Inference" (Sumit Mohan, Hong Jiang), Hot Chips 38, Day-1 GPU session, Mon 2026-08-24 — the disclosure flagged as pending in the previous update.*
+
+**Bottom line: Gaudi 1/2/3 silicon is still unchanged.** Everything in this window is Crescent Island's Hot Chips 38 architectural disclosure, now reflected in the Roadmap Summary Table above and in `hw-architecture.md`.
+
+1. **First Crescent Island architecture disclosure.** Xe3P, 32 Xe cores feeding 256 XMX engines on a 16-deep systolic array, 1 MB GRF + 512 KB L1 per core, 32 MB unified L2. This closes what was previously an entirely "not disclosed" compute-engine row.
+2. **PCIe generation confirmed**: Gen5 x16 (previously not disclosed).
+3. **New power/RAS disclosures**: 50 W or less active-idle (G0 state), ~10 W low-power idle (G8 state); ECC/parity across key memory, per-hop internal-fabric error checking, dynamic page offlining, hard post-package repair. The 350 W TDP, air-cooling, 160/480 GB LPDDR5X capacity and FP4-through-FP64 datatype range are unchanged from Computex 2026 but now rest on an Intel-hosted conference talk rather than only trade coverage of a briefing slide.
+4. **Memory bandwidth is still not Intel-disclosed.** ServeTheHome explicitly notes Intel declined to give this figure at Hot Chips 38. Chips and Cheese now estimates **over 1.5 TB/s** (reverse-engineered from PCB photos showing 20 LPDDR5X modules — 12 front, 8 back — on an assumed 1280-bit bus at LPDDR5X-9600), which **supersedes** the earlier, much lower press guess of ~0.6–0.7 TB/s ("~684 GB/s"). Both remain analyst estimates, not Intel numbers.
+5. **New analyst TFLOP/s estimates (Chips and Cheese, not Intel-disclosed)**, modeled at an assumed 2.5 GHz clock: FP64 vector 10.2 TFLOP/s, FP32 vector 20.5 TFLOP/s, FP16 vector ~41 TFLOP/s, TF32 XMX 328 TFLOP/s, FP16/BF16 XMX 655 TFLOP/s, FP8 XMX 1.3 PFLOP/s, FP4/MXFP4 XMX 2.6 PFLOP/s. Chips and Cheese frames this as ~30% ahead of NVIDIA RTX PRO 6000 Blackwell in matrix compute and >5× Blackwell's FP64 vector throughput, while Blackwell holds 6× higher FP32 vector and 3× higher FP16 vector compute — third-party analyst comparisons, not Intel claims.
+6. **Sampling/GA schedule not restated.** Customer sampling H2 2026 / GA 2027 remain Computex-era figures; the Hot Chips 38 talk materials did not repeat a schedule.
+7. **Still not disclosed**: memory bandwidth, process node, die/package configuration, and Crescent Island's multi-card scale-up/NIC architecture.
+
+**Sources for this update:** https://www.servethehome.com/intel-crescent-island-160gb-to-480gb-lpddr5x-ai-gpu-at-hot-chips-2026/ · https://chipsandcheese.com/p/hot-chips-2026-intels-crescent-island
+
+---
+
 ## Resources
 
 | Resource | URL |
@@ -328,4 +346,6 @@ At Computex 2026 Intel announced production rack-scale AI infrastructure pairing
 | Crescent Island Computex 2026 coverage (480 GB, 350 W, FP4–FP64) | https://videocardz.com/newz/intel-crescent-island-gpu-officially-supports-up-to-480gb-lpddr5x-memory |
 | Intel Compute Runtime 26.01.36711.4 — early Crescent Island support | https://www.phoronix.com/news/Intel-CR-26.01.36711.4 |
 | Intel Graphics Compiler v2.27.10 — initial Crescent Island support | https://www.techpowerup.com/345253/intel-nova-lake-s-and-crescent-island-support-added-to-graphics-compiler |
-| Hot Chips 38 program (Intel Crescent Island talk, 2026-08-24 — not yet public) | https://hotchips.org/program/conference/ |
+| Hot Chips 38 program (Intel Crescent Island talk, 2026-08-24) | https://hotchips.org/program/conference/ |
+| ServeTheHome — Crescent Island Hot Chips 38 coverage (architecture, PCIe gen, power/RAS) | https://www.servethehome.com/intel-crescent-island-160gb-to-480gb-lpddr5x-ai-gpu-at-hot-chips-2026/ |
+| Chips and Cheese — Crescent Island architectural deep-dive and TFLOP/s estimates | https://chipsandcheese.com/p/hot-chips-2026-intels-crescent-island |

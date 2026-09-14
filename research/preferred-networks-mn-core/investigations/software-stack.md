@@ -1,6 +1,6 @@
 # Preferred Networks MN-Core Software Stack Investigation
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: preferred-networks-mn-core*
 *device_class: Compiler-Scheduled SIMD Accelerator (Japan)*
 
@@ -308,8 +308,9 @@ Public and complete — see Layer 6(a). Characteristics that matter for this sur
 | **v0.4** | 2026-02-27 | Compiler perf improvements, MLSDK migration guide, sample projects |
 | **v0.5** | 2026-04-28 | "SDK source now public at github.com/pfnet/mncore" — ⚠️ **misleading wording**: what became public is the Dockerfiles + examples, not the compiler/runtime source. User-side container build became the recommended flow |
 | **v0.6** | 2026-06-05 | **MN-Core 2 emulator and assembler bundled into MLSDK**; `fx2onnx.linter.lint` API; Stable Diffusion advanced example |
-| **v0.7** | 2026-07-15 | Current |
+| v0.7 | 2026-07-15 | — |
 | — | 2026-06-22 | **MN-Core SDK Hub** developer portal launch (dev.mn-core.com) |
+| **v0.8** | **2026-08-26** | **Current.** dev.mn-core.com/news/en/ lists only "MN-Core SDK v0.8 has been released" with no changelog/diff page — the Hub does not publish a version-to-version release-notes document (unlike a GitHub Releases page). The v0.8 Technical Notes, Getting Started, and index pages were checked directly and contain no explicit "what's new in 0.8" content and no dependency version table (torch/torchvision versions not stated, unlike the v0.7-era "2.9.0" figure this survey recorded). **Specific content changes in v0.8 are therefore not disclosed to this survey** beyond the version bump and date itself |
 
 **The public, no-login MN-Core developer story is roughly six months old as of August 2026.** Before 2026 the SDK was effectively PFCP-internal.
 
@@ -347,6 +348,24 @@ Groq's TSP is the obvious neighbour, but MN-Core goes further: Groq's compiler s
 
 ---
 
+## Update — 2026-09-13
+
+*Window covered: 2026-08-08 → 2026-09-13. Change class: **moderate** (one SDK point release; no hardware spec change). Queries run: `"Preferred Networks new AI chip 2026"`, `"MN-Core next generation"`, `"Preferred Networks AI accelerator announcement 2026"`, `"Preferred Networks SDK release 2026"`, `"MN-Core benchmark"`, `"MN-Core whitepaper"`, `"Preferred Networks IPO"`, `"Preferred Networks Rapidus 2026"`.*
+
+### MN-Core SDK v0.8 released (2026-08-26)
+
+Confirmed directly via https://dev.mn-core.com/news/en/ (checked 2026-09-13): "2026-08-26 — MN-Core SDK v0.8 Released — RELEASE — MN-Core SDK v0.8 has been released." This is the only SDK release in the window (v0.7, 2026-07-15, predates the 2026-08-08 baseline and was already on file). No dedicated changelog page exists on the SDK Hub for either release — checked `technical_notes.html`, `getting_started.html`, and `index.html` under `/sdk/0.8/MLSDK/docs/en/`, none of which contain version-diff content, so **specific v0.8 changes are not disclosed** to this survey beyond the version number and date. The MN-Core 2 hardware itself is unaffected by an SDK release.
+
+### Corporate: IPO reporting (early September 2026) — recorded here as context, not a software-stack change
+
+Independent press (Bloomberg, Crypto Briefing, MarketScreener, DIGITIMES — all dated approximately 2026-09-06/07/08) reports that **Preferred Networks is pursuing an IPO**, with CEO Daisuke Okanohara quoted characterizing the move as necessary to fund MN-Core chip mass production given "the rising cost and scale needed to stay competitive in the global AI race." No funding amount, exchange, or timeline was found in the excerpts retrieved (WebSearch was unavailable this session — quota exhausted; this rests on WebFetch summaries of Bing News results, which is narrower than a full search and did not surface the original Bloomberg article text directly). PFN's own news index (preferred.jp/en/news/) does **not** carry an IPO announcement as of 2026-09-13 — this is being reported by financial press, not yet confirmed by a PFN press release. **Treat as reported-but-not-vendor-confirmed.** No PFN/Rapidus news was found in the window (the only Rapidus-adjacent item found, "Rapidus and Cadence Partner on Agentic AI for Advanced SoC Design," does not mention PFN or MN-Core).
+
+### Not independently re-verified this pass
+
+MN-Core L1000/L1100/L1400 status, MN-Core 2 availability/pricing, and the roadmap graphic were spot-checked (PFN AI Chips business page, fetched 2026-09-13) and appear **unchanged** from the 2026-08-08 baseline — MN-Core L1000 still described as "under development" / prototype stage, MN-Core 2 pricing unchanged (MN-Server 2 ¥20M, Devkit ¥2M). No MN-Core 3 name was found anywhere (the Hot Chips 36 "MN-Core Next" vs. the PFN/Rapidus basic-agreement "new model in the MN-Core series" naming ambiguity recorded at baseline remains unreconciled).
+
+---
+
 ## Sources
 
 - [MLSDK 0.7 — Technical Notes](https://dev.mn-core.com/sdk/0.7/MLSDK/docs/en/technical_notes.html)
@@ -368,6 +387,15 @@ Groq's TSP is the obvious neighbour, but MN-Core goes further: Groq's compiler s
 - [PFN tech blog — compiler optimization with recompute (JA)](https://tech.preferred.jp/ja/blog/mncore-compiler-optimization-with-recompute/)
 - [PFN tech blog — PFVM ONNX exporter (JA)](https://tech.preferred.jp/ja/blog/pfvm-onnx-exporter/)
 - [PFN tech blog — build an MN-Core graph compiler yourself (JA, 2025-12)](https://tech.preferred.jp/ja/blog/mn-core2_graphcompiler_scratch/)
+
+### Added 2026-09-13
+- [MN-Core SDK Hub News (EN) — v0.8 release entry, 2026-08-26](https://dev.mn-core.com/news/en/)
+- [MLSDK 0.8 — Documentation Index](https://dev.mn-core.com/sdk/0.8/MLSDK/docs/en/index.html)
+- [MLSDK 0.8 — Technical Notes](https://dev.mn-core.com/sdk/0.8/MLSDK/docs/en/technical_notes.html)
+- [MLSDK 0.8 — Getting Started](https://dev.mn-core.com/sdk/0.8/MLSDK/docs/en/getting_started.html)
+- [PFN AI Chips business page (re-checked 2026-09-13)](https://www.preferred.jp/en/business/chips/)
+- [PFN News index (EN), re-checked 2026-09-13 — no IPO press release found](https://www.preferred.jp/en/news/)
+- Bing News search results (via WebFetch) for Preferred Networks IPO coverage — Bloomberg, Crypto Briefing, MarketScreener, DIGITIMES (all ~2026-09-06/07/08) — original articles not directly fetched; summarized via search-result snippets only
 - [MN-Core Challenge](https://mncore-challenge.preferred.jp/)
 - [MN-Core Playground](https://playground.mn-core.com/)
 - [PFCP User Guide](https://docs.pfcomputing.com/en/)

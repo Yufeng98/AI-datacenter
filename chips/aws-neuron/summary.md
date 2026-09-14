@@ -1,6 +1,6 @@
 # AWS Neuron (Trainium / Inferentia) — Software & Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *device_class: Systolic Array Accelerator*
 
 ---
@@ -27,7 +27,7 @@ AWS Neuron supports two primary ML frameworks:
 
 **JAX** support was introduced in September 2024 (Neuron SDK 2.20). JAX traces computation graphs to StableHLO, which the Neuron compiler's XLA frontend ingests. `jax.jit` triggers compilation through the Neuron XLA backend. NKI kernels integrate into JAX graphs via `custom_call` bindings.
 
-**NKI (Neuron Kernel Interface)** provides a framework-agnostic bare-metal tile programming API. NKI kernels can be registered as custom operators via `nki.baremetal` (PyTorch) or `custom_call` (JAX), or executed standalone on Trainium/Inferentia. NKI reached **Stable** (leaving Beta) at NKI 0.3.0 / Neuron SDK 2.29.0 on 2026-04-09; the current release is NKI 0.5.0 / Neuron SDK 2.31.0 (2026-07-07).
+**NKI (Neuron Kernel Interface)** provides a framework-agnostic bare-metal tile programming API. NKI kernels can be registered as custom operators via `nki.baremetal` (PyTorch) or `custom_call` (JAX), or executed standalone on Trainium/Inferentia. NKI reached **Stable** (leaving Beta) at NKI 0.3.0 / Neuron SDK 2.29.0 on 2026-04-09; the current release is **NKI 0.6.0 / Neuron SDK 2.32.0 (2026-08-17)** — see Update (2026-09-13) below.
 
 ### Compiler / IR
 
@@ -82,7 +82,7 @@ The **nki-samples** GitHub repository provides official reference implementation
 
 **NxD Training (neuronx-distributed-training)** is the high-level 3D parallelism training library. It integrates with NVIDIA NeMo Megatron configs (`neuronx-nemo-megatron`) for GPT/LLaMA pretraining with minimal code changes. Supports activation checkpointing, continuous batching, and has been demonstrated at Project Rainier scale (~500,000 Trainium2 chips in 2025; Anthropic states over one million Trainium2 chips fleet-wide as of April 2026).
 
-**NxD Inference (neuronx-distributed-inference)** provides production inference features: continuous batching, speculative decoding, vLLM integration, and TP/PP for large LLM serving on Trn2/Trn3. **Breaking change in Neuron SDK 2.29.0**: NxD Inference no longer supports NKI kernels on Trn1/Inf2 — because NKI 0.3.0 itself does not support Trn1/Inf2 — and the component release note states NxD Inference models are now supported only on **Trn2 and newer**. Trn1/Inf2 users must pin to Neuron SDK 2.28. (The 2.31.0 release-notes *index card* still lists NxD Inference against Inf2/Trn1/Trn1n/Trn2/Trn3; the component release note is the authoritative statement.)
+**NxD Inference (neuronx-distributed-inference)** provides production inference features: continuous batching, speculative decoding, vLLM integration, and TP/PP for large LLM serving on Trn2/Trn3. **Breaking change in Neuron SDK 2.29.0**: NxD Inference no longer supports NKI kernels on Trn1/Inf2 — because NKI 0.3.0 itself does not support Trn1/Inf2 — and the component release note states NxD Inference models are now supported only on **Trn2 and newer**. Trn1/Inf2 users must pin to Neuron SDK 2.28. (The 2.31.0 release-notes *index card* still lists NxD Inference against Inf2/Trn1/Trn1n/Trn2/Trn3; the component release note is the authoritative statement.) **Update (2026-09-13): NxD Inference entered maintenance mode as of Neuron SDK 2.32.0 (2026-08-17)** — "no new feature releases are planned for this component"; AWS directs users to migrate to **vLLM Neuron** (Beta, upgraded to v0.24.0 in 2.32.0), which is now the primary forward-looking inference-serving path.
 
 **Neuron Agentic Development** (first documented as an SDK component in 2.30.0) ships AI coding-agent skills bundled in all Neuron DLAMIs and DLCs: `neuron-framework-autoport` (ports HuggingFace transformer models to NxD Inference end-to-end, including compilation and greedy-token-match accuracy validation) and `neuron-framework-equivalence` (numerical-equivalence validation via progressive 3-tensor R-ratio analysis with fault localization).
 
@@ -330,6 +330,24 @@ These are the parties' own statements, not independently audited deployment coun
 
 ---
 
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: **Moderate** (SDK/compiler/runtime version update; no new NeuronCore generation or spec disclosure). Sources: aws-neuron/aws-neuron-sdk GitHub releases; readthedocs release-notes pages; component `.rst` changelogs. WebSearch was unavailable this session (budget exhausted); findings are from direct primary-source URL fetches only.*
+
+Two releases shipped in the window: **2.31.1** (2026-08-12, patch/bugfix) and **2.32.0** (2026-08-17, NKI 0.6.0).
+
+- **NKI 0.6.0**: on-device top-K reduction (`nisa.topk`); variable-length collective `all_gather_v`; new runtime loop constructs `fori_loop`/`while_loop` (replacing `nl.dynamic_range`); relaxed DMA transpose constraints. +13 new NKI Library kernels (DeepSeek-V3.2 sparse-MLA context encoding, MXFP8 MoE training); PyTorch reference impls extended to 22 more kernels.
+- **Graph compiler (neuronx-cc v2.27.5334.0)**: `--native-int64` / `--implicit-integer-downcast` flags; complex64 op support expanded to 30 ops; embedding-lookup-as-gather optimization — AWS claims up to 64% faster compiles and up to 96% smaller NEFFs for affected workloads **(vendor claim)**.
+- **Runtime/driver**: variable-size collectives (AllGatherV, ReduceScatterV, AllToAllV) for uneven per-rank data on Trn2/Trn3; one-rank-per-die topology on Trn3 Gen2 UltraServer; max NCCL communicators per NEFF raised 12 → 16.
+- **NxD Inference → maintenance mode**: no further feature releases planned; AWS directs migration to vLLM Neuron (upgraded to v0.24.0). This is the culmination of the 2.29.0 Trn1/Inf2 drop and Trn2-and-newer scoping recorded in the prior update — vLLM Neuron is now the primary forward path for inference serving.
+- **Neuron Agentic Development**: new `neuron-framework-autoport-vllm-neuron` skill (HuggingFace → vLLM Neuron porting).
+
+**Checked, no change found**: the Trn3 architecture page (UltraServer spec table, the unreconciled NeuronLink-v4 bandwidth figures, and the absence of Trn3 GA/preview status) is byte-for-byte consistent with the 2026-04-09 revision already recorded — no new hardware disclosure this window. No new Trainium4 primary-source material found. Hot Chips 38 (Aug 23–25, 2026) is within the window but was already recorded as having no AWS/Neuron talk; not independently re-verified this cycle.
+
+Sources: https://github.com/aws-neuron/aws-neuron-sdk/releases/tag/v2.32.0 · https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nki.rst · https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nxd-inference.rst
+
+---
+
 ## Resources
 
 | Resource | URL |
@@ -364,3 +382,7 @@ These are the parties' own statements, not independently audited deployment coun
 | Anthropic — Amazon compute expansion (2026-04-20) | https://www.anthropic.com/news/anthropic-amazon-compute |
 | SemiAnalysis — Trainium3 Deep Dive | https://newsletter.semianalysis.com/p/aws-trainium3-deep-dive-a-potential |
 | SemiAnalysis — Trainium2 Architecture | https://newsletter.semianalysis.com/p/amazons-ai-self-sufficiency-trainium2-architecture-networking |
+| Neuron SDK 2.32.0 release notes | https://awsdocs-neuron.readthedocs-hosted.com/en/latest/release-notes/2.32.0.html |
+| Neuron SDK v2.32.0 GitHub release | https://github.com/aws-neuron/aws-neuron-sdk/releases/tag/v2.32.0 |
+| NKI component release notes (0.6.0 added 2026-09-13) | https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nki.rst |
+| NxD Inference component release notes (maintenance-mode notice) | https://raw.githubusercontent.com/aws-neuron/aws-neuron-sdk/master/release-notes/components/nxd-inference.rst |

@@ -1,6 +1,6 @@
 # VastaiTech (瀚博半导体) — Search Results
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: vastaitech*
 *device_class: GPU-like Inference Accelerator + Video Codec (China, 瀚博 VastaiTech)*
 
@@ -164,3 +164,20 @@ Direct-crawl passes, in addition to search:
 - **Self-disclosed maturity limit**: `max-concurrency 4` across essentially every vLLM model, including DeepSeek-V3 and small BGE embedding models; no data parallelism; mandatory eager mode.
 - **Maturity verdict: shipping / commercially available, NOT verified deployed at scale.** No named end customer with a disclosed deployment size, no third-party benchmark, no ISCA / MICRO / Hot Chips / ISSCC / arXiv publication of any kind.
 - **IPO status**: entered **IPO counselling** (辅导备案) with CITIC Securities on 2025-07-18, targeting a domestic A-share listing. This is the pre-application stage — **do not write that VastaiTech has filed an IPO application.** The SSE STAR Market negative result is consistent with, not contradictory to, this.
+
+---
+
+## Resources Added 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*No hardware/silicon disclosure this window. Two items: a new VastStreamX SDK release that predates the window but was absent from the prior pass, and a re-verification of IPO status.*
+
+- **[new 2026-09-13]** [Vastai/VastStreamX-Samples release `26.08`](https://github.com/Vastai/VastStreamX-Samples/releases/tag/26.08) — published **2026-08-03** (verified via GitHub API `releases`; 5 days before the 2026-08-08 baseline scan and missed at that pass). Supersedes the previously recorded `26.04` (2026-05-27, not 2026-05-09 as the baseline stated — corrected here against the live API). Commit activity in the repo continued steadily through the window (bug fixes: `dbnet_detector` max_candidates, mini-box classification, rotate-angle init; a performance-improvement commit 2026-09-11; docs updates through 2026-09-14) — routine maintenance, no new hardware surface.
+- **[new 2026-09-13]** [Vastai/VastModelZOO — repo activity](https://github.com/Vastai/VastModelZOO) — `pushed_at` **2026-08-31** (verified via GitHub API); recent commits are model-doc fixes (GLM-OCR eval doc, vamp data format) — no new model family added in-window.
+- **[new 2026-09-13]** [SSE STAR Market IPO review database — re-queried live (`query.sse.com.cn/statusAction.do?sqlId=SH_XM_LB`)](https://query.sse.com.cn/statusAction.do?sqlId=SH_XM_LB) — now **1,048 total filings** (up from 1,046 at the 2026-08-08 pass); **no 瀚博/VastaiTech record found**, confirming the counselling-stage-only status is still current as of 2026-09-13.
+
+## Searched and Not Found (2026-09-13)
+
+- No VA22/VA1L successor or third-generation-chip specification.
+- No new VastStream (legacy C SDK) release.
+- No STAR Market filing progression beyond counselling.
+- No Hot Chips 38 (2026-08-23 → 08-25) VastaiTech talk.

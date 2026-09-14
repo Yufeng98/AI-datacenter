@@ -1,7 +1,7 @@
 # Next Wave — Investigation Queue
 
 *Created: 2026-04-05*
-*Last scan: 2026-08-08 (`update-chip-landscape`, mode full)*
+*Last scan: 2026-09-13 (`update-chip-landscape`, mode full)*
 
 ## Status of the 2026-04-05 Wave — COMPLETE
 
@@ -88,12 +88,82 @@ Raised by the 2026-08-08 completeness critic. These are **scope decisions, not r
 4. **Memory-tier innovations** (HBF, LPDDR-PIM, 3D-DRAM, CXL computational memory) are surfacing as compute
    architecture, blurring the accelerator/memory boundary the registry currently assumes.
 
+## Update — 2026-09-13 (mode full)
+
+Scan window 2026-08-08 → 2026-09-13, covering Hot Chips 38 (Aug 23–25, 2026) plus every other source
+type (vendor press releases, SDK/GitHub releases, exchange filings, analyst coverage, papers). All 50
+registry chips were re-checked; sources were not restricted to Hot Chips.
+
+**Chips with confirmed Hot Chips 38 technical disclosures, now reflected in the corpus:** nvidia-gpu
+(Rubin, Vera CPU, Groq 3 LPX/LPU rack specs — first real numbers for a component that had zero), amd-gpu
+(MI455X/Helios — MXFP6/FP8 peak now confirmed, `gfx1250` ISA target now public, rack physical format
+confirmed), google-tpu (TPU 8t "Sunfish" / 8i "Zebrafish" — HBM stack counts, superpod/fabric bandwidth),
+cerebras (WSE-3T / CS-4 "Nexus" — new row, ~2× clock over WSE-3, wafer-to-wafer interconnect), sambanova
+(SN50 — HBM generation and network fabric now confirmed), meta-mtia (MTIA 300 process node, MTIA 400 —
+first specs at all, new row), microsoft-maia (Maia 200 — first-ever rows in the comparison tables, sourced
+to a genuine Microsoft-primary arXiv paper, arXiv:2608.24664), intel-gaudi (Crescent Island — Xe3P core/
+cache counts, LPDDR5X capacity range), ibm-spyre (a distinct, pre-announced "AI Inference Acceleration
+Chipset" — new row, not conflated with shipping Spyre), samsung-aquabolt-pim (LPDDR5X-PIM — new row with
+real bandwidth/capacity numbers), d-matrix (Raptor 3D-DRAM accelerator — new row, distinct from Corsair),
+groq (cross-referenced to the NVIDIA-fabbed LPX hardware; GroqCloud's own $350M round and NVIDIA-partner
+status recorded separately).
+
+**Chips with material non-Hot-Chips changes:** etched-sohu (first customer delivery — Jane Street,
+$700M Series D at $21B), tesla-dojo (a ~$2B "unnamed AI hardware company" acquisition backfilled from a
+10-Q), tesla-fsd (AI5 delay to mid-2027 reaffirmed), qualcomm (first confirmed AI200/Dragonfly production
+deployment — Adobe on HUMAIN; a new Qualcomm–AWS silicon collaboration), rebellions-atom (NVIDIA reported
+in early talks with Rebellions), huawei-ascend (DeepSeek reportedly ordering 160,000+ Ascend 950DT
+accelerators), enflame (STAR Market IPO debut, +188–234%), several other Chinese vendors' H1 2026
+financials and IPO/funding status (cambricon, biren, muxi, hygon-dcu, mthreads, xiwang, kunlunxin,
+tianshu-zhixin). sk-hynix-aim, stream-computing, graphcore, esperanto, luminous, mythic, rain-ai,
+untether-ai, q-ant, and spinncloud-spinnaker2 had no material change in the window.
+
+**Data-quality note:** MLPerf Inference v6.1 is **not yet published** as of 2026-09-13 (latest is v6.0,
+2026-04-01) — the "submissions opened 2026-07-09" line above refers to the submission window only, not
+results; do not report v6.1 results until they actually exist.
+
+## New Chips Discovered (2026-09-13) — Awaiting User Approval
+
+Four parallel discovery agents ran the full 41-query sweep (news, conferences, architecture type, every
+region, market segment, analyst coverage, curated lists), explicitly not limited to Hot Chips. This list
+is curated down from ~35 raw hits to the candidates with genuine technical substance; per the skill's
+Mode 1 rule, **none of these have been investigated — approval is required before any pipeline work
+starts.**
+
+| # | Chip | Company | Device Class | Maturity | Public docs | Add? |
+|---|------|---------|-------------|----------|--------------|------|
+| 1 | Napier | Tensordyne (US; formerly Recogni) | Log-number-system inference ASIC | **Taped out** TSMC 3nm, whitepaper published 2026-09-03 | Whitepaper (tensordyne.ai), 138B transistors, 2.1 PFLOPS FP8 disclosed | ? |
+| 2 | Atlas / Asimov | Positron (US) | SRAM-heavy inference accelerator | Atlas **in production** at OCI (>50 racks); Asimov tapes out end-2026 | positron.ai product pages; $875M Series C (2026-09-11) | ? |
+| 3 | Epoch series | EVAS Intelligence (China) | RISC-V/TPU-style train+infer accelerator | Vendor claims mass production / "large-scale deployment" | Co-authored ISCA 2026 paper (TISA scheduling); no vendor whitepaper found | ? |
+| 4 | DF1000 | Dongfang Suanxin "Orient Silicon" (China, Shanghai) | 3D hybrid-bonded near-memory LLM-decode chip | Taped out, 128-card cluster demonstrated | Press only (CGTN, SCMP); **source disagreement on the company's own Chinese name across three outlets** — verify before adding |
+| 5 | Homodyne photonic crossbar | Opticore (US, Berkeley/MIT) | Photonic tensor processor | Research prototype (2025 demo tape-outs); HC38 poster | arXiv:2604.18496 + Hot Chips 38 poster — best-documented photonic candidate found | ? |
+| 6 | DX-1 | Olix (US) | SRAM-only inference accelerator | Pre-silicon; first customer delivery H2 2027 | Vendor site only; $312M Series B at $3.3B (2026-08-03) | ? |
+| 7 | T100 OPU | Neurophos (US, Austin) | Metamaterial photonic OPU | Pre-silicon; systems targeted ~2028 | Whitepaper referenced on vendor site; $110M Series A | ? |
+
+Rows 1–2 clear the skill's "at least sampling, with public technical documentation" bar cleanly. Rows
+3–7 are weaker on one axis each (thin vendor documentation, unresolved naming, or pre-silicon status) —
+flagged rather than pre-filtered, since maturity often changes fast for these.
+
+**Not brought forward** (real financing/press activity, but too early or out of scope): Unconventional AI
+($475M seed, no product), Majestic Labs (Prometheus server, tape-out still pending), Jiangyuan Technology
+D20 (mass-production claim but zero public technical documentation), Arago JEF (test chip only), Openchip
+BER10 (a CPU+vector core today; AI accelerators are roadmap-only), Neuchips Raptor N3000 (shipping but
+edge/on-prem class, not datacenter-scale), GSI Technology Gemini (edge-focused per the vendor's own 2026
+strategy). Full detail on all ~35 raw candidates from this scan is preserved in the session's working
+notes if any of these should be revisited.
+
+**Watch-list status changes** (already-tracked but deferred; documentation status improved — do not
+require approval to note, only to promote): xcena-mx1 (Hot Chips 38 disclosure + $135M Series B),
+tensordyne-napier (now a numbered candidate above, supersedes the old watch-list entry), fujitsu-monaka
+and arm-agi-cpu (Hot Chips 38 talks — CPU-only, out of registry scope by existing convention), celestial-ai
+and rivos (both acquired — Marvell and Meta respectively; recommend removing from the AI-accelerator watch
+list since neither is independent AI silicon anymore).
+
 ## Next Scheduled Scan
 
-**Early September 2026**, after **Hot Chips 38 (Aug 23–25, 2026)**. That conference has scheduled disclosure
-talks for MTIA, Maia 200, Rubin, AMD MI400-series (two talks), Intel Crescent Island, TPU v8, SambaNova SN50,
-Cerebras rack-scale WSE, NVIDIA LPU, Samsung LPDDR5X-PIM, XCENA MX1, and OpenAI's chip. Many "not disclosed"
-cells written on 2026-08-08 should become real specs once slides post (~Aug 25–Sept 2026).
+**After Hot Chips talk slides fully post and MLPerf Inference v6.1 publishes** — re-check the handful of
+items this scan flagged as HC38-slide-gated (attendee-only PDFs for NVIDIA and AMD in particular). Absent
+a specific trigger, follow the standard monthly/quarterly cadence.
 
 ## How to Process
 

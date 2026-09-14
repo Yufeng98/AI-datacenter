@@ -1,6 +1,6 @@
 # Tenstorrent Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: tenstorrent*
 *device_class: Tensix RISC + SFPU*
 *devices: Wormhole (n150/n300/Galaxy Wormhole), Blackhole (p100a/p150a/p150b/Galaxy Blackhole), Quasar (bring-up target in the open-source stack; no public spec sheet)*
@@ -75,6 +75,8 @@ Framework access is primarily through standard PyTorch and JAX interfaces — mo
 The most important Metalium API concept is the **CircularBuffer** — a ring buffer in L1 SRAM that enables lock-free producer-consumer synchronization between the reader, compute, and writer kernels running concurrently on a single Tensix core.
 
 > **Update 2026-08-08.** CircularBuffer is being systematically replaced by the **DataflowBuffer (DFB)** as part of the "Metal 2.0 / Device 2.0" API rearchitecture (underway in tt-metal since at least 2025-11-16, still in progress at v0.75.0). See the dated update section below.
+>
+> **Update 2026-09-13.** tt-metal v0.77.0 (2026-08-18) and v0.78.0 (2026-09-05) continue the Metal 2.0 migration and add **DeepSeek V4 HCA functional prefill support** and **Kimi-K3 MLA bring-up** at the tt-metal/TT-NN layer — though tt-forge's published model-coverage matrix (through 2026-08-31 dev builds) does not yet list DeepSeek V4. v0.78.0 also adds **Fabric2D and TorusXY topology support for prefill operations** — a software routing/scheduling feature, not new interconnect hardware. See the 2026-09-13 update section below.
 
 ### Driver / Firmware
 
@@ -294,6 +296,46 @@ Confirmed in tt-metal **v0.75.0** (published 2026-07-30):
 
 ---
 
+## Software Update — tt-metal v0.77/v0.78, JapanFold, Qualcomm rumor re-check (2026-09-13)
+
+*Updated 2026-09-13. Scan window 2026-08-08 → 2026-09-13. Classification: **Moderate** (tt-metal version bumps)
++ **Minor** (JapanFold) + **Roadmap negative result** (Qualcomm rumor). WebSearch was unavailable this session
+(budget exhausted); sourced from direct GitHub releases/tags fetches, the Tenstorrent newsroom, and Bing's
+news-search surface as a fallback for the Qualcomm-rumor check.*
+
+**tt-metal v0.77.0 (2026-08-18)** and **v0.78.0 (2026-09-05)** shipped inside the window (plus ongoing
+`v0.79.0-dev*` nightly builds through at least 2026-09-13). Headline items: **DeepSeek V4 HCA functional prefill
+support** and **Kimi-K3 MLA bring-up** (v0.77.0) — the first DeepSeek V4 reference found in tt-metal, though
+tt-forge's own model-coverage builds (through 2026-08-31) still omit it, so treat as "functional at the
+tt-metal/TT-NN layer, not yet an end-to-end supported model"; continued Metal 2.0 / Device 2.0 migration; TT-NN
+silent-data-corruption fixes (`topk`, `tilize`, `sort`); and **Fabric2D / TorusXY topology support for prefill
+operations** (v0.78.0) — a software routing/scheduling feature for prefill workloads, **not new interconnect
+hardware**.
+
+**JapanFold (2026-09-03):** ai& and Tenstorrent launched a sovereign drug-discovery platform on ai&'s
+Tenstorrent-Galaxy-powered Japan infrastructure — a new named application/customer on the already-tracked ai&
+Japan deployment (120+ Galaxy systems, recorded 2026-06-30). No new hardware.
+
+**Qualcomm–Tenstorrent acquisition rumor — re-checked, still unresolved.** The existing "2026-06-16 report... ~$10B
+deal... rumor only... deliberately excluded" finding was re-checked (prompted by a hint referencing a similar
+2026-07-01 report). The same story cluster (Reuters/Seeking Alpha/Datacenter Dynamics/MSN, "$8 billion to $10
+billion," mid-June to early-July 2026) is the only coverage found — **no confirmation, denial, or resolution as of
+2026-09-13**. Status unchanged: rumor only, not adopted as fact.
+
+**"Grendel" naming — checked.** SemiAnalysis's "Blackhole, Grendel and..." newsletter describes Grendel as an
+earlier-disclosed third-generation-chip codename (TSMC 4nm, 64 in-house RISC-V cores, 16×400G Ethernet, tape-out
+originally ~2023–24). No 2025/2026 primary source uses the name; all current next-gen bring-up activity uses
+**Quasar** exclusively. Working assessment: Grendel is most plausibly an earlier/retired codename for what is now
+called Quasar, or a distinct plan that did not proceed as named — **not confirmed either way**.
+
+**Checked, no change found:** no Tenstorrent talk in Hot Chips 38 (occurred within this window; not re-verified
+against a post-event archive this cycle); no MLPerf submission; no new Galaxy/Blackhole/Quasar hardware spec; no
+LG deal.
+
+Sources: https://github.com/tenstorrent/tt-metal/releases/tag/v0.77.0 · https://github.com/tenstorrent/tt-metal/releases/tag/v0.78.0 · https://tenstorrent.com/en/newsroom · https://newsletter.semianalysis.com/p/tenstorrent-blackhole-grendel-and
+
+---
+
 ## Resources
 
 ### Documentation
@@ -329,6 +371,12 @@ Confirmed in tt-metal **v0.75.0** (published 2026-07-30):
 - [The Register: Tenstorrent's Galaxy Blackhole AI servers are finally out (2026-04-28)](https://www.theregister.com/software/2026/04/28/tenstorrents-galaxy-blackhole-ai-servers-are-finally-out/5229759)
 - [HPCwire/AIwire: Galaxy Blackhole GA (2026-05-01)](https://www.hpcwire.com/aiwire/2026/05/01/tenstorrent-announces-general-availability-of-galaxy-blackhole-ai-system/)
 - [The Register: Samsung to fab RISC-V chips for Tenstorrent (2023-10-04)](https://www.theregister.com/on-prem/2023/10/04/samsung-to-fab-risc-v-chips-for-tenstorrent/) — Quasar chiplet on Samsung SF4X
+
+### Newsroom / releases (added 2026-09-13)
+- [ai& and Tenstorrent Launch JapanFold (2026-09-03)](https://tenstorrent.com/en/newsroom)
+- [tt-metal v0.77.0 release (2026-08-18)](https://github.com/tenstorrent/tt-metal/releases/tag/v0.77.0)
+- [tt-metal v0.78.0 release (2026-09-05)](https://github.com/tenstorrent/tt-metal/releases/tag/v0.78.0)
+- [tt-forge releases (1.5.0.dev builds through 2026-08-31)](https://api.github.com/repos/tenstorrent/tt-forge/releases?per_page=5)
 
 ### Analysis
 - [HotChips 2024: Blackhole & TT-Metalium](https://hc2024.hotchips.org/assets/program/conference/day1/88_HC2024.Tenstorrent.Jasmina.Davor.v7.pdf)

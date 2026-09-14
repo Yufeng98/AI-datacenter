@@ -1,6 +1,6 @@
 # VastaiTech (瀚博半导体) Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: vastaitech*
 *device_class: GPU-like Inference Accelerator + Video Codec (China, 瀚博 VastaiTech)*
 
@@ -78,7 +78,7 @@ This is a real gap relative to peers: no Triton port, no TileLang, no assembler,
 
 ### Tensor API and runtime
 
-**VastStreamX** (`import vaststreamx as vsx`, release 26.04 dated 2026-05-09) is the modern high-level API: `vsx.Tensor`, `vsx.Image`, `Context::CPU()` / `Context::VACC(device_id)`, explicit `from_numpy`/`as_numpy` transfers, `vsx::Graph` + `vsx::Stream` dataflow execution, and `vsx.Card`/`vsx.Die` telemetry. **There is no unified or managed-memory abstraction** — every host↔device movement is an explicit user action.
+**VastStreamX** (`import vaststreamx as vsx`, **release 26.08, published 2026-08-03 per the GitHub API — updated 2026-09-13; supersedes the previously recorded 26.04**) is the modern high-level API: `vsx.Tensor`, `vsx.Image`, `Context::CPU()` / `Context::VACC(device_id)`, explicit `from_numpy`/`as_numpy` transfers, `vsx::Graph` + `vsx::Stream` dataflow execution, and `vsx.Card`/`vsx.Die` telemetry. **There is no unified or managed-memory abstraction** — every host↔device movement is an explicit user action.
 
 Beneath it, the original **VastStream** C SDK decomposes into five libraries: **VACM** (common — device context, tensor and memory management), **VACE** (compute engine / operator library), **VACL** (Accelerate Language — the inference API), **VAME** (media engine), **VAML** (management, backing `vasmi` and VAProfiler). No API reference documentation for any of these is public.
 
@@ -219,7 +219,7 @@ Caveat it properly: one workload, an OCR VLM, full-dataset wall clock, layout mo
 | Real commercial shipment | Published **3-year hardware + software warranty** with a formal RMA process; sales-gated developer centre; private Docker harbor with versioned releases (VVI-25.12.SP2, VVI-26.02) |
 | Server-OEM validation | 通泰易 TG657V2 / TG658V3 / TG659V2 certified with the VA16 "训推一体" card, 2025-06-13 |
 | Partnership | 海马云 (Haima Cloud) strategic partnership, 2024-04-10, targeting a **thousand-card** cloud-rendering/AI cluster on domestic ARM CPUs + VastaiTech GPUs |
-| Software activity | All four GitHub repos pushed within a week of 2026-08-08; VastStreamX release 26.04 dated 2026-05-09 |
+| Software activity | All four GitHub repos pushed within a week of 2026-08-08; VastStreamX release **26.08** (2026-08-03) is current as of 2026-09-13, with steady bug-fix/docs commits through 2026-09-14 |
 | **No named end customer with disclosed scale** | Kuaishou reported by 界面新闻 in 2021 as both investor and customer — no deployment size given |
 | **No third-party benchmark** | None exists in any language |
 | **No academic publication** | No ISCA / MICRO / Hot Chips / ISSCC / arXiv paper of any kind |
@@ -230,6 +230,8 @@ Caveat it properly: one workload, an OCR VLM, full-dataset wall clock, layout mo
 VastaiTech entered **IPO counselling (辅导备案)** — the pre-application stage — with **CITIC Securities (中信证券)** on **2025-07-18**, targeting a **domestic A-share listing**. This is confirmed by a **primary filing document**: CITIC's first counselling progress report, which records the agreement signed 2025-07-11, the filing submitted the same day to the Shanghai CSRC bureau, counsel 北京市中伦律师事务所, auditor 天健会计师事务所, and shareholders above 5%: VASTAI Holding Company 11.53% (LEI ZHANG), ACE REDPOINT CHINA VASTAI HK LIMITED 7.12%, ZHEN PARTNERS V (HK) LIMITED 6.48%, 5Y CAPITAL VASTAI HOLDING LIMITED 5.28%.
 
 > **Do not write that VastaiTech has filed an IPO application.** An enumeration of all 1,046 filings in the SSE STAR Market IPO review database returned no 瀚博 record — which is exactly what counselling-stage-only status predicts. The two findings reconcile.
+
+> **Re-verified 2026-09-13**: the SSE STAR Market IPO review database now lists **1,048** filings (live query); still **no 瀚博/VastaiTech record**. Counselling-stage-only status is unchanged.
 
 Vendor-published funding: Series A US$50 M (2020-11), Series A+ ¥500 M (2021-04), Series B1&B2 ¥1.6 B (2021-12). Reported cumulative raise >¥2.5 B and a ~¥10.5 B 2025 valuation are **media figures, not vendor-published**. Investors reported to include Alibaba, Kuaishou, Sequoia, 5Y Capital, Zhen Partners and Redpoint China.
 

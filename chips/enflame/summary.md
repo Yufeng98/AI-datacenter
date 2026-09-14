@@ -1,6 +1,6 @@
 # Enflame Technology (燧原科技) — Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: enflame*
 *device_class: Data Transfer Unit (China)*
 
@@ -225,6 +225,28 @@ This is **a sample, not production** — commentary explicitly frames it as engi
 
 ---
 
+## Update (2026-09-13) — STAR Market trading debut
+
+*Window covered: 2026-08-08 → 2026-09-13. Sources: Sina Finance, Economic Observer (eeo.com.cn), Tencent News, Sohu, secondary aggregation of Reuters/TechNode coverage.*
+
+Enflame's STAR Market registration (effective 2026-07-09, recorded above) converted into an actual **trading debut on 2026-09-11**, resolving the "not confirmed" status in §1 above. This is the last of China's so-called **"four AI-GPU dragons" (GPU四小龙)** — after Moore Threads, MetaX (Muxi) and Biren — to complete a China/HK listing.
+
+| Metric | Value | Confidence |
+|---|---|---|
+| Listing date | 2026-09-11, SSE STAR Market | Confirmed, multiple outlets |
+| IPO price | RMB 142.18/share | Confirmed |
+| Shares issued | 43,035,173 (matches the "floor" figure recorded in §1 above) | Confirmed |
+| Funds raised | ≈ RMB 6.12 B (142.18 × 43,035,173) | Computed from the two confirmed figures at left; matches the task brief's pre-verified ¥6.12B |
+| First-day open | RMB 410/share, **+188.37%** vs. issue price | Confirmed, multiple outlets |
+| First-day intraday peak | RMB 475/share (**+234%** vs. issue price) | Confirmed |
+| First-day close / closing market cap | **Not independently confirmed** | Secondary aggregator summaries gave an "opening market cap" figure that is internally inconsistent (stated as both "exceeded RMB 1.7 trillion" and, elsewhere, implicitly ~RMB 170–180 B depending on share-count assumptions) — **do not cite a market-cap figure from this scan; treat as unresolved** pending a source that states total share count post-IPO |
+
+Use of proceeds (RMB 1.503B for 5th-gen AI chip R&D+industrialization, RMB 1.197B for 6th-gen, RMB 3.3B for advanced AI HW/SW co-innovation) is unchanged from §1 — the debut is a financing-completion event, not a new disclosure of chip specs. **No new hardware or software facts** (no DTU 5.0 tape-out, no MLPerf submission, no new SDK release) were found in this window beyond the listing itself.
+
+Sources: [Economic Observer (2026-09-11)](https://www.eeo.com.cn/2026/0911/1031856.shtml), [Tencent News (2026-09-11)](https://news.qq.com/rain/a/20260911A04XUP00), [Sohu (2026-09-11)](https://www.sohu.com/a/1074619948).
+
+---
+
 ## Resources
 
 ### Official Documentation
@@ -269,3 +291,8 @@ This is **a sample, not production** — commentary explicitly frames it as engi
 - [DRAMeXchange: L600 spec coverage (2025-07-28)](https://www.dramx.com/News/IC/20250728-38864.html)
 - [Sina Finance: CoPoS glass-substrate sample with 先封科技 (2026-07-18)](https://finance.sina.com.cn/stock/t/2026-07-18/doc-iniifanf8343506.shtml)
 - [PaddlePaddle FastDeploy — Enflame GCU installation (S60 + ERNIE 4.5)](https://github.com/PaddlePaddle/FastDeploy/blob/develop/docs/get_started/installation/Enflame_gcu.md)
+
+### Added 2026-09-13
+- [Economic Observer — Enflame STAR Market debut, +188.37% open (2026-09-11)](https://www.eeo.com.cn/2026/0911/1031856.shtml)
+- [Tencent News — Enflame listing day coverage (2026-09-11)](https://news.qq.com/rain/a/20260911A04XUP00)
+- [Sohu — Enflame listing day coverage (2026-09-11)](https://www.sohu.com/a/1074619948)

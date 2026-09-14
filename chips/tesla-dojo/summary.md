@@ -1,6 +1,6 @@
 # Tesla Dojo — Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 
 ---
 
@@ -99,6 +99,9 @@ There is no public compiler, no public ISA document, no public SDK, and no publi
 | 2026-07-13 | AI5 reported in wafer production at Samsung Taylor, TX on 2nm (Electrek) |
 | 2026-08-06 | Terafab site made official: Grimes County (near College Station), TX; $16.8B *initial* capital investment |
 | 2026-08-08 | No Dojo 3 silicon disclosure; no Tesla/Dojo talk in the Hot Chips 38 advance program (Aug 23–25, 2026) |
+| 2026-04-2x (disclosed) / 2026-07-24 (closed) | Tesla's Q1 2026 10-Q (Note 14, Subsequent Events) disclosed an April 2026 agreement to acquire an **unnamed "AI hardware company"** for up to $2.00B in Tesla stock/equity awards (~$200M unconditional, ~$1.8B milestone-dependent); Electrek reports the deal **closed 2026-07-24** at **$1.95B**, of which only $222M was allocated to "patent and related developed technology," with the **$1.73B milestone-dependent portion deemed "improbable" to be achieved** by Tesla's own filing language. Target company **never named**; speculation centers on DensityAI (the ex-Dojo-team startup) but Tesla has confirmed nothing. *Pre-baseline (April disclosure); a corpus gap — not previously recorded in this survey.* |
+| 2026-08-10 | SpaceX confirms Terafab will be powered by on-site natural gas plants, not solar (Electrek) |
+| 2026-08-24 | Shishuang Sun, Tesla Senior Director of AI Hardware Design (IC packaging, vertical power modules, signal/power integrity; worked on Dojo and Autopilot computers), departs for **DensityAI** — the ex-Dojo startup founded by former Dojo chief Ganesh Venkataramanan (~20 ex-Tesla supercomputer-team members already there). This is the clearest evidence that DensityAI remains an **independent** company as of 2026-08-24, a month after Tesla's own "AI hardware company" acquisition closed — weakening (but not disproving) the DensityAI-is-the-acquisition-target theory |
 
 ---
 
@@ -156,6 +159,35 @@ A May 2026 Tom's Hardware custom-ASIC survey lists D1 as "362 TFLOPS BF16." This
 
 ---
 
+## Roadmap Update — Mystery AI Hardware Acquisition and Personnel Flow to DensityAI (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: **Roadmap** (no new Dojo/Dojo 3 silicon disclosure; corporate/personnel/roadmap developments only). WebSearch was unavailable this session (budget exhausted); findings are from direct fetches of Electrek article URLs (found via an Electrek on-site search fetch) and are not independently cross-checked against a second outlet unless noted.*
+
+### What is new since 2026-08-08
+
+**Nothing about Dojo 3 silicon.** No tape-out, no spec disclosure, no new TTPoE release. The D1 / Training Tile / ExaPOD figures in this survey are unchanged.
+
+**A corpus gap discovered and backfilled (pre-baseline, April–July 2026):** Tesla's Q1 2026 10-Q (Note 14, Subsequent Events) disclosed that in **April 2026** — the same month as the AI5 tape-out and the Terafab announcement — Tesla agreed to acquire an **unnamed "AI hardware company"** for up to **$2.00B** in Tesla stock/equity awards (~$200M unconditional, ~$1.8B contingent on service/performance milestones). Electrek reports the deal **closed 2026-07-24** at a revised **$1.95B**, with only **$222M** allocated to "patent and related developed technology intangible asset" and the remaining **$1.73B milestone-dependent tranche described by Tesla as "improbable" to be achieved**. **The target company has never been named** by Tesla in any filing or public statement found. This item predates the 2026-08-08 baseline and was not previously recorded in this survey — it is added here as a backfilled pre-baseline gap, not a within-window event.
+
+**Within-window developments (2026-08-08 → 2026-09-13):**
+
+- **2026-08-10** — SpaceX confirmed Terafab (the Tesla/SpaceX/Intel fab venture in Grimes County, TX) will be powered by **on-site natural gas plants, not Tesla solar** — a detail on the power source for the $16.8B first phase already recorded in the 2026-08-08 update; no new capital or process-node figures.
+- **2026-08-24** — **Shishuang Sun**, Tesla's Senior Director of AI Hardware Design (5+ years at Tesla; IC packaging, vertical power modules, signal/power integrity, PCB design, system thermal/mechanical; worked on **both Dojo and Autopilot computer** hardware; promoted to Senior Director April 2025) departed for **DensityAI**, the startup founded by former Dojo chief **Ganesh Venkataramanan** (CTO: Bill Chang, also ex-Tesla) that already absorbed ~20 members of Tesla's former Dojo/supercomputer team after the August 2025 shutdown. This is a continuation, not a new event, of the 2025-08 Dojo-team exodus already recorded in this survey — but it is new evidence that **DensityAI remains independent** a full month after Tesla's own mystery AI-hardware acquisition closed, which argues (without proving) against DensityAI being the acquisition target.
+
+### Interpretation, held to a low confidence
+
+Three storylines — (1) the April/July mystery acquisition, (2) the ongoing Dojo-alumni drift to DensityAI, and (3) Tesla's AI5/AI6/Terafab silicon program — are all plausibly connected (all AI-hardware, all Tesla, overlapping timing), but **no source ties them together explicitly**, and the DensityAI-acquisition theory floated by Electrek is explicitly unconfirmed. Treat all three as separate tracked items, not a single narrative, until Tesla names the acquired company.
+
+### Checked, no change found
+
+- Hot Chips 38 (Aug 23–25, 2026) occurred within this window; the 2026-08-08 finding of no Tesla/Dojo talk on the advance program was not independently re-verified against a post-event archive this cycle (searches for a post-event Hot Chips 2026 talk listing did not return usable results with the tools available this session).
+- No Dojo 3 tape-out, spec, or new TTPoE release found.
+- No Q2/Q3 2026 Tesla earnings-call commentary on Dojo 3 found (next scheduled Tesla earnings call falls after 2026-09-13 in the typical cadence; not checked).
+
+Sources: https://electrek.co/2026/07/24/tesla-secret-2-billion-ai-hardware-acquisition-closes/ · https://electrek.co/2026/04/23/tesla-tsla-quietly-discloses-2-billion-ai-hardware-acquisition-10q/ · https://electrek.co/2026/08/24/tesla-chip-engineer-shishuang-sun-densityai/ · https://electrek.co/2026/08/10/musk-terafab-gas-power-not-tesla-solar/
+
+---
+
 ## Sources
 
 - [Hot Chips 34 — "The Microarchitecture of Tesla's Exa-Scale Computer"](https://hc34.hotchips.org/assets/program/conference/day2/Machine%20Learning/HotChips_tesla_dojo_uarch.pdf)
@@ -180,3 +212,10 @@ A May 2026 Tom's Hardware custom-ASIC survey lists D1 as "362 TFLOPS BF16." This
 - [Teslarati — Tesla trademarks MEGAPOD (June 2026)](https://www.teslarati.com/tesla-just-trademarked-megapod-heres-what-it-is/)
 - [Wikipedia — Terafab](https://en.wikipedia.org/wiki/Terafab)
 - [Hot Chips 38 advance program (Aug 23–25, 2026)](https://hotchips.org/advance-program/) — checked 2026-08-08; no Tesla/Dojo talk listed
+
+### Added 2026-09-13 (roadmap update)
+
+- [Electrek — Tesla quietly closes its secret ~$2 billion AI hardware deal (2026-07-24)](https://electrek.co/2026/07/24/tesla-secret-2-billion-ai-hardware-acquisition-closes/)
+- [Electrek — Tesla quietly discloses $2 billion AI hardware company acquisition buried in Q1 2026 10-Q (2026-04-23)](https://electrek.co/2026/04/23/tesla-tsla-quietly-discloses-2-billion-ai-hardware-acquisition-10q/)
+- [Electrek — Tesla loses another top chip engineer, Shishuang Sun, to ex-Dojo startup DensityAI (2026-08-24)](https://electrek.co/2026/08/24/tesla-chip-engineer-shishuang-sun-densityai/)
+- [Electrek — Musk's Terafab chip plant will run on gas, not Tesla solar (2026-08-10)](https://electrek.co/2026/08/10/musk-terafab-gas-power-not-tesla-solar/)

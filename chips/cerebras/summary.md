@@ -2,8 +2,8 @@
 
 **Device class:** Wafer-Scale Engine
 **Manufacturer:** Cerebras Systems (founded 2016; S-1 filed 2024; IPO priced 2026-05-13, began trading on Nasdaq as **CBRS** 2026-05-14)
-**System:** CS-3 AI supercomputer
-**Research date:** 2026-04-05 · **Last updated:** 2026-08-08
+**System:** CS-3 AI supercomputer (production); **CS-4 "Nexus"** disclosed 2026-08-25 at Hot Chips 38 — early access now, GA targeted late Q3 2026 (see 2026-09-13 update below)
+**Research date:** 2026-04-05 · **Last updated:** 2026-09-13
 **Key sources:** https://www.cerebras.ai/chip, https://hc2024.hotchips.org/assets/program/conference/day2/72_HC2024.Cerebras.Sean.v03.final.pdf, https://arxiv.org/html/2503.11698v1, https://github.com/Cerebras/modelzoo, https://sdk.cerebras.net/
 
 ---
@@ -33,6 +33,8 @@ The Cerebras WSE-3 (Wafer-Scale Engine 3) is the world's largest semiconductor d
 | INT8 SIMD width | 16-wide per PE | — |
 | Scale-up fabric | Swarm 2D mesh (100 Pb/s on-chip) | NVLink 4 (900 GB/s) |
 | Scale-out fabric | SwarmX (up to 2,048 CS-3) | NVSwitch + IB |
+
+> **2026-09-13:** this table describes WSE-3/CS-3, still the shipping production baseline. **WSE-3T** (disclosed Hot Chips 38, 2026-08-25) is the same die at ~2× clock (2.8 vs 1.4 GHz), ships inside **CS-4 "Nexus"** racks (3 wafers/rack, direct wafer-to-wafer interconnect), and is in early access now with GA targeted late Q3 2026. See "Cerebras Update — WSE-3T / CS-4 'Nexus' (Hot Chips 38) (2026-09-13)" below for the full spec set; peak FLOPS for WSE-3T is not disclosed.
 
 ---
 
@@ -102,7 +104,7 @@ WSE-3 Hardware (900K PEs, 44GB SRAM, Swarm 2D mesh)
 3. **Pure data parallelism only** — weight streaming does not support tensor/pipeline model parallelism across CS-3s
 4. **Proprietary compiler** — CIRH compilation pipeline is closed; custom ops require CSL SDK path
 5. **Not in MLPerf Training leaderboard** — Cerebras has not submitted official MLPerf training benchmark results. *Last verified 2026-04-05; not re-verified in the 2026-08-08 scan (no MLCommons results table could be retrieved for MLPerf Training v6.0 / Inference v6.0). Pending re-check.*
-6. **CS-3 is a single-system design** — no NVLink-style peer-to-peer GPU tiling within one node. *Qualified 2026-08-08: Cerebras and AMD announced (2026-07-23) a disaggregated inference product in which AMD Helios rack-scale Instinct systems perform prefill and the WSE performs decode. That is a heterogeneous two-tier system, not peer-to-peer WSE tiling, and it is **announced only** — expected availability H2 2026 via Cerebras Cloud. See the 2026-08-08 update section.*
+6. **CS-3 is a single-system design** — no NVLink-style peer-to-peer GPU tiling within one node. *Qualified 2026-08-08: Cerebras and AMD announced (2026-07-23) a disaggregated inference product in which AMD Helios rack-scale Instinct systems perform prefill and the WSE performs decode. That is a heterogeneous two-tier system, not peer-to-peer WSE tiling, and it is **announced only** — expected availability H2 2026 via Cerebras Cloud. See the 2026-08-08 update section.* **Further qualified 2026-09-13: this is no longer true for CS-4.** The CS-4 "Nexus" rack (disclosed Hot Chips 38, 2026-08-25) houses **3 WSE-3T wafers per rack with direct wafer-to-wafer links** — 2.4 Tb/s aggregate bandwidth per wafer, ~2µs latency. This is a genuine intra-rack peer-to-peer wafer interconnect, architecturally new relative to CS-1 through CS-3. See the 2026-09-13 update section.
 
 ---
 
@@ -168,6 +170,33 @@ Architecturally this is the most significant item in the window: it partially un
 
 ---
 
+## Cerebras Update — WSE-3T / CS-4 "Nexus" (Hot Chips 38) (2026-09-13)
+
+*Update window 2026-08-08 → 2026-09-13. Primary source: Cerebras's own Hot Chips 38 deep-dive blog, https://www.cerebras.ai/blog/ultrafast-frontier-inference-cerebras-deep-dive-at-hot-chips-2026 (2026-08-25), fetched directly. Secondary sources for detail the primary post omits: ServeTheHome (https://www.servethehome.com/cerebras-talks-going-rack-scale-with-their-wses-at-hot-chips-2026/, 2026-08-25) and The Next Platform (https://www.nextplatform.com/compute/2026/08/19/cerebras-overclocks-wse-3-waferscale-engine-to-boost-inference-oomph-in-nexus-cs-4/5289400, 2026-08-19). This resolves the disclosure the 2026-08-08 pass had flagged as scheduled but not yet public.*
+
+### Headline: a new SKU, not a new die
+
+Cerebras disclosed **WSE-3T** and the **CS-4 "Nexus"** rack at Hot Chips 38. WSE-3T is the **same physical die as WSE-3** — same TSMC 5nm process, same 900,000 cores, same 44 GB on-wafer SRAM, same 46,225 mm² die area — run at roughly **2× the clock** (1.4 GHz → 2.8 GHz, per The Next Platform). The 2026-08-08 finding "no WSE-4, no CS-4" for a *new die design* still holds; what's new is a higher-clocked SKU and a new rack system, not a fourth-generation wafer.
+
+### What's new and sourced
+
+- **On-wafer bandwidth (new figures):** WSE-3T's on-chip SRAM bandwidth is **43,000 TB/s** (~2× WSE-3's already-recorded 21 PB/s), and Cerebras's own blog states **53.5 PB/s of aggregate on-wafer fabric bandwidth** — "more than 200 times the NVL72 rack's scale-up bandwidth" (260 TB/s).
+- **Wafer-to-wafer interconnect (new capability):** CS-4 "Nexus" racks hold **3 WSE-3T wafers**, each in its own "compute backpack," connected by **direct wafer-to-wafer links**: **2.4 Tb/s aggregate bandwidth per wafer**, latency as low as **~2 microseconds**. This is a materially new scale-up capability — see the updated Limitation #6 above.
+- **Rack architecture:** power delivery via AC/DC converters placed **0.5 mm from the wafer** (vs. ~50 mm on a GPU rack), up to 30 modules/backpack at up to 277 VAC → 54.5 VDC; per-backpack water conditioning; "three times the compute per rack" vs. CS-1–CS-3, "50% fewer components," deployable "up to 3× faster."
+- **Performance claims (vendor, unverified):** "2x more tokens, at 10x more tokens per watt" vs. CS-3; "30x faster than a GPU" (baseline unspecified in retrieved coverage).
+- **Availability:** early access to select customers **now**; GA targeted **later in Q3 2026** (Next Platform, 2026-08-19).
+- **Roadmap — CS-5 (targeted 2027):** up to 10,000 output tokens/s/user (mid-size/open models); up to 5,000 tokens/s/user and 3M tokens/s/MW for frontier models; support for >50T-parameter models.
+- **Roadmap — CS-6 (no date):** wafer-scale SRAM and compute integrated with **3D-stacked DRAM**, targeting an order-of-magnitude smaller inference footprint.
+
+### Explicitly checked and not confirmed
+
+- **Peak FLOPS for WSE-3T** — not stated in either secondary source retrieved. (A naive 2× extrapolation from WSE-3's 125 PF FP16 would suggest ~250 PF, but this is the survey's own arithmetic, not a vendor figure, and is not recorded as a spec.)
+- **"6× 200GbE per system"** — this figure, which circulated in pre-scan notes, traces to The Next Platform author's own explicit speculation ("I *think* the wafer I/O module has six Ethernet ports... we have tried to confirm... with Cerebras but have not heard back"). **Not recorded as confirmed.**
+- CS-4 pricing; WSE-3T transistor count (presumed unchanged, not restated); exact wafer-to-wafer link protocol.
+- No new corporate/capacity events beyond what the 2026-08-08 update already recorded were found in this pass; the IPO figures already on record ($5.55B raised, 2026-05-13/14, Nasdaq: CBRS) were spot-checked against an independent source (Wikipedia) with no discrepancy.
+
+---
+
 ## Programming Model Rationale
 
 The Cerebras software stack is shaped almost entirely by two hardware constraints: (1) the on-chip SRAM limit of 44 GB, and (2) the dataflow execution model of the 2D PE mesh.
@@ -200,6 +229,12 @@ The Cerebras software stack is shaped almost entirely by two hardware constraint
 - https://www.cerebras.ai/blog/cerebras-architecture-deep-dive-first-look-inside-the-hw-sw-co-design-for-deep-learning
 - https://www.cerebras.ai/blog/100x-defect-tolerance-how-cerebras-solved-the-yield-problem
 - https://www.cerebras.ai/blog/announcing-the-cerebras-architecture-for-extreme-scale-ai *(2021 — WSE-2/CS-2 weight streaming; not evidence for any 2026 product)*
+
+### Added 2026-09-13
+
+- https://www.cerebras.ai/blog/ultrafast-frontier-inference-cerebras-deep-dive-at-hot-chips-2026 — primary source, Hot Chips 38 (2026-08-25): 53.5 PB/s aggregate on-wafer fabric bandwidth (WSE-3T), CS-5/CS-6 roadmap
+- https://www.servethehome.com/cerebras-talks-going-rack-scale-with-their-wses-at-hot-chips-2026/ — 43,000 TB/s SRAM bandwidth, 2.4 Tb/s / 2µs wafer-to-wafer interconnect, CS-4 Nexus rack detail, 2x tokens/10x tokens-per-W vs CS-3
+- https://www.nextplatform.com/compute/2026/08/19/cerebras-overclocks-wse-3-waferscale-engine-to-boost-inference-oomph-in-nexus-cs-4/5289400 — WSE-3T clock speed (1.4→2.8 GHz), unchanged die/core/SRAM, early access + late-Q3-2026 GA target
 
 ### Added 2026-08-08
 

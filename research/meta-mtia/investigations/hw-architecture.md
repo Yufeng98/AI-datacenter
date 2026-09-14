@@ -1,5 +1,7 @@
 # Meta MTIA — HW Architecture Investigation
 
+*as_of: 2026-09-13*
+
 ## Summary
 
 MTIA is a custom inference ASIC built around a 2D grid of RISC-V + fixed-function processing elements. It deliberately uses LPDDR5 (not HBM) to optimize cost/power for recommendation model inference (DLRM-dominated workload). Two generations deployed: v1 (TSMC 7 nm, 25 W) and v2 (TSMC 5 nm, 90 W).
@@ -304,5 +306,75 @@ Checked against Meta's own 2026-03-11 blog, "Four MTIA Chips in Two Years" (http
 **Broadcom partnership formalized 2026-04-14** (Meta newsroom): work "across chip design, advanced packaging, and networking", built on Broadcom's XPU platform, with Broadcom Ethernet for cluster networking, under "a commitment that exceeds 1GW, which is the first phase of a sustained, multi-gigawatt rollout". **No process node and no end year appear anywhere in the release.**
 
 **Production-timing signal (secondary, medium-low confidence).** Reuters, 2026-07-09, citing an internal Meta memo, reports Meta plans to begin manufacturing an in-house AI chip code-named **"Iris"** in September 2026, with testing completed in roughly six weeks and no major issues, as part of a plan to reach about 7 GW of compute by end-2026 and 14 GW the following year. TechCrunch and Yahoo Finance carried the same memo. Several aggregators map Iris to MTIA 400 — that mapping is **not confirmed by any primary source**. Retrieval note: reuters.com is blocked in this environment, so the memo was verified only via search snippets and secondary outlets.
+
+---
+
+## Update — 2026-09-13 (Hot Chips 38 realized: MTIA 300 production blog + MTIA 400/450/500 silicon disclosure)
+
+*Window: 2026-08-08 → 2026-09-13. The Hot Chips 38 talk flagged as "scheduled, content not yet public" in the 2026-08-08 pass has now happened (2026-08-25, Session "AI 1": "Meta's Custom AI Silicon: From Recommendation to Dual-Mandate with GenAI", Srinagesh Loke, Cindy Chen, Jatinder Singh). Primary sources checked this pass: Meta Engineering blog https://engineering.fb.com/2026/08/24/networking-traffic/mtia-300-meta-training-chip-built-in-nics/ (2026-08-24, authors Rajiv Krishnamurthy and Wes Bland — full text fetched and read); ai.meta.com/blog listing (checked through its most recent posts as of this scan, no MTIA/Hot-Chips post found there — engineering.fb.com is the correct Meta channel for this disclosure, not ai.meta.com). Secondary/analyst: ServeTheHome, "Meta's MTIA Custom AI Silicon at Hot Chips 2026" (2026-08-25), https://www.servethehome.com/metas-mtia-custom-ai-silicon-at-hot-chips-2026/ — used only for figures not present in the Meta primary blog, and labeled as such below.*
+
+### A. MTIA 300 — new primary-confirmed figures (Meta engineering blog, 2026-08-24)
+
+The Meta blog is a companion piece to the ISCA 2026 paper already recorded in this file (§ "MTIA 300 Update — ISCA 2026 Silicon Disclosure") and to the Hot Chips 38 talk. It restates the ISCA 2026 hardware numbers and adds new **measured production figures**:
+
+| Figure | Value | Status |
+|---|---|---|
+| HCCL achieved rack bandwidth | **up to 940 GB/s** within a single rack of 16 nodes | Measured, Meta-stated (refines the ISCA 2026 "up to 1,000 GB/s option" theoretical ceiling — 940 GB/s is the achieved figure) |
+| Compute/collective isolation | **<0.5% degradation** to compute throughput running large GEMMs concurrently with collectives, vs. **>20% degradation** on "traditional GPUs" (unnamed) | Measured, Meta-stated; GPU baseline is unnamed/general — do not read as a specific competitive benchmark |
+| Communication time vs GPU cluster | **3.9× faster** than "the equivalent GPU cluster" on a 150B-parameter production recommendation model across 40 accelerators | Matches (does not add to) the ISCA 2026 paper's 3.9× figure already in this file |
+| NIC reuse | The same 12 Ethernet-based NICs are used for both scale-up (16-node rack, up to 1 TB/s) and scale-out (200 GB/s) traffic, repartitioned in software rather than hardware | New framing detail; capacities match existing ISCA 2026 figures |
+
+**Forthcoming paper flagged, not yet available:** "HCCL: Collective Communication for Meta Training and Inference Accelerators", to be published at **SC26** (Supercomputing 2026, Nov 2026) — re-scan after that date for the full HCCL micro-architecture writeup.
+
+### B. MTIA 300 — process node: partially disclosed, analyst-sourced only
+
+ServeTheHome's Hot Chips 38 coverage states MTIA 300 uses a **"3nm" compute die and a "5nm" I/O die**. **This process-node split is not stated anywhere in Meta's own engineering blog or in the ISCA 2026 paper** (both were re-checked; neither mentions a node). Per this repo's evidence rule, the figure is recorded as **analyst-sourced (ServeTheHome, Hot Chips 38 slides), not Meta-primary-confirmed** — an upgrade from the prior "not disclosed anywhere" status, but still short of a vendor-primary citation. Do not present it as Meta-stated.
+
+ServeTheHome also reports a vendor performance claim of **">1.8× vs GPU"** for "forward and backward propagation" — no baseline GPU is named. This is a **different, vaguer claim** than the ISCA 2026 paper's precise 1.42×/1.39× Perf/TCO-vs-500W-capped-H100 figures already recorded in this file; do not conflate the two. Label as vendor claim, unspecified baseline.
+
+### C. MTIA 400 — first hard specifications (analyst-sourced, ServeTheHome Hot Chips 38 coverage; not yet in a Meta primary blog)
+
+Meta's own 2026-08-24 blog explicitly declines to name MTIA 400 or give its specs ("Looking Ahead" section refers only to "Meta's next-generation AI silicon"). All MTIA 400 figures below come from **ServeTheHome's Hot Chips 38 coverage only** and should be cited as such, not as Meta-stated, until a primary source appears:
+
+| Parameter | MTIA 400 (ServeTheHome / Hot Chips 38, analyst-sourced) |
+|---|---|
+| Packaging | 2 compute chiplets (confirms the pre-existing repo entry) |
+| PE grid | **8×6 grid of PEs** (plus a redundancy row, per the MTIA 300 precedent — ServeTheHome's phrasing) |
+| HBM | **8 stacks of HBM3e, 9.4 TB/s** memory bandwidth — supersedes the repo's prior *derived* "≈9.2 TB/s" estimate (from "+51% BW vs 300") with a directly reported figure; HBM **capacity still not disclosed** |
+| FP4 compute | **12 PFLOP/s FP4** — this is a new, distinct precision figure. Do **not** conflate with the repo's prior *derived* "≈5.6 PFLOP/s FP8" (from "+400% FP8 vs MTIA 300") — that was a different datatype. Both may be independently true; neither replaces the other. |
+| vs. MTIA 200 (2i), not MTIA 300 | **15× the FP16 compute** and **46× increase in DRAM bandwidth** vs. MTIA 200 — note the baseline is MTIA 200/2i, not MTIA 300, unlike most other roadmap deltas in this repo which are stated vs. the immediately prior generation |
+| Precision | **MXFP4 hardware support** confirmed — matches the pre-existing repo note "native MX4 arrives in MTIA 400" |
+| Scale-up networking | **1.2 TB/s** Ethernet-based scale-up fabric bandwidth |
+| Scale-up domain | **72 ASICs in a single scale-up domain** — confirms the pre-existing repo figure ("72 devices per rack, switched backplane"), now independently corroborated |
+| TDP | **667 W** |
+| Scale-out | **100 GB/s** PCIe-based scale-out |
+
+**Not disclosed even by ServeTheHome:** MTIA 400 process node; absolute HBM capacity; deployment/production status beyond "lab-tested" (unchanged from 2026-08-08).
+
+### D. MTIA 450 / 500 — reconfirmed at Hot Chips 38 (analyst-sourced)
+
+- **MTIA 450**: reconfirmed as the **GenAI-inference-focused** variant of the family — consistent with, adds no new figures to, the 2026-08-08 roadmap entries already in this file.
+- **MTIA 500**: reconfirmed as targeting a **larger scale-up domain, explicitly "beyond just 72 ASICs in a single domain"** — consistent with the existing "+50% HBM BW, up to +80% capacity, +43% MX4 FLOPS vs 450" roadmap figures; the "beyond 72" framing is a new qualitative confirmation of the scale-up intent, not a new number.
+
+### E. Cadence
+
+Hot Chips 38 reconfirms Meta's roughly **6-month generation cadence "through 2027"** — consistent with, and slightly more specific than, the 2026-04-05 baseline's "~6-month cadence" (which had no stated end point).
+
+### F. Cross-reference only — NOT an MTIA finding
+
+Meta's Aayush Ankit co-presented a **Hot Chips 38 Sunday tutorial**, "3D DRAM based Accelerator for Generative Inference," together with d-Matrix's Sudeep Bhoja. This is **d-Matrix technology, not MTIA** — the deep 3D-DRAM technical content belongs in the d-matrix chip entry (a separate update pass). Recorded here only as a cross-reference so a future scan knows the connection exists; no MTIA architectural claim should be drawn from it.
+
+### G. Not confirmed / could not verify this pass
+
+- MTIA 400 process node — still not disclosed anywhere, primary or analyst.
+- Whether MTIA 400 has moved beyond "lab-tested" status — no source in this pass states a production milestone for MTIA 400.
+- Any Meta-primary confirmation of the MTIA 300 "3nm compute / 5nm I/O" split (§B) — actively checked (engineering.fb.com, ai.meta.com) and not found.
+
+### Sources for this section (added 2026-09-13)
+
+- https://engineering.fb.com/2026/08/24/networking-traffic/mtia-300-meta-training-chip-built-in-nics/ — Meta Engineering blog, "MTIA 300: Meta's First Training Chip with Built-in NICs and Communication-Offloading Engines", 2026-08-24, Rajiv Krishnamurthy & Wes Bland (primary; fetched and read in full)
+- https://www.servethehome.com/metas-mtia-custom-ai-silicon-at-hot-chips-2026/ — ServeTheHome, Hot Chips 38 coverage, 2026-08-25 (analyst; sole source for MTIA 400 figures and MTIA 300 process node)
+- https://hotchips.org/program/conference/ — Hot Chips 38 program (talk now realized, was "scheduled" as of 2026-08-08)
+- https://ai.meta.com/blog/ — checked, no MTIA/Hot-Chips-38 post found at this URL as of this scan (negative check; engineering.fb.com is the correct channel)
 
 **Scheduled, not yet public.** Hot Chips 38, Session "AI 1", Tuesday **2026-08-25**, 2:15–4:15 PM — Meta, "Meta's Custom AI Silicon: From Recommendation to Dual-Mandate with GenAI" (Srinagesh Loke, Cindy Chen, Jatinder Singh). *Disclosure scheduled, Hot Chips 38, Aug 2026 — content not yet public.* The title does not contain "MTIA"; describing it as "a Hot Chips MTIA talk" is an inference. Re-scan after 2026-08-25.

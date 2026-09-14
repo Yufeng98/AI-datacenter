@@ -1,7 +1,7 @@
 # Xiwang (曦望) GPU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
-*prior revision: 2026-04-05 (baseline; content preserved below, corrections marked inline)*
+*as_of: 2026-09-13*
+*prior revision: 2026-04-05 (baseline), 2026-08-08 (content preserved below, corrections marked inline)*
 *chip: xiwang*
 *device_class: AI Accelerator (China, 曦望)*
 
@@ -113,8 +113,9 @@ Xiwang's software platform is designed as a **CUDA replacement stack** — full 
 | May 2025 | A-round: ¥250M (Beijing Lier lead) |
 | June–July 2025 | Pre-A round: ~¥1B; SANY Group fund (recorded as 华胥基金 in 2026 reporting, 华旭基金 in the baseline — character discrepancy unresolved), Fourth Paradigm, Youzu Network, Beijing Lier, Songhe Capital, Haitong Kaiyuan |
 | January 2026 | S3 announced; cumulative funding **≈¥3B (~US$0.4B)** — vendor news item 曦望完成近30亿融资. ⚠️ *Corrected 2026-08-08 from the baseline's "~¥30B (~$4.1B)", a ~10× unit error* |
-| H1 2026 (exact date **not disclosed**) | A further round of **>¥1B** — vendor news item 推理 GPU 独角兽曦望再获超 10 亿元融资, undated on the vendor site; cumulative total after this round is **not confirmed** |
-| 2026 | S2 at 万片级 (10,000-unit-class) volume per company claim; S3 schedule is an unverified January 2026 executive statement (see update section) |
+| **April 2026** (dated 2026-09-13, resolving the baseline's "H1 2026, exact date not disclosed") | Round of **>¥1B (超10亿元)**, valuation reaching **>¥10B (100+亿元)** — this is the round the 2026-08-08 update recorded as undated |
+| **2026-08-28** | New round: **¥2B (20亿元)** raised; post-money valuation **≈¥20B (200亿元)** — nearly double the April 2026 valuation in ~4 months. Investors: PICC Equity (人保股权), China Construction Bank Equity (建信股权), Orient International Assets (东方国际资产), Janchor Partners, 中科创星, 同创伟业, 进化论资本, 临芯投资, 毅达资本, 湖畔基金, 弘晖基金; corporate investors CP Group (正大集团), 九安医疗, 盈峰环境, 三七互娱, 同程旅行. **Cumulative funding since the late-2024 SenseTime spin-off now ≈¥6B (接近60亿元)** — resolving the 2026-08-08 update's "cumulative total not confirmed" open item. [Eastmoney (2026-08-28)](https://finance.eastmoney.com/a/202608283858780525.html) |
+| 2026 | S2 at 万片级 (10,000-unit-class) volume per company claim; S3 schedule is an unverified January 2026 executive statement (see update section). As of the Aug 2026 funding report, the company describes **three product generations (S1/S2/S3) in operation** and **~400 employees, >80% in R&D**. No S3 tape-out confirmation found in this scan. |
 
 ---
 
@@ -225,6 +226,10 @@ The S2 page states S2 scales across cards and nodes via 自研 **SRLink** 等高
 
 The baseline's "**~¥30 billion (~$4.1B USD)**" is a ~10× unit error. The repo's own cited sources are titled 近**30亿**元融资 = nearly **RMB 3 billion ≈ US$0.4B**, matching the vendor news item 曦望完成近30亿融资 (January 2026). A subsequent round, 推理 GPU 独角兽曦望**再获超 10 亿元**融资 (>RMB 1B), is listed **undated** on the vendor news page; its position in the reverse-chronological feed places it between January 2026 and an April 2026 item, so H1 2026 is the most that can be said. **The date of that round and the resulting cumulative total are not confirmed.**
 
+### 9. (2026-09-13) Two more funding data points resolve the open items above
+
+Eastmoney's report on Xiwang's **2026-08-28** funding round (¥2B, valuation ≈¥20B) also dates and quantifies the previously-undated round: it places the **>¥1B round in April 2026**, reaching a **>¥10B valuation**, and states **cumulative funding since the late-2024 SenseTime spin-off is now ≈¥6B**. This resolves the "date not confirmed" and "cumulative total not confirmed" flags above — see the funding table for the full, corrected chronology. **Unit-conversion caution for future passes:** a first-pass automated read of this same article rendered ¥20B as "¥200B" (dropping the 亿→billion ×0.1 conversion); the verified figure, cross-checked against the ¥2B raised, is **¥20B (200亿元) post-money**, not ¥200B. No new S3 hardware/tape-out fact was found alongside this funding news.
+
 ---
 
 ## Data Quality Notes
@@ -276,3 +281,6 @@ Confidence in architecture details: **LOW-MEDIUM** (raised from LOW — the Flag
 - [vllm-plugin-FL — Sunrise listed as a supported chip vendor](https://raw.githubusercontent.com/flagos-ai/vllm-plugin-FL/main/README.md)
 - [Wayback 2025-12-11 sunrise-ai.com — pre-SIRE / pre-LPDDR6 control snapshot](http://web.archive.org/web/20251211220612id_/https://sunrise-ai.com/)
 - [Wayback 2026-05-21 sunrise-ai.com — SC3-256 in nav, still no SIRE/LPDDR6](http://web.archive.org/web/20260521020029id_/https://sunrise-ai.com/)
+
+### Added 2026-09-13
+- [Eastmoney — Xiwang ¥2B funding round, ≈¥20B valuation (2026-08-28)](https://finance.eastmoney.com/a/202608283858780525.html) — also dates the prior >¥1B round to April 2026 and states cumulative funding ≈¥6B

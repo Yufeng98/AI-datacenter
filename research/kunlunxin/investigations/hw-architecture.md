@@ -1,6 +1,6 @@
 # Kunlunxin XPU Hardware Architecture
 
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 *chip: kunlunxin*
 *Architectures: XPU-K (Gen 1, 14nm), XPU-R (Gen 2, 7nm R200/R300), XPU-P (Gen 3, 7nm P800)*
 
@@ -267,3 +267,33 @@ Vendor also states Tianchi 256 is adapted for Wenxin (文心), DeepSeek, GLM and
 - [CNBC — Baidu Kunlunxin Hong Kong IPO (2026-06-29)](https://www.cnbc.com/2026/06/29/baidu-kunlunxin-hong-kong-ipo.html)
 - [TrendForce — WAIC 2026 China supernode push (2026-07-20)](https://www.trendforce.com/news/2026/07/20/news-waic-2026-highlights-chinas-supernode-push-led-by-huawei-minimax-m3-unitree-robots-in-focus/)
 - [DataCenterDynamics — Baidu launches Kunlun M100 and M300](https://www.datacenterdynamics.com/en/news/baidu-launches-kunlun-m100-and-m300-ai-chips/)
+
+---
+
+## Investigation Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*Routine rescan (generic window check; no Hot Chips 38 Kunlunxin talk). No new hardware, silicon, or supernode disclosure found in the window. Two items recorded: one corporate/roadmap fact (STAR Market IPO tutoring) that predates the window but was absent from the 2026-08-08 pass, and one minor software-ecosystem item dated inside the window.*
+
+### Corporate — STAR Market ("A+H" dual listing) IPO tutoring — newly recorded, predates window
+
+- Kunlunxin (Beijing) Technology Co., Ltd. completed **STAR Market (科创板) IPO tutoring registration (辅导备案)** with the Beijing Securities Regulatory Bureau on **2026-05-07** (tutoring agreement dated 2026-04-29); **CICC (中金公司)** is named as the tutoring institution; planned tutoring period "second half of 2026." This confirms the pre-verified "A+H" framing: Kunlunxin is now pursuing simultaneous **A-share (STAR Market) + H-share (HKEX)** listings, not HKEX alone as the 2026-08-08 pass recorded. Baidu (中国) Limited is reported to hold 57.67% of Kunlunxin.
+- **Evidence discipline:** retrieved via aggregated Chinese-search-engine snippets (2026-09-13); the underlying primary CSRC/Beijing Securities Regulatory Bureau tutoring-filing bulletin was not independently opened in this pass. The 2026-05-07 date, the 2026-04-29 agreement date, the CICC sponsor name, and the 57.67% stake figure are all **press-reported, not verified against a primary regulator filing** — record accordingly.
+- HKEX side: no acceptance/hearing update found for the confidential Form A1 filing in this window; status remains "confidential submission, not yet listed" as of 2026-09-13. The ~USD 50B press-reported valuation target (Reuters 2026-06-28) has no in-window update.
+
+### Software ecosystem — Minor, in-window
+
+- **2026-09-08**: Kunlunxin + **FlagOS** (BAAI-affiliated) announced same-day adaptation of the newly open-sourced **MiniCPM5-2B** model (Mianbi AI / OpenBMB; edge-oriented, hybrid reasoning, 512K context, agent/tool-calling). Kunlunxin validated operators, inference framework and runtime; FlagOS supplied unified operator libraries/compiler support. Vendor claims a pattern of prior same-day adaptations (GLM, Qwen). This is a model-adaptation PR item, not a new XRE/XTDK/XDNN/XTCL SDK release — no version number changed.
+
+### Searched and absent (2026-08-08 → 2026-09-13)
+
+- No new Tianchi 256/512 shipment, customer, or unit-volume disclosure.
+- No M100/M300 specification disclosure of any kind.
+- No HKEX hearing/acceptance update.
+- No new XRE/XTDK/XDNN/XTCL public release notes.
+- No MLPerf Training/Inference submission; no Hot Chips 38 (2026-08-23 → 08-25), ISCA, or ISSCC Kunlunxin talk.
+
+### Sources added 2026-09-13
+
+- [Baidu search aggregation — Kunlunxin STAR Market tutoring filing 2026-05-07, CICC sponsor, "A+H" framing, 57.67% Baidu stake (accessed 2026-09-13; underlying primary regulator bulletin not independently opened — press-reported)](https://www.baidu.com/s?wd=%E6%98%86%E4%BB%91%E8%8A%AF%20%E7%A7%91%E5%88%9B%E6%9D%BF%20%E8%BE%85%E5%AF%BC%E5%A4%87%E6%A1%88)
+- ["配货式"IPO，对昆仑芯而言是"双刃剑"吗？— 界面新闻 (2026-07-08)](https://www.jiemian.com/article/14725933.html)
+- [昆仑芯联合FlagOS实现MiniCPM5-2B模型"开源即适配" — 同花顺财经 (2026-09-08)](http://news.10jqka.com.cn/20260908/c679714481.shtml)

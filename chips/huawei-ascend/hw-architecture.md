@@ -1,6 +1,6 @@
 # Huawei Ascend Hardware Architecture
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *Architectures: Da Vinci 1.0 (Ascend 910), Da Vinci 2.0 (Ascend 910B), Da Vinci 3.0 (Ascend 910C), Da Vinci 4.0 / "3rd-gen Da Vinci" (Ascend 950PR / 950DT)*
 
 ---
@@ -253,6 +253,7 @@ Optimized for memory-bandwidth-sensitive workloads (LLM training, autoregressive
 | vs. 910C (dual-die) | ~2.5× memory bandwidth |
 | **Availability (as of 2026-08-08)** | **Q4 2026 remains the official commercial release.** Huawei VP Chen Lin announced at Huawei Cloud 2026 INSPIRE (reported 2026-06-06/08) that Huawei Cloud deployment would be pulled forward to **August 2026** — this is an **announced schedule**, and no confirmation of a live deployment was found as of 2026-08-08. |
 | **Early adopter** | DeepSeek named in press reporting (DeepSeek V4 already runs on the Ascend 950 platform); **not a Huawei statement** |
+| **Demand signal (added 2026-09-13)** | Bloomberg reported 2026-09-04 that DeepSeek plans to deploy **≥160,000 Ascend 950DT** accelerators (inference-only) at a new Inner Mongolia data center — press-reported, not vendor-confirmed; Huawei reportedly cannot fill the order for over a year (HBM supply constraints). Separately, Huawei Central (2026-09-10, citing Bloomberg) reports a **~60% price increase** (press-reported ¥150,653 → ¥250,000) attributed to demand and HBM cost. Neither report changes the spec table above or confirms the "August 2026" Huawei Cloud deployment pull-forward went live; Q4 2026 remains the official commercial-release date. |
 
 **HiZQ 2.0**: Huawei's high-performance in-house HBM. 4 TB/s closes the gap with HBM3E-class products. Critical for decode-phase LLM inference where memory bandwidth is the primary bottleneck.
 
@@ -326,3 +327,10 @@ Huawei has not officially disclosed the Ascend 950 process node — it is **not 
 - [Ascend 950DT deployment pulled forward to August — TrendForce (2026-06-08)](https://www.trendforce.com/news/2026/06/08/news-huawei-brings-forward-ascend-950dt-deployment-to-august-deepseek-v4-2-seen-as-potential-early-adopter/)
 - [Huawei confirms Ascend 950DT to debut in August — Huawei Central](https://www.huaweicentral.com/huawei-confirms-ascend-950dt-ai-chip-to-debut-in-august/)
 - [Atlas 350 unveiled: 1.56 PFLOPS FP4, up to 112 GB — Tom's Hardware (2026-03-24)](https://www.tomshardware.com/pc-components/gpus/huawei-unveils-new-atlas-350-ai-accelerator-with-1-56-pflops-of-fp4-compute-and-up-to-112gb-of-hbm-claims-2-8x-more-performance-than-nvidias-h20)
+
+### Added 2026-09-13
+- [Bloomberg — DeepSeek plans ≥160,000 Ascend 950DT order (2026-09-04)](https://www.bloomberg.com/news/articles/2026-09-04/deepseek-plans-big-huawei-ai-chip-order-to-power-new-data-center)
+- [The Decoder — DeepSeek's Huawei chip cluster (2026-09-04)](https://the-decoder.com/deepseek-plans-the-largest-known-huawei-chip-cluster-with-160000-processors-in-inner-mongolia/)
+- [Huawei Central — Ascend 950DT price jumped 60% (2026-09-10)](https://www.huaweicentral.com/huawei-ascend-950dt-price-jumped-60-over-past-three-months/)
+- [Huawei Connect 2026 event page](https://www.huawei.com/en/events/huaweiconnect) — 2026-09-17/19, Shanghai; not yet held as of this scan
+- [MindSpore release history — PyPI](https://pypi.org/project/mindspore/#history) — 2.10.0, 2026-07-31 (pre-window correction)

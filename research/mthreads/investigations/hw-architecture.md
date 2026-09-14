@@ -1,6 +1,6 @@
 # Moore Threads MTT GPU Hardware Architecture Investigation
 
-*as_of: 2026-08-08 (baseline 2026-04-05; dated update section appended at end)*
+*as_of: 2026-09-13 (baseline 2026-04-05; dated update sections appended at end)*
 *chip: mthreads*
 *device_class: GPU (China, 摩尔线程)*
 *resource: hw-architecture*
@@ -255,3 +255,26 @@ Moore Threads framed its offering as three AI "factories": a **model factory** (
 - https://baike.baidu.com/item/MTT%20S5000/67553280 — Baidu Baike (HTTP 403 on direct fetch; snippet-level only)
 - https://www.eet-china.com/mp/a474853.html — EET-China (fetch timed out; snippet-level only: 80 GB, 平湖 architecture)
 - https://api.github.com/orgs/MooreThreads/repos?sort=created&direction=desc&per_page=100 — authoritative repo creation dates
+
+# Investigation Update — 2026-09-13: Q1 2026 profit backfill and September stock decline (Roadmap)
+
+*scan window: 2026-08-08 → 2026-09-13; classification: Roadmap — market/financial only, no new hardware facts*
+
+## 1. Q1 2026 first quarterly profit (backfill, predates window)
+
+36Kr (2026-04-30) reports Moore Threads' Q1 2026 revenue at **RMB 738 M (+155% YoY)** with **net profit RMB 29.35 M** — described as the company's first quarterly profit. Caveat in the same source: **excluding government subsidies, the adjusted result was a loss of RMB 54.28 M.** This predates the survey's 2026-08-08 baseline and was not previously recorded; treated here as a backfill, not in-window news. Source: https://www.36kr.com/p/3788937709449989
+
+## 2. September 2026 stock decline (in-window)
+
+On 2026-09-07 Moore Threads shares hit the daily 20% limit-down, closing at **RMB 415.49/share** (lowest since the Nov 2025 IPO), cutting market cap to **RMB 195.3 B**, below RMB 200B for the first time. Proximate trigger: a lock-up expiry releasing **25,774,500 shares (5.48% of total share capital, ≈RMB 10.7B unlocked value)**. Secondary coverage also cited earnings pressure / margin concerns and questioned whether China's "four AI-GPU dragons" are overvalued. This is a market event, not a new product or business disclosure — no chip spec, customer, or revenue figure changed.
+
+Sources:
+- Sina Finance (2026-09-07): https://finance.sina.com.cn/stock/s/2026-09-07/doc-iniqznpq6265641.shtml
+- Sohu (2026-09-07): https://www.sohu.com/a/1073215563_122014422
+- Tencent News (2026-09-07): https://news.qq.com/rain/a/20260907A0D33D00
+- Phoenix Finance (2026-09-07/08): https://i.ifeng.com/c/8wEZGQTtoK6
+- Eastmoney (2026-09-08): https://finance.eastmoney.com/a/202609083868286948.html
+
+## 3. No hardware findings
+
+No new MTT S5000/C256 spec, no MLPerf submission, and no Hot Chips 38 content found this window.

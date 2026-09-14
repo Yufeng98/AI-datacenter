@@ -1,6 +1,6 @@
 # Iluvatar CoreX (天数智芯) GPU Hardware Architecture Investigation
 
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 *chip: tianshu-zhixin*
 *device_class: GPU (天数智芯 / Iluvatar CoreX)*
 *resource: hw-architecture*
@@ -333,3 +333,44 @@ TianGai-100 / TianGai-150 (BI-V150) specifications; the IXUCA / DeepSpark softwa
 - AAStocks — 09903.HK company news (https://www.aastocks.com)
 - [TrendForce, 2026-01-12 — prior roadmap context](https://www.trendforce.com/news/2026/01/12/news-chinas-iluvatar-corex-reportedly-to-unveil-2026-28-gpu-roadmap-targeting-nvidia-h200-b200/)
 - WAIC 2026 official dates (July 17–20, 2026, Shanghai) — WAIC official site; Shanghai municipal government English release
+
+---
+
+## Investigation Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*No new hardware/silicon disclosure this window — TianGai 300 remains "announced 2026-07-19, no tape-out/sampling/mass-production disclosure." What changed is corporate/financial, most of it a July 2026 event that predates the window but was absent from the 2026-08-08 pass, plus routine August/September market coverage.*
+
+### Corporate — H-share placement (predates window, newly recorded)
+
+- **~2026-07-08**, Iluvatar CoreX completed a placement reported at **~USD 850 million**. Sources disagree on mechanics: TheNextWeb (2026-07-08) describes it as a "share sale," while Chinese financial-press aggregation (via Bing News, accessed 2026-09-13) describes it as a placement of **14.857 million new H shares** — language consistent with a primary/follow-on issuance rather than a pure secondary sale by existing holders. **Not resolved between sources; do not assert primary vs. secondary with confidence.** This follows the original ~USD 475M HKEX IPO (2026-01-08) six months prior.
+- Stated use of proceeds (TheNextWeb, press paraphrase, not a vendor quote): R&D, fab/production capacity, and inventory to fill "orders for tens of thousands of chips at once."
+
+### Corporate — H1 2026 interim results (predates window, newly recorded)
+
+- **H1 2026 (six months to 2026-06-30) revenue ≈ RMB 9.45–9.46 billion, +191.6% YoY** (Chinese financial press aggregation via Bing News, accessed 2026-09-13; the primary HKEXnews interim report was not independently opened in this pass — **press-reported figure, not verified against the filing**).
+- Inference-chip segment (智铠/Zhikai series) revenue reported at **RMB 6.54 billion, +651.8% YoY** — the primary growth driver.
+- **Adjusted net profit reported positive for the first time** ("经调整净利扭亏为盈") per aggregated press; one summary source qualifies this with "core business losses" continuing — the two characterizations are not fully reconciled here and should be checked against the primary interim report before being treated as a clean profitability milestone.
+- Reported inclusion in the **Hang Seng TECH Index** as the index's first GPU-component constituent; effective date not confirmed in this pass.
+- Analyst coverage: Macquarie reported maintaining an "outperform" rating with a HK$1,060 target (via aggregated press; original research note not opened).
+
+### Corporate — ByteDance chip talks (predates window, newly recorded)
+
+- Multiple English-language outlets (U.S. News/Reuters wire, Yahoo Finance, TheNextWeb — all dated **~2026-06-14**) reported ByteDance **in talks** with Iluvatar CoreX to purchase AI inference chips, alongside a parallel evaluation of Baidu Kunlunxin chips. **Reported as in-progress negotiations, not a confirmed order** — no volume or contract figure is attributed to Iluvatar CoreX specifically in these reports (contrast the Kunlunxin research thread, where a 2026-09-09 Zhihu-sourced item states ByteDance has "no current collaboration plans" with Kunlunxin specifically — the two chip vendors' ByteDance relationships should not be conflated).
+
+### Market context (in-window, routine)
+
+- August 2026 sector-wide semiconductor/AI pullback affected 09903.HK share price alongside peers (aggregated press).
+
+### Searched and absent (2026-08-08 → 2026-09-13)
+
+- No TianGai 300 tape-out, sampling, or mass-production disclosure.
+- No 天数超节点 (Tianshu supernode) topology/bandwidth disclosure beyond the 2026-07-19 "144-chip, trial stage" statement.
+- No MLPerf submission; no Hot Chips 38 (2026-08-23 → 08-25) Iluvatar CoreX talk.
+- No confirmed (vs. in-talks) ByteDance order.
+
+### Sources added 2026-09-13
+
+- [TheNextWeb — Iluvatar CoreX seeks to raise $850m (2026-07-08)](https://thenextweb.com/news/iluvatar-corex-850-million-share-sale)
+- [U.S. News/Reuters wire — ByteDance in talks with Iluvatar CoreX to purchase AI chips (2026-06-14)](https://money.usnews.com/investing/news/articles/2026-06-14/exclusive-bytedance-in-talks-with-chinas-iluvatar-corex-to-purchase-ai-chips-sources-say)
+- [AASTOCKS — ILUVATAR COREX (09903.HK) launches TianGai 300 flagship (secondary coverage)](https://www.aastocks.com/en/stocks/news/aafn-news/NOW.1534101/2)
+- Bing News aggregation — 09903.HK H1 2026 interim results (revenue, Hang Seng TECH inclusion, H-share placement); accessed 2026-09-13; primary HKEXnews interim filing not independently opened (query: `https://www.bing.com/news/search?q=09903.HK+%E5%8D%8A%E5%B9%B4%E6%8A%A5`) — **press-reported aggregate, not a primary filing**

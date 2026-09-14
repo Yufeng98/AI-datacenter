@@ -1,6 +1,6 @@
 # Google TPU — Hardware Architecture
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *generations: v4 / v5e / v5p / v6e (Trillium) / v7 (Ironwood) / v8t (Sunfish) / v8i (Zebrafish)*
 
 ---
@@ -28,7 +28,9 @@
 
 **Per-chip peak (Google):** 12.6 PFLOPS peak FP4 (8t), 10.1 PFLOPS peak FP4 (8i).
 
-**Availability (as of 2026-08-08):** announced; Google states "both chips will be generally available later this year" (calendar 2026); not yet available to customers, not in the Cloud TPU supported-version list, no release-notes entry. No customer preview program exists for v8 silicon.
+**Availability (as of 2026-08-08, not re-verified in this pass):** announced; Google states "both chips will be generally available later this year" (calendar 2026); not yet available to customers, not in the Cloud TPU supported-version list, no release-notes entry. No customer preview program exists for v8 silicon. **2026-09-13 note:** Hot Chips 38's TPU 8t/8i talk (ServeTheHome coverage) states no GA date for either chip; a "GA late 2027" figure circulating in some secondary commentary could not be corroborated in this pass and is **not recorded** — the vendor's calendar-2026 target from the April 2026 announcement remains the only sourced figure.
+
+**Design process (Hot Chips 38, added 2026-09-13):** Google states it used AI assistance in the TPU 8t/8i design process for power and area optimization. No further detail (which stages, which tools) is disclosed.
 
 ---
 
@@ -205,8 +207,8 @@ Unlike NVIDIA GPUs (which have L1 (SMEM+data cache), L2, register file) and AMD 
 | v5p | HBM2e | 95 GB | 2,765 GB/s | Training flagship |
 | v6e (Trillium) | HBM3 | 32 GB | ~1.6 TB/s | 2× capacity vs v5e |
 | v7 (Ironwood) | HBM3e | 192 GB | 7.4 TB/s | 8 stacks; 1.77 PB/superpod |
-| **v8t (Sunfish)** | **HBM3e** | **216 GB** | **6,528 GB/s** | Training-tuned: more compute per HBM byte than v8i; 4 HBM stacks |
-| **v8i (Zebrafish)** | **HBM3e** | **288 GB** | **8,601 GB/s** | Inference-tuned: more HBM capacity *and* more HBM BW than v8t; sized for KV-cache-resident decoding (paired with 384 MB Vmem) |
+| **v8t (Sunfish)** | **HBM3e** | **216 GB** | **6,528 GB/s** | Training-tuned: more compute per HBM byte than v8i; **6 HBM stacks** (Hot Chips 38, corrected 2026-09-13 — previously an unsourced estimate of 4) |
+| **v8i (Zebrafish)** | **HBM3e** | **288 GB** | **8,601 GB/s** | Inference-tuned: more HBM capacity *and* more HBM BW than v8t; sized for KV-cache-resident decoding (paired with 384 MB Vmem); **8 HBM stacks** (Hot Chips 38, added 2026-09-13) |
 
 ### v7 Ironwood Superpod Memory Scale
 
@@ -216,17 +218,21 @@ Unlike NVIDIA GPUs (which have L1 (SMEM+data cache), L2, register file) and AMD 
 
 ### v8t Sunfish Superpod Memory Scale
 
-- 216 GB HBM3e per chip
+- 216 GB HBM3e per chip across **6 HBM stacks** (Hot Chips 38, added 2026-09-13)
 - 6,528 GB/s peak HBM bandwidth per chip
 - 128 MB on-chip SRAM (Vmem) per chip — flat vs v7
 - 9,600-chip superpod: **2 PB total HBM**, ~62 TB/s aggregate HBM bandwidth
+- Superpod compute: **121 EFLOPS aggregate FP4** (12.6 PFLOPS/chip × 9,600 chips), stated directly by Google at Hot Chips 38 and consistent with the per-chip/pod-scale figures already recorded from the April 2026 announcement
+- Physical layout (Hot Chips 38): **300 racks per superpod, 4 TPUs per tray** (300 × 32 chips/rack = 9,600)
 
 ### v8i Zebrafish Pod Memory Scale
 
-- 288 GB HBM3e per chip
+- 288 GB HBM3e per chip across **8 HBM stacks** (Hot Chips 38, added 2026-09-13)
 - 8,601 GB/s peak HBM bandwidth per chip
 - 384 MB on-chip SRAM (Vmem) per chip — 3× v7
 - 1,152-chip pod (physical/aggregate): **331.8 TB total HBM**, ~9.9 PB/s aggregate HBM bandwidth. Google separately describes a v8i pod as "up to **1,024 active** chips" (36 groups of 8 boards); 331.8 TB is the 1,152 × 288 GB figure.
+- Hot Chips 38 refines the Boardfly grouping: **8 trays of 4 TPUs per group, 36 groups total** (8 × 4 × 36 = 1,152) — consistent with, and more granular than, Google's own "36 groups of 8 boards" language; each "board" is a 4-chip tray.
+- Hot Chips 38 commentary (ServeTheHome): inference "needs more HBM per unit of compute" and a higher SRAM-to-compute ratio than training — the stated rationale for v8i's larger HBM and Vmem allocation relative to v8t.
 
 ### HBM Access Pattern (Weight-Stationary)
 
@@ -356,7 +362,8 @@ Scale:
 
 - Optical core with high-radix optical switches; lower diameter than DCN-routed Multislice.
 - Connects v8t pods (9,600 chips each) into a unified scale-out fabric.
-- **Single-datacenter scale**: up to **134,000 chips** in a single Virgo fabric.
+- **Single-datacenter scale**: up to **134,000 chips** in a single Virgo fabric, delivering **47 Pb/s of aggregate bandwidth** at that scale (Hot Chips 38, added 2026-09-13).
+- **Two-layer switching topology** (Hot Chips 38, added 2026-09-13): Google's talk describes Virgo as a two-tier optical switching fabric; the per-layer role split is not detailed beyond that.
 - **Multi-datacenter scale**: up to **~1,000,000 chips** in a single training cluster spanning multiple datacenters (the "Multi-DC training" envelope Google previewed at I/O 2024 with the Pathways stack).
 - Inter-pod AllReduce is offloaded to Titanium IPUs; XLA collective insertion treats Virgo as a high-bandwidth, moderate-latency outermost mesh axis.
 
@@ -409,6 +416,30 @@ No new TPU silicon was announced in this window; v8t/v8i remain the newest gener
 
 ---
 
+## Update — 2026-09-13 (Hot Chips 38 disclosure)
+
+*Window: 2026-08-08 → 2026-09-13. Primary talk: "The Eighth Generation TPU Family: Two Chips Optimized for Training and Serving in the Agentic Era" (Norman Jouppi, Sridhar Lakshmanamurthy), Hot Chips 38, delivered 2026-08-25. Source used: ServeTheHome's session writeup (secondary, but detailed and directly attributed to the talk) — https://www.servethehome.com/googles-tpuv8s-for-training-and-inference-at-hot-chips-2026/ (2026-08-25); no slide deck or transcript was independently retrieved in this pass. Still no TPU v9 information and no v8 pricing.*
+
+The talk is the first detailed architectural disclosure for v8t/v8i beyond the April 2026 Cloud Next material, and it resolves several items the 2026-08-08 pass had marked "not disclosed."
+
+**A. HBM stack counts — new.** v8t (Sunfish): **6 HBM stacks**. v8i (Zebrafish): **8 HBM stacks**. This corrects the document's previous unsourced estimate of "4 HBM stacks" for v8t (§4).
+
+**B. Superpod-level FP4 compute — now directly stated, not just derived.** Google states the v8t superpod delivers **121 EFLOPS of FP4 compute** at 9,600 chips. This matches the per-chip figure already on record (12.6 PFLOPS × 9,600 ≈ 121 EFLOPS) but is now an independently-sourced HC38 figure rather than only an arithmetic check against the April 2026 announcement.
+
+**C. Virgo network — aggregate bandwidth and topology detail, new.** Google states Virgo supports "134K TPUs in a single domain, for **47 Pbits/second of bandwidth**" and describes a **two-layer switching topology**. Neither figure was previously recorded.
+
+**D. Physical rack/tray configuration — new.** v8t: **300 racks per superpod, 4 TPUs per tray** (300 × 32 = 9,600 chips). v8i: **8 trays of 4 TPUs per group, 36 groups** (8 × 4 × 36 = 1,152 chips) — a more granular restatement of Google's April 2026 "36 groups of 8 boards" language, clarifying that each board/tray holds 4 chips.
+
+**E. Perf/W — re-confirmed, unchanged.** ServeTheHome quotes the talk as "around twice the perf-per-watt as the TPUv7 Ironwood" for v8t — consistent with the "up to 2×" figure already recorded from the April 2026 announcement for both chips. No independent v8i perf/W figure was given in the coverage available.
+
+**F. Design process — new, minor.** Google states it used AI assistance in the TPU 8t/8i design process for power and area optimization; no further detail disclosed.
+
+**G. Availability — explicitly checked, not found.** The ServeTheHome HC38 writeup contains **no GA date or availability statement** for either chip. A "GA late 2027" figure circulating in some secondary commentary about TPU 8i could not be corroborated against this source and is **not recorded**. The April 2026 vendor statement ("both chips will be generally available later this year") remains the only sourced availability figure; it was not independently re-checked against the Cloud TPU release notes in this pass.
+
+**Still not disclosed after Hot Chips 38:** per-TensorCore Vmem split for v8t/v8i; SparseCore counts for v8; MXU array dimensions for v8; FP8 support on v8; process node and ASIC design partners (Broadcom/MediaTek/TSMC 2nm remain press-reported, unconfirmed by Google — the HC38 coverage available did not address fab or design-partner questions); v8 pricing; any TPU v9 information.
+
+---
+
 ## Sources
 
 - [TPU v7 (Ironwood) Documentation](https://docs.cloud.google.com/tpu/docs/tpu7x)
@@ -435,3 +466,6 @@ No new TPU silicon was announced in this window; v8t/v8i remain the newest gener
 - [Cloud TPU Supported Versions / System Architecture](https://docs.cloud.google.com/tpu/docs/system-architecture-tpu-vm) — retrieved 2026-08-08; newest documented generation is TPU7x (Ironwood); no v8 entry
 - [Cloud TPU Release Notes](https://docs.cloud.google.com/tpu/docs/release-notes) — retrieved 2026-08-08; no v8 availability entry
 - [Hot Chips 38 Program](https://hotchips.org/program/conference/) — Aug 24–25 2026; scheduled v8 architecture talk (content not yet public)
+
+### Added 2026-09-13
+- [Google's TPUv8s for Training and Inference at Hot Chips 2026 — ServeTheHome](https://www.servethehome.com/googles-tpuv8s-for-training-and-inference-at-hot-chips-2026/) (2026-08-25) — HBM stack counts, 121 EFLOPS FP4 superpod figure, Virgo 47 Pb/s bandwidth and two-layer topology, 300-rack/4-TPU-per-tray v8t layout, 8-tray/36-group v8i layout, perf/W re-confirmation, AI-assisted design note; no GA date given

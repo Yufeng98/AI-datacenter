@@ -342,3 +342,43 @@ The supporting narrative, "The Decode Era of AI: Why Dataflow Matters More Than 
 - https://inferencex.semianalysis.com/ — negative evidence (no SambaNova hardware listed)
 - https://docs.sambanova.ai/docs/llms.txt — 174-entry index; SN40L-16 is the only documented on-prem rack
 - https://hotchips.org/advance-program/ — SN50 talk scheduled 2026-08-25; not usable as a spec source
+
+---
+
+## Investigation Update — 2026-09-13 (Hot Chips 38: "Dataflow at Scale: the SN50 RDU")
+
+*as_of: 2026-09-13*
+*scan type: scheduled-disclosure follow-up (the Hot Chips 38 talk flagged in §A/G above has now been delivered)*
+*source fetched directly: https://www.servethehome.com/sambanovas-sn50-rdu-for-ai-at-hot-chips-2026/ (2026-08-25)*
+*WebSearch budget was unavailable for this pass; a direct fetch of `sambanova.ai/products/sn50` returned HTTP 404 and was not pursued further. This pass is narrower in scope than the 2026-08-08 pass — it targets only the Hot Chips 38 SN50 disclosure, not a full corporate/product refresh.*
+
+### N. HBM generation resolved: HBM2e
+
+ServeTheHome, direct quote: "SN50 still uses HBM2e here (which is going to be a problem in the future as production of the memory is already ramping down)." Confidence: **confirmed** (secondary source, specific quote attributed to the talk) for the generation; the parenthetical about production ramping down is the **article author's own commentary**, not attributed to SambaNova, and is recorded as such.
+
+This closes the loop on §B above: the repo's original 2026-04-05 baseline had recorded SN50 as HBM2E before the 2026-08-08 pass downgraded it to "extrapolated" for lack of a primary source. Hot Chips 38 independently re-confirms the original figure. Capacity (64 GiB) and bandwidth (1.8 TB/s) are **still not restated** and remain extrapolated.
+
+### O. Networking resolved
+
+- **Scale-up: 800GbE.** Replaces the "2.2 TB/s bidirectional — extrapolated" figure in §B. Per-link figure; not asserted to reconcile with the vendor's separate "multi-TB/s interconnect" aggregate claim.
+- **Scale-out: 400GbE.** Previously undisclosed.
+- **Scale-up domain: "designed to scale-up to a much larger domain of 256+ chips."** Upgrades the 256-chip figure noted in §A (previously "vendor claim only," future-tense in the 2026-07-30 blog) to a statement in SambaNova's own Hot Chips architecture talk. Still a **design target** — largest publicly demonstrated production config remains 16 RDUs (§C).
+- **Bandwidth at scale (new):** MBU ~45% at 256 RDUs; **>350 TB/s aggregate model bandwidth at 512 RDUs**, MBU ~40%. These describe scales with no publicly demonstrated deployment behind them; treat as vendor-disclosed architecture/analytical figures, not independent measurements. Confidence: **confirmed as a vendor talk claim**, not independently verified.
+
+### P. Performance
+
+- **"5x as many FLOPS as SN40"** reconfirms the existing "5X faster" marketing figure (§F, Feb 2026 press release) via the Hot Chips talk itself. Absolute PFLOPS baseline remains unstated (§B unaffected).
+- **">750 tokens/second on MiniMax M2.7"** (attributed to Artificial Analysis) — a fourth number in the family already tracked in §D (≈800/≈400 t/s vendor-reported, 392.4 t/s independent). Configuration (demo vs. production) is not specified in the retrieved coverage. Survey guidance from §D stands: use 392.4 t/s for production comparisons.
+
+### Q. Shipping status — language shift, still not independently confirmed
+
+ServeTheHome (2026-08-25): "launched earlier this year." This updates the status question raised in §A (which had found no shipping confirmation as of 2026-08-08). This pass could not independently corroborate a named-customer shipment from a SambaNova primary source — `sambanova.ai/products/sn50` returned HTTP 404 on direct fetch, and no new press release was located beyond what §F already records (2026-02-24, 2026-04-08, 2026-07-08). **Net finding: status upgraded from "no confirmation" to "described as launched by secondary Hot Chips coverage; independent/named-customer confirmation still absent."** This should be checked directly against `sambanova.ai/press` in the next scan, which may by then show a dedicated SN50 shipping or customer-delivery announcement.
+
+### R. Explicitly not confirmed in this pass
+
+Exact BF16/FP8 PFLOPS per socket; SRAM (PMU) capacity in MiB; PMU count; exact HBM capacity/bandwidth; DDR capacity; transistor count; the ~2× SN40L PCU-count claim; SN50 pricing; whether SambaStack hardware documentation now includes an SN50 SambaRack reference (not re-checked); whether SN50 has entered the SemiAnalysis InferenceX dataset (not re-checked); any corporate/funding news in the window (out of scope for this narrower pass).
+
+## Sources added 2026-09-13
+
+- https://www.servethehome.com/sambanovas-sn50-rdu-for-ai-at-hot-chips-2026/ — primary source for this update pass, fetched directly
+- https://sambanova.ai/products/sn50 — attempted fetch, HTTP 404 (recorded as a negative finding, not proof the product page never existed under this path)

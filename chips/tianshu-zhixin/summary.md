@@ -1,6 +1,6 @@
 # Iluvatar CoreX (天数智芯) TianGai GPU Software and Hardware Stack Summary
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: tianshu-zhixin*
 *device_class: GPU (天数智芯 / Iluvatar CoreX)*
 
@@ -137,6 +137,8 @@ Off-chip: HBM2 (training) / GDDR6 (inference)
 | Tianji (天玑) | 2026 | Claims to surpass B200 (Jan 2026 roadmap coverage) | Announced — ⚠️ *unverified; no product has been tied to this codename* |
 | Tianquan (天权) | 2027 | Targets Rubin R100 | Announced |
 
+> **2026-09-13 rescan:** no tape-out, sampling, or mass-production update for TianGai 300 found in the 2026-08-08 → 2026-09-13 window; it remains "announced 2026-07-19, not shipping." The window's material news is corporate/financial (H1 2026 results, H-share placement, Hang Seng TECH inclusion) — see Business Context table and the Update (2026-09-13) section below.
+
 > **Codename caution (2026-08-08).** The Big-Dipper roadmap names (天枢/天璇/天玑/天权) come from January 2026 press coverage of an investor-facing roadmap. The product actually launched in 2026 is **天垓300**, a name from the 天垓 *product* line, and its vendor benchmarks are all against **Hopper**, not Blackwell. No retrieved source states that TianGai 300 is the productization of Tianxuan or of any other Big-Dipper architecture. The survey deliberately keeps the two naming systems separate rather than assuming a mapping.
 
 ---
@@ -216,6 +218,10 @@ Process node and foundry; die size; transistor count; packaging (CoWoS or altern
 | **TianGai 300 (天垓300) announced** | **Jul 19, 2026** | **WAIC 2026 day 3, Shanghai; first product on new-gen self-developed architecture; FP8/FP4; ixSMEX/ixDPX/ixTrans; announced, not shipping** |
 | **天数超节点 (Tianshu supernode) announced** | **Jul 19, 2026** | **144-chip full interconnect scale-up domain; trial / partnership-discussion stage; topology and link BW not disclosed** |
 | Deployment figures restated | End-2025 (stated Jul 2026) | 340+ customers, 30+ industries, >10,000 chips in online cluster operation (company-stated) |
+| ByteDance chip talks reported | ~Jun 14, 2026 | ByteDance reported **in talks** to purchase Iluvatar CoreX inference chips (also evaluating Kunlunxin, separately) — **not a confirmed order**; press-reported |
+| H-share placement | ~Jul 8, 2026 | **~USD 850M** raised (press-reported ~14.857M new H shares per Chinese financial press; mechanics — primary vs. secondary — disputed across sources); follows the ~USD 475M Jan 2026 IPO |
+| **H1 2026 interim results** | **Reported Aug/Sep 2026** | Revenue **≈ RMB 9.45–9.46B, +191.6% YoY**; inference (Zhikai) segment revenue **RMB 6.54B, +651.8% YoY**; adjusted net profit reported positive for the first time (press-reported; not verified against the primary HKEXnews interim filing) |
+| Hang Seng TECH Index inclusion | Reported Aug/Sep 2026 | Reported as the index's first GPU-component constituent; effective date not confirmed; press-reported |
 
 ---
 
@@ -255,3 +261,17 @@ Process node and foundry; die size; transistor count; packaging (CoWoS or altern
 - [Caixin — HKEX debut USD 5.3B market cap](https://www.caixinglobal.com/2026-01-08/chinese-gpu-maker-iluvatar-corex-climbs-in-hong-kong-debut-with-53-billion-valuation-102401708.html)
 - [Startupnews — 2025 92% revenue jump RMB 1.03B](https://startupnews.fyi/2026/04/02/chinese-gpu-designer-iluvatar-corex-reports-92-jump-in-annual-revenue/)
 - [SCMP — Iluvatar GPU roadmap vs Rubin](https://www.scmp.com/tech/big-tech/article/3341368/iluvatar-corex-targets-nvidias-rubin-gpu-road-map-amid-china-chip-push)
+
+---
+
+## Update (2026-09-13)
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: Roadmap (financing/corporate) — no hardware/silicon change. TianGai 300 status unchanged ("announced 2026-07-19, no tape-out/sampling/mass-production disclosure").*
+
+- **H1 2026 interim results** (predates window, newly recorded): revenue ≈ RMB 9.45–9.46B (+191.6% YoY); inference (Zhikai) segment RMB 6.54B (+651.8% YoY); adjusted net profit reported positive for the first time. **Press-reported** (Chinese financial press via Bing News aggregation, accessed 2026-09-13); primary HKEXnews interim filing not independently opened.
+- **Hang Seng TECH Index inclusion** reported as the index's first GPU-component constituent (press-reported, effective date unconfirmed).
+- **H-share placement** ~2026-07-08 raised ~USD 850M (press-reported ~14.857M new H shares); follows the Jan 2026 IPO.
+- **ByteDance** reported in talks (~2026-06-14) to purchase Iluvatar CoreX inference chips — not a confirmed order.
+- Searched and absent: no TianGai 300 tape-out/sampling news, no new Tianshu-supernode disclosure, no MLPerf submission, no Hot Chips 38 Iluvatar CoreX talk.
+
+New sources: see `research/tianshu-zhixin/search-results.md` → "Resources Added 2026-09-13" and `research/tianshu-zhixin/investigations/hw-architecture.md` → "Investigation Update — 2026-09-13".

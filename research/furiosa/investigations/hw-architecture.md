@@ -1,6 +1,6 @@
 # FuriosaAI Hardware Architecture Investigation
 
-*as_of: 2026-04-05*
+*as_of: 2026-09-13*
 
 ---
 
@@ -236,4 +236,39 @@ White paper: RNGD vs **4× NVIDIA RTX PRO 6000 Blackwell Server Edition** (bare 
 - https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/ — negative result
 - https://hotchips.org/ — negative result
 - https://www.ai-market-watch.com/news/furiosaai-nears-completion-of-800-billion-won-series-d-valuation-at-4-trillion-w-eawtpx — LOW confidence
+
+---
+
+## G. Investigation Update — 2026-09-13 (scan window 2026-08-08 → 2026-09-13)
+
+*No new silicon or spec this window (Gen 3 Broadcom co-development remains announced-only, H1 2028 sampling target unchanged). Two items: a Korean regulatory/business development inside the window, and a pre-baseline correction (a Sept-2025 OpenAI demo event that the repo had never recorded).*
+
+### G.1 Korean export-control change and "living showroom" ask (2026-09-10)
+
+Crypto Briefing (2026-09-10) reports that Korean fabless AI chip startups — **explicitly naming both FuriosaAI and Rebellions** — are lobbying Seoul to "orchestrate large-scale domestic deployments that can serve as living showrooms," i.e., government-brokered reference deployments they can cite when selling internationally.
+
+- **New regulatory fact**: effective **2026-09-01**, Korea added high-performance AI chips to its **strategic goods export-control list**, requiring government approval for overseas shipment — a compliance burden the article frames as disproportionately affecting small startups versus incumbents like NVIDIA.
+- **Scale context (vendor-agnostic, collective figure)**: Korean AI-chip startups' overseas contracts collectively total only **~$30 million**, against NVIDIA's tens-of-billions-per-quarter datacenter revenue; cited example deals are small (a ~$0.5M wheelchair-platform contract, a $2.5M water-monitoring system) — **not attributed specifically to FuriosaAI**, so do not read this as a FuriosaAI-specific revenue figure.
+- **Government response already in motion**: Ministry of Science and ICT's **K-AI Semiconductor Growth Forum** and the **K-NPU Project** (initiated late 2025), plus a stated plan for **8.4 GW of AI datacenter capacity**.
+- This item is **corporate/regulatory context, not a hardware or shipment fact**, and is equally relevant to the `rebellions-atom` entry (both companies are named in the same article).
+
+### G.2 Pre-baseline correction: FuriosaAI × OpenAI demo, 2025-09-11 (newly recorded)
+
+Not previously in this repo. At the **grand opening of OpenAI's Seoul office (2025-09-11)**, FuriosaAI and OpenAI staged a **live demo**: OpenAI's open-weight **gpt-oss-120b** model running on just **two RNGD cards** in **MXFP4** precision (Yahoo Finance, republishing a 2025-09-17 piece; total funding cited there as $246M, i.e. pre-Series-C-close figures — stale, superseded by the Series C $125M July 2025 close already on record). **This was a technical demonstration staged at a partner event, not a shipment, sale, or supply agreement with OpenAI** — the pre-verified research-pass claim of "shipments to OpenAI" is **not supported by this source and should not be written as a shipment/customer relationship.** It does, however, corroborate the already-recorded fact that gpt-oss-120b is one of the models the TCL/2026.3 stack targets.
+
+### G.3 Series D — still not confirmed closed
+
+No August/September 2026 source was found confirming a Series D close. The KRW 800B (~$600M) figure relayed 2026-07-21 (The Bell, via ai-market-watch.com, LOW confidence) remains the most recent figure on record. **Note**: this repo's own pre-verified-fact list for this scan cited "750B-won Series D" — no source matching that specific figure was found in this pass; it is close to but does not match the KRW 800B figure already on record. Do not treat either figure as confirmed.
+
+### Searched and absent
+
+- No confirmed FuriosaAI RNGD 2026 cumulative unit-volume figure (e.g., "~20,000 units") — the only production-rate figures on record remain the pre-window ~1,000/month → 2,000–3,000/month by end-2026 target.
+- No Series D close announcement.
+- No Gen 3 (Broadcom) tape-out/sampling update.
+- No Hot Chips 38 FuriosaAI talk; no MLPerf submission.
+
+### Sources added 2026-09-13
+
+- [Crypto Briefing — South Korean AI chipmakers ask government for domestic deployment references (2026-09-10)](https://cryptobriefing.com/south-korean-ai-chipmakers-deployment-references/)
+- [Yahoo Finance — AI Unicorn FuriosaAI With $246M In Funding Teams With OpenAI To Run 120B Model On Just 2 Cards (republished; underlying event 2025-09-11)](https://finance.yahoo.com/news/ai-unicorn-furiosaai-246m-funding-123111208.html)
 - REJECTED: https://theoutpost.ai/news-story/broadcom-partners-with-furiosa-ai-on-2nm-ai-accelerator-chip-with-hbm-4e-memory-for-inference-26665/ — AI-generated aggregator; specs traced to Wccftech speculation

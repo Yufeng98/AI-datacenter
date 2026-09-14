@@ -2,14 +2,14 @@
 
 *chip: sk-hynix-aim*
 *device_class: Processing-in-Memory (PIM)*
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *research_baseline: 2026-04-05*
 
 ---
 
 ## One-Paragraph Summary
 
-SK Hynix **AiM (Accelerator-in-Memory)** is a **Processing-in-Memory** product family built on standard GDDR6 DRAM. AiM embeds **FP16 SIMD MAC units** at the bank boundary of each pseudo-channel inside the DRAM die, enabling all 16 banks to operate simultaneously (all-bank operation) and exploiting the **internal DRAM bandwidth (~4 TB/s)** rather than the limited external I/O bandwidth (~64 GB/s). The **AiMX** accelerator card combines 16–32 GDDR6-AiM packages and acts as a **heterogeneous co-processor** alongside a CPU or GPU: the host handles compute-bound ops while AiMX handles memory-bound GEMV (LLM KV-cache attention, embedding lookups). Presented at Hot Chips 34 (2022), ASPLOS 2023, and Hot Chips 2024 (AiMX-xPU), SK Hynix demonstrated 10× lower latency and 5× lower power vs. GPU for LLM attention. The software stack uses an extended DRAM command set (AiM ISR), a host-side PIM runtime, and a BLAS Level 2 library, with transparent PyTorch/TensorFlow integration and — as of the 2025 conference demos — **vLLM** as the serving frontend; no public SDK has been released. **As of 2026-08-08 AiMX is still described by SK Hynix itself as a card *prototype*** (CES 2026 wording): not sampling, not shipping, and with no named customer or deployment. See "Update — 2026-08-08" below.
+SK Hynix **AiM (Accelerator-in-Memory)** is a **Processing-in-Memory** product family built on standard GDDR6 DRAM. AiM embeds **FP16 SIMD MAC units** at the bank boundary of each pseudo-channel inside the DRAM die, enabling all 16 banks to operate simultaneously (all-bank operation) and exploiting the **internal DRAM bandwidth (~4 TB/s)** rather than the limited external I/O bandwidth (~64 GB/s). The **AiMX** accelerator card combines 16–32 GDDR6-AiM packages and acts as a **heterogeneous co-processor** alongside a CPU or GPU: the host handles compute-bound ops while AiMX handles memory-bound GEMV (LLM KV-cache attention, embedding lookups). Presented at Hot Chips 34 (2022), ASPLOS 2023, and Hot Chips 2024 (AiMX-xPU), SK Hynix demonstrated 10× lower latency and 5× lower power vs. GPU for LLM attention. The software stack uses an extended DRAM command set (AiM ISR), a host-side PIM runtime, and a BLAS Level 2 library, with transparent PyTorch/TensorFlow integration and — as of the 2025 conference demos — **vLLM** as the serving frontend; no public SDK has been released. **As of 2026-09-13 AiMX is still described by SK Hynix itself as a card *prototype*** (CES 2026 wording, unchanged through this scan): not sampling, not shipping, and with no named customer or deployment. See "Update — 2026-09-13" and "Update — 2026-08-08" below.
 
 ---
 
@@ -31,8 +31,8 @@ SK Hynix **AiM (Accelerator-in-Memory)** is a **Processing-in-Memory** product f
 | JEDEC compatible | Yes (backward compatible) |
 | Speedup vs. CPU+DRAM | up to 16× |
 | Power reduction | up to 80% |
-| Latest AiMX generation (as of 2026-08-08) | AiMX Gen2 (2024) — no Gen3 announced |
-| Productization status (as of 2026-08-08) | **Prototype** — SK Hynix's own CES 2026 wording ("accelerator card prototype"); not sampling, not shipping, no named customer |
+| Latest AiMX generation (as of 2026-09-13) | AiMX Gen2 (2024) — no Gen3 announced |
+| Productization status (as of 2026-09-13) | **Prototype** — SK Hynix's own CES 2026 wording ("accelerator card prototype"); not sampling, not shipping, no named customer |
 
 ---
 
@@ -55,6 +55,20 @@ SK Hynix **AiM (Accelerator-in-Memory)** is a **Processing-in-Memory** product f
 | Runtime | AiM Runtime Library | not public |
 | HW command interface | AiM ISR (extended DRAM cmds) | partially in papers |
 | Research simulator | aim_simulator (Ramulator 2.0) | Public (GitHub) |
+
+---
+
+## Update — 2026-09-13 (window 2026-08-08 → 2026-09-13)
+
+*Classification: **Minor** — no AiM/AiMX product, spec, or status change. AiMX remains SK hynix's own-described "prototype" (CES 2026 wording, unchanged). This pass resolves a previously-flagged ambiguity and checks two specific questions raised for this scan: whether SK hynix answered Samsung's Hot Chips 38 "World's First" LPDDR-based PIM disclosure, and whether SK hynix has disclosed a logic base die for its own HBM4. Both are negative. Full source list: `research/sk-hynix-aim/search-results.md` → "Resources Added 2026-09-13."*
+
+**Hot Chips 38 Tutorial 1 — resolved, and it is packaging, not an AiM disclosure.** The previously-unconfirmed SK hynix Sunday tutorial is now confirmed: **"Advanced packaging for High Bandwidth Memory (HBM)"**, Jaesik Lee, SK Hynix (Tutorial 1, Memory Technology, 2026-08-23, 9:00–11:00 AM). This is HBM packaging technology — it does not disclose any AiM/PIM product and is not treated as one here, consistent with how this survey already handled it before confirmation.
+
+**No SK hynix LPDDR-based PIM response found.** Hot Chips 38's Tuesday Memory session PIM talk, "Samsung LPDDR5X-PIM: World's First LPDDR based Processing in Memory" (Karam Hwang), is Samsung's. No SK hynix LPDDR-PIM talk, paper, or announcement was found at Hot Chips 38 or in SK hynix's own newsroom for the window.
+
+**No SK hynix HBM4 logic-base-die disclosure found.** Samsung's HC38 tutorial "HBM Base Die: How HBM Will Evolve Using Advanced Logic Processes" (Sangwook Han) is Samsung's own roadmap talk. SK hynix's own materials in the window (DTF 2026, 2026-08-26; the "Hybrid Bonding" Tech Note, 2026-08-25) describe HBM4 I/O and package-height changes but say hybrid bonding — and by implication any base-die process shift — is expected at **HBM4E or HBM5**, not HBM4 itself; no base-die logic process or foundry partner is named for SK hynix's own HBM4.
+
+**Everything else checked was negative for AiM/AiMX.** DTF 2026 (2026-08-26, full product lineup — HBM3E/HBM4/HBM4E, DDR5/LPDDR5X/GDDR7, NAND/SSD lines), the 2026 Future Forum (2026-09-08/09, strategic direction), the Indiana HBM fab groundbreaking (2026-08-27/28), and a co-packaged-optics roadmap piece in *Nature Electronics* (2026-08-20) all omit AiM/AiMX/PIM. The Future Forum's forward-looking "3D Memory Technology" language ("converting DRAM peripheral circuits into logic foundry capabilities") is roadmap-level and not tied to AiM by name — recorded as context only.
 
 ---
 
@@ -119,4 +133,11 @@ SK Hynix's 2026 compute-memory messaging has shifted emphasis away from AiM and 
 - [SK hynix Showcases Full-Stack AI Memory Portfolio at 2025 OCP Global Summit — newsroom, 2025-10-31](https://news.skhynix.com/en/sk-hynix-showcases-full-stack-ai-memory-portfolio-at-2025-ocp-global-summit/)
 - [Tech Note EP.1 — It's the Memory: The Future of AI Will Be Decided by Memory — newsroom, 2026-05-12](https://news.skhynix.com/en/tech-note-series-ep1/)
 - [SK hynix at FMS 2026 (no AiM/AiMX content) — newsroom](https://news.skhynix.com/en/fms-2026/)
-- [Hot Chips 38 program (Aug 23–25, 2026 — future event; no SK Hynix AiM talk)](https://www.hotchips.org/)
+- [Hot Chips 38 program (Aug 23–25, 2026 — no SK Hynix AiM talk)](https://www.hotchips.org/)
+
+*Added 2026-09-13:*
+
+- [Hot Chips 2026 full program (Tutorial 1 confirmed: "Advanced packaging for High Bandwidth Memory (HBM)" — Jaesik Lee, SK Hynix; Samsung LPDDR5X-PIM and Samsung HBM base-die talks confirmed as Samsung's, not SK hynix's)](https://hc2026.hotchips.org/program/)
+- [SK hynix Presents a Full Lineup of Memory Solutions Optimized for AI Infrastructure at DTF 2026 — newsroom, 2026-08-26 (no AiM/PIM content)](https://news.skhynix.com/en/dtf-2026/)
+- [Tech Note EP.2 — Hybrid Bonding: Evolving into a Foundational Technology — newsroom, 2026-08-25 (HBM4 described as still TCB; hybrid bonding/base-die shift deferred to HBM4E/HBM5; no AiM/PIM)](https://news.skhynix.com/en/tech-note-series-ep2/)
+- [SK hynix Charts Its Business and Technology Direction at the 2026 Future Forum — newsroom, 2026-09-09 (event 2026-09-08; no AiM/PIM content)](https://news.skhynix.com/en/future-forum-2026/)

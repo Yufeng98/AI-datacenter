@@ -1,6 +1,6 @@
 # Preferred Networks MN-Core Layer Mapping Table
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *chip: preferred-networks-mn-core*
 *device_class: Compiler-Scheduled SIMD Accelerator (Japan)*
 
@@ -57,7 +57,7 @@
 | ISA | VLIW PE instruction (fixed width, always carries a `wait` field); 4-cycle "step" chosen because 1-cycle issue would saturate host PCIe; auto-stride (3 PE + 1 MV) and flat (2 PE + 1 MV) packing; no branches; no hazard interlocks; register-memory not load-store; untyped operands; big-endian; explicit forwarding operands | confirmed | mncore2-sdm |
 | ISA | Number of ONNX operators supported by codegen, and the authoritative supported-op list: **not disclosed** | unconfirmed | — |
 | Licensing | Everything load-bearing (PFVM, codegen, runtime, operator library, assembler, emulator, user-space driver, kernel module) ships as **binary .deb packages under an EULA** (`/opt/pfn/licenses/MN-Core_SDK_End-User_License_Agreement.pdf`, not published on the web). `github.com/pfnet/mncore` is Apache-2.0 but contains only Dockerfiles, apt scripts and examples | confirmed | mncore-github, mlsdk-getting-started |
-| SDK Cadence | v0.4 (2026-02-27) → v0.5 (2026-04-28, "SDK source now public" — misleading: Dockerfiles+examples only) → v0.6 (2026-06-05, emulator+assembler bundled, `fx2onnx.linter`) → v0.7 (2026-07-15). SDK Hub portal launched 2026-06-22. The public no-login developer story is ~6 months old | confirmed | sdk-hub-news |
+| SDK Cadence | v0.4 (2026-02-27) → v0.5 (2026-04-28, "SDK source now public" — misleading: Dockerfiles+examples only) → v0.6 (2026-06-05, emulator+assembler bundled, `fx2onnx.linter`) → v0.7 (2026-07-15) → **v0.8 (2026-08-26 — no changelog published; specific changes not disclosed)**. SDK Hub portal launched 2026-06-22. The public no-login developer story is ~6 months old | confirmed | sdk-hub-news |
 
 ## Hardware Layers
 

@@ -1,9 +1,10 @@
 # Microsoft Maia Layer Mapping Table
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13*
 *Device class: Cloud AI Accelerator*
 *Generations covered: Maia 100 (TSMC 5nm, 2024) and Maia 200 (TSMC 3nm, 2026)*
 *Review note (2026-08-08): no layer changed technically in the 2026-04-05 → 2026-08-08 window. Framework-integration and SDK rows updated for the new first-party MAI workload class and re-confirmed preview status; all hardware rows unchanged.*
+*Review note (2026-09-13): Hot Chips 38 (arXiv:2608.24664, Microsoft-primary) discloses a new, architecturally distinct ISA layer — the Dataflow ISA (DISA) that orchestrates Maia 200's SDLA execution units — added as a new Assembler/ISA row below. The existing "NPL" compiler row's full name is now confirmed as NEsted PArallel Language (NEPAL); annotated in place, row not otherwise changed. No other layer changed.*
 
 ## Software Layers
 
@@ -14,7 +15,7 @@
 | Framework Integration | Microsoft first-party MAI models on Maia 200 (MAI-Thinking-1 et al.); Microsoft's first public model↔silicon co-design claim on Maia | confirmed (workload); co-design *mechanism* not disclosed | Build 2026 MAI keynote transcript, 2026-06-02 |
 | Framework Integration | Maia SDK access: preview only, sign-up-gated (academics, developers, frontier labs, OSS contributors); no GA, no GA timeline, no public docs tree (learn.microsoft.com/azure/maia → 404) | confirmed (re-checked 2026-08-08) | Maia SDK sign-up page; negative check on learn.microsoft.com |
 | Compiler / IR | Triton compiler for Maia (OpenAI Triton Python DSL; portability path; GPU + Maia cross-target) | confirmed | Azure Blog; Maia SDK overview |
-| Compiler / IR | NPL compiler — Nested Parallel Language (Maia-native; explicit SRAM/DMA control; not public) | confirmed (exists), not public | Azure Blog; Maia SDK overview |
+| Compiler / IR | NPL compiler — Nested Parallel Language (Maia-native; explicit SRAM/DMA control; not public). **Full name confirmed 2026-09-13 as NEsted PArallel Language (NEPAL) — a simple C++-based low-level language for programming the control path** (arXiv:2608.24664) | confirmed (exists), not public | Azure Blog; Maia SDK overview; arXiv:2608.24664 (2026-09-13) |
 | Op Library | Microsoft Maia kernel library (GEMM, Attention, Norm, collectives; compiler-built; not public) | confirmed (exists), not public | Azure Blog (inferred from SDK description) |
 | Kernel Library | Custom NPL and Triton kernels (production kernels for Azure OpenAI; not public) | confirmed (exists), not public | Azure Blog |
 | Runtime | Maia Runtime (kernel dispatch, SRAM alloc, DMA queues, semaphores; SDK preview only) | confirmed (exists), not public | Azure Blog; Maia SDK |
@@ -26,6 +27,7 @@
 | Assembler / ISA | Custom vector processor ISA (FP32/BF16; custom; not public) | confirmed (exists), not public | HC2024 |
 | Assembler / ISA | Tensor unit ISA (MX6/MX9/BF16 on Maia 100; FP4/FP8 on Maia 200; not public) | confirmed (exists), not public | HC2024; Maia 200 blog |
 | Assembler / ISA | OCP MX (Microscaling) data format spec (public OCP standard; Maia ISA impl not public) | confirmed (spec public) | opencomputeproject.org; Microsoft |
+| Assembler / ISA | **New layer, added 2026-09-13: Dataflow ISA (DISA)** — Maia 200's SDLA-wide instruction set orchestrating the dataflow execution units (TTU, TVP, DMA/Sync engines) via explicit synchronization preconditions, a macro-instruction, and synchronization postconditions per instruction; distinct from, and orchestrates above, the per-unit custom ISAs in the two rows above; not public | confirmed (exists, described in detail), not public | arXiv:2608.24664 (2026-09-13) |
 
 ## Hardware Layers
 

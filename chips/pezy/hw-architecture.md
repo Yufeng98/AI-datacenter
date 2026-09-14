@@ -1,7 +1,7 @@
 # PEZY Computing HW Architecture
 
-*as_of: 2026-08-08*
-*Generations: PEZY-SC (2014) → SC2 (2017) → SC3 / SC3s (2020) → SC4s (announced 2025; still pre-production as of 2026-08-08)*
+*as_of: 2026-09-13*
+*Generations: PEZY-SC (2014) → SC2 (2017) → SC3 / SC3s (2020) → SC4s (announced 2025; still pre-production as of 2026-09-13)*
 
 ---
 
@@ -23,7 +23,7 @@ The latest chip, **PEZY-SC4s**, was presented at Hot Chips 37 (August 2025) and 
 | SC2 | 2017 | 2,048 | TSMC 16FF+ | 1.0 GHz | 4.1 | — | #1 Nov 2017 (17 GF/W) | Listed on products page (ZettaScaler-2.0) |
 | SC3 | 2020 | 4,096 | TSMC 7nm | 1.2 GHz | 19.7 | HBM2 | #12 Nov 2021 (24.6 GF/W) | **Shipping** — ZettaScaler 3.0, ZettaVEGA, PZLAST |
 | SC3s | 2020+ | 512 | TSMC 7nm (109 mm²) | not disclosed | not disclosed | — | — | Small-module variant; active target of third-party academic porting work (PACT 2025 Winograd; CPC 2026 PEZY-DPM) |
-| SC4s | announced 2025 | 2,048 | TSMC 5nm | 1.5 GHz | ~24.6 (sim.) | HBM3 96 GB | Target ~91 GF/W (sim.); **no measured entry** | **Pre-production.** Not on PEZY's product page; stated end-2025 release target missed by 8+ months, no revised date |
+| SC4s | announced 2025 | 2,048 | TSMC 5nm | 1.5 GHz | ~24.6 (sim.); BF16 576 (vendor claim, 2026-08-31) | HBM3 96 GB | ~91 GF/W (Hot Chips 37, 2025, sim.); **115 GFLOPS/W "achieved," vendor claim per 2026-08-31 PEZY announcement of IEEE Micro paper — provenance (measured vs. simulated) not disclosed**; **no independently measured/listed entry** | **Pre-production.** Not on PEZY's product page (re-checked 2026-09-13); stated end-2025 release target missed by 9+ months, no revised date |
 
 **Naming note (added 2026-08-08):** PEZY uses both "PEZY-SC3" (4,096 PE, full part) and "PEZY-SC3s" (512 PE, 109 mm² small module). Third-party papers published in this window consistently write **SC3s**. Earlier revisions of this survey did not distinguish the two; the distinction is now explicit in the table above.
 
@@ -39,7 +39,7 @@ Unlike GPUs (which group threads into warps/wavefronts that must execute the sam
 |--------|----------------|-----------------|
 | Branch divergence | Expensive (mask/serialize) | None |
 | Vector width | 1,024–2,048 bits | 256 bits (4-wide FP64) |
-| FP64 efficiency | ~49 GF/W | ~91 GF/W (sim.) |
+| FP64 efficiency | ~49 GF/W | ~91 GF/W (sim., HC37 2025); 115 GFLOPS/W "achieved" per PEZY's 2026-08-31 announcement (vendor claim, provenance not disclosed) |
 | AI throughput | 989 FP16 TFLOPS | Not primary target |
 
 ### Processing Element (PE)
@@ -145,6 +145,7 @@ Prior generations needed an AMD EPYC host running Linux to act as the management
 | Nov 2017 | Shoubu System B | PEZY-SC2 | 17.0 | #1 |
 | Nov 2021 | ZettaScaler3.0 | PEZY-SC3 | 24.6 | #12 |
 | 2025 (sim.) | ZettaScaler4.0 | PEZY-SC4s | ~91 | Target — **no measured entry as of Jun 2026** |
+| 2026-08-31 (vendor, IEEE Micro) | ZettaScaler4.0 | PEZY-SC4s | **115** ("achieved," per PEZY) | Vendor claim; measured-vs-simulated provenance **not disclosed**; no Green500 list entry |
 
 > **Green500 reality check (added 2026-08-08):** no PEZY / ZettaScaler / ExaScaler system appears in the **top 20** of the June 2026 Green500 list. That list's top 20 runs from KAIROS (CALMIP/CNRS, 73.282 GF/W) through ROMEO-2025 (70.912), Levante GPU extension (69.426), Isambard-AI phase 1 (68.835) and Otus (68.177) down to Frontier TDS (62.684), and is entirely NVIDIA GH200/H100 and AMD MI300A/MI250X. PEZY's ~91 GF/W SC4s figure therefore remains a **simulation with no measured list entry behind it**, and it is not directly comparable to these mixed-precision-optimized HPL efficiency numbers. Only the top 20 was verified — this is *not* a claim that PEZY appears nowhere in all 500 entries.
 
@@ -204,3 +205,27 @@ Both use the **SC3s** designation (see the naming note under §1). Independent p
 ### 9.5 Hot Chips 38
 
 PEZY has **no talk** on the Hot Chips 38 program (Aug 23–25, 2026, Stanford Memorial Auditorium), i.e. no SC4s follow-up to the HC37 2025 presentation. HC38 is in the future at the time of writing; nothing from it may be cited as evidence for any specification, in either direction.
+
+---
+
+## 10. Status Update — 2026-09-13
+
+*Window: 2026-08-08 → 2026-09-13. Change class: **major** — a new vendor-stated FP64 efficiency figure supersedes/extends the ~91 GF/W simulated value carried since 2026-04-05. See `research/pezy/investigations/hw-architecture.md` §13 for full sourcing detail.*
+
+### 10.1 New: IEEE Micro publication announced by PEZY (2026-08-31)
+
+PEZY's own news index (https://www.pezy.co.jp/en/news/news20260831-pezysc4s-ieeemicro/, 2026-08-31) announces publication of the IEEE Micro paper flagged in §9.2 as unread (IEEE Xplore blocks automated retrieval; still blocked as of 2026-09-13). Per PEZY's characterization of the paper:
+
+- **FP64 energy efficiency: "115 GFLOPS/W achieved in double precision matrix multiplication, confirming 2.2× improvement versus prior generation."** This is **vendor-claimed**; whether it reflects a silicon measurement or a refined simulation is **not disclosed** — the source is PEZY's own news summary, not the paper text itself. It should be recorded alongside, not in place of, the ~91 GF/W simulated Hot Chips 37 figure, since the two cannot be reconciled against either previously known efficiency number (see research investigation §13.2 for the arithmetic).
+- **Peak BF16: 576 TFLOPS** — the first quantified BF16 peak this survey has recorded for SC4s (peak FP64 24.6 TFLOPS and HBM3 3.2 TB/s are unchanged).
+- **System plan: 90 nodes, 8.9 PFLOPS FP64** (a small refinement of the previously recorded 8.6 PF figure for the same 90-node/737,280-PE test cluster).
+- **PyTorch-based software ecosystem "constructed"** for major LLM deployment — no version numbers, packages, or repositories given.
+- **No shipping date, product-page listing, or sampling status given.**
+
+### 10.2 SC4s product/shipping status: unchanged
+
+Re-checked 2026-09-13: PEZY's English products page still lists no PEZY-SC4s and no ZettaScaler 4.0 (same nine items as §9.1). The end-2025 release target is now missed by 9+ months with no revised date. No other PEZY news items appeared in the window.
+
+### 10.3 Not re-verified this pass
+
+Green500 standing, Hot Chips 38 absence, and ExaScaler corporate status were established in §9 (2026-08-08) and not independently re-checked in this narrower follow-up window; treat them as carried forward, not re-confirmed.

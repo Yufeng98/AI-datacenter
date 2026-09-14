@@ -1,6 +1,6 @@
 # IBM Spyre Accelerator — Hardware Architecture Investigation
 
-*as_of: 2026-08-08*
+*as_of: 2026-09-13 (baseline investigation 2026-08-08; see dated update section at end)*
 *chip: ibm-spyre*
 *device_class: Inference Accelerator (SIMD-Systolic Dataflow, scratchpad-managed)*
 
@@ -296,3 +296,75 @@ Recorded here so downstream tables do not silently fill these in:
 - [RFC 0171 — Spyre Device](https://github.com/torch-spyre/RFCs/blob/main/0171-SpyreDevice/0171-SpyreDeviceRFC.md)
 - [More Than Moore — IBM's Spyre AI Accelerator Deep Dive (secondary)](https://morethanmoore.substack.com/p/ibms-spyre-ai-accelerator-deep-dive)
 - [The Register — Hot Chips 2024 coverage (stale 8-card figure)](https://www.theregister.com/on-prem/2024/08/27/ibm-details-upcoming-chips-to-support-ai-on-mainframes/)
+
+---
+
+## Update — Next-generation IBM Z/LinuxONE dual-ISA processor and AI Inference Acceleration Chipset (2026-09-13)
+
+*Window covered: 2026-08-08 → 2026-09-13. Primary event: IBM, "The future IBM Z & LinuxONE Processor and AI Inference Acceleration Chipset" (Christian Zoellin), Hot Chips 38, 2026-08-24. Sources: ServeTheHome talk coverage (2026-08-24) and IBM Newsroom press release "IBM Unveils Next-Generation Dual-Architecture Processor for IBM Z and LinuxONE" (2026-08-24, IBM primary — confirms the CPU architecture but not the AI chipset specifics).*
+
+### V1. What this is — and is not
+
+This is a **new, not-yet-shipping product announcement**, disclosed at Hot Chips 38 as a *pre-announcement / architecture preview*, not a spec update to the shipping Spyre Accelerator documented above. Two distinct pieces of silicon were disclosed together:
+
+1. **A next-generation IBM Z / LinuxONE CPU** — the successor to the z17/Telum II generation's host processor.
+2. **A separate "AI Inference Acceleration Chipset"** — a discrete accelerator, architecturally distinct from both the current Spyre Accelerator (32 active AI cores, 128 GB LPDDR5, 75 W PCIe card) and Telum II's on-die zAIU.
+
+**Do not conflate any of the three.** IBM's own coverage did not give the new chipset a product name (no "Spyre 2" or equivalent branding found in either source). This entry records it descriptively as "the next-gen AI Inference Acceleration Chipset" pending IBM's own naming, and treats it as **pre-announcement, not shipping, not sampling** — no availability date was disclosed in either source.
+
+### V2. Next-gen IBM Z / LinuxONE CPU — confirmed by IBM primary source
+
+| Property | Value | Confidence |
+|---|---|---|
+| Core count | **11 IBM Z cores** | confirmed (IBM Newsroom: "11 high-performance cores") |
+| Clock | **5.7+ GHz** ("more than 5.7 GHz" per IBM Newsroom) | confirmed, IBM primary |
+| Process node | **2 nm** | confirmed, IBM primary |
+| SMT | SMT=2 | confirmed, ServeTheHome |
+| Dual-ISA | Natively executes **z/Architecture and AArch64 concurrently** in hardware (not translation) — AArch64 v9.3, SVE and SVE2 support, 2,792 implemented AArch64 instructions; little-endian Arm execution paired with big-endian z/Architecture; claimed Arm SystemReady compliance | confirmed, IBM primary + ServeTheHome |
+| L2 cache | **36 MB private L2 per core** | confirmed, ServeTheHome (not itemized in the IBM press release) |
+| Virtual L3 | **432 MB** | confirmed, ServeTheHome |
+| Virtual L4 | **3.5 GB** | confirmed, ServeTheHome |
+| On-chip accelerator blocks | Dedicated blocks for AI, compression, cryptography, sort, and I/O acceleration | confirmed, ServeTheHome |
+| System scalability | Platforms scale to "hundreds of cores and tens of terabytes of memory" | confirmed, IBM primary |
+| Context | First processor milestone from the **IBM–Arm collaboration established April 2026** | confirmed, IBM primary |
+
+The IBM Newsroom press release is a strong primary source for the CPU core count, clock, process node and dual-ISA claim, but explicitly does **not** itemize L2/L3/L4 cache sizes, give a codename, or describe the AI Inference Acceleration Chipset at all — those details come only from ServeTheHome's coverage of the Hot Chips 38 talk itself.
+
+### V3. AI Inference Acceleration Chipset — Hot Chips 38 talk coverage only (not yet corroborated by an IBM primary document)
+
+| Property | Value | Confidence |
+|---|---|---|
+| AI core count | **16 active AI cores + 1 redundant core** (16+1) | confirmed, ServeTheHome (Hot Chips 38 talk); **not** independently confirmed by an IBM primary document |
+| Datatypes | **FP4 and MXFP4** | confirmed, ServeTheHome |
+| Throughput claim | **"up to 4x TOPS"** | vendor claim — **baseline not specified** in the reporting |
+| Memory | **96 GB HBM3e**, up to **~4 TB/s** | confirmed, ServeTheHome |
+| Memory bandwidth claim | **"~20x the memory bandwidth of the current generation"** | vendor claim, ServeTheHome |
+| Host interface | **PCIe Gen6**, described as a "low-latency peer-to-peer interface" | confirmed, ServeTheHome |
+| Security | Confidential computing (data at rest/in transit/in use), quantum-safe cryptography | confirmed, ServeTheHome |
+| Codename / product name | **Not given** in either source | not disclosed |
+| Availability | **Not disclosed** — pre-announcement / architecture preview only | not disclosed |
+
+### V4. Analytical cross-check — bandwidth arithmetic suggests Spyre continuity (not an IBM statement)
+
+Spyre's current-generation peak bandwidth is documented above as **~204 GB/s** (128 GB LPDDR5, 16 channels @ 6.4 Gbps). ServeTheHome's "~20x the memory bandwidth of the current generation" claim, applied to that baseline, gives **~4.08 TB/s** — which matches the disclosed **~4 TB/s HBM3e** figure for the new chipset almost exactly. This is **this survey's own arithmetic cross-check**, not an IBM or ServeTheHome statement identifying "current generation" as Spyre specifically; "current generation" could instead (or also) mean Telum II's zAIU. The consistency is suggestive that the new AI Inference Acceleration Chipset is positioned as, or is being compared against, the Spyre generation — but this is inferred, not confirmed. **Do not upgrade this to a confirmed "Spyre successor" claim** without an explicit IBM statement.
+
+The "up to 4x TOPS" claim's baseline is not specified anywhere in the reviewed coverage — it is not clear whether it is relative to Spyre's ">300 TOPS/card," to Telum II's on-die zAIU, or to some other reference. Recorded as an unqualified vendor claim.
+
+### V5. Architectural contrast with the shipping Spyre Accelerator
+
+| Axis | Spyre Accelerator (shipping, GA) | Next-gen AI Inference Acceleration Chipset (Hot Chips 38 preview) |
+|---|---|---|
+| AI cores | 32 active (34 physical) | 16 active + 1 redundant (16+1) |
+| Memory type | LPDDR5 | HBM3e |
+| Memory capacity | 128 GB | 96 GB |
+| Memory bandwidth | ~204 GB/s | ~4 TB/s (~20x, vendor claim) |
+| Datatypes (2D array) | fp16, fp8, int8, int4 | FP4, MXFP4 (only datatypes disclosed so far) |
+| Host interface | PCIe (generation secondary-source only) | PCIe Gen6 |
+| Status | Shipping (GA), 2025-10-07 announce / 2025-10-28 GA | Pre-announcement / architecture preview only |
+
+Despite roughly halving the AI core count, the new chipset moves from LPDDR5 to HBM3e — a capacity-for-bandwidth trade in the opposite direction from Intel's Gaudi→Crescent Island move (which goes HBM→LPDDR5X for capacity). This reads as IBM prioritizing per-core bandwidth and low-latency PCIe Gen6 host access over raw core count and DRAM capacity for its next-generation enterprise-inference chipset.
+
+### Sources for this update
+
+- [ServeTheHome — IBM Z and LinuxONE Dual-ISA Processor and AI Acceleration at Hot Chips 2026](https://www.servethehome.com/ibm-z-and-linuxone-dual-isa-processor-and-ai-acceleration-at-hot-chips-2026/)
+- [IBM Newsroom — IBM Unveils Next-Generation Dual-Architecture Processor for IBM Z and LinuxONE (2026-08-24)](https://newsroom.ibm.com/2026-08-24-ibm-unveils-next-generation-dual-architecture-processor-for-ibm-z-and-linuxone)

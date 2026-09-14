@@ -304,3 +304,73 @@ An independent fetch of https://semiconductor.samsung.com/us/technologies/memory
 - [ETNews (23 Jul 2026)](https://en.etnews.com/20260723200002) — low confidence
 - [Seoul Economic Daily (5 Aug 2026)](https://en.sedaily.com/finance/2026/08/05/samsung-sk-push-pim-and-cxl-as-us-china-japan-challenge-hbm) — low confidence; misdates Hot Chips
 - [WinBuzzer (18 Feb 2026)](https://www.winbuzzer.com/2026/02/18/samsung-lpddr5x-pim-hbm4-memory-ai-computing-xcxwbn/) — aggregator; establishes pre-baseline public mention only
+
+---
+
+# Investigation Update — LPDDR5X-PIM Hot Chips 38 Disclosure (2026-09-13)
+
+*investigation: hw-architecture (generation 3)*
+*date: 2026-09-13*
+*primary source: ServeTheHome Hot Chips 38 talk coverage (2026-08-25)*
+*secondary: ServeTheHome HBM base-die tutorial coverage (2026-08-23)*
+
+Window covered: 2026-08-08 → 2026-09-13. Primary event: Samsung, "Samsung LPDDR5X-PIM: World's First LPDDR based Processing in Memory (PIM) Solution for AI Inference" (Karam Hwang), Hot Chips 38 Memory session, Tue 2026-08-25 — the talk flagged as pending in U6 above has now happened. Also relevant: Samsung's Sunday tutorial "HBM Base Die: How HBM Will Evolve Using Advanced Logic Processes" (Sangwook Han), Hot Chips 38, 2026-08-23.
+
+### W1. Scope of change
+
+The Hot Chips 38 talk resolves the great majority of the "not disclosed" items carried since the 2026-08-08 update (U3.5): MAC/PIM-block organization, capacity, package, internal and external bandwidth, and peak throughput are now disclosed. This is the single largest jump in confirmed detail this entry has had since the arXiv paper.
+
+### W2. Newly disclosed architecture (ServeTheHome, Hot Chips 38)
+
+| Property | Value | Confidence |
+|---|---|---|
+| PIM block count | **16 PIM blocks** "sit in the DRAM banks, with MAC trees running in parallel" | confirmed, Samsung talk |
+| Compute element | MAC trees; ALU supports **both FP and INT** datatypes | confirmed |
+| Register file | **Vector Register File, 1-kbit capacity**, maximum **64 sequential reads** | confirmed — resolves prior "register file not disclosed" |
+| Capacity | **16 GB across four dies per rank** | confirmed — resolves prior "capacity not disclosed" |
+| Package | **JEDEC-standard 561-ball form factor** | confirmed — resolves prior "package/form factor not disclosed" |
+| PIM-side (internal) bandwidth | **614 GB/s** at the x64, 9600 Mbps operating point | confirmed — resolves prior "internal bandwidth not disclosed" |
+| Host-side (external/conventional) bandwidth | **76.8 GB/s** — the standard LPDDR5X-9600 x64 channel figure (9600 Mbps × 64 bits ÷ 8) | confirmed |
+| Bandwidth ratio | **"eight times"** the conventional DRAM bandwidth (614 / 76.8 ≈ 8.0 — internally consistent) | confirmed |
+| Peak SINT4 | **2.4 TOPS** (SINT8 activations, SINT4 weights) | confirmed |
+| Peak FP8 | **~1.2 TFLOPs per package** | confirmed |
+| Precision combinations | **"Fifteen combinations"** of multi-precision datatypes, selectable via a configuration register | confirmed — supersedes the arXiv paper's narrower published set of 7 (W8A8, W4A4, W8A16, W4A8, W4A16, W8A8(FP), W8A16(FP)) |
+| Target platforms | **Server, mobile, and client** AI inference | confirmed — broadens the arXiv-era "primarily mobile application processor" framing |
+
+**Internal consistency check**: 614 GB/s ÷ 76.8 GB/s = 8.0×, exactly matching the "eight times" claim — this is a genuine cross-check, not merely a repeated assertion, and raises confidence in both figures.
+
+### W3. New end-to-end LLM benchmark — supersedes the GEMV-tile-only evidence
+
+The 2026-08-08 update recorded only synthetic GEMV-tile speedups (6.0×–6.2× etc., weight-tile dimension 4096) from the arXiv simulator. Hot Chips 38 adds a named-model result:
+
+| Workload | Baseline (non-PIM) | LPDDR5X-PIM | Improvement |
+|---|---|---|---|
+| Llama-3.1-8B inference, 320-token context, SINT8 activations / SINT4 weights — latency | 12.3 s | 5.4 s | **2.28×** |
+| Same config — throughput | 27.0 tok/s | 81.3 tok/s | **3.01×** |
+
+**Caveat**: ServeTheHome's coverage does not state whether this is measured silicon or continued simulator output (LP5X-PIM Sim). Given the paper trail to date (arXiv → FMS 2026 → Hot Chips 38, all simulator-based with no measured-silicon claim ever made), treat as **simulator output unless a measured-silicon statement is found** — do not upgrade to "measured" without explicit confirmation. It is nonetheless the first workload-level (rather than pure-GEMV-tile) performance claim for this product.
+
+### W4. Software / ecosystem — new disclosures
+
+- **Simulator and datasheet available upon request.** This resolves the prior "availability not confirmed" flag on LP5X-PIM Sim (U5 above) — it is not open-sourced, but Samsung will share it on request, which is a materially different status than "unknown."
+- **An SDK including reference tooling** is now mentioned — the first SDK reference for this product line.
+- **LPDDR6-PIM is in development**, explicitly framed as working toward a **finalized JEDEC LP6-PIM specification**. This is the first forward-roadmap statement for Samsung's PIM-on-LPDDR line (distinct from the still-unresolved HBM-PIM/Aquabolt-XL successor question — see W5).
+
+### W5. HBM-PIM / Aquabolt-XL successor — still not confirmed, but adjacent signal from the HBM base-die tutorial
+
+U9 (2026-08-08) left the HBM3/HBM4-based Aquabolt-XL successor question open, noting Samsung's Sunday tutorial on HBM base-die evolution was scheduled but not yet public. It has now been delivered (2026-08-23). Per ServeTheHome:
+
+- Samsung frames the HBM base die (B-die) evolving from a **passive interposer into an active co-processor**: moving the memory controller onto the B-die "reclaims valuable XPU silicon," and Samsung explicitly proposes **"processing elements in the base die"** to handle partial computation and reduce die-to-die bandwidth demand, alongside an SRAM-based cell-repair scheme.
+- Logic node: Samsung stated it applied **"D1c DRAM process and logic 4nm to HBM4,"** calling it "the beginning of true DRAM and advanced logic integration"; HBM5's base die continues on advanced logic processes.
+- Samsung roadmaps three phases progressing toward **"zHBM"** (3D vertical integration) — no commercialization dates given.
+
+**Reading**: this is **not** a confirmed Aquabolt-XL/HBM-PIM successor announcement — the tutorial does not use the terms "PIM," "Aquabolt," or reference the existing HBM-PIM product line. But "processing elements in the base die" is architecturally the same idea (compute co-located with DRAM), now aimed at HBM4/HBM5 rather than a bank-level PIM block. Record this as: **a future HBM4/HBM5-generation compute-in-base-die direction exists in Samsung's public roadmap, but it is not branded as, or confirmed to be, a continuation of the Aquabolt-XL/HBM-PIM line.** The roadmap in this survey should read: HBM-PIM/Aquabolt-XL (2021, HBM2) → LPDDR5X-PIM (2026, disclosed) → [unconfirmed lineage split] LPDDR6-PIM (JEDEC LP6-PIM, in development) and/or HBM4/HBM5 base-die processing elements (roadmapped, not yet PIM-branded).
+
+### W6. Status update
+
+Hot Chips 38 reads as a **fuller productization disclosure** for LPDDR5X-PIM — architecture, capacity, bandwidth and a named-model benchmark are now public — but **no explicit production/availability date, no named customer, and no independent (non-Samsung) benchmark** appeared in the reviewed coverage. Status remains **announced / disclosed**, one step short of confirmed sampling or shipping.
+
+### Sources for this update
+
+- [ServeTheHome — Samsung LPDDR5X-PIM at Hot Chips 2026](https://www.servethehome.com/samsung-lpddr5x-pim-at-hot-chips-2026/)
+- [ServeTheHome — Samsung Evolving HBM Base Die at Hot Chips 2026](https://www.servethehome.com/samsung-evolving-hbm-base-die-at-hot-chips-2026/)

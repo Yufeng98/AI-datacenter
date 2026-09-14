@@ -4,7 +4,7 @@
 **Manufacturer:** Qualcomm
 **Deployment:** Data center inference servers (PCIe card); rack-scale from AI200 onward
 **Research date:** 2026-04-05
-**Last updated:** 2026-08-08
+**Last updated:** 2026-09-13
 
 NOTE: This summary covers Cloud AI 100 and Cloud AI 200 data center products only, not Hexagon DSP or mobile NPU.
 
@@ -182,6 +182,7 @@ notes show no AI200/AI250 support:
 |---|---|---|
 | v1.21.0 | 2025-12-22 | FLUX.1-schnell and WAN 2.2 diffusion support |
 | v1.22.0 | 2026-06-18 | WAN 2.2 dual-stage high/low-noise transformers; first-block-caching infrastructure for Diffusers models; blocked-KV attention; layerwise ONNX export for large MoE; moves to HF Transformers 5.5.4 and Python 3.12 |
+| v1.22.8.0 | 2026-08-26 | Qwen3.5/Qwen3.6/Gemma4/GLM4 model support; layerwise API cleanup (`CustomLoader`); MoE export RAM reduction via weight aliasing; CCL support extended to more MoE/VLM models. Still Cloud AI 100-only — no AI200/AI250 support |
 
 ### Financial framing (attribution matters)
 
@@ -211,14 +212,14 @@ notes show no AI200/AI250 support:
 - Peak FLOPS/TOPS for AI200, AI250 and AI300 (Qualcomm explicitly declined).
 - Whether AI200 has shipped to any customer beyond sampling.
 - Identities of the two hyperscaler custom-silicon customers.
-- Any 2026 confirmation that the HUMAIN 200 MW Riyadh deployment (announced Oct/Nov 2025) has begun.
+- Any 2026 confirmation that the HUMAIN 200 MW Riyadh deployment (announced Oct/Nov 2025) has begun. **Partially resolved 2026-09-13**: Adobe confirmed migrating "regional AI data captioning workloads" onto HUMAIN's Dragonfly-accelerated infrastructure (2026-08-31) — the first confirmed production workload, though total facility scale/utilization remains undisclosed. See the 2026-09-13 update section below.
 - Whether the June 2026 "commercial sampling expected mid-2027" wording for AI250 represents a slip from the
   October 2025 messaging is **plausible but unverified** — the October 2025 launch PR could not be retrieved, and
   The Register still describes AI250 as "launching 2027". Not asserted here.
 - A 2026-06-16 report that Qualcomm was circling Tenstorrent in a ~$10B deal is **rumor only** and is deliberately
   excluded from this survey.
 
-### Update sources
+### Update sources (2026-08-08 update)
 
 - https://www.qualcomm.com/news/releases/2026/06/qualcomm-unveils-comprehensive-data-center-roadmap-for-the-agent
 - https://www.qualcomm.com/news/releases/2026/06/qualcomm-to-acquire-modular
@@ -233,3 +234,43 @@ notes show no AI200/AI250 support:
 - https://futurumgroup.com/insights/qualcomms-data-center-reentry-at-investor-day-2026-arrives-just-in-time-for-the-inference-decode-prize/
 - https://hotchips.org/program/conference/
 - https://mlcommons.org/2026/04/mlperf-inference-v6-0-results/
+
+---
+
+## Update (2026-09-13) — HUMAIN deployment confirmed, Qualcomm–AWS collaboration, SDK bump
+
+*Scan window 2026-08-08 → 2026-09-13. Classification: **Roadmap** (deployment/customer confirmations) + **Moderate**
+(SDK version bump). No new AI200/AI250/AI300 hardware specs — core count, clock, process node, TDP and peak
+FLOPS/TOPS remain **not disclosed**. WebSearch was unavailable this session (budget exhausted); sourced from
+direct fetches of Qualcomm newsroom listings and the quic/efficient-transformers GitHub releases page.*
+
+**HUMAIN — first confirmed production workload (2026-08-31).** "Adobe Becomes First Global Software Company to
+Migrate AI Workloads onto HUMAIN Platform, Accelerated by Qualcomm" (Qualcomm newsroom, Riyadh) confirms Adobe is
+running **"regional AI data captioning workloads"** on HUMAIN's **Qualcomm Dragonfly™** infrastructure, for data/
+compute-residency reasons ("keep compute and data in the Kingdom"). The release does not say which Dragonfly part
+(AI200/AI250/AI300) is in service — given AI250/AI300 sampling timelines (mid-2027 / 2028), **AI200 is the
+plausible inference, not a confirmed fact**. Framed as an initial pilot, "expected to be followed by additional
+migrations from the wider industry." No throughput, chip count, or utilization figures disclosed. This is the
+first concrete evidence the HUMAIN Riyadh deployment (announced Oct/Nov 2025, 200 MW figure previously
+unconfirmed) carries live production workload.
+
+**Qualcomm–AWS custom-silicon and optical-connectivity collaboration (2026-09-08).** Qualcomm announced a
+multi-generation collaboration to supply Amazon/AWS with **custom AI inference silicon** and **optical
+connectivity solutions** ("extending up to 1.6T and future-generation solutions," using Qualcomm's "advanced
+SerDes and optical DSP technologies") for AWS AI data centers. Qualcomm is the **supplier** here (verbatim: "a
+multi-generation collaboration with Amazon to enable customized silicon at scale for large-scale AI data
+centers"). No product names (Dragonfly/AI200/AI250/AI300/UALink/ESUN), generation count, timeline, or volume
+disclosed. Reciprocally, Qualcomm said it will deepen its own use of AWS infrastructure (Bedrock) for EDA
+workloads. **This may be one of the "two unnamed global-scale hyperscaler custom-silicon customers" reported via
+Futurum from the June 2026 Investor Day — no source confirms this explicitly; recorded as a plausible hypothesis
+only.**
+
+**SDK: quic/efficient-transformers v1.22.8.0 (2026-08-26).** Incremental model-support release (Qwen3.5/Qwen3.6/
+Gemma4/GLM4, MoE export RAM reduction, CCL extensions) — see the version table above. Still Cloud AI 100-only; no
+AI200/AI250 toolchain support published.
+
+**Checked, no change found:** no new AI200/AI250/AI300 spec disclosure; no MLPerf submission found this window; no
+re-verification of the Hot Chips 38 absence (prior finding stands, not independently re-checked this cycle); no
+resolution of the AI200-vs-AI250 768 GB/card capacity conflict.
+
+Sources: https://www.qualcomm.com/news/releases/2026/08/adobe-becomes-first-global-software-company-to-migrate-ai-worklo · https://www.qualcomm.com/news/releases/2026/09/qualcomm-announces-multi-generational-product-collaboration-with · https://github.com/quic/efficient-transformers/releases
