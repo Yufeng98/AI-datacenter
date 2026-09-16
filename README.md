@@ -2,7 +2,7 @@
 
 Open research corpus behind the survey **"Balancing Generality and Specialization: A Survey on AI Datacenter Hardware Architecture"** (Yufeng Gu, Jiazhen Wang, Reetuparna Das — University of Michigan).
 
-**Project page: <https://yufeng98.github.io/ai_datacenter_survey/>** — the survey abstract plus an interactive version of its scaling figure: frontier-model parameter counts against per-accelerator dense FP16/BF16 compute, DRAM bandwidth and capacity, and scale-up interconnect bandwidth. The chart is built from the chip data in this corpus, and each point links back to the `hw-architecture.md` it was drawn from.
+**Project page: <https://yufeng98.github.io/ai-datacenter-survey/>** — the survey abstract plus an interactive version of its scaling figure: frontier-model parameter counts against per-accelerator dense FP16/BF16 compute, DRAM bandwidth and capacity, and scale-up interconnect bandwidth. The chart is built from the chip data in this corpus, and each point links back to the `hw-architecture.md` it was drawn from.
 
 For each AI chip, this corpus discovers, investigates, and documents:
 
@@ -30,7 +30,7 @@ AI-datacenter/
         └── codex-reviews/          # Codex review feedback
 ```
 
-This repository is consumed as the `public/` git submodule of the (private) survey repository, whose Claude Code skills generate and update these files. The [project page](https://yufeng98.github.io/ai_datacenter_survey/) is generated from the same data and published separately.
+This repository is consumed as the `public/` git submodule of the (private) survey repository, whose Claude Code skills generate and update these files. The [project page](https://yufeng98.github.io/ai-datacenter-survey/) is generated from the same data and published separately.
 
 ## Chips Investigated (50)
 
